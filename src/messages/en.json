@@ -1,0 +1,1637 @@
+{
+  "app": {
+    "name": "Pro",
+    "tagline": "Smart business analytics"
+  },
+  "nav": {
+    "overview": "Overview",
+    "finance": "Finance",
+    "financeRevenue": "Revenue",
+    "financeCosts": "Costs",
+    "financeCashflow": "Cash Flow",
+    "financeBudget": "Budget",
+    "market": "Market",
+    "marketCompetitors": "Competitors",
+    "marketTrends": "Trends",
+    "marketPositioning": "Positioning",
+    "operations": "Operations",
+    "operationsEfficiency": "Efficiency",
+    "operationsCustomers": "Customers",
+    "operationsTeam": "Team",
+    "ai": "AI",
+    "aiChat": "Chat",
+    "aiInsights": "Insights",
+    "aiForecasting": "Forecasting",
+    "aiBenchmarks": "Benchmarks",
+    "aiAlerts": "Alerts",
+    "aiAgent": "Agent",
+    "customDashboards": "Custom Dashboards",
+    "customDashboardsBuilder": "Builder",
+    "reports": "Reports",
+    "reportsBuilder": "Builder",
+    "reportsScheduled": "Scheduled",
+    "data": "Data",
+    "dataImport": "Import",
+    "dataManual": "Manual",
+    "dataHistory": "History",
+    "integrations": "Integrations",
+    "settings": "Settings",
+    "settingsProfile": "Profile",
+    "settingsOrganization": "Organization",
+    "settingsTeam": "Team",
+    "settingsBilling": "Billing",
+    "settingsSecurity": "Security",
+    "settingsNotifications": "Notifications",
+    "revenue": "Revenue",
+    "costs": "Costs",
+    "cashflow": "Cash Flow",
+    "budget": "Budget",
+    "help": "Help",
+    "dashboard": "Dashboard",
+    "competitors": "Competitors",
+    "trends": "Trends",
+    "positioning": "Positioning",
+    "logout": "Sign out",
+    "operationsOverview": "Overview",
+    "chat": "AI Chat",
+    "insights": "Insights",
+    "dashboards": "Custom Dashboards",
+    "back": "Back",
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "testimonials": "Testimonials",
+    "contact": "Contact"
+  },
+  "breadcrumb": {
+    "dashboard": "Dashboard"
+  },
+  "topbar": {
+    "credits": "AI Credits",
+    "notifications": "Notifications",
+    "toggleTheme": "Toggle theme",
+    "toggleLanguage": "Change language",
+    "userMenu": "User menu",
+    "openSidebar": "Open menu",
+    "closeSidebar": "Close menu",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "search": "Search...",
+    "profile": "Profile",
+    "logout": "Logout",
+    "creditsRemaining": "{count} credits remaining",
+    "buyMore": "Buy more",
+    "popoverTitle": "AI Credits",
+    "popoverHint": "Each chat message uses 1 credit. Generating new insights costs 3 credits."
+  },
+  "user": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "name": "Demo User",
+    "email": "demo@pro-analytics.io"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "placeholder": {
+    "title": "Coming soon",
+    "message": "This section will be available soon"
+  },
+  "pages": {
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Business overview"
+    },
+    "finance": {
+      "title": "Finance",
+      "subtitle": "Financial analysis"
+    },
+    "financeRevenue": {
+      "title": "Revenue",
+      "subtitle": "Revenue analysis"
+    },
+    "financeCosts": {
+      "title": "Costs",
+      "subtitle": "Cost analysis"
+    },
+    "financeCashflow": {
+      "title": "Cash Flow",
+      "subtitle": "Cash flow tracking"
+    },
+    "financeBudget": {
+      "title": "Budget",
+      "subtitle": "Planning and control"
+    },
+    "market": {
+      "title": "Market",
+      "subtitle": "Market analysis"
+    },
+    "marketCompetitors": {
+      "title": "Competitors",
+      "subtitle": "Competitive analysis"
+    },
+    "marketTrends": {
+      "title": "Trends",
+      "subtitle": "Market trends"
+    },
+    "marketPositioning": {
+      "title": "Positioning",
+      "subtitle": "Market positioning"
+    },
+    "operations": {
+      "title": "Operations",
+      "subtitle": "Operational efficiency"
+    },
+    "operationsEfficiency": {
+      "title": "Efficiency",
+      "subtitle": "Efficiency metrics"
+    },
+    "operationsCustomers": {
+      "title": "Customers",
+      "subtitle": "Customer analytics"
+    },
+    "operationsTeam": {
+      "title": "Team",
+      "subtitle": "Team management"
+    },
+    "aiChat": {
+      "title": "AI Chat",
+      "subtitle": "AI analytics assistant"
+    },
+    "aiInsights": {
+      "title": "AI Insights",
+      "subtitle": "Automatic insights"
+    },
+    "aiForecasting": {
+      "title": "AI Forecasting",
+      "subtitle": "Smart predictions"
+    },
+    "aiBenchmarks": {
+      "title": "AI Benchmarks",
+      "subtitle": "Industry comparisons"
+    },
+    "aiAlerts": {
+      "title": "AI Alerts",
+      "subtitle": "Smart notifications"
+    },
+    "aiAgent": {
+      "title": "AI Agent",
+      "subtitle": "Autonomous agent"
+    },
+    "customDashboards": {
+      "title": "Custom Dashboards",
+      "subtitle": "Your custom dashboards"
+    },
+    "customDashboardsBuilder": {
+      "title": "Dashboard Builder",
+      "subtitle": "Build your dashboard"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Your reports"
+    },
+    "reportsBuilder": {
+      "title": "Report Builder",
+      "subtitle": "Create a new report"
+    },
+    "reportsScheduled": {
+      "title": "Scheduled Reports",
+      "subtitle": "Automated reports"
+    },
+    "dataImport": {
+      "title": "Data Import",
+      "subtitle": "Import your data"
+    },
+    "dataManual": {
+      "title": "Manual Input",
+      "subtitle": "Enter data manually"
+    },
+    "dataHistory": {
+      "title": "Data History",
+      "subtitle": "Import history"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "subtitle": "Connect your tools"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your account"
+    },
+    "settingsProfile": {
+      "title": "Profile",
+      "subtitle": "Personal information"
+    },
+    "settingsOrganization": {
+      "title": "Organization",
+      "subtitle": "Organization details"
+    },
+    "settingsTeam": {
+      "title": "Team",
+      "subtitle": "Team members"
+    },
+    "settingsBilling": {
+      "title": "Billing",
+      "subtitle": "Plan and payments"
+    },
+    "settingsSecurity": {
+      "title": "Security",
+      "subtitle": "Password and 2FA"
+    },
+    "settingsNotifications": {
+      "title": "Notifications",
+      "subtitle": "Notification preferences"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "empty": "No data available",
+    "all": "All",
+    "category": "Category",
+    "period": "Period",
+    "date": "Date",
+    "amount": "Amount",
+    "description": "Description",
+    "source": "Source",
+    "actions": "Actions",
+    "next": "Next",
+    "prev": "Prev",
+    "page": "Page",
+    "of": "of",
+    "showing": "Showing",
+    "results": "results",
+    "filter": "Filters",
+    "reset": "Reset",
+    "apply": "Apply",
+    "export": "Export",
+    "save": "Save",
+    "saveAndAddAnother": "Save and add another",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "previous": "Previous",
+    "search": "Search",
+    "noResults": "No results",
+    "details": "Details",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "edit": "Edit",
+    "add": "Add",
+    "currency": "€",
+    "percent": "%",
+    "appName": "Pro",
+    "month": "Month",
+    "year": "Year",
+    "trend": "Trend",
+    "vsTarget": "vs target",
+    "target": "Target",
+    "current": "Current",
+    "value": "Value",
+    "language": "Language",
+    "send": "Send",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "buy": "Buy",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save2Months": "Save 2 months",
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "unlimited": "Unlimited",
+    "viewPlans": "View Plans",
+    "upgrade": "Upgrade",
+    "currentPlan": "Current Plan",
+    "mostPopular": "Most Popular",
+    "manage": "Manage",
+    "comingSoon": "Coming soon",
+    "open": "Open",
+    "preview": "Preview",
+    "untitled": "Untitled",
+    "tagline": "Analyze your business with AI",
+    "continue": "Continue",
+    "skip": "Skip",
+    "done": "Done",
+    "freeStart": "Start Free",
+    "login": "Sign in",
+    "signup": "Sign up",
+    "logout": "Sign out",
+    "dashboard": "Dashboard",
+    "settings": "Settings"
+  },
+  "periods": {
+    "1m": "Last month",
+    "3m": "Last 3 months",
+    "6m": "Last 6 months",
+    "12m": "Last 12 months",
+    "custom": "Custom",
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    "90d": "Last 90 days",
+    "ytd": "Year to date"
+  },
+  "overview": {
+    "title": "Overview",
+    "subtitle": "Organization financial summary",
+    "kpi": {
+      "revenue": "Total Revenue",
+      "netMargin": "Net Margin",
+      "runway": "Cash Runway",
+      "mrr": "MRR",
+      "customers": "Active Customers",
+      "vsPrev": "vs previous month",
+      "months": "months"
+    },
+    "chart": {
+      "revenueVsCosts": "Revenue vs Costs — last 12 months",
+      "revenue": "Revenue",
+      "costs": "Costs"
+    },
+    "aiSpotlight": "AI Spotlight",
+    "quickActions": {
+      "title": "Quick actions",
+      "addData": "Add Data",
+      "generateReport": "Generate Report",
+      "askAi": "Ask AI",
+      "importFile": "Import File"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "subtitle": "Full view of financial metrics",
+    "kpi": {
+      "revenue": "Revenue",
+      "costs": "Costs",
+      "grossMargin": "Gross Margin",
+      "operatingMargin": "Operating Margin",
+      "netMargin": "Net Margin"
+    },
+    "chart": {
+      "trend": "Monthly revenue and costs",
+      "cashFlowArea": "Cumulative cash flow",
+      "byCategory": "Revenue by category"
+    }
+  },
+  "revenue": {
+    "title": "Revenue",
+    "subtitle": "Revenue detail, distribution and transactions",
+    "kpi": {
+      "total": "Total revenue",
+      "mom": "MoM Growth",
+      "yoy": "YoY Growth",
+      "arpu": "ARPU"
+    },
+    "chart": {
+      "trend": "Revenue trend",
+      "distribution": "Distribution by category"
+    },
+    "table": {
+      "title": "Revenue transactions"
+    }
+  },
+  "costs": {
+    "title": "Costs",
+    "subtitle": "Cost analysis and burn rate",
+    "kpi": {
+      "total": "Total costs",
+      "burnRate": "Burn Rate",
+      "ratio": "Costs / Revenue ratio"
+    },
+    "chart": {
+      "byCategory": "Costs by category",
+      "trend": "Monthly cost trend"
+    },
+    "table": {
+      "title": "Cost transactions"
+    }
+  },
+  "cashflow": {
+    "title": "Cash Flow",
+    "subtitle": "Liquidity, runway and movements",
+    "kpi": {
+      "operating": "Operating Cash Flow",
+      "available": "Cash available",
+      "workingCapital": "Working Capital",
+      "runway": "Runway"
+    },
+    "chart": {
+      "inflowOutflow": "Monthly inflow vs outflow",
+      "byCategory": "Cash flow by category",
+      "inflow": "Inflow",
+      "outflow": "Outflow"
+    }
+  },
+  "budget": {
+    "title": "Budget",
+    "subtitle": "Planned vs actual",
+    "table": {
+      "category": "Category",
+      "planned": "Planned",
+      "actual": "Actual",
+      "diff": "Difference",
+      "usage": "% Used"
+    },
+    "chart": {
+      "compare": "Planned vs Actual"
+    }
+  },
+  "units": {
+    "months": "months",
+    "currency": "EUR"
+  },
+  "states": {
+    "loadingTitle": "Loading",
+    "emptyTitle": "No data yet",
+    "emptyDescription": "There is nothing to display yet.",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "We could not complete the operation."
+  },
+  "import": {
+    "title": "Import Data",
+    "subtitle": "Upload a CSV or Excel file to import revenues, costs, KPIs or competitors.",
+    "dropzoneTitle": "Drop your file here",
+    "dropzoneOr": "or",
+    "dropzoneBrowse": "browse from your computer",
+    "dropzoneHint": "Supported formats: .csv, .xlsx, .xls — Max 10MB",
+    "dropzoneActive": "Release to upload",
+    "dropzoneError": "Invalid file",
+    "fileTooLarge": "File exceeds the 10MB limit",
+    "unsupportedFormat": "Unsupported format. Use CSV, XLSX or XLS.",
+    "uploading": "Uploading file...",
+    "parsing": "Parsing file...",
+    "preview": "Preview",
+    "previewHint": "Here are the first 10 rows of your file.",
+    "mapping": "Column Mapping",
+    "mappingHint": "Map each file column to the corresponding field.",
+    "autoDetected": "Auto-detected",
+    "selectTargetType": "Data type to import",
+    "targetRevenue": "Revenue",
+    "targetCost": "Cost",
+    "targetKpi": "KPI",
+    "targetCompetitor": "Competitor",
+    "field": {
+      "ignore": "— Ignore —",
+      "date": "Date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "category": "Category",
+      "description": "Description",
+      "type": "Type",
+      "recurring": "Recurring",
+      "name": "Name",
+      "value": "Value",
+      "target": "Target",
+      "unit": "Unit",
+      "website": "Website",
+      "estimatedRevenue": "Estimated revenue",
+      "employees": "Employees",
+      "marketShare": "Market share",
+      "strengths": "Strengths",
+      "weaknesses": "Weaknesses"
+    },
+    "validation": {
+      "title": "Validation",
+      "errorsFound": "{count} errors found",
+      "warningsFound": "{count} warnings",
+      "allValid": "All rows are valid",
+      "row": "Row {n}",
+      "invalidDate": "Invalid date",
+      "invalidAmount": "Invalid amount",
+      "missingRequired": "Required field missing",
+      "duplicateRow": "Possible duplicate row"
+    },
+    "importButton": "Start Import",
+    "importing": "Importing...",
+    "progress": "{done} of {total} rows",
+    "result": {
+      "title": "Import completed",
+      "imported": "{count} imported",
+      "errors": "{count} errors",
+      "warnings": "{count} warnings",
+      "goToDashboard": "Go to Dashboard",
+      "importAnother": "Import another file"
+    },
+    "columnLabel": "Column",
+    "mapToLabel": "Map to",
+    "noFileSelected": "No file selected"
+  },
+  "manual": {
+    "title": "Manual Entry",
+    "subtitle": "Add data one at a time or in batch.",
+    "tabs": {
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "kpi": "KPI",
+      "competitor": "Competitor"
+    },
+    "mode": {
+      "single": "Single",
+      "batch": "Batch"
+    },
+    "revenue": {
+      "categories": {
+        "sales": "Sales",
+        "subscription": "Subscription",
+        "services": "Services",
+        "licensing": "Licensing",
+        "other": "Other"
+      }
+    },
+    "cost": {
+      "categories": {
+        "salary": "Salaries",
+        "rent": "Rent",
+        "marketing": "Marketing",
+        "software": "Software",
+        "utilities": "Utilities",
+        "other": "Other"
+      }
+    },
+    "kpi": {
+      "names": {
+        "churn": "Churn Rate",
+        "nps": "NPS",
+        "conversion": "Conversion Rate",
+        "cac": "CAC",
+        "ltv": "LTV",
+        "mrr": "MRR",
+        "arr": "ARR"
+      },
+      "units": {
+        "percent": "%",
+        "eur": "EUR",
+        "usd": "USD",
+        "number": "Number"
+      }
+    },
+    "placeholders": {
+      "amount": "0.00",
+      "description": "Optional description",
+      "website": "https://example.com",
+      "strengths": "Add a strength and press Enter",
+      "weaknesses": "Add a weakness and press Enter"
+    },
+    "batch": {
+      "title": "Batch entry",
+      "addRow": "Add row",
+      "removeRow": "Remove",
+      "save": "Save all",
+      "rows": "{count} rows"
+    },
+    "toast": {
+      "saved": "Saved",
+      "batchSaved": "{count} items saved",
+      "error": "Save failed"
+    },
+    "validation": {
+      "required": "Required field",
+      "invalidDate": "Invalid date",
+      "invalidAmount": "Invalid amount",
+      "positive": "Must be a positive number",
+      "maxLength": "Maximum {n} characters"
+    }
+  },
+  "history": {
+    "title": "Import History",
+    "subtitle": "Review and manage your past imports.",
+    "columns": {
+      "date": "Date",
+      "file": "File",
+      "type": "Type",
+      "rows": "Rows",
+      "errors": "Errors",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "ROLLED_BACK": "Rolled back"
+    },
+    "actions": {
+      "details": "Details",
+      "rollback": "Rollback",
+      "rollbackConfirmTitle": "Rollback this import?",
+      "rollbackConfirmDescription": "All {count} imported records will be deleted. This cannot be undone.",
+      "rollbackSuccess": "Import rolled back",
+      "rollbackError": "Could not rollback import"
+    },
+    "empty": "No imports yet."
+  },
+  "market": {
+    "title": "Market",
+    "subtitle": "Market, competitors and positioning analysis",
+    "kpi": {
+      "marketShare": "Market share",
+      "tam": "TAM",
+      "sam": "SAM",
+      "som": "SOM",
+      "growth": "Market growth",
+      "tamHelp": "Total addressable market",
+      "samHelp": "Serviceable available market",
+      "somHelp": "Reachable share over 3 years"
+    },
+    "overview": {
+      "title": "Market overview",
+      "auto": "Auto-generated from data"
+    },
+    "competitors": {
+      "title": "Competitors",
+      "subtitle": "Comparison with the main players",
+      "add": "Add competitor",
+      "name": "Name",
+      "website": "Website",
+      "revenue": "Revenue",
+      "employees": "Headcount",
+      "marketShare": "Market share",
+      "strengths": "Strengths",
+      "weaknesses": "Weaknesses",
+      "radar": "Multi-dimensional comparison",
+      "radarHelp": "Our company (blue) vs competitors (grey)",
+      "share": "Market share distribution",
+      "you": "Our company"
+    },
+    "trends": {
+      "title": "Market trends",
+      "subtitle": "Market evolution over the last 18 months",
+      "growth": "Market growth",
+      "size": "Market size",
+      "tamSamSom": "TAM / SAM / SOM over time"
+    },
+    "positioning": {
+      "title": "Positioning",
+      "subtitle": "Competitive map, SWOT and comparison table",
+      "scatter": "Price / quality map",
+      "scatterHelp": "X = price, Y = quality, bubble size = market share",
+      "price": "Price",
+      "quality": "Quality",
+      "swot": "SWOT analysis",
+      "strengths": "Strengths",
+      "weaknesses": "Weaknesses",
+      "opportunities": "Opportunities",
+      "threats": "Threats",
+      "comparison": "Comparison table",
+      "metric": "Metric",
+      "you": "Our company",
+      "rows": {
+        "share": "Market share",
+        "revenue": "Revenue",
+        "employees": "Headcount",
+        "price": "Price",
+        "quality": "Quality",
+        "product": "Product",
+        "brand": "Brand"
+      }
+    }
+  },
+  "operations": {
+    "title": "Operations",
+    "subtitle": "Operational KPIs, team and customers for a full company view",
+    "kpi": {
+      "churnRate": "Churn rate",
+      "churnRateDesc": "% customers lost this month",
+      "retention": "Retention",
+      "retentionDesc": "% customers retained",
+      "nps": "NPS",
+      "npsDesc": "Net Promoter Score",
+      "conversionRate": "Conversion rate",
+      "conversionRateDesc": "Visitors → paying",
+      "revenuePerEmployee": "Revenue per employee",
+      "revenuePerEmployeeDesc": "Average productivity",
+      "csat": "CSAT",
+      "csatDesc": "Customer Satisfaction Score",
+      "newCustomers": "New customers",
+      "newCustomersDesc": "Acquired this month"
+    },
+    "status": {
+      "onTarget": "On target",
+      "warning": "Warning",
+      "offTarget": "Off target"
+    },
+    "gauges": {
+      "title": "Main indicators",
+      "subtitle": "Current position vs target"
+    }
+  },
+  "efficiency": {
+    "title": "Efficiency",
+    "subtitle": "Productivity and revenue per employee",
+    "revenuePerEmployeeTrend": "Revenue per employee — last 12 months",
+    "departmentProductivity": "Productivity by department",
+    "department": "Department",
+    "productivity": "Productivity"
+  },
+  "customers": {
+    "title": "Customers",
+    "subtitle": "Acquisition, retention and satisfaction",
+    "churnRetention": "Churn vs Retention — 12 months",
+    "funnel": "Conversion funnel",
+    "funnelStages": {
+      "visitors": "Visitors",
+      "trial": "Trial",
+      "paying": "Paying",
+      "retained": "Retained"
+    },
+    "npsTrend": "NPS trend",
+    "csatTrend": "CSAT trend",
+    "newCustomers": "New customers per month",
+    "cumulativeGrowth": "Cumulative customer growth"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Headcount, cost and performance by department",
+    "table": {
+      "department": "Department",
+      "headcount": "Headcount",
+      "avgCost": "Avg. cost",
+      "productivity": "Productivity",
+      "satisfaction": "Satisfaction",
+      "turnover": "Turnover"
+    },
+    "headcountByDept": "Headcount by department",
+    "productivityHeatmap": "Monthly productivity heatmap",
+    "departments": {
+      "engineering": "Engineering",
+      "sales": "Sales",
+      "marketing": "Marketing",
+      "support": "Support"
+    },
+    "invite": "Invite member",
+    "invitePlaceholder": "email@company.com",
+    "inviteCta": "Send invite",
+    "members": {
+      "title": "Members",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Invite sent",
+      "disabled": "Disabled"
+    },
+    "remove": "Remove",
+    "limits": {
+      "starter": "The Starter plan is for a single user. Upgrade to Pro to invite your team.",
+      "proLimit": "You've reached the 10-member limit of the Pro plan. Upgrade to Enterprise for unlimited members."
+    }
+  },
+  "chat": {
+    "title": "AI Chat",
+    "subtitle": "Ask questions about your data and get specific analysis",
+    "newConversation": "New Conversation",
+    "conversations": "Conversations",
+    "noConversations": "No conversations yet. Start by asking something about your data.",
+    "placeholder": "Ask something about your company...",
+    "send": "Send",
+    "thinking": "AI is thinking...",
+    "you": "You",
+    "ai": "AI",
+    "emptyTitle": "Start a new conversation",
+    "emptyDescription": "The AI has access to {company} data: revenue, costs, KPIs and competitors. Ask anything.",
+    "suggestion1": "What are the main levers to improve margin?",
+    "suggestion2": "Should we enter the DACH market now?",
+    "suggestion3": "How can we reduce churn rate?",
+    "noCreditsTitle": "Credits exhausted",
+    "noCreditsDescription": "You've used all your AI credits. Buy more to continue.",
+    "creditsCost": "Costs 1 credit",
+    "errorSending": "Error sending message. Please try again."
+  },
+  "insights": {
+    "title": "AI Insights",
+    "subtitle": "Strategic suggestions generated from your data analysis",
+    "generate": "Generate New Insights",
+    "generateCost": "3 credits",
+    "generating": "Generating...",
+    "filters": "Filters",
+    "filterType": "Type",
+    "filterPriority": "Priority",
+    "filterStatus": "Status",
+    "all": "All",
+    "empty": "No insights yet. Generate the first insights with AI.",
+    "noResults": "No insights match the selected filters.",
+    "confidence": "Confidence",
+    "viewDetails": "View details",
+    "markReviewed": "Reviewed",
+    "markImplemented": "Implemented",
+    "markIgnored": "Ignore",
+    "type": {
+      "STRATEGY": "Strategy",
+      "WARNING": "Warning",
+      "OPPORTUNITY": "Opportunity",
+      "ACTION": "Action"
+    },
+    "priority": {
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "status": {
+      "NEW": "New",
+      "REVIEWED": "Reviewed",
+      "IMPLEMENTED": "Implemented",
+      "IGNORED": "Ignored"
+    }
+  },
+  "errors": {
+    "noCredits": "AI credits exhausted",
+    "unauthorized": "Unauthorized",
+    "notFound": "Resource not found",
+    "internal": "Internal server error",
+    "generic": "An error occurred",
+    "tryAgain": "Try again"
+  },
+  "billing": {
+    "title": "Subscription & Billing",
+    "subtitle": "Manage your plan, AI credits, and invoices",
+    "currentPlanCard": {
+      "title": "Current Plan",
+      "active": "Active",
+      "trialing": "Trialing",
+      "pastDue": "Past Due",
+      "canceled": "Canceled",
+      "renewsOn": "Renews on {date}",
+      "endsOn": "Ends on {date}",
+      "manageBtn": "Manage Subscription",
+      "upgradeBtn": "Upgrade"
+    },
+    "compare": {
+      "title": "Compare Plans",
+      "feature": "Feature",
+      "monthlyToggle": "Monthly",
+      "yearlyToggle": "Yearly (-20%)"
+    },
+    "credits": {
+      "title": "AI Credits",
+      "balance": "Current Balance",
+      "noExpiry": "Purchased credits never expire",
+      "buyPack": "Buy Pack",
+      "history": "History",
+      "credit": "credit",
+      "credits": "credits"
+    },
+    "invoices": {
+      "title": "Invoice History",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "download": "Download",
+      "empty": "No invoices yet"
+    },
+    "usage": {
+      "title": "Monthly Usage",
+      "imports": "Imports",
+      "aiCredits": "AI Credits",
+      "users": "Users",
+      "orgs": "Organizations",
+      "customDashboards": "Custom Dashboards",
+      "usedOf": "{used} of {limit}",
+      "usedUnlimited": "{used} used"
+    },
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "Try the essentials"
+      },
+      "starter": {
+        "name": "Starter",
+        "tagline": "For freelancers and solo pros"
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "The sweet spot for growing SMBs"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For teams and structured companies"
+      }
+    },
+    "features": {
+      "financial_basic": "Basic financial analytics",
+      "financial_full": "Advanced financial analytics",
+      "market": "Market analytics",
+      "operations": "Operations & KPIs",
+      "ai_chat": "AI Chat",
+      "ai_insights": "AI Insights",
+      "ai_forecast": "AI Forecasting",
+      "ai_benchmark": "AI Benchmarking",
+      "ai_alerts": "AI Alerts",
+      "ai_agent": "Autonomous AI Agent",
+      "charts_interactive": "Interactive charts",
+      "report_basic": "Basic reports",
+      "report_full": "Full reports",
+      "share_reports": "Share reports",
+      "collaboration": "Real-time collaboration",
+      "audit_log": "Audit log",
+      "two_factor": "Two-factor auth",
+      "white_label": "White label"
+    },
+    "limits": {
+      "users": "{count, plural, =0 {No users} one {# user} other {# users}}",
+      "orgs": "{count, plural, =0 {No organizations} one {# organization} other {# organizations}}",
+      "imports": "{count, plural, =0 {No imports} one {# import / month} other {# imports / month}}",
+      "aiCredits": "{count} AI credits / month",
+      "customDashboards": "{count, plural, =0 {No custom dashboards} one {# custom dashboard} other {# custom dashboards}}",
+      "unlimited": "Unlimited"
+    },
+    "gate": {
+      "lockedTitle": "Feature not included",
+      "lockedDescription": "This feature is available from the {plan} plan. Upgrade to unlock it.",
+      "viewPlans": "View Plans",
+      "upgradeNow": "Upgrade now"
+    }
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Pick the plan that fits your business. Change or cancel anytime.",
+    "ctaFree": "Start Free",
+    "ctaUpgrade": "Get Started",
+    "everythingIn": "Everything in {plan}, plus:",
+    "compareTitle": "Full comparison",
+    "faqTitle": "Frequently asked questions",
+    "faq": {
+      "q1": "Can I change plan at any time?",
+      "a1": "Yes, you can upgrade or downgrade anytime. Changes apply from the next billing cycle.",
+      "q2": "What happens if I exceed my plan limits?",
+      "a2": "We notify you before you hit the limits. For imports and dashboards you'll need to upgrade. For AI credits you can buy extra packs.",
+      "q3": "Do AI credits expire?",
+      "a3": "Plan credits refresh every month. Credits you purchase separately never expire.",
+      "q4": "Is there a free trial?",
+      "a4": "Yes, the Free plan lets you try the essentials with no time limit.",
+      "q5": "Can I pay by bank transfer?",
+      "a5": "For Enterprise, yes — contact our sales team."
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Generate, download and share your business reports",
+    "newReport": "New Report",
+    "scheduled": {
+      "title": "Scheduled reports",
+      "subtitle": "Configure recurring email reports",
+      "new": "New schedule",
+      "frequency": "Frequency",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "recipients": "Recipients",
+      "recipientsHint": "Comma-separated emails",
+      "active": "Active",
+      "paused": "Paused",
+      "saved": "Configuration saved",
+      "proOnly": "Scheduled reports are available on PRO and Enterprise plans"
+    },
+    "empty": {
+      "title": "No reports yet",
+      "description": "Create your first professional PDF report to share insights and analysis.",
+      "cta": "Create first report"
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions",
+      "download": "Download",
+      "view": "View",
+      "share": "Share",
+      "delete": "Delete"
+    },
+    "type": {
+      "complete": "Complete",
+      "executive": "Executive Summary",
+      "finance": "Finance only",
+      "market": "Market only",
+      "operations": "Operations only",
+      "custom": "Custom"
+    },
+    "status": {
+      "ready": "Ready",
+      "generating": "Generating...",
+      "failed": "Failed"
+    },
+    "builder": {
+      "title": "Create Report",
+      "subtitle": "Configure your report in a few steps",
+      "preview": "Preview",
+      "generate": "Generate PDF",
+      "generating": "Generating PDF...",
+      "step": "Step {current} of {total}",
+      "step1": {
+        "title": "Report type",
+        "description": "Choose the type of report you want to generate"
+      },
+      "step2": {
+        "title": "Period",
+        "description": "Select the reference period for the data",
+        "1m": "Last month",
+        "3m": "Last 3 months",
+        "6m": "Last 6 months",
+        "12m": "Last 12 months",
+        "custom": "Custom period",
+        "from": "From",
+        "to": "To"
+      },
+      "step3": {
+        "title": "Sections",
+        "description": "Select the sections to include",
+        "executive": "Executive Summary",
+        "finance": "Finance",
+        "cashflow": "Cash Flow",
+        "market": "Market",
+        "operations": "Operations",
+        "projections": "Projections",
+        "benchmark": "Benchmark",
+        "recommendations": "AI Recommendations"
+      },
+      "step4": {
+        "title": "Options",
+        "description": "Language and chart settings",
+        "language": "Report language",
+        "languageIt": "Italiano",
+        "languageEn": "English",
+        "includeCharts": "Include charts"
+      }
+    },
+    "share": {
+      "title": "Share report",
+      "publicLink": "Public link",
+      "publicLinkDesc": "Anyone with the link can view the report",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "proOnly": "Available on PRO and Enterprise plans"
+    }
+  },
+  "plan": {
+    "starter": "Starter",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "current": "Current plan: {plan}"
+  },
+  "dashboards": {
+    "title": "Custom Dashboards",
+    "subtitle": "Build personalized dashboards by dragging widgets and configuring real metrics.",
+    "new": "New Dashboard",
+    "createdAt": "Created on",
+    "updatedAt": "Updated on",
+    "widgets": "{count, plural, =0 {No widgets} =1 {1 widget} other {# widgets}}",
+    "empty": {
+      "title": "No dashboards yet",
+      "description": "Create your first dashboard to track the KPIs that matter to you.",
+      "cta": "Create your first dashboard"
+    },
+    "deleteConfirm": "Delete dashboard \"{name}\"? This action cannot be undone.",
+    "limits": {
+      "starter": "The Starter plan does not include custom dashboards. Upgrade to Pro to create up to 5.",
+      "pro": "You reached the 5-dashboard limit of the Pro plan. Upgrade to Enterprise for unlimited dashboards.",
+      "upgrade": "Upgrade plan"
+    }
+  },
+  "builder": {
+    "title": "Dashboard Builder",
+    "namePlaceholder": "Untitled dashboard",
+    "library": "Widget Library",
+    "librarySubtitle": "Drag or click a widget to add it to the canvas.",
+    "canvasEmpty": "Drag widgets from the library to get started.",
+    "preview": "Preview",
+    "exitPreview": "Exit preview",
+    "save": "Save",
+    "saved": "Dashboard saved",
+    "removeWidget": "Remove",
+    "configure": "Configure",
+    "config": {
+      "title": "Configure widget",
+      "widgetTitle": "Title",
+      "metric": "Metric",
+      "period": "Period",
+      "color": "Color",
+      "text": "Text",
+      "noOptions": "This widget needs no configuration."
+    }
+  },
+  "widgets": {
+    "kpi": {
+      "name": "KPI Card",
+      "description": "Headline number with change"
+    },
+    "line": {
+      "name": "Line Chart",
+      "description": "Trend over time"
+    },
+    "bar": {
+      "name": "Bar Chart",
+      "description": "Compare categories"
+    },
+    "area": {
+      "name": "Area Chart",
+      "description": "Cumulative volume"
+    },
+    "pie": {
+      "name": "Pie Chart",
+      "description": "Percentage breakdown"
+    },
+    "radar": {
+      "name": "Radar Chart",
+      "description": "Multi-metric profile"
+    },
+    "gauge": {
+      "name": "Gauge",
+      "description": "Indicator vs target"
+    },
+    "table": {
+      "name": "Data Table",
+      "description": "Tabular data"
+    },
+    "funnel": {
+      "name": "Funnel",
+      "description": "Step-by-step conversion"
+    },
+    "heatmap": {
+      "name": "Heatmap",
+      "description": "Intensity matrix"
+    },
+    "note": {
+      "name": "Text Note",
+      "description": "Free-text annotation"
+    },
+    "ai": {
+      "name": "AI Insight",
+      "description": "Analysis generated by Claude"
+    },
+    "forecast": {
+      "name": "Forecast Mini",
+      "description": "3-month forecast"
+    },
+    "benchmark": {
+      "name": "Benchmark Mini",
+      "description": "Compare vs industry"
+    }
+  },
+  "metrics": {
+    "revenue": "Revenue",
+    "orders": "Orders",
+    "customers": "Customers",
+    "margin": "Margin",
+    "churn": "Churn rate",
+    "mrr": "MRR",
+    "cac": "CAC",
+    "ltv": "LTV"
+  },
+  "view": {
+    "notFound": "Dashboard not found",
+    "notFoundDescription": "The dashboard you are looking for doesn't exist or was deleted.",
+    "back": "Back to dashboards"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect your tools to sync data automatically",
+    "categories": {
+      "finance": "Finance",
+      "crm": "CRM",
+      "analytics": "Analytics",
+      "ecommerce": "E-commerce"
+    },
+    "status": {
+      "DISCONNECTED": "Not connected",
+      "CONNECTED": "Connected",
+      "ERROR": "Error"
+    },
+    "actions": {
+      "connect": "Connect",
+      "manage": "Manage",
+      "disconnect": "Disconnect",
+      "syncNow": "Sync now",
+      "save": "Save configuration"
+    },
+    "lockedOn": "Available on {plan}",
+    "upgrade": "Upgrade plan",
+    "lastSync": "Last sync",
+    "neverSynced": "Never synced",
+    "frequency": {
+      "label": "Sync frequency",
+      "H6": "Every 6 hours",
+      "H12": "Every 12 hours",
+      "H24": "Every 24 hours"
+    },
+    "wizard": {
+      "title": "Connect {provider}",
+      "apiKey": "API Key",
+      "apiKeyHint": "Find this in your {provider} settings",
+      "submit": "Connect"
+    },
+    "logs": {
+      "title": "Sync logs",
+      "date": "Date",
+      "status": "Status",
+      "records": "Records",
+      "error": "Error",
+      "empty": "No sync runs yet"
+    },
+    "providers": {
+      "stripe": {
+        "description": "Import payments, subscriptions and refunds"
+      },
+      "quickbooks": {
+        "description": "Sync invoices, expenses and ledger"
+      },
+      "xero": {
+        "description": "Import transactions and balance in real time"
+      },
+      "hubspot": {
+        "description": "Sales pipeline, deals and contacts"
+      },
+      "googleAnalytics": {
+        "description": "Traffic, conversions and channels"
+      },
+      "shopify": {
+        "description": "Orders, customers and inventory"
+      }
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "New • AI Agent in Beta",
+      "title": "Analyze your business with AI",
+      "subtitle": "The all-in-one platform for SMBs, consultants and startups. Import your data, get AI insights in seconds, and make better decisions.",
+      "ctaPrimary": "Start Free",
+      "ctaSecondary": "Watch demo",
+      "trust": "No credit card • 2 free imports per month • English & Italian"
+    },
+    "features": {
+      "title": "Everything you need, in one place",
+      "subtitle": "Six modules that work together to give you the full picture.",
+      "items": {
+        "finance": {
+          "title": "Finance",
+          "description": "P&L, cash flow, financial KPIs and projections in real time."
+        },
+        "market": {
+          "title": "Market",
+          "description": "Competitive analysis, industry trends and customer segmentation."
+        },
+        "operations": {
+          "title": "Operations",
+          "description": "Efficiency, processes, supply chain and team productivity."
+        },
+        "ai": {
+          "title": "AI Insights",
+          "description": "Claude analyzes your data and suggests concrete actions."
+        },
+        "reports": {
+          "title": "Reports",
+          "description": "Export branded PDFs and share with your team."
+        },
+        "dashboard": {
+          "title": "Custom Dashboards",
+          "description": "Drag & drop to build the perfect dashboard for you."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "From data to decisions in three steps.",
+      "steps": {
+        "upload": {
+          "title": "Upload your data",
+          "description": "CSV, Excel, native integrations or manual entry. You choose."
+        },
+        "analyze": {
+          "title": "AI analyzes",
+          "description": "Claude finds trends, anomalies and hidden opportunities in your data."
+        },
+        "decide": {
+          "title": "Better decisions",
+          "description": "Get concrete recommendations and watch your KPIs grow."
+        }
+      }
+    },
+    "pricing": {
+      "title": "A plan for every need",
+      "subtitle": "Start free. Upgrade when you're ready.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyDiscount": "Save 20%",
+      "perMonth": "/month",
+      "popular": "Most popular",
+      "starter": {
+        "name": "Starter",
+        "description": "For small businesses getting started",
+        "cta": "Get Starter"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For growing teams",
+        "cta": "Choose Pro"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For complex organizations",
+        "cta": "Contact us"
+      },
+      "features": {
+        "users": "{count, plural, =1 {1 user} other {# users}}",
+        "unlimitedUsers": "Unlimited users",
+        "orgs": "{count, plural, =1 {1 organization} other {# organizations}}",
+        "unlimitedOrgs": "Unlimited organizations",
+        "imports": "{count, plural, =1 {1 import/month} other {# imports/month}}",
+        "unlimitedImports": "Unlimited imports",
+        "credits": "{count} AI credits/month",
+        "financeBasic": "Basic finance",
+        "allModules": "All modules",
+        "aiAgent": "AI Agent",
+        "audit": "Audit log + 2FA",
+        "realtime": "Real-time collaboration",
+        "support": "Priority support"
+      }
+    },
+    "testimonials": {
+      "title": "What people say",
+      "subtitle": "SMBs and consultants who transformed how they work.",
+      "items": {
+        "0": {
+          "quote": "We cut our monthly reporting time in half. Now we focus on decisions, not on collecting data.",
+          "name": "Giulia Bianchi",
+          "role": "CFO, Lumina LLC"
+        },
+        "1": {
+          "quote": "The AI flagged an anomaly in operating costs worth €4,000/month. Paid for itself in a week.",
+          "name": "Marco Rossi",
+          "role": "Founder, Praxis Studio"
+        },
+        "2": {
+          "quote": "I use it with all my clients. The custom dashboards are their favorite part: clear, fast, professional.",
+          "name": "Elena Conti",
+          "role": "Strategy consultant"
+        }
+      }
+    },
+    "footer": {
+      "company": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "product": "Product",
+      "features": "Features",
+      "pricing": "Pricing",
+      "changelog": "Changelog",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
+      "support": "Support",
+      "help": "Help center",
+      "contact": "Contact",
+      "status": "Status",
+      "rights": "All rights reserved."
+    }
+  },
+  "onboarding": {
+    "progress": "Step {current} of {total}",
+    "step1": {
+      "title": "Welcome to Pro",
+      "subtitle": "In a few minutes your dashboard will be ready. Let's start!",
+      "cta": "Let's go"
+    },
+    "step2": {
+      "title": "Tell us about your company",
+      "subtitle": "We'll personalize the experience based on your business.",
+      "fields": {
+        "name": "Company name",
+        "industry": "Industry",
+        "size": "Size",
+        "country": "Country",
+        "currency": "Currency",
+        "website": "Website",
+        "logo": "Logo (optional)"
+      },
+      "industries": {
+        "saas": "SaaS",
+        "ecommerce": "E-commerce",
+        "services": "Services",
+        "retail": "Retail",
+        "manufacturing": "Manufacturing",
+        "finance": "Finance",
+        "healthcare": "Healthcare",
+        "education": "Education",
+        "realestate": "Real estate",
+        "hospitality": "Hospitality",
+        "logistics": "Logistics",
+        "other": "Other"
+      },
+      "sizes": {
+        "solo": "Just me",
+        "small": "2-10 people",
+        "medium": "11-50 people",
+        "large": "51-200 people",
+        "enterprise": "200+ people"
+      }
+    },
+    "step3": {
+      "title": "Let's load your first data",
+      "subtitle": "Choose how to start. You can always change later.",
+      "options": {
+        "upload": {
+          "title": "Upload file",
+          "description": "Import CSV or Excel from your systems."
+        },
+        "connect": {
+          "title": "Connect a service",
+          "description": "QuickBooks, Stripe, Shopify and more."
+        },
+        "manual": {
+          "title": "Manual entry",
+          "description": "Start with an empty table."
+        },
+        "skip": {
+          "title": "Explore with demo data",
+          "description": "Skip and try with sample data."
+        }
+      }
+    },
+    "step4": {
+      "title": "Pick a template",
+      "subtitle": "We'll use this to build your initial dashboard.",
+      "templates": {
+        "saas": {
+          "name": "SaaS",
+          "description": "MRR, churn, CAC, LTV, activation"
+        },
+        "ecommerce": {
+          "name": "E-commerce",
+          "description": "Sales, AOV, conversion, ROAS"
+        },
+        "services": {
+          "name": "Services",
+          "description": "Utilization, revenue per client, margin"
+        }
+      }
+    },
+    "step5": {
+      "title": "All set!",
+      "subtitle": "Your dashboard has been created. Here's a quick recap.",
+      "summary": {
+        "company": "Company",
+        "industry": "Industry",
+        "template": "Template",
+        "import": "Import mode"
+      },
+      "cta": "Go to Dashboard"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated: April 26, 2026"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "Last updated: April 26, 2026"
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "lastUpdated": "Last updated: April 26, 2026"
+    },
+    "banner": {
+      "title": "We respect your privacy",
+      "description": "We use cookies to improve your experience, analyze traffic and personalize content. You can accept all, reject or customize your choices.",
+      "accept": "Accept all",
+      "reject": "Reject",
+      "customize": "Customize",
+      "save": "Save preferences",
+      "categories": {
+        "necessary": {
+          "title": "Necessary",
+          "description": "Essential for the site to work."
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "Help us understand how you use the site."
+        },
+        "marketing": {
+          "title": "Marketing",
+          "description": "For personalized offers and campaigns."
+        }
+      }
+    }
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Protect your account and manage active sessions.",
+    "password": {
+      "title": "Change password",
+      "description": "Update your password periodically.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm password",
+      "cta": "Update password",
+      "success": "Password updated"
+    },
+    "twofa": {
+      "title": "Two-factor authentication",
+      "description": "Increase security by requiring a code from your phone.",
+      "enabled": "2FA enabled",
+      "disabled": "2FA disabled",
+      "enable": "Enable 2FA",
+      "disable": "Disable 2FA",
+      "scan": "Scan the QR code with your authenticator app (Google Authenticator, 1Password, Authy).",
+      "code": "Enter the 6-digit code",
+      "verify": "Verify and enable"
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "description": "Devices currently signed into your account.",
+      "current": "This session",
+      "lastActive": "Last active",
+      "revoke": "Sign out",
+      "revokeAll": "Sign out all"
+    },
+    "audit": {
+      "title": "Audit Log",
+      "description": "Tracking of all actions in your account.",
+      "enterpriseOnly": "Enterprise feature",
+      "filters": {
+        "user": "User",
+        "action": "Action",
+        "date": "Date",
+        "all": "All"
+      },
+      "columns": {
+        "when": "When",
+        "who": "Who",
+        "action": "Action",
+        "target": "Target",
+        "ip": "IP"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Decide how and when you want to be notified.",
+    "channels": {
+      "inApp": "In-app",
+      "email": "Email"
+    },
+    "types": {
+      "alerts": {
+        "title": "Alerts",
+        "description": "Anomalies and KPI thresholds crossed."
+      },
+      "reports": {
+        "title": "Reports",
+        "description": "Periodic data summaries."
+      },
+      "insights": {
+        "title": "AI Insights",
+        "description": "New recommendations from the AI."
+      },
+      "billing": {
+        "title": "Billing",
+        "description": "Invoices, payments and plan updates."
+      }
+    },
+    "saved": "Preferences saved"
+  },
+  "aiAgent": {
+    "title": "AI Agent",
+    "subtitle": "Your always-on AI analyst.",
+    "description": "The AI Agent monitors your KPIs 24/7, runs proactive analyses and notifies you when it finds something worth your attention.",
+    "features": {
+      "monitor": {
+        "title": "Continuous monitoring",
+        "description": "Checks your data every hour and detects anomalies on its own."
+      },
+      "actions": {
+        "title": "Automatic actions",
+        "description": "Generates reports, sends alerts and suggests next steps without you having to ask."
+      },
+      "memory": {
+        "title": "Contextual memory",
+        "description": "Knows your business history and remembers your priorities."
+      }
+    },
+    "enterpriseOnly": "Exclusive feature of the Enterprise plan",
+    "upgrade": "Upgrade to Enterprise",
+    "active": "AI Agent is active"
+  },
+  "feature": {
+    "locked": "Feature locked",
+    "lockedDescription": "This feature is available from the {plan} plan.",
+    "upgrade": "Upgrade plan"
+  }
+}
