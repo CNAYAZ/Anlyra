@@ -1,0 +1,553 @@
+// SQLite-friendly schema merged from 13 Blocco repositories.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  image         String?
+  locale        String         @default("it")
+  createdAt     DateTime       @default(now())
+  memberships   Membership[]
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  plan          String           @default("STARTER")
+  aiCredits     Int            @default(100)
+  currency      String         @default("EUR")
+  createdAt     DateTime       @default(now())
+  memberships   Membership[]
+  transactions  Transaction[]
+  cashflowEntries CashflowEntry[]
+  budgetEntries BudgetEntry[]
+  customerStats CustomerStat[]
+  subscriptions Subscription[]
+  insights      Insight[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       @default("owner")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  organizationId String
+  date           DateTime
+  kind           String
+  category       String
+  subcategory    String?
+  amount         Float
+  description    String?
+  source         String          @default("manual")
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, date])
+  @@index([organizationId, kind])
+  @@index([organizationId, category])
+}
+
+model CashflowEntry {
+  id             String            @id @default(cuid())
+  organizationId String
+  date           DateTime
+  direction      String
+  category       String
+  amount         Float
+  description    String?
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, date])
+}
+
+model BudgetEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  period         String
+  category       String
+  planned        Float
+  actual         Float
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, period, category])
+}
+
+model CustomerStat {
+  id             String       @id @default(cuid())
+  organizationId String
+  period         String
+  activeCustomers Int
+  newCustomers   Int
+  churnedCustomers Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, period])
+}
+
+model Subscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  customer       String
+  plan           String
+  mrr            Float
+  startedAt      DateTime
+  cancelledAt    DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Insight {
+  id             String       @id @default(cuid())
+  organizationId String
+  title          String
+  summary        String
+  impact         String
+  tone           String       @default("neutral")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model User_b4 {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  organizations OrganizationMember[]
+  revenues      Revenue[]
+  costs         Cost[]
+  kpis          Kpi[]
+  competitors   Competitor[]
+  imports       ImportBatch[]
+}
+
+model Organization_b4 {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members   OrganizationMember[]
+  revenues      Revenue[]
+  costs         Cost[]
+  kpis          Kpi[]
+  competitors   Competitor[]
+  imports       ImportBatch[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       @default("member")
+  user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@unique([userId, organizationId])
+}
+
+model ImportBatch {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  fileName       String
+  fileSize       Int
+  type           String
+  rowsTotal      Int          @default(0)
+  rowsImported   Int          @default(0)
+  rowsErrors     Int          @default(0)
+  rowsWarnings   Int          @default(0)
+  status         String @default("PENDING")
+  errors         String?
+  createdAt      DateTime     @default(now())
+  user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  revenues       Revenue[]
+  costs          Cost[]
+  kpis           Kpi[]
+  competitors    Competitor[]
+  @@index([userId])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model Revenue {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  importId       String?
+  date           DateTime
+  amount         Float      
+  currency       String       @default("EUR")
+  category       String
+  description    String?
+  recurring      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  import         ImportBatch? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  @@index([organizationId, date])
+  @@index([importId])
+}
+
+model Cost {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  importId       String?
+  date           DateTime
+  amount         Float      
+  currency       String       @default("EUR")
+  category       String
+  description    String?
+  recurring      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  import         ImportBatch? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  @@index([organizationId, date])
+  @@index([importId])
+}
+
+model Kpi {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  importId       String?
+  name           String
+  value          Float      
+  target         Float?     
+  unit           String
+  date           DateTime
+  createdAt      DateTime     @default(now())
+  user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  import         ImportBatch? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  @@index([organizationId, name])
+  @@index([importId])
+}
+
+model Competitor {
+  id              String       @id @default(cuid())
+  userId          String
+  organizationId  String
+  importId        String?
+  name            String
+  website         String?
+  description     String?
+  estimatedRevenue Float?    
+  employees       Int?
+  marketShare     Float?     
+  strengths       String
+  weaknesses      String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  user            User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization_b4 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  import          ImportBatch? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  @@index([organizationId])
+  @@index([importId])
+}
+
+model User_b5 {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  plan          String      @default("FREEMIUM")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  organizations Organization_b5[] @relation("OrgMembers")
+  ownedOrgs     Organization_b5[] @relation("OrgOwner")
+}
+
+model Organization_b5 {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  industry  String?
+  ownerId   String
+  owner     User_b5     @relation("OrgOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  market      MarketProfile?
+  competitors Competitor_b5[]
+  trends      MarketTrend[]
+  swotItems   SwotItem[]
+  members     User_b5[] @relation("OrgMembers")
+}
+
+model MarketProfile {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  organization    Organization_b5 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  marketSharePct  Float
+  tam             Float
+  sam             Float
+  som             Float
+  growthPct       Float
+
+  // dimensions used in radar chart (0-100)
+  scoreRevenue   Float @default(70)
+  scoreTeam      Float @default(70)
+  scoreShare     Float @default(70)
+  scorePricing   Float @default(70)
+  scoreProduct   Float @default(70)
+  scoreBrand     Float @default(70)
+
+  pricePosition  Float @default(50) // 0..100
+  qualityScore   Float @default(75) // 0..100
+
+  overview       String?
+
+  updatedAt      DateTime @updatedAt
+}
+
+model Competitor_b5 {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization_b5 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name            String
+  website         String?
+  revenue         Float
+  employees       Int
+  marketSharePct  Float
+
+  strengths       String @default("")
+  weaknesses      String @default("")
+
+  scoreRevenue   Float @default(50)
+  scoreTeam      Float @default(50)
+  scoreShare     Float @default(50)
+  scorePricing   Float @default(50)
+  scoreProduct   Float @default(50)
+  scoreBrand     Float @default(50)
+
+  pricePosition  Float @default(50)
+  qualityScore   Float @default(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MarketTrend {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization_b5 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // YYYY-MM marker
+  period          String
+
+  marketSize      Float
+  growthPct       Float
+  tam             Float
+  sam             Float
+  som             Float
+
+  @@unique([organizationId, period])
+}
+
+model SwotItem {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization_b5 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  kind            String
+  text            String
+  weight          Int      @default(1)
+  createdAt       DateTime @default(now())
+}
+
+model User_b7 {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String?
+  image          String?
+  locale         String        @default("IT")
+  organizationId String?
+  organization   Organization_b7? @relation(fields: [organizationId], references: [id])
+  conversations  AIConversation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Organization_b7 {
+  id            String   @id @default(cuid())
+  name          String
+  industry      String
+  employees     Int      @default(1)
+  country       String   @default("IT")
+  plan          String     @default("STARTER")
+  aiCredits     Int      @default(100)
+  users         User_b7[]
+  conversations AIConversation[]
+  insights      Insight_b7[]
+  financialData FinancialData[]
+  kpis          KPI[]
+  competitors   Competitor_b7[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FinancialData {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization_b7 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  month          DateTime
+  revenue        Float
+  costs          Float
+  margin         Float
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, month])
+}
+
+model KPI {
+  @@map("KPI_b7")
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization_b7 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  value          Float
+  unit           String?
+  target         Float?
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model Competitor_b7 {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization_b7 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  marketShare    Float?
+  notes          String?
+
+  @@index([organizationId])
+}
+
+model AIConversation {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization_b7  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User_b7          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  messages       AIMessage[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, updatedAt])
+}
+
+model AIMessage {
+  id             String        @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String        
+  tokensIn       Int?
+  tokensOut      Int?
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Insight_b7 {
+  id              String          @id @default(cuid())
+  organizationId  String
+  organization    Organization_b7    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type            String
+  priority        String
+  status          String   @default("NEW")
+  title           String
+  summary         String          
+  content         String          
+  confidence      Float           @default(0.7)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, status, priority])
+}
+
+model Organization_b12 {
+  id           String        @id @default(cuid())
+  name         String
+  plan         String          @default("FREEMIUM")
+  createdAt    DateTime      @default(now())
+  integrations Integration[]
+  records      FinancialRecord[]
+}
+
+model Integration {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization_b12      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider       String
+  status         String @default("DISCONNECTED")
+  apiKey         String?
+  config         String?
+  frequency      String     @default("H24")
+  lastSyncAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  syncLogs       SyncLog[]
+
+  @@unique([organizationId, provider])
+  @@index([provider])
+}
+
+model SyncLog {
+  id            String      @id @default(cuid())
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status        String
+  recordsCount  Int         @default(0)
+  errorMessage  String?
+  startedAt     DateTime    @default(now())
+  finishedAt    DateTime?
+
+  @@index([integrationId])
+  @@index([startedAt])
+}
+
+model FinancialRecord {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization_b12 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  source         String
+  type           String
+  amount         Float      
+  currency       String       @default("EUR")
+  description    String?
+  externalId     String?
+  occurredAt     DateTime
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, occurredAt])
+  @@index([source])
+}
+

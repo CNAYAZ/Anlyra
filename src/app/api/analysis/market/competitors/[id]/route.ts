@@ -1,0 +1,55 @@
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { getCurrentOrgId } from "@/lib/auth";
+import { ok, fail } from "@/lib/api";
+
+const updateSchema = z.object({
+  name: z.string().min(1).optional(),
+  website: z.string().url().nullable().optional(),
+  revenue: z.number().nonnegative().optional(),
+  employees: z.number().int().nonnegative().optional(),
+  marketSharePct: z.number().min(0).max(100).optional(),
+  strengths: z.array(z.string()).optional(),
+  weaknesses: z.array(z.string()).optional(),
+  pricePosition: z.number().min(0).max(100).optional(),
+  qualityScore: z.number().min(0).max(100).optional(),
+});
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const orgId = await getCurrentOrgId();
+    const body = updateSchema.parse(await req.json());
+    const competitor = await prisma.competitor.findFirst({
+      where: { id: params.id, organizationId: orgId },
+    });
+    if (!competitor) return fail("Competitor not found", 404);
+    const updated = await prisma.competitor.update({
+      where: { id: competitor.id },
+      data: body,
+    });
+    return ok(updated);
+  } catch (e) {
+    if (e instanceof z.ZodError) return fail(e.issues[0]?.message ?? "Invalid input");
+    return fail((e as Error).message, 500);
+  }
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const orgId = await getCurrentOrgId();
+    const competitor = await prisma.competitor.findFirst({
+      where: { id: params.id, organizationId: orgId },
+    });
+    if (!competitor) return fail("Competitor not found", 404);
+    await prisma.competitor.delete({ where: { id: competitor.id } });
+    return ok({ id: competitor.id });
+  } catch (e) {
+    return fail((e as Error).message, 500);
+  }
+}
