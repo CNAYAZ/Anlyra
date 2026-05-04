@@ -24,8 +24,13 @@ model Organization {
   slug          String         @unique
   plan          String           @default("STARTER")
   aiCredits     Int            @default(100)
+  aiCreditsBalance Int         @default(100)
   currency      String         @default("EUR")
+  industry      String         @default("Generale")
+  employees     Int            @default(1)
+  country       String         @default("IT")
   createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
   memberships   Membership[]
   transactions  Transaction[]
   cashflowEntries CashflowEntry[]
@@ -388,7 +393,6 @@ model User_b7 {
   locale         String        @default("IT")
   organizationId String?
   organization   Organization_b7? @relation(fields: [organizationId], references: [id])
-  conversations  AIConversation[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -402,7 +406,6 @@ model Organization_b7 {
   plan          String     @default("STARTER")
   aiCredits     Int      @default(100)
   users         User_b7[]
-  conversations AIConversation[]
   insights      Insight_b7[]
   financialData FinancialData[]
   kpis          KPI[]
@@ -452,15 +455,14 @@ model Competitor_b7 {
 model AIConversation {
   id             String        @id @default(cuid())
   organizationId String
-  organization   Organization_b7  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   userId         String
-  user           User_b7          @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   messages       AIMessage[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@index([organizationId, updatedAt])
+  @@index([userId])
 }
 
 model AIMessage {
@@ -499,7 +501,6 @@ model Organization_b12 {
   plan         String          @default("FREEMIUM")
   createdAt    DateTime      @default(now())
   integrations Integration[]
-  records      FinancialRecord[]
 }
 
 model Integration {
@@ -537,10 +538,9 @@ model SyncLog {
 model FinancialRecord {
   id             String       @id @default(cuid())
   organizationId String
-  organization   Organization_b12 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  source         String
+  source         String       @default("manual")
   type           String
-  amount         Float      
+  amount         Float
   currency       String       @default("EUR")
   description    String?
   externalId     String?

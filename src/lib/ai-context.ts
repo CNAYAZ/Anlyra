@@ -1,5 +1,4 @@
 import { prisma } from './prisma';
-import type { Locale } from '@prisma/client';
 
 export type AIBusinessContext = {
   company: string;
@@ -10,55 +9,82 @@ export type AIBusinessContext = {
   competitors: { name: string; marketShare: number | null; notes: string | null }[];
 };
 
+function monthKey(d: Date): string {
+  return d.toISOString().slice(0, 7);
+}
+
 export async function loadBusinessContext(organizationId: string): Promise<AIBusinessContext> {
-  const [org, financials, kpis, competitors] = await Promise.all([
-    prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }),
-    prisma.financialData.findMany({
-      where: { organizationId },
-      orderBy: { month: 'desc' },
-      take: 3,
-    }),
-    prisma.kPI.findMany({ where: { organizationId } }),
-    prisma.competitor.findMany({ where: { organizationId } }),
-  ]);
+  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
+
+  const since = new Date();
+  since.setMonth(since.getMonth() - 3);
+
+  const records = await prisma.financialRecord.findMany({
+    where: { organizationId, occurredAt: { gte: since } },
+    orderBy: { occurredAt: 'desc' },
+  });
+
+  const buckets = new Map<string, { revenue: number; costs: number }>();
+  for (const r of records) {
+    const key = monthKey(r.occurredAt);
+    const cur = buckets.get(key) ?? { revenue: 0, costs: 0 };
+    if (r.type === 'REVENUE' || r.type === 'revenue') cur.revenue += r.amount;
+    else cur.costs += r.amount;
+    buckets.set(key, cur);
+  }
+  const financials = Array.from(buckets.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .slice(0, 3)
+    .map(([month, v]) => ({
+      month,
+      revenue: v.revenue,
+      costs: v.costs,
+      margin: v.revenue > 0 ? ((v.revenue - v.costs) / v.revenue) * 100 : 0,
+    }));
+
+  const kpiRows = await prisma.kPI.findMany({
+    where: { organizationId },
+    orderBy: { updatedAt: 'desc' },
+    take: 10,
+  });
+
+  const competitorRows = await prisma.competitor_b7.findMany({
+    where: { organizationId },
+    take: 10,
+  });
 
   return {
     company: org.name,
     industry: org.industry,
     employees: org.employees,
-    financials: financials.map((f) => ({
-      month: f.month.toISOString().slice(0, 7),
-      revenue: f.revenue,
-      costs: f.costs,
-      margin: f.margin,
+    financials,
+    kpis: kpiRows.map((k) => ({
+      name: k.name,
+      value: k.value,
+      unit: k.unit,
+      target: k.target,
     })),
-    kpis: kpis.map((k) => ({ name: k.name, value: k.value, unit: k.unit, target: k.target })),
-    competitors: competitors.map((c) => ({ name: c.name, marketShare: c.marketShare, notes: c.notes })),
+    competitors: competitorRows.map((c) => ({
+      name: c.name,
+      marketShare: c.marketShare,
+      notes: c.notes,
+    })),
   };
 }
 
-const localeNames: Record<Locale, string> = {
-  IT: 'italiano',
-  EN: 'english',
-};
-
-export function buildSystemPrompt(ctx: AIBusinessContext, locale: Locale): string {
-  const lang = localeNames[locale];
-  const fin = ctx.financials
-    .map((f) => `- ${f.month}: ricavi ${f.revenue.toFixed(0)}, costi ${f.costs.toFixed(0)}, margine ${f.margin.toFixed(1)}%`)
-    .join('\n');
-  const kpis = ctx.kpis
-    .map((k) => `- ${k.name}: ${k.value}${k.unit ? ' ' + k.unit : ''}${k.target ? ` (target ${k.target}${k.unit ? ' ' + k.unit : ''})` : ''}`)
-    .join('\n');
-  const comp = ctx.competitors
-    .map((c) => `- ${c.name}${c.marketShare !== null ? ` (market share ${c.marketShare}%)` : ''}${c.notes ? `: ${c.notes}` : ''}`)
-    .join('\n');
-
+export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 'it' | 'en' = 'IT'): string {
+  const lang = locale.toString().toLowerCase().startsWith('en') ? 'english' : 'italiano';
+  const data = {
+    azienda: ctx.company,
+    settore: ctx.industry,
+    dipendenti: ctx.employees,
+    finanze_ultimi_3_mesi: ctx.financials,
+    kpi_recenti: ctx.kpis,
+    competitor: ctx.competitors,
+  };
   return [
-    `Sei un analista business esperto. Analizzi i dati di ${ctx.company}, settore ${ctx.industry}, ${ctx.employees} dipendenti.`,
-    `\nDati finanziari ultimi 3 mesi:\n${fin || '- nessun dato'}`,
-    `\nKPI attuali:\n${kpis || '- nessun KPI'}`,
-    `\nCompetitor principali:\n${comp || '- nessun competitor'}`,
-    `\nRispondi in ${lang}. Sii specifico, usa numeri reali tratti dai dati sopra, dai suggerimenti concreti e azionabili. Evita risposte generiche.`,
-  ].join('\n');
+    `Sei un analista business esperto. Stai analizzando i dati di ${ctx.company}, azienda ${ctx.industry} con ${ctx.employees} dipendenti.`,
+    `Ecco i dati recenti: ${JSON.stringify(data)}.`,
+    `Rispondi in ${lang}, sii specifico, usa i numeri reali, dai suggerimenti concreti.`,
+  ].join(' ');
 }

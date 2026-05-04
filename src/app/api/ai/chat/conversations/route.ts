@@ -1,25 +1,19 @@
-import { ok, fail } from '@/lib/api';
+import { ok } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { requireSession } from '@/lib/session';
-import type { ConversationListItemDTO } from '@/types/ai';
+import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return fail('UNAUTHORIZED', 401);
-  }
+  const { organizationId } = await getCurrentContext();
 
   const conversations = await prisma.aIConversation.findMany({
-    where: { organizationId: session.organization.id },
+    where: { organizationId },
     orderBy: { updatedAt: 'desc' },
     include: { _count: { select: { messages: true } } },
   });
 
-  const data: ConversationListItemDTO[] = conversations.map((c) => ({
+  const data = conversations.map((c) => ({
     id: c.id,
     title: c.title,
     updatedAt: c.updatedAt.toISOString(),

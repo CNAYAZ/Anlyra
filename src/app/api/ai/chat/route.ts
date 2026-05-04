@@ -1,14 +1,15 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
-import { requireSession } from '@/lib/session';
+import { getCurrentContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
-import { getAnthropicClient, isAnthropicConfigured, ANTHROPIC_MODEL, ANTHROPIC_TEMPERATURE } from '@/lib/anthropic';
+import {
+  chatComplete,
+  isAnthropicConfigured,
+  MISSING_KEY_MESSAGE,
+} from '@/lib/ai/client';
 import { buildSystemPrompt, loadBusinessContext } from '@/lib/ai-context';
-import { mockChatResponse } from '@/lib/ai-mock';
-import type { MessageRole } from '@prisma/client';
-import type { ChatMessageDTO, ConversationDetailDTO, SendMessageResponse } from '@/types/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,17 +18,31 @@ const SendSchema = z.object({
   message: z.string().min(1).max(4000),
 });
 
-function toMessageDTO(m: { id: string; role: MessageRole; content: string; createdAt: Date }): ChatMessageDTO {
-  return { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt.toISOString() };
-}
+type DbMessage = {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: Date;
+};
 
-function toConversationDTO(c: {
+type DbConversation = {
   id: string;
   title: string;
   createdAt: Date;
   updatedAt: Date;
-  messages: { id: string; role: MessageRole; content: string; createdAt: Date }[];
-}): ConversationDetailDTO {
+  messages: DbMessage[];
+};
+
+function toMessageDTO(m: DbMessage) {
+  return {
+    id: m.id,
+    role: m.role,
+    content: m.content,
+    createdAt: m.createdAt.toISOString(),
+  };
+}
+
+function toConversationDTO(c: DbConversation) {
   return {
     id: c.id,
     title: c.title,
@@ -38,12 +53,12 @@ function toConversationDTO(c: {
 }
 
 export async function POST(req: NextRequest) {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    return fail('UNAUTHORIZED', 401);
+  if (!isAnthropicConfigured()) {
+    return fail(MISSING_KEY_MESSAGE, 503);
   }
+
+  const ctx = await getCurrentContext();
+  const { userId, organizationId } = ctx;
 
   const json = await req.json().catch(() => null);
   const parsed = SendSchema.safeParse(json);
@@ -53,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   let creditsRemaining: number;
   try {
-    creditsRemaining = await consumeCredits(session.organization.id, 1);
+    creditsRemaining = await consumeCredits(organizationId, 1);
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);
@@ -63,7 +78,7 @@ export async function POST(req: NextRequest) {
 
   let conversation = conversationId
     ? await prisma.aIConversation.findFirst({
-        where: { id: conversationId, organizationId: session.organization.id },
+        where: { id: conversationId, organizationId },
         include: { messages: { orderBy: { createdAt: 'asc' } } },
       })
     : null;
@@ -71,58 +86,42 @@ export async function POST(req: NextRequest) {
   if (!conversation) {
     const title = message.slice(0, 60).trim() + (message.length > 60 ? '…' : '');
     conversation = await prisma.aIConversation.create({
-      data: {
-        organizationId: session.organization.id,
-        userId: session.user.id,
-        title,
-      },
-      include: { messages: true },
+      data: { organizationId, userId, title },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
   }
 
   await prisma.aIMessage.create({
-    data: {
-      conversationId: conversation.id,
-      role: 'USER',
-      content: message,
-    },
+    data: { conversationId: conversation.id, role: 'USER', content: message },
   });
 
-  const ctx = await loadBusinessContext(session.organization.id);
-  const systemPrompt = buildSystemPrompt(ctx, session.locale);
+  const businessCtx = await loadBusinessContext(organizationId);
+  const systemPrompt = buildSystemPrompt(businessCtx, 'IT');
 
   const priorMessages = await prisma.aIMessage.findMany({
     where: { conversationId: conversation.id },
     orderBy: { createdAt: 'asc' },
   });
 
-  let assistantText: string;
+  let assistantText = '';
   let tokensIn: number | undefined;
   let tokensOut: number | undefined;
 
-  if (isAnthropicConfigured()) {
-    try {
-      const client = getAnthropicClient();
-      const response = await client.messages.create({
-        model: ANTHROPIC_MODEL,
-        temperature: ANTHROPIC_TEMPERATURE,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: priorMessages.map((m) => ({
-          role: m.role === 'USER' ? 'user' : 'assistant',
-          content: m.content,
-        })),
-      });
-      const textBlock = response.content.find((c) => c.type === 'text');
-      assistantText = textBlock && textBlock.type === 'text' ? textBlock.text : '';
-      tokensIn = response.usage?.input_tokens;
-      tokensOut = response.usage?.output_tokens;
-    } catch (err) {
-      console.error('Anthropic API error:', err);
-      assistantText = mockChatResponse(message, ctx, session.locale);
-    }
-  } else {
-    assistantText = mockChatResponse(message, ctx, session.locale);
+  try {
+    const result = await chatComplete(
+      systemPrompt,
+      priorMessages.map((m) => ({
+        role: m.role === 'USER' ? 'user' : 'assistant',
+        content: m.content,
+      })),
+    );
+    assistantText = result.text;
+    tokensIn = result.tokensIn;
+    tokensOut = result.tokensOut;
+  } catch (err) {
+    console.error('Anthropic API error:', err);
+    const msg = err instanceof Error ? err.message : 'AI request failed';
+    return fail(msg, 502);
   }
 
   await prisma.aIMessage.create({
@@ -145,10 +144,8 @@ export async function POST(req: NextRequest) {
     include: { messages: { orderBy: { createdAt: 'asc' } } },
   });
 
-  const response: SendMessageResponse = {
+  return ok({
     conversation: toConversationDTO(refreshed),
     creditsRemaining,
-  };
-
-  return ok(response);
+  });
 }

@@ -1,8 +1,6 @@
-import type { InsightPriority, InsightStatus, InsightType, MessageRole } from '@prisma/client';
-
 export type ChatMessageDTO = {
   id: string;
-  role: MessageRole;
+  role: string;
   content: string;
   createdAt: string;
 };
@@ -29,9 +27,9 @@ export type SendMessageResponse = {
 
 export type InsightDTO = {
   id: string;
-  type: InsightType;
-  priority: InsightPriority;
-  status: InsightStatus;
+  type: string;
+  priority: string;
+  status: string;
   title: string;
   summary: string;
   content: string;
