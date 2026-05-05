@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     if (!parsed.success) return fail(parsed.error.message, 422);
     const { period, from, to, category, page, pageSize, sortBy, sortOrder } = parsed.data;
 
-    const data = getOrgData();
+    const data = await getOrgData();
     const filtered = filterTransactionsByPeriod(data.transactions, period, from, to).filter((t) => t.kind === 'COST');
     const inCategory = category ? filtered.filter((t) => t.category === category) : filtered;
 

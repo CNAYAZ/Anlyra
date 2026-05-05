@@ -3,7 +3,8 @@
 import { prisma } from './prisma';
 
 const DEMO_EMAIL = 'demo@pro.app';
-const DEMO_SLUG = 'demo-org';
+const DEMO_SLUG = 'techflow-srl';
+const DEMO_NAME = 'TechFlow SRL';
 
 export async function getCurrentContext() {
   const user = await prisma.user.upsert({
@@ -16,10 +17,10 @@ export async function getCurrentContext() {
     where: { slug: DEMO_SLUG },
     update: {},
     create: {
-      name: 'Demo Org',
+      name: DEMO_NAME,
       slug: DEMO_SLUG,
-      industry: 'Software',
-      employees: 5,
+      industry: 'SaaS B2B',
+      employees: 18,
     },
   });
 
@@ -30,44 +31,155 @@ export async function getCurrentContext() {
     await prisma.membership.create({
       data: { userId: user.id, organizationId: org.id, role: 'owner' },
     });
-    await seedDemoData(org.id).catch(() => {
-      // ignore if another request already seeded
-    });
   }
+  // Ensure data exists even if membership existed but seeding never ran
+  await seedDemoData(org.id).catch(() => {
+    // ignore if another request already seeded
+  });
 
   return { userId: user.id, organizationId: org.id };
 }
 
+// Deterministic PRNG so demo data is stable
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const REVENUE_CATEGORIES: { key: string; weight: number; sub: string[] }[] = [
+  { key: 'subscriptions', weight: 0.55, sub: ['starter', 'pro', 'enterprise'] },
+  { key: 'services', weight: 0.22, sub: ['consulting', 'onboarding'] },
+  { key: 'licenses', weight: 0.13, sub: ['annual', 'perpetual'] },
+  { key: 'partnerships', weight: 0.06, sub: ['affiliate', 'reseller'] },
+  { key: 'other', weight: 0.04, sub: ['training', 'merch'] },
+];
+
+const COST_CATEGORIES: { key: string; weight: number; sub: string[] }[] = [
+  { key: 'payroll', weight: 0.42, sub: ['engineering', 'sales', 'operations'] },
+  { key: 'cogs', weight: 0.18, sub: ['hosting', 'third_party_api'] },
+  { key: 'marketing', weight: 0.14, sub: ['paid_ads', 'events', 'content'] },
+  { key: 'software', weight: 0.1, sub: ['saas', 'tooling'] },
+  { key: 'office', weight: 0.07, sub: ['rent', 'utilities'] },
+  { key: 'travel', weight: 0.04, sub: ['flights', 'lodging'] },
+  { key: 'legal', weight: 0.03, sub: ['consulting', 'compliance'] },
+  { key: 'other', weight: 0.02, sub: ['bank_fees', 'misc'] },
+];
+
+function pick(rand: () => number, items: { key: string; weight: number; sub: string[] }[]) {
+  let r = rand();
+  for (const it of items) {
+    if ((r -= it.weight) <= 0) return it;
+  }
+  return items[items.length - 1];
+}
+
+function jitter(rand: () => number, spread = 0.2) {
+  return 1 - spread + rand() * spread * 2;
+}
+
 async function seedDemoData(organizationId: string) {
+  await seedKpis(organizationId);
+  await seedCompetitors(organizationId);
   const existingRecords = await prisma.financialRecord.count({ where: { organizationId } });
   if (existingRecords > 0) return;
 
+  const rand = mulberry32(20260504);
   const now = new Date();
-  const months = [0, 1, 2].map((i) => new Date(now.getFullYear(), now.getMonth() - i, 15));
+  const MONTHS = 18;
+  const data: {
+    organizationId: string;
+    type: string;
+    amount: number;
+    occurredAt: Date;
+    description: string;
+    source: string;
+    currency: string;
+  }[] = [];
 
-  const records: { type: string; amount: number; occurredAt: Date; description: string }[] = [];
-  for (const m of months) {
-    records.push(
-      { type: 'REVENUE', amount: 50000 + Math.random() * 5000, occurredAt: m, description: 'Ricavi mensili' },
-      { type: 'COST', amount: 32000 + Math.random() * 3000, occurredAt: m, description: 'Costi operativi' },
-    );
+  for (let i = MONTHS - 1; i >= 0; i -= 1) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ageIndex = MONTHS - 1 - i; // 0 == oldest
+    const revenueTarget = 78_000 * Math.pow(1.045, ageIndex) * jitter(rand, 0.06);
+    const costTarget = 58_000 * Math.pow(1.038, ageIndex) * jitter(rand, 0.07);
+
+    // Revenue transactions
+    const revCount = 22 + Math.floor(rand() * 10);
+    let remaining = revenueTarget;
+    for (let j = 0; j < revCount; j += 1) {
+      const cat = pick(rand, REVENUE_CATEGORIES);
+      const share = j === revCount - 1 ? remaining : (revenueTarget / revCount) * jitter(rand, 0.6);
+      const amount = Math.max(80, Math.round(Math.min(remaining, share)));
+      remaining -= amount;
+      const day = 1 + Math.floor(rand() * 27);
+      const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+      const sub = cat.sub[Math.floor(rand() * cat.sub.length)];
+      data.push({
+        organizationId,
+        type: 'REVENUE',
+        amount,
+        occurredAt: date,
+        description: `${cat.key}/${sub}`,
+        source: rand() > 0.6 ? 'stripe' : rand() > 0.5 ? 'bank' : 'manual',
+        currency: 'EUR',
+      });
+      if (remaining <= 0) break;
+    }
+
+    // Cost transactions
+    const costCount = 20 + Math.floor(rand() * 10);
+    remaining = costTarget;
+    for (let j = 0; j < costCount; j += 1) {
+      const cat = pick(rand, COST_CATEGORIES);
+      const share = j === costCount - 1 ? remaining : (costTarget / costCount) * jitter(rand, 0.5);
+      const amount = Math.max(60, Math.round(Math.min(remaining, share)));
+      remaining -= amount;
+      const day = 1 + Math.floor(rand() * 27);
+      const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+      const sub = cat.sub[Math.floor(rand() * cat.sub.length)];
+      data.push({
+        organizationId,
+        type: 'COST',
+        amount,
+        occurredAt: date,
+        description: `${cat.key}/${sub}`,
+        source: rand() > 0.7 ? 'bank' : 'manual',
+        currency: 'EUR',
+      });
+      if (remaining <= 0) break;
+    }
   }
-  await prisma.financialRecord.createMany({
-    data: records.map((r) => ({ ...r, organizationId })),
-  });
 
+  await prisma.financialRecord.createMany({ data });
+}
+
+async function seedKpis(organizationId: string) {
+  const count = await prisma.kPI.count({ where: { organizationId } });
+  if (count > 0) return;
   await prisma.kPI.createMany({
     data: [
       { organizationId, name: 'Churn rate', value: 4.2, unit: '%', target: 3 },
       { organizationId, name: 'NPS', value: 42, unit: null, target: 50 },
       { organizationId, name: 'Conversion rate', value: 2.8, unit: '%', target: 4 },
+      { organizationId, name: 'CAC', value: 320, unit: 'EUR', target: 250 },
+      { organizationId, name: 'LTV', value: 4800, unit: 'EUR', target: 5000 },
+      { organizationId, name: 'Active customers', value: 312, unit: null, target: 400 },
     ],
   });
+}
 
+async function seedCompetitors(organizationId: string) {
+  const count = await prisma.competitor_b7.count({ where: { organizationId } });
+  if (count > 0) return;
   await prisma.competitor_b7.createMany({
     data: [
-      { organizationId, name: 'Competitor Alpha', marketShare: 18, notes: 'Leader storico' },
-      { organizationId, name: 'Competitor Beta', marketShare: 12, notes: 'Crescita rapida' },
+      { organizationId, name: 'Competitor Alpha', marketShare: 18, notes: 'Leader storico, prezzi alti' },
+      { organizationId, name: 'Competitor Beta', marketShare: 12, notes: 'Crescita rapida, focus PMI' },
       { organizationId, name: 'Competitor Gamma', marketShare: 7, notes: 'Nicchia premium' },
     ],
   });

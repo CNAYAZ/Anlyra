@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const parsed = financialQuerySchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
     if (!parsed.success) return fail(parsed.error.message, 422);
 
-    const data = getOrgData();
+    const data = await getOrgData();
     const filtered = filterTransactionsByPeriod(data.transactions, parsed.data.period, parsed.data.from, parsed.data.to);
 
     const kpis = computeKpis({

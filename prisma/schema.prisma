@@ -408,8 +408,6 @@ model Organization_b7 {
   users         User_b7[]
   insights      Insight_b7[]
   financialData FinancialData[]
-  kpis          KPI[]
-  competitors   Competitor_b7[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -431,7 +429,6 @@ model KPI {
   @@map("KPI_b7")
   id             String       @id @default(cuid())
   organizationId String
-  organization   Organization_b7 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name           String
   value          Float
   unit           String?
@@ -444,7 +441,6 @@ model KPI {
 model Competitor_b7 {
   id             String       @id @default(cuid())
   organizationId String
-  organization   Organization_b7 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name           String
   marketShare    Float?
   notes          String?
