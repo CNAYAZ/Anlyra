@@ -1,29 +1,12 @@
-import { prisma } from "@/lib/prisma";
-import { getCurrentOrgId } from "@/lib/auth";
-import { ok, fail } from "@/lib/api";
+import { ok, fail } from '@/lib/api';
+import { getMarketSummary } from '@/lib/market-data';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const orgId = await getCurrentOrgId();
-    const profile = await prisma.marketProfile.findUnique({
-      where: { organizationId: orgId },
-    });
-    if (!profile) return fail("Market profile not found", 404);
-
-    const competitorCount = await prisma.competitor.count({
-      where: { organizationId: orgId },
-    });
-
-    return ok({
-      marketSharePct: profile.marketSharePct,
-      tam: profile.tam,
-      sam: profile.sam,
-      som: profile.som,
-      growthPct: profile.growthPct,
-      overview: profile.overview,
-      competitorCount,
-      updatedAt: profile.updatedAt,
-    });
+    const summary = await getMarketSummary();
+    return ok(summary);
   } catch (e) {
     return fail((e as Error).message, 500);
   }

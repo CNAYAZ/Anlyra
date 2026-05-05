@@ -1,2 +1,143 @@
-export const dynamic = 'force-dynamic';
-export { default } from '@/app/[locale]/dashboard/finance/revenue/page';
+'use client';
+
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { CategoryPieChart } from '@/components/charts/category-pie-chart';
+import { RevenueVsCostsChart } from '@/components/charts/revenue-vs-costs-chart';
+import { CategoryFilter } from '@/components/ui/category-filter';
+import { KpiCard } from '@/components/ui/kpi-card';
+import { PeriodFilter, type PeriodRange } from '@/components/ui/period-filter';
+import { PageHeader, Card, CardHeader } from '@/components/ui/section';
+import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
+import { TransactionsTable, type SortKey, type SortOrder } from '@/components/ui/transactions-table';
+import { useAppLocale } from '@/hooks/use-locale';
+import { apiFetch } from '@/lib/api/fetcher';
+import { formatCurrency, formatPercent } from '@/lib/utils';
+import type { CategoryBreakdown, MonthlySeriesPoint } from '@/lib/analysis/financial';
+
+type RevenueResponse = {
+  kpis: { totalRevenue: number; mom: number; yoy: number; arpu: number };
+  series: MonthlySeriesPoint[];
+  byCategory: CategoryBreakdown[];
+  categories: string[];
+  items: { id: string; date: string; category: string; amount: number; description: string; source: string }[];
+  pagination: { total: number; page: number; pageSize: number; totalPages: number };
+};
+
+export default function RevenuePage() {
+  const locale = useAppLocale();
+  const t = useTranslations('revenue');
+
+  const [range, setRange] = useState<PeriodRange>({ period: '12m' });
+  const [category, setCategory] = useState('');
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortKey>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const params = new URLSearchParams({
+    period: range.period,
+    page: String(page),
+    pageSize: '20',
+    sortBy,
+    sortOrder,
+    ...(category ? { category } : {}),
+    ...(range.from ? { from: range.from } : {}),
+    ...(range.to ? { to: range.to } : {}),
+  });
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['revenue', range, category, page, sortBy, sortOrder],
+    queryFn: () => apiFetch<RevenueResponse>(`/api/analysis/financial/revenue?${params.toString()}`),
+    placeholderData: keepPreviousData,
+  });
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else {
+      setSortBy(key);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={<PeriodFilter value={range} onChange={(v) => { setRange(v); setPage(1); }} />}
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {isLoading || !data ? (
+          Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
+        ) : (
+          <>
+            <KpiCard
+              label={t('kpi.total')}
+              value={formatCurrency(data.kpis.totalRevenue, locale)}
+              icon={TrendingUp}
+            />
+            <KpiCard label={t('kpi.mom')} value={formatPercent(data.kpis.mom, locale)} deltaPercent={data.kpis.mom} />
+            <KpiCard label={t('kpi.yoy')} value={formatPercent(data.kpis.yoy, locale)} deltaPercent={data.kpis.yoy} />
+            <KpiCard label={t('kpi.arpu')} value={formatCurrency(data.kpis.arpu, locale)} />
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : isError ? (
+          <ErrorState onRetry={() => refetch()} />
+        ) : (
+          <Card>
+            <CardHeader title={t('chart.trend')} />
+            <RevenueVsCostsChart data={data?.series ?? []} locale={locale} />
+          </Card>
+        )}
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : (
+          <Card>
+            <CardHeader title={t('chart.distribution')} />
+            <CategoryPieChart
+              data={data?.byCategory ?? []}
+              locale={locale}
+              labelFormatter={(k) => k.replace(/_/g, ' ')}
+            />
+          </Card>
+        )}
+      </div>
+
+      <Card className="p-0">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+          <h3 className="font-heading font-semibold text-base">{t('table.title')}</h3>
+          <CategoryFilter
+            value={category}
+            onChange={(v) => {
+              setCategory(v);
+              setPage(1);
+            }}
+            categories={data?.categories ?? []}
+          />
+        </div>
+        <TransactionsTable
+          rows={data?.items ?? []}
+          locale={locale}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          page={page}
+          pageSize={data?.pagination.pageSize ?? 20}
+          total={data?.pagination.total ?? 0}
+          totalPages={data?.pagination.totalPages ?? 0}
+          onPageChange={setPage}
+          amountTone="positive"
+        />
+      </Card>
+    </div>
+  );
+}

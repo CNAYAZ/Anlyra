@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
 import { ok } from '@/lib/api';
 import { getEfficiency } from '@/lib/operations-data';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
-  return NextResponse.json(ok(getEfficiency()));
+  return ok(getEfficiency());
 }
