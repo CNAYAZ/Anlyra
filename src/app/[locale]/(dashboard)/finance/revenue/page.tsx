@@ -5,7 +5,7 @@ import { TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { CategoryPieChart } from '@/components/charts/category-pie-chart';
-import { RevenueVsCostsChart } from '@/components/charts/revenue-vs-costs-chart';
+import { SingleTrendChart } from '@/components/charts/single-trend-chart';
 import { CategoryFilter } from '@/components/ui/category-filter';
 import { KpiCard } from '@/components/ui/kpi-card';
 import { PeriodFilter, type PeriodRange } from '@/components/ui/period-filter';
@@ -95,7 +95,12 @@ export default function RevenuePage() {
         ) : (
           <Card>
             <CardHeader title={t('chart.trend')} />
-            <RevenueVsCostsChart data={data?.series ?? []} locale={locale} />
+            <SingleTrendChart
+              data={(data?.series ?? []).map((s) => ({ period: s.period, value: s.revenue }))}
+              locale={locale}
+              label={t('kpi.total')}
+              color="#10b981"
+            />
           </Card>
         )}
         {isLoading ? (

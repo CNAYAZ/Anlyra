@@ -3,13 +3,24 @@
 export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { Activity, BarChart3, PiggyBank, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Brain,
+  Globe,
+  MessageSquare,
+  PiggyBank,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  Wallet,
+} from 'lucide-react';
+import Link from 'next/link';
 import { KpiCard } from '@/components/ui/kpi-card';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
-import { RevenueVsCostsChart } from '@/components/charts/revenue-vs-costs-chart';
-import { CashflowAreaChart } from '@/components/charts/cashflow-area-chart';
 import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
@@ -21,24 +32,35 @@ type FinanceResponse = {
   revenueByCategory: CategoryBreakdown[];
   costsByCategory: CategoryBreakdown[];
   cumulativeCash: { period: string; inflow: number; outflow: number; net: number; cumulative: number }[];
-  customers?: { period: string; activeCustomers: number; newCustomers: number; churnedCustomers: number }[];
 };
+
+const QUICK_ACTIONS: { href: string; labelKey: string; icon: typeof BarChart3; tone: string }[] = [
+  { href: '/finance', labelKey: 'Apri dashboard finanza', icon: BarChart3, tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+  { href: '/market', labelKey: 'Analisi mercato', icon: Globe, tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+  { href: '/operations', labelKey: 'KPI operativi', icon: Activity, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  { href: '/ai/chat', labelKey: 'Chat con l’AI', icon: MessageSquare, tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+];
 
 export default function OverviewPage() {
   const locale = useAppLocale();
-  const t = useTranslations();
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['overview'],
     queryFn: () => apiFetch<FinanceResponse>('/api/analysis/financial?period=12m'),
   });
 
-  const subtitle = t.has('pages.overview.subtitle') ? t('pages.overview.subtitle') : undefined;
-  const title = t.has('pages.overview.title') ? t('pages.overview.title') : 'Overview';
+  const lastSeries = data?.series.slice(-1)[0];
+  const aiSpotlight =
+    data && data.kpis.netMargin > 0
+      ? `Margine netto al ${formatPercent(data.kpis.netMargin, locale)} negli ultimi 12 mesi. Burn rate ${formatCurrency(
+          data.kpis.burnRate,
+          locale,
+        )}/mese, runway ${formatNumber(data.kpis.cashRunway, locale, 1)} mesi.`
+      : 'Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.';
 
   return (
     <div className="space-y-6">
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader title="Panoramica" subtitle="Sintesi della tua azienda negli ultimi 12 mesi" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
@@ -46,13 +68,13 @@ export default function OverviewPage() {
         ) : (
           <>
             <KpiCard
-              label="Ricavi (12m)"
+              label="Ricavi 12m"
               value={formatCurrency(data.kpis.totalRevenue, locale)}
               deltaPercent={data.kpis.momRevenueGrowth}
               icon={TrendingUp}
             />
             <KpiCard
-              label="Costi (12m)"
+              label="Costi 12m"
               value={formatCurrency(data.kpis.totalCosts, locale)}
               deltaPercent={data.kpis.momCostGrowth}
               invertDelta
@@ -62,7 +84,6 @@ export default function OverviewPage() {
               label="Margine netto"
               value={formatPercent(data.kpis.netMargin, locale)}
               deltaPercent={data.kpis.momNetMarginDelta}
-              icon={Activity}
             />
             <KpiCard
               label="Cash disponibile"
@@ -71,6 +92,71 @@ export default function OverviewPage() {
             />
           </>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader title="AI Spotlight" />
+          {isError ? (
+            <ErrorState onRetry={() => refetch()} />
+          ) : isLoading || !data ? (
+            <ChartSkeleton />
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800/60 dark:bg-amber-950/30">
+                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <div className="text-sm font-medium">Insight automatico</div>
+                  <p className="text-sm text-muted-foreground">{aiSpotlight}</p>
+                </div>
+              </div>
+              {lastSeries && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="text-xs uppercase text-muted-foreground">Ultimo mese — Ricavi</div>
+                    <div className="mt-1 font-semibold">{formatCurrency(lastSeries.revenue, locale)}</div>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="text-xs uppercase text-muted-foreground">Ultimo mese — Costi</div>
+                    <div className="mt-1 font-semibold">{formatCurrency(lastSeries.costs, locale)}</div>
+                  </div>
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="text-xs uppercase text-muted-foreground">Ultimo mese — Profitto netto</div>
+                    <div className="mt-1 font-semibold">{formatCurrency(lastSeries.netProfit, locale)}</div>
+                  </div>
+                </div>
+              )}
+              <Link
+                href="/finance"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
+              >
+                Vai alla dashboard finanza completa <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader title="Azioni rapide" />
+          <div className="grid grid-cols-1 gap-2">
+            {QUICK_ACTIONS.map((qa) => {
+              const Icon = qa.icon;
+              return (
+                <Link
+                  key={qa.href}
+                  href={qa.href}
+                  className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary-500/40 hover:bg-muted/40"
+                >
+                  <span className={`grid h-9 w-9 place-items-center rounded-lg ${qa.tone}`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">{qa.labelKey}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -88,36 +174,15 @@ export default function OverviewPage() {
               label="Clienti attivi"
               value={formatNumber(data.kpis.activeCustomers, locale)}
               deltaPercent={data.kpis.momCustomersDelta}
+              icon={Users}
             />
-            <KpiCard label="ARPU" value={formatCurrency(data.kpis.arpu, locale)} />
+            <KpiCard label="ARPU" value={formatCurrency(data.kpis.arpu, locale)} icon={Brain} />
             <KpiCard
-              label="Burn / Runway"
-              value={`${formatCurrency(data.kpis.burnRate, locale)} · ${formatNumber(data.kpis.cashRunway, locale, 1)} mesi`}
+              label="Runway"
+              value={`${formatNumber(data.kpis.cashRunway, locale, 1)} mesi`}
               icon={PiggyBank}
             />
           </>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {isLoading ? (
-          <ChartSkeleton />
-        ) : isError ? (
-          <ErrorState onRetry={() => refetch()} />
-        ) : (
-          <Card>
-            <CardHeader title="Andamento ricavi vs costi" />
-            <RevenueVsCostsChart data={data?.series ?? []} locale={locale} />
-          </Card>
-        )}
-
-        {isLoading ? (
-          <ChartSkeleton />
-        ) : (
-          <Card>
-            <CardHeader title="Cash flow cumulato" />
-            <CashflowAreaChart data={data?.cumulativeCash ?? []} locale={locale} />
-          </Card>
         )}
       </div>
     </div>
