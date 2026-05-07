@@ -17,6 +17,8 @@ import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
 import { apiFetch } from '@/lib/api/fetcher';
 import { cn } from '@/lib/utils';
+import { formatRelative } from '@/lib/format';
+import { useAppLocale } from '@/hooks/use-locale';
 
 type Insight = {
   id: string;
@@ -72,13 +74,15 @@ function TypeIcon({ type }: { type: Insight['type'] }) {
 
 export default function InsightsPage() {
   const qc = useQueryClient();
+  const locale = useAppLocale();
   const [selected, setSelected] = useState<Insight | null>(null);
   const [filterType, setFilterType] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [toast, setToast] = useState<string | null>(null);
 
-  const credits = 100;
+  // Generation is gated: AI is disabled in demo mode regardless of balance.
+  const credits = 0;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['insights', filterType, filterPriority, filterStatus],
@@ -130,30 +134,24 @@ export default function InsightsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Insight strategici"
-        subtitle="Suggerimenti automatici basati sui tuoi dati"
+        title="Insights AI"
+        subtitle="Suggerimenti strategici generati dall'AI sui tuoi dati"
         actions={
           <button
             type="button"
-            disabled={!canGenerate || generateMutation.isPending}
+            disabled
             onClick={() => {
-              if (!canGenerate) {
-                setToast('Crediti insufficienti. Acquistane altri nelle Impostazioni > Fatturazione.');
-                setTimeout(() => setToast(null), 4000);
-                return;
-              }
-              generateMutation.mutate();
+              setToast('Funzione disponibile con crediti AI.');
+              setTimeout(() => setToast(null), 4000);
             }}
             className={cn(
               'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              canGenerate
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
-                : 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-800',
+              'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-800',
             )}
-            title={canGenerate ? 'Genera 3 nuovi insight' : 'Servono 3 crediti AI'}
+            title="Funzione disponibile con crediti AI"
           >
             <Sparkles className="h-4 w-4" />
-            Genera nuovi insight (3 crediti)
+            Genera Nuovi Insight (3 crediti)
           </button>
         }
       />
@@ -222,7 +220,15 @@ export default function InsightsPage() {
         <ChartSkeleton />
       ) : insights.length === 0 ? (
         <Card>
-          <p className="text-center text-sm text-muted-foreground">Nessun insight con questi filtri.</p>
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary-accent">
+              <Lightbulb className="h-7 w-7" />
+            </div>
+            <h3 className="font-heading text-base font-semibold">Nessun insight ancora</h3>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Aggiungi dati e l&apos;AI genererà suggerimenti automaticamente.
+            </p>
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -255,7 +261,7 @@ export default function InsightsPage() {
               <p className="text-sm text-muted-foreground line-clamp-2">{i.summary}</p>
               <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Confidenza: {Math.round(i.confidence * 100)}%</span>
-                <span>{new Date(i.createdAt).toLocaleDateString('it-IT')}</span>
+                <span>{formatRelative(i.createdAt, locale)}</span>
               </div>
             </button>
           ))}
