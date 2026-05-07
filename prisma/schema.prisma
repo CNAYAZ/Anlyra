@@ -406,7 +406,6 @@ model Organization_b7 {
   plan          String     @default("STARTER")
   aiCredits     Int      @default(100)
   users         User_b7[]
-  insights      Insight_b7[]
   financialData FinancialData[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -477,13 +476,12 @@ model AIMessage {
 model Insight_b7 {
   id              String          @id @default(cuid())
   organizationId  String
-  organization    Organization_b7    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   type            String
   priority        String
   status          String   @default("NEW")
   title           String
-  summary         String          
-  content         String          
+  summary         String
+  content         String
   confidence      Float           @default(0.7)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -547,3 +545,32 @@ model FinancialRecord {
   @@index([source])
 }
 
+
+model AiAlert {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String
+  severity       String   @default("MEDIUM")
+  metric         String
+  title          String
+  message        String
+  thresholdValue Float?
+  currentValue   Float?
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, read])
+}
+
+model AiAlertConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  metric         String
+  enabled        Boolean  @default(true)
+  threshold      Float
+  comparator     String   @default("gt")
+  updatedAt      DateTime @updatedAt @default(now())
+
+  @@unique([organizationId, metric])
+}
