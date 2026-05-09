@@ -29,11 +29,13 @@ function applyMapping(row: Record<string, unknown>, mapping: Record<string, stri
 
 async function insertFinancialRecords(
   organizationId: string,
+  importBatchId: string,
   rows: Record<string, unknown>[],
 ) {
   if (rows.length === 0) return 0;
   const data = rows.map((r) => ({
     organizationId,
+    importBatchId,
     amount: r.amount as number,
     type: r.type as string,
     occurredAt: new Date(r.occurredAt as string),
@@ -46,6 +48,7 @@ async function insertFinancialRecords(
 
 async function insertKpis(
   organizationId: string,
+  importBatchId: string,
   rows: Record<string, unknown>[],
 ) {
   let count = 0;
@@ -53,6 +56,7 @@ async function insertKpis(
     await prisma.kPI.create({
       data: {
         organizationId,
+        importBatchId,
         name: r.name as string,
         value: r.value as number,
         unit: (r.unit as string | undefined) ?? null,
@@ -67,6 +71,7 @@ async function insertKpis(
 async function insertCompetitors(
   organizationId: string,
   userId: string,
+  importBatchId: string,
   rows: Record<string, unknown>[],
 ) {
   let count = 0;
@@ -75,6 +80,7 @@ async function insertCompetitors(
       data: {
         userId,
         organizationId,
+        importId: importBatchId,
         name: r.name as string,
         website: (r.website as string | undefined) ?? null,
         description: (r.description as string | undefined) ?? null,
@@ -92,6 +98,7 @@ async function insertCompetitors(
 
 async function insertCustomerStats(
   organizationId: string,
+  importBatchId: string,
   rows: Record<string, unknown>[],
 ) {
   let count = 0;
@@ -104,12 +111,14 @@ async function insertCustomerStats(
         },
       },
       update: {
+        importBatchId,
         activeCustomers: r.activeCustomers as number,
         newCustomers: r.newCustomers as number,
         churnedCustomers: r.churnedCustomers as number,
       },
       create: {
         organizationId,
+        importBatchId,
         period: r.period as string,
         activeCustomers: r.activeCustomers as number,
         newCustomers: r.newCustomers as number,
@@ -138,6 +147,7 @@ export async function POST(req: NextRequest) {
         organizationId,
         fileName,
         fileSize,
+        source: 'file',
         type: targetKey,
         rowsTotal: rows.length,
         status: 'PROCESSING',
@@ -167,16 +177,16 @@ export async function POST(req: NextRequest) {
     try {
       switch (targetKey as ImportTargetKey) {
         case 'financial_records':
-          imported = await insertFinancialRecords(organizationId, validRows);
+          imported = await insertFinancialRecords(organizationId, batch.id, validRows);
           break;
         case 'kpis':
-          imported = await insertKpis(organizationId, validRows);
+          imported = await insertKpis(organizationId, batch.id, validRows);
           break;
         case 'competitors':
-          imported = await insertCompetitors(organizationId, userId, validRows);
+          imported = await insertCompetitors(organizationId, userId, batch.id, validRows);
           break;
         case 'customer_stats':
-          imported = await insertCustomerStats(organizationId, validRows);
+          imported = await insertCustomerStats(organizationId, batch.id, validRows);
           break;
       }
     } catch (e) {
