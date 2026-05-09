@@ -852,6 +852,40 @@
       "IGNORED": "Ignored"
     }
   },
+  "alerts": {
+    "title": "Smart Alerts",
+    "subtitle": "{count, plural, =0 {No new alerts} one {# new alert} other {# new alerts}}",
+    "refreshButton": "Refresh alerts",
+    "generateAiButton": "Generate with AI (3 credits)",
+    "generateAiButtonDisabled": "Insufficient credits. Buy more in Settings.",
+    "creditsRequired": "Insufficient AI credits",
+    "refreshNoAlerts": "No new alerts: everything is within thresholds.",
+    "refreshSuccess": "{count, plural, one {# alert updated} other {# alerts updated}}",
+    "empty": "No alerts. Click \"Refresh alerts\" to analyse your data.",
+    "error": "Error loading alerts.",
+    "retry": "Retry",
+    "recommendation": "Recommendation",
+    "source": "Source",
+    "createdAt": "Detected on",
+    "markRead": "Mark as read",
+    "markResolved": "Resolved",
+    "markDismissed": "Dismiss",
+    "filterSeverity": "Severity",
+    "filterStatus": "Status",
+    "all": "All",
+    "severity": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
+    "status": {
+      "NEW": "New",
+      "READ": "Read",
+      "RESOLVED": "Resolved",
+      "DISMISSED": "Dismissed"
+    }
+  },
   "errors": {
     "noCredits": "AI credits exhausted",
     "unauthorized": "Unauthorized",
