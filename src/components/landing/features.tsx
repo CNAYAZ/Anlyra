@@ -27,10 +27,10 @@ export function Features() {
     <section id="features" className="py-20 md:py-28">
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-heading text-3xl font-bold text-slate-900 md:text-4xl text-balance">
+          <h2 className="font-heading text-3xl font-bold text-foreground md:text-4xl text-balance">
             {t('title')}
           </h2>
-          <p className="mt-3 text-slate-600">{t('subtitle')}</p>
+          <p className="mt-3 text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -43,15 +43,15 @@ export function Features() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-10%' }}
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="rounded-lg border border-slate-200 bg-white p-5 shadow-card transition-shadow hover:shadow-md"
+                className="rounded-lg border bg-card p-5 shadow-card transition-shadow hover:shadow-md"
               >
                 <span className={`grid h-10 w-10 place-items-center rounded-md ${it.tone}`}>
                   <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="mt-4 font-heading text-lg font-semibold text-slate-900">
+                <h3 className="mt-4 font-heading text-lg font-semibold text-foreground">
                   {t(`items.${it.id}.title`)}
                 </h3>
-                <p className="mt-1 text-sm text-slate-600">{t(`items.${it.id}.description`)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t(`items.${it.id}.description`)}</p>
               </motion.div>
             );
           })}

@@ -28,8 +28,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-30 border-b border bg-card">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-white">
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
                     active
                       ? 'bg-primary text-white'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-            <div className="mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-xs text-slate-400">
+            <div className="mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground">
               <Settings className="h-4 w-4" />
               <span>{tc('settings')}</span>
             </div>

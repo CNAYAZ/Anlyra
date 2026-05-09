@@ -33,8 +33,8 @@ export function BillingClient({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
       <header>
-        <h1 className="font-heading text-3xl font-semibold text-slate-900">{t("title")}</h1>
-        <p className="text-sm text-slate-600">{t("subtitle")}</p>
+        <h1 className="font-heading text-3xl font-semibold text-foreground">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -46,13 +46,13 @@ export function BillingClient({
 
       <section id="compare" className="space-y-4 scroll-mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-heading text-xl font-semibold text-slate-900">
+          <h2 className="font-heading text-xl font-semibold text-foreground">
             {tCompare("title")}
           </h2>
           <PriceToggle value={cycle} onChange={setCycle} />
         </div>
 
-        <div className="rounded-card border border-slate-200 bg-white p-4">
+        <div className="rounded-card border bg-card p-4">
           <PlanCompareTable cycle={cycle} currentPlan={currentPlan} />
         </div>
 
