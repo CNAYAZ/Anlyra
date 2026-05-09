@@ -9,7 +9,7 @@ import { Link } from '@/i18n/navigation';
 export function Hero() {
   const t = useTranslations('landing.hero');
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white via-white to-[#f1f5f9]">
+    <section className="relative overflow-hidden bg-gradient-to-b from-card via-card to-muted">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(59,130,246,0.15),rgba(255,255,255,0))]" />
       <div className="container py-20 md:py-28">
         <motion.div
@@ -22,10 +22,10 @@ export function Hero() {
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary-accent" />
             {t('badge')}
           </span>
-          <h1 className="mt-5 font-heading text-4xl font-bold tracking-tight text-slate-900 text-balance md:text-6xl">
+          <h1 className="mt-5 font-heading text-4xl font-bold tracking-tight text-foreground text-balance md:text-6xl">
             {t('title')}
           </h1>
-          <p className="mt-5 text-lg text-slate-600 text-balance md:text-xl">{t('subtitle')}</p>
+          <p className="mt-5 text-lg text-muted-foreground text-balance md:text-xl">{t('subtitle')}</p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg">
@@ -41,7 +41,7 @@ export function Hero() {
               </Link>
             </Button>
           </div>
-          <p className="mt-4 text-xs text-slate-500">{t('trust')}</p>
+          <p className="mt-4 text-xs text-muted-foreground">{t('trust')}</p>
         </motion.div>
 
         <motion.div
@@ -59,7 +59,7 @@ export function Hero() {
 
 function DashboardPreview() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.25)]">
+    <div className="rounded-2xl border bg-card p-3 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.25)]">
       <div className="flex items-center gap-1.5 px-2 pb-2">
         <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
@@ -97,9 +97,9 @@ function KpiCard({
   tone: 'up' | 'down';
 }) {
   return (
-    <div className="rounded-lg bg-slate-800 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 font-mono text-2xl font-semibold text-white">{value}</p>
+    <div className="rounded-lg bg-muted p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-mono text-2xl font-semibold text-card-foreground">{value}</p>
       <p className={`mt-1 text-xs ${tone === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>{trend}</p>
     </div>
   );
@@ -107,9 +107,9 @@ function KpiCard({
 
 function ChartCard({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-700">{title}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
         {icon}
       </div>
       <div className="mt-3 flex h-24 items-end gap-1">

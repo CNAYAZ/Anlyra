@@ -8,7 +8,7 @@ export function LoadingSkeleton({ className, rows = 4 }: { className?: string; r
   return (
     <div className={cn('animate-pulse space-y-3', className)} aria-busy="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-4 rounded bg-slate-200" style={{ width: `${100 - i * 8}%` }} />
+        <div key={i} className="h-4 rounded bg-muted" style={{ width: `${100 - i * 8}%` }} />
       ))}
     </div>
   );
@@ -17,9 +17,9 @@ export function LoadingSkeleton({ className, rows = 4 }: { className?: string; r
 export function CardSkeleton() {
   return (
     <div className="card animate-pulse">
-      <div className="h-4 w-24 rounded bg-slate-200" />
-      <div className="mt-4 h-8 w-32 rounded bg-slate-200" />
-      <div className="mt-3 h-3 w-20 rounded bg-slate-100" />
+      <div className="h-4 w-24 rounded bg-muted" />
+      <div className="mt-4 h-8 w-32 rounded bg-muted" />
+      <div className="mt-3 h-3 w-20 rounded bg-muted" />
     </div>
   );
 }
@@ -45,7 +45,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
 export function EmptyState({ message }: { message?: string }) {
   const t = useTranslations('common');
   return (
-    <div className="card flex flex-col items-center justify-center py-10 text-slate-500">
+    <div className="card flex flex-col items-center justify-center py-10 text-muted-foreground">
       <Inbox className="h-8 w-8 mb-2" />
       <p className="text-sm">{message ?? t('empty')}</p>
     </div>
