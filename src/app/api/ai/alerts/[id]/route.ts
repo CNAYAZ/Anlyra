@@ -6,7 +6,7 @@ import { getCurrentContext } from '@/lib/session';
 export const dynamic = 'force-dynamic';
 
 const PatchSchema = z.object({
-  read: z.boolean().optional(),
+  status: z.enum(['NEW', 'READ', 'RESOLVED', 'DISMISSED']),
 });
 
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
@@ -16,30 +16,29 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     const parsed = PatchSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);
 
-    const existing = await prisma.aiAlert.findFirst({
+    const existing = await prisma.alert_b7.findFirst({
       where: { id: ctx.params.id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 
-    const updated = await prisma.aiAlert.update({
+    const updated = await prisma.alert_b7.update({
       where: { id: existing.id },
-      data: parsed.data,
+      data: { status: parsed.data.status },
     });
-    return ok({ alert: { ...updated, createdAt: updated.createdAt.toISOString() } });
-  } catch (e) {
-    return fail((e as Error).message, 500);
-  }
-}
 
-export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
-  try {
-    const { organizationId } = await getCurrentContext();
-    const existing = await prisma.aiAlert.findFirst({
-      where: { id: ctx.params.id, organizationId },
+    return ok({
+      alert: {
+        id: updated.id,
+        severity: updated.severity,
+        status: updated.status,
+        title: updated.title,
+        description: updated.description,
+        source: updated.source,
+        recommendation: updated.recommendation,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+      },
     });
-    if (!existing) return fail('NOT_FOUND', 404);
-    await prisma.aiAlert.delete({ where: { id: existing.id } });
-    return ok({ deleted: true });
   } catch (e) {
     return fail((e as Error).message, 500);
   }

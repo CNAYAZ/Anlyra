@@ -10,27 +10,36 @@ export async function GET(req: NextRequest) {
     const { organizationId } = await getCurrentContext();
     const sp = req.nextUrl.searchParams;
     const where: Record<string, unknown> = { organizationId };
-    const type = sp.get('type');
     const severity = sp.get('severity');
-    const read = sp.get('read');
-    if (type) where.type = type;
+    const status = sp.get('status');
     if (severity) where.severity = severity;
-    if (read === 'true') where.read = true;
-    if (read === 'false') where.read = false;
+    if (status) where.status = status;
 
-    const rows = await prisma.aiAlert.findMany({
+    const rows = await prisma.alert_b7.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { severity: 'desc' },
+        { createdAt: 'desc' },
+      ],
     });
-    const unreadCount = await prisma.aiAlert.count({
-      where: { organizationId, read: false },
+
+    const newCount = await prisma.alert_b7.count({
+      where: { organizationId, status: 'NEW' },
     });
+
     return ok({
       alerts: rows.map((a) => ({
-        ...a,
+        id: a.id,
+        severity: a.severity,
+        status: a.status,
+        title: a.title,
+        description: a.description,
+        source: a.source,
+        recommendation: a.recommendation,
         createdAt: a.createdAt.toISOString(),
+        updatedAt: a.updatedAt.toISOString(),
       })),
-      unreadCount,
+      newCount,
     });
   } catch (e) {
     return fail((e as Error).message, 500);

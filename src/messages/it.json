@@ -852,6 +852,40 @@
       "IGNORED": "Ignorato"
     }
   },
+  "alerts": {
+    "title": "Alert Intelligenti",
+    "subtitle": "{count, plural, =0 {Nessun alert nuovo} one {# alert nuovo} other {# alert nuovi}}",
+    "refreshButton": "Aggiorna alert",
+    "generateAiButton": "Genera con AI (3 crediti)",
+    "generateAiButtonDisabled": "Crediti insufficienti. Acquistane altri nelle Impostazioni.",
+    "creditsRequired": "Crediti AI insufficienti",
+    "refreshNoAlerts": "Nessun nuovo alert: tutto sotto le soglie.",
+    "refreshSuccess": "{count, plural, one {# alert aggiornato} other {# alert aggiornati}}",
+    "empty": "Nessun alert. Clicca \"Aggiorna alert\" per analizzare i dati.",
+    "error": "Errore nel caricamento degli alert.",
+    "retry": "Riprova",
+    "recommendation": "Raccomandazione",
+    "source": "Sorgente",
+    "createdAt": "Rilevato il",
+    "markRead": "Letto",
+    "markResolved": "Risolto",
+    "markDismissed": "Ignora",
+    "filterSeverity": "Severità",
+    "filterStatus": "Stato",
+    "all": "Tutti",
+    "severity": {
+      "LOW": "Bassa",
+      "MEDIUM": "Media",
+      "HIGH": "Alta",
+      "CRITICAL": "Critica"
+    },
+    "status": {
+      "NEW": "Nuovo",
+      "READ": "Letto",
+      "RESOLVED": "Risolto",
+      "DISMISSED": "Ignorato"
+    }
+  },
   "errors": {
     "noCredits": "Crediti AI esauriti",
     "unauthorized": "Non autorizzato",
