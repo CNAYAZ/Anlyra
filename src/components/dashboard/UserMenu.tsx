@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Settings, User } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
+  const router = useRouter();
   const name = t('user.name');
   const email = t('user.email');
   const initials = name
@@ -33,8 +34,9 @@ export function UserMenu() {
     .toUpperCase();
 
   const handleLogout = () => {
+    console.log('[logout] handler triggered');
     setOpen(false);
-    signOut({ callbackUrl: `/${locale}/login` });
+    router.push(`/api/auth/logout?locale=${locale}`);
   };
 
   return (
