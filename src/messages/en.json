@@ -82,7 +82,10 @@
     "creditsRemaining": "{count} credits remaining",
     "buyMore": "Buy more",
     "popoverTitle": "AI Credits",
-    "popoverHint": "Each chat message uses 1 credit. Generating new insights costs 3 credits."
+    "popoverHint": "Each chat message uses 1 credit. Generating new insights costs 3 credits.",
+    "notificationsTitle": "Notifications",
+    "notificationsEmpty": "No notifications at the moment",
+    "notificationsSettings": "Notification preferences"
   },
   "user": {
     "profile": "Profile",

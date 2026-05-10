@@ -82,7 +82,10 @@
     "creditsRemaining": "{count} crediti rimanenti",
     "buyMore": "Acquista altri",
     "popoverTitle": "Crediti AI",
-    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti."
+    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti.",
+    "notificationsTitle": "Notifiche",
+    "notificationsEmpty": "Nessuna notifica al momento",
+    "notificationsSettings": "Preferenze notifiche"
   },
   "user": {
     "profile": "Profilo",
