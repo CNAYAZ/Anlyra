@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Pro",
-    "tagline": "Analisi aziendale intelligente"
+    "tagline": "Analisi aziendale intelligente",
+    "logoSubtitle": "Analytics"
   },
   "nav": {
     "overview": "Overview",

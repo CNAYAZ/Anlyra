@@ -30,7 +30,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <CreditsCounter credits={100} />
+        <CreditsCounter />
         <NotificationBell count={3} />
         <LanguageSwitch />
         <ThemeToggle />

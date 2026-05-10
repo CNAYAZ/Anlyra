@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Pro",
-    "tagline": "Smart business analytics"
+    "tagline": "Smart business analytics",
+    "logoSubtitle": "Analytics"
   },
   "nav": {
     "overview": "Overview",

@@ -3,9 +3,11 @@
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { useCreditsStore } from '@/stores/credits-store';
 
-export function CreditsCounter({ credits = 100 }: { credits?: number }) {
+export function CreditsCounter() {
   const t = useTranslations('topbar');
+  const credits = useCreditsStore((s) => s.credits);
   return (
     <Link
       href="/settings/billing"
