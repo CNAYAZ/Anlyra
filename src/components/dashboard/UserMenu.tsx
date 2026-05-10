@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Settings, User } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { signOut } from 'next-auth/react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 export function UserMenu() {
   const t = useTranslations();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -32,8 +34,7 @@ export function UserMenu() {
 
   const handleLogout = () => {
     setOpen(false);
-    // Placeholder: block 2 UI skeleton only, real auth wired in later block
-    window.alert(t('user.logout'));
+    signOut({ callbackUrl: `/${locale}/login` });
   };
 
   return (
