@@ -100,9 +100,12 @@ model CustomerStat {
   activeCustomers Int
   newCustomers   Int
   churnedCustomers Int
+  importBatchId  String?
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  importBatch    ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, period])
+  @@index([importBatchId])
 }
 
 model Subscription {
@@ -170,14 +173,15 @@ model ImportBatch {
   id             String       @id @default(cuid())
   userId         String
   organizationId String
-  fileName       String
-  fileSize       Int
+  fileName       String?
+  fileSize       Int          @default(0)
+  source         String       @default("file")
   type           String
   rowsTotal      Int          @default(0)
   rowsImported   Int          @default(0)
   rowsErrors     Int          @default(0)
   rowsWarnings   Int          @default(0)
-  status         String @default("PENDING")
+  status         String       @default("PENDING")
   errors         String?
   createdAt      DateTime     @default(now())
   user           User_b4         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -186,6 +190,9 @@ model ImportBatch {
   costs          Cost[]
   kpis           Kpi[]
   competitors    Competitor[]
+  financialRecords FinancialRecord[]
+  kpiRecords       KPI[]
+  customerStats    CustomerStat[]
   @@index([userId])
   @@index([organizationId])
   @@index([createdAt])
@@ -433,8 +440,11 @@ model KPI {
   unit           String?
   target         Float?
   updatedAt      DateTime     @updatedAt
+  importBatchId  String?
+  importBatch    ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
+  @@index([importBatchId])
 }
 
 model Competitor_b7 {
@@ -540,9 +550,12 @@ model FinancialRecord {
   externalId     String?
   occurredAt     DateTime
   createdAt      DateTime     @default(now())
+  importBatchId  String?
+  importBatch    ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, occurredAt])
   @@index([source])
+  @@index([importBatchId])
 }
 
 
@@ -573,4 +586,60 @@ model AiAlertConfig {
   updatedAt      DateTime @updatedAt @default(now())
 
   @@unique([organizationId, metric])
+}
+
+model Alert_b7 {
+  id             String   @id @default(cuid())
+  organizationId String
+  severity       String   @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  status         String   @default("NEW")    // NEW | READ | RESOLVED | DISMISSED
+  title          String
+  description    String
+  source         String                      // "rule:cashflow_negative" etc.
+  recommendation String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, source])
+  @@index([organizationId, status])
+  @@index([organizationId, severity])
+}
+
+model Report_b8 {
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String
+  description    String?
+  sections       String   // JSON array of section keys
+  schedule       String?  // null=on-demand, "weekly"|"monthly"
+  recipients     String?  // CSV of emails
+  lastRunAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model CustomDashboard_b8 {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  widgets        String   // JSON array of widget configs
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model NotificationPref_b8 {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String
+  channel        String  // "email" | "inapp"
+  category       String  // "alerts" | "reports" | "billing" | "system"
+  enabled        Boolean @default(true)
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, organizationId, channel, category])
 }

@@ -1,6 +1,196 @@
-import { Layout } from 'lucide-react';
-import { PagePlaceholder } from '@/components/PagePlaceholder';
+'use client';
+
+export const dynamic = 'force-dynamic';
+
+import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
+import { ArrowLeft, Plus, Save, Trash2, GripVertical } from 'lucide-react';
+import { apiFetch } from '@/lib/api/fetcher';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { WIDGET_CATALOG, type WidgetType, type WidgetConfig } from '@/lib/dashboard-widgets';
+import { cn } from '@/lib/utils';
+
+function uid() {
+  return 'w_' + Math.random().toString(36).slice(2, 9);
+}
 
 export default function CustomDashboardsBuilderPage() {
-  return <PagePlaceholder pageKey="customDashboardsBuilder" icon={Layout} />;
+  const t = useTranslations('customDashboards');
+  const router = useRouter();
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (body: unknown) =>
+      apiFetch<{ id: string }>('/api/custom-dashboards', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      router.push('/custom-dashboards');
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+
+  function addWidget(type: WidgetType, defaultLabelKey: string) {
+    setWidgets((prev) => [
+      ...prev,
+      { id: uid(), type, title: t(defaultLabelKey as 'widgetKpiRevenue') },
+    ]);
+  }
+
+  function updateTitle(id: string, title: string) {
+    setWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, title } : w)));
+  }
+
+  function removeWidget(id: string) {
+    setWidgets((prev) => prev.filter((w) => w.id !== id));
+  }
+
+  function move(id: string, dir: -1 | 1) {
+    setWidgets((prev) => {
+      const idx = prev.findIndex((w) => w.id === id);
+      if (idx === -1) return prev;
+      const next = idx + dir;
+      if (next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[next]] = [copy[next], copy[idx]];
+      return copy;
+    });
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim()) {
+      setError(t('errorNameRequired'));
+      return;
+    }
+    if (widgets.length === 0) {
+      setError(t('errorWidgetsRequired'));
+      return;
+    }
+    mutation.mutate({ name: name.trim(), description: description.trim() || undefined, widgets });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-2xl font-semibold">{t('builderTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('builderSubtitle')}</p>
+        </div>
+        <Link
+          href="/custom-dashboards"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted"
+        >
+          <ArrowLeft className="h-4 w-4" /> {t('back')}
+        </Link>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>
+      )}
+
+      <form onSubmit={submit} className="space-y-6">
+        <div className="card space-y-4">
+          <h2 className="font-heading text-lg font-semibold">{t('builderInfo')}</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="dash-name">{t('builderName')} *</Label>
+              <Input id="dash-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('builderNamePlaceholder')} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dash-desc">{t('builderDescription')}</Label>
+              <Input id="dash-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="card lg:col-span-1">
+            <h2 className="mb-3 font-heading text-lg font-semibold">{t('builderCatalog')}</h2>
+            <div className="space-y-2">
+              {WIDGET_CATALOG.map((w) => (
+                <button
+                  key={w.type}
+                  type="button"
+                  onClick={() => addWidget(w.type, w.labelKey)}
+                  className="flex w-full items-start gap-2 rounded-lg border border-border bg-card p-2 text-left text-xs hover:border-primary-accent hover:bg-muted"
+                >
+                  <Plus className="mt-0.5 h-3 w-3 text-primary-accent shrink-0" />
+                  <div>
+                    <p className="font-medium">{t(w.labelKey as 'widgetKpiRevenue')}</p>
+                    <p className="text-[11px] text-muted-foreground">{t(w.descKey as 'widgetKpiRevenueDesc')}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 space-y-3">
+            <h2 className="font-heading text-lg font-semibold">{t('builderLayout')} ({widgets.length})</h2>
+            {widgets.length === 0 ? (
+              <div className="card flex items-center justify-center py-12 text-sm text-muted-foreground">
+                {t('builderLayoutEmpty')}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {widgets.map((w, i) => (
+                  <div key={w.id} className="card flex items-center gap-2">
+                    <span className="flex flex-col text-muted-foreground">
+                      <button type="button" onClick={() => move(w.id, -1)} disabled={i === 0} className="disabled:opacity-30">▲</button>
+                      <button type="button" onClick={() => move(w.id, 1)} disabled={i === widgets.length - 1} className="disabled:opacity-30">▼</button>
+                    </span>
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={w.title}
+                      onChange={(e) => updateTitle(w.id, e.target.value)}
+                      className="flex-1"
+                    />
+                    <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                      {w.type}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeWidget(w.id)}
+                      className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Link
+            href="/custom-dashboards"
+            className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            {t('cancel')}
+          </Link>
+          <button
+            type="submit"
+            disabled={mutation.isPending}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90',
+              mutation.isPending && 'opacity-60',
+            )}
+          >
+            <Save className="h-4 w-4" /> {mutation.isPending ? t('saving') : t('saveDashboard')}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }

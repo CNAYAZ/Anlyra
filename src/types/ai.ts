@@ -42,3 +42,18 @@ export type GenerateInsightsResponse = {
   insights: InsightDTO[];
   creditsRemaining: number;
 };
+
+export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type AlertStatus = 'NEW' | 'READ' | 'RESOLVED' | 'DISMISSED';
+
+export type AlertDTO = {
+  id: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  title: string;
+  description: string;
+  source: string;
+  recommendation: string;
+  createdAt: string;
+  updatedAt: string;
+};
