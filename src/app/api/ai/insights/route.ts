@@ -5,37 +5,48 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
+// Derive a priority label from the impact string stored in the active Insight model.
+function impactToPriority(impact: string): string {
+  const i = impact.toLowerCase();
+  if (i.includes('alt') || i.includes('hig') || i.includes('critic')) return 'HIGH';
+  if (i.includes('med')) return 'MEDIUM';
+  return 'LOW';
+}
+
+// Derive a type label from the tone string stored in the active Insight model.
+function toneToType(tone: string): string {
+  switch (tone.toLowerCase()) {
+    case 'urgent':   return 'WARNING';
+    case 'positive': return 'OPPORTUNITY';
+    case 'analytical': return 'STRATEGY';
+    case 'action':   return 'ACTION';
+    default:         return 'INSIGHT';
+  }
+}
+
 const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
 export async function GET(req: NextRequest) {
   try {
     const { organizationId } = await getCurrentContext();
-    const sp = req.nextUrl.searchParams;
-    const type = sp.get('type');
-    const priority = sp.get('priority');
-    const status = sp.get('status');
-    const where: Record<string, unknown> = { organizationId };
-    if (type) where.type = type;
-    if (priority) where.priority = priority;
-    if (status) where.status = status;
 
-    const rows = await prisma.insight_b7.findMany({
-      where,
+    const rows = await prisma.insight.findMany({
+      where: { organizationId },
       orderBy: { createdAt: 'desc' },
     });
 
     const insights = rows
       .map((r) => ({
         id: r.id,
-        type: r.type,
-        priority: r.priority,
-        status: r.status,
+        type: toneToType(r.tone),
+        priority: impactToPriority(r.impact),
+        status: 'NEW',
         title: r.title,
         summary: r.summary,
-        content: r.content,
-        confidence: r.confidence,
+        content: r.summary,
+        confidence: 0.8,
         createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
+        updatedAt: r.createdAt.toISOString(),
       }))
       .sort(
         (a, b) =>
@@ -43,7 +54,17 @@ export async function GET(req: NextRequest) {
           (a.createdAt < b.createdAt ? 1 : -1),
       );
 
-    return ok({ insights });
+    // Optional client-side filters (type / priority — status not persisted on Insight model)
+    const sp = req.nextUrl.searchParams;
+    const typeFilter = sp.get('type');
+    const priorityFilter = sp.get('priority');
+    const filtered = insights.filter(
+      (i) =>
+        (!typeFilter || i.type === typeFilter) &&
+        (!priorityFilter || i.priority === priorityFilter),
+    );
+
+    return ok({ insights: filtered });
   } catch (e) {
     return fail((e as Error).message, 500);
   }
