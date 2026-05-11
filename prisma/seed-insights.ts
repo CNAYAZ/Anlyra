@@ -2,101 +2,76 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Active Insight model fields: id (auto), organizationId, title, summary, impact, tone, createdAt
+// Fields NOT in model (derived by API): type, priority, status, content, confidence
+// tone values mapped by API: urgent→WARNING, positive→OPPORTUNITY, analytical→STRATEGY, action→ACTION, *→INSIGHT
+// impact values mapped by API: contains 'alt'|'hig'|'critic'→HIGH, contains 'med'→MEDIUM, else→LOW
+
 async function main() {
-  // Trova l'organizzazione TechFlow (la prima organizzazione disponibile)
-  const org = await prisma.organization.findFirst();
-  
+  const org = await prisma.organization.findFirst({ where: { slug: 'techflow-srl' } })
+    ?? await prisma.organization.findFirst();
+
   if (!org) {
     console.log('❌ Nessuna organizzazione trovata. Esegui prima il seed principale.');
-    return;
+    process.exit(1);
   }
-  
-  console.log(`📋 Aggiungo insight a: ${org.name}`);
-  
-  // Cancella gli insight esistenti per questa org (per non duplicare)
-  await prisma.insight.deleteMany({ where: { organizationId: org.id } });
-  
-  // Crea 6 insight realistici
+
+  console.log(`📋 Seeding 6 insights for ${org.name}...`);
+
+  // Idempotent: remove existing insights for this org before re-seeding
+  const deleted = await prisma.insight.deleteMany({ where: { organizationId: org.id } });
+  if (deleted.count > 0) console.log(`  🗑  Rimossi ${deleted.count} insight precedenti`);
+
   const insights = [
     {
       organizationId: org.id,
-      type: 'WARNING',
-      priority: 'HIGH',
-      status: 'NEW',
       title: 'Tasso di abbandono in aumento',
-      summary: 'Il churn rate è cresciuto del 1.8% negli ultimi 3 mesi, raggiungendo il 4.5%.',
-      content: 'Negli ultimi 3 mesi il churn è passato dal 2.7% al 4.5%, un aumento significativo che potrebbe ridurre il MRR del 15% nei prossimi 6 mesi se non interviene. Le cause più probabili includono: 1) onboarding poco efficace per i nuovi clienti, 2) mancanza di engagement nelle prime settimane, 3) pricing non allineato al valore percepito. Azione consigliata: lanciare una campagna di re-engagement entro 2 settimane e programmare interviste con i clienti che hanno disdetto per capire le motivazioni.',
-      confidence: 0.85,
+      summary: 'Il churn rate è cresciuto del 1.8% negli ultimi 3 mesi, raggiungendo il 4.5%. Azione consigliata: campagna di re-engagement entro 2 settimane e interviste con i clienti che hanno disdetto.',
       impact: 'Alto',
       tone: 'urgent',
     },
     {
       organizationId: org.id,
-      type: 'OPPORTUNITY',
-      priority: 'HIGH',
-      status: 'NEW',
       title: 'Margine lordo sopra la media di settore',
-      summary: 'Il tuo margine lordo del 78% supera la media SaaS (70%) di 8 punti.',
-      content: 'TechFlow ha un margine lordo del 78%, significativamente superiore alla media del settore SaaS che si attesta tra 65% e 72%. Questo è un vantaggio competitivo importante che ti permette di: 1) investire di più in marketing senza erodere la profittabilità, 2) offrire piani enterprise più aggressivi, 3) avere maggiore liquidità per nuove assunzioni. Suggerimento: considera di accelerare gli investimenti in customer acquisition per scalare più rapidamente sfruttando questa efficienza operativa.',
-      confidence: 0.92,
+      summary: 'Il margine lordo del 78% supera la media SaaS (70%) di 8 punti. Vantaggio competitivo che permette di accelerare gli investimenti in customer acquisition.',
       impact: 'Alto',
       tone: 'positive',
     },
     {
       organizationId: org.id,
-      type: 'STRATEGY',
-      priority: 'MEDIUM',
-      status: 'NEW',
       title: 'Focalizzati sul segmento Mid-Market',
-      summary: 'I tuoi clienti Mid-Market mostrano LTV 3x più alto di quelli SMB.',
-      content: 'I dati mostrano che i clienti Mid-Market (50-200 dipendenti) hanno un Lifetime Value medio di €18,500 vs €6,200 dei clienti SMB. Inoltre il churn nel segmento Mid-Market è del 1.8% contro il 5.2% degli SMB. Strategia suggerita: dedica il 60% del budget marketing a campagne specifiche per il Mid-Market (LinkedIn ads, account-based marketing, eventi B2B verticali). Rivedi anche il tuo go-to-market per posizionarti chiaramente come soluzione enterprise-ready.',
-      confidence: 0.78,
+      summary: 'I clienti Mid-Market mostrano LTV 3x più alto (€18.500) rispetto agli SMB (€6.200) e churn più basso (1.8% vs 5.2%). Suggerita ridistribuzione del budget marketing.',
       impact: 'Alto',
       tone: 'analytical',
     },
     {
       organizationId: org.id,
-      type: 'ACTION',
-      priority: 'MEDIUM',
-      status: 'NEW',
       title: 'Aumenta il prezzo del piano Pro',
-      summary: 'Il tuo piano Pro è sotto-prezzato del 25% rispetto ai competitor.',
-      content: 'Analisi competitor: il tuo piano Pro a €79/mese è significativamente più economico dei competitor diretti (DataViz Pro €99, InsightHub €110, AnalyticsMaster €95). Il valore offerto è equivalente o superiore in molte feature. Azione consigliata: testa un aumento di prezzo a €99/mese sui nuovi clienti per 30 giorni. Mantieni il prezzo per i clienti esistenti (grandfather pricing) per evitare churn. Impatto stimato: +25% di revenue per nuovo cliente senza impatto sul tasso di acquisizione.',
-      confidence: 0.81,
+      summary: 'Il piano Pro a €79/mese è sotto-prezzato del 25% rispetto ai competitor (DataViz Pro €99, InsightHub €110). Test di aumento a €99/mese stimato senza impatto sul tasso di acquisizione.',
       impact: 'Medio',
-      tone: 'actionable',
+      tone: 'analytical',
     },
     {
       organizationId: org.id,
-      type: 'WARNING',
-      priority: 'MEDIUM',
-      status: 'NEW',
       title: 'Burn rate in crescita',
-      summary: 'I costi mensili sono cresciuti del 22% negli ultimi 4 mesi.',
-      content: 'Il burn rate è passato da €38,500 a €47,000 al mese (+22%) negli ultimi 4 mesi, principalmente per nuove assunzioni nel team Engineering. Ad oggi il runway è di 11 mesi con il cash attuale. Se il trend continua e i ricavi non crescono di pari passo, il runway scenderà a 8 mesi entro fine anno. Suggerimento: 1) congela nuove assunzioni non critiche per 60 giorni, 2) accelera la conversione del pipeline commerciale, 3) considera di anticipare il prossimo round di funding se la traiettoria di crescita lo giustifica.',
-      confidence: 0.88,
+      summary: 'I costi mensili sono cresciuti del 22% negli ultimi 4 mesi (€38.500 → €47.000), principalmente per nuove assunzioni Engineering. Runway attuale: 11 mesi.',
       impact: 'Alto',
-      tone: 'cautious',
+      tone: 'urgent',
     },
     {
       organizationId: org.id,
-      type: 'OPPORTUNITY',
-      priority: 'LOW',
-      status: 'NEW',
-      title: 'Espansione mercato europeo',
-      summary: 'Il mercato SaaS B2B in DACH cresce del 18% annuo, opportunità inespressa.',
-      content: 'I paesi DACH (Germania, Austria, Svizzera) rappresentano un mercato SaaS B2B da €4.2 miliardi con crescita annua del 18%. Attualmente TechFlow non ha presenza in questi mercati. Considerazioni: 1) il prodotto è già localizzabile in tedesco, 2) la concorrenza locale è frammentata, 3) il pricing power è più alto del 15-20% rispetto al mercato italiano. Step iniziali: testa l\'interesse con campagne LinkedIn mirate, partecipa a 1-2 eventi di settore (es. SaaStr Europa), considera l\'assunzione di un Sales Development Representative madrelingua tedesca.',
-      confidence: 0.65,
+      title: 'Espansione mercato europeo (DACH)',
+      summary: 'Il mercato SaaS B2B in DACH cresce del 18% annuo (TAM €4.2 mld). TechFlow ha già 7 clienti tedeschi via inbound. Step iniziale: campagne LinkedIn mirate + 1 SDR madrelingua.',
       impact: 'Medio',
-      tone: 'visionary',
+      tone: 'positive',
     },
   ];
-  
+
   for (const insight of insights) {
     await prisma.insight.create({ data: insight });
     console.log(`  ✓ ${insight.title}`);
   }
-  
+
   console.log(`\n✅ Creati ${insights.length} insight per ${org.name}`);
 }
 
