@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Settings, User } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +22,6 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  const router = useRouter();
   const name = t('user.name');
   const email = t('user.email');
   const initials = name
@@ -36,7 +34,9 @@ export function UserMenu() {
   const handleLogout = () => {
     console.log('[logout] handler triggered');
     setOpen(false);
-    router.push(`/api/auth/logout?locale=${locale}`);
+    // Full browser navigation so the server redirect from /api/auth/logout is followed correctly.
+    // router.push() (client-side) does not reliably follow server-side redirects from API routes.
+    window.location.href = `/api/auth/logout?locale=${locale}`;
   };
 
   return (
