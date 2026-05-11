@@ -86,7 +86,9 @@ function jitter(rand: () => number, spread = 0.2) {
 async function seedDemoData(organizationId: string) {
   await seedKpis(organizationId);
   await seedCompetitors(organizationId);
-  await seedInsights(organizationId);
+  // legacy seed removed v5: seedInsights() wrote to Insight_b7 which has a
+  // FK constraint to Organization_b7 in SQLite — FK violated because the active
+  // organizationId belongs to the modern Organization table, not Organization_b7.
   await seedAlertConfigsAndAlerts(organizationId);
   const existingRecords = await prisma.financialRecord.count({ where: { organizationId } });
   if (existingRecords > 0) return;
@@ -187,6 +189,10 @@ async function seedCompetitors(organizationId: string) {
   });
 }
 
+// DEPRECATED — not called anymore (see "legacy seed removed v5" comment above).
+// Insight_b7 has FOREIGN KEY organizationId → Organization_b7 in SQLite (init migration).
+// Active Organization records are not in Organization_b7 → FK constraint violation.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function seedInsights(organizationId: string) {
   const count = await prisma.insight_b7.count({ where: { organizationId } });
   if (count > 0) return;
