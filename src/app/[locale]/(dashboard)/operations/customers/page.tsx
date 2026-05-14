@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
@@ -30,6 +31,7 @@ type CustomersData = {
 
 export default function OperationsCustomersPage() {
   const locale = useAppLocale();
+  const t = useTranslations('customers');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['operations', 'customers'],
     queryFn: () => apiFetch<CustomersData>('/api/analysis/operations/customers'),
@@ -37,7 +39,7 @@ export default function OperationsCustomersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Clienti" subtitle="Churn, retention, NPS e crescita" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
@@ -46,7 +48,7 @@ export default function OperationsCustomersPage() {
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <Card>
-            <CardHeader title="Churn vs Retention" />
+            <CardHeader title={t('churnRetention')} />
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.churnRetention}>
@@ -55,15 +57,15 @@ export default function OperationsCustomersPage() {
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatPercent(v as number, locale, 0)} />
                   <Tooltip formatter={(v: number) => formatPercent(v, locale)} />
                   <Legend />
-                  <Line type="monotone" dataKey="churn" name="Churn" stroke="#ef4444" strokeWidth={2} />
-                  <Line type="monotone" dataKey="retention" name="Retention" stroke="#10b981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="churn" name={t('charts.churnSeries')} stroke="#ef4444" strokeWidth={2} />
+                  <Line type="monotone" dataKey="retention" name={t('charts.retentionSeries')} stroke="#10b981" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Trend NPS" />
+            <CardHeader title={t('npsTrend')} />
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.npsTrend}>
@@ -71,14 +73,14 @@ export default function OperationsCustomersPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="nps" name="NPS" stroke="#6366f1" strokeWidth={2} />
+                  <Line type="monotone" dataKey="nps" name={t('charts.npsSeries')} stroke="#6366f1" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Nuovi clienti / mese" />
+            <CardHeader title={t('newCustomers')} />
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.newCustomers}>
@@ -86,14 +88,14 @@ export default function OperationsCustomersPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumber(v as number, locale)} />
                   <Tooltip formatter={(v: number) => formatNumber(v, locale)} />
-                  <Bar dataKey="value" name="Nuovi" fill="#6366f1" />
+                  <Bar dataKey="value" name={t('charts.newSeries')} fill="#6366f1" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Crescita cumulata" />
+            <CardHeader title={t('cumulativeGrowth')} />
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.cumulativeGrowth}>
@@ -101,7 +103,7 @@ export default function OperationsCustomersPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatNumber(v as number, locale)} />
                   <Tooltip formatter={(v: number) => formatNumber(v, locale)} />
-                  <Line type="monotone" dataKey="total" name="Clienti totali" stroke="#10b981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="total" name={t('charts.totalSeries')} stroke="#10b981" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

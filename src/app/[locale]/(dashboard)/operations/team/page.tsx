@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
@@ -22,6 +23,7 @@ type TeamData = { table: Row[] };
 
 export default function OperationsTeamPage() {
   const locale = useAppLocale();
+  const t = useTranslations('team');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['operations', 'team'],
     queryFn: () => apiFetch<TeamData>('/api/analysis/operations/team'),
@@ -29,24 +31,24 @@ export default function OperationsTeamPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Team" subtitle="Headcount, produttività e soddisfazione per dipartimento" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : isLoading || !data ? (
         <ChartSkeleton />
       ) : (
         <Card>
-          <CardHeader title={`${data.table.length} dipartimenti`} />
+          <CardHeader title={t('table.deptCount', { count: data.table.length })} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-border">
                 <tr className="text-left text-xs uppercase text-muted-foreground">
-                  <th className="py-2 pr-4">Dipartimento</th>
-                  <th className="py-2 pr-4">Headcount</th>
-                  <th className="py-2 pr-4">Costo medio</th>
-                  <th className="py-2 pr-4">Produttività</th>
-                  <th className="py-2 pr-4">Soddisfazione</th>
-                  <th className="py-2 pr-4">Turnover</th>
+                  <th className="py-2 pr-4">{t('table.department')}</th>
+                  <th className="py-2 pr-4">{t('table.headcount')}</th>
+                  <th className="py-2 pr-4">{t('table.avgCost')}</th>
+                  <th className="py-2 pr-4">{t('table.productivity')}</th>
+                  <th className="py-2 pr-4">{t('table.satisfaction')}</th>
+                  <th className="py-2 pr-4">{t('table.turnover')}</th>
                 </tr>
               </thead>
               <tbody>

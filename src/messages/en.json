@@ -355,7 +355,12 @@
       "mrr": "MRR",
       "customers": "Active Customers",
       "vsPrev": "vs previous month",
-      "months": "months"
+      "months": "months",
+      "revenue12m": "Revenue 12m",
+      "costs12m": "Costs 12m",
+      "cashAvailable": "Available cash",
+      "activeCustomers": "Active customers",
+      "runwayLabel": "Runway"
     },
     "chart": {
       "revenueVsCosts": "Revenue vs Costs — last 12 months",
@@ -368,8 +373,19 @@
       "addData": "Add Data",
       "generateReport": "Generate Report",
       "askAi": "Ask AI",
-      "importFile": "Import File"
-    }
+      "importFile": "Import File",
+      "finance": "Open finance dashboard",
+      "market": "Market analysis",
+      "operations": "Operations KPIs",
+      "aiChat": "Chat with AI"
+    },
+    "aiSpotlightBadge": "Automated insight",
+    "aiSpotlightSummary": "Net margin at {margin} over the last 12 months. Burn rate {burnRate}/month, runway {runway} months.",
+    "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
+    "lastMonthRevenue": "Last month — Revenue",
+    "lastMonthCosts": "Last month — Costs",
+    "lastMonthNetProfit": "Last month — Net profit",
+    "goToFinance": "Go to full finance dashboard"
   },
   "finance": {
     "title": "Finance",
@@ -752,7 +768,14 @@
     "npsTrend": "NPS trend",
     "csatTrend": "CSAT trend",
     "newCustomers": "New customers per month",
-    "cumulativeGrowth": "Cumulative customer growth"
+    "cumulativeGrowth": "Cumulative customer growth",
+    "charts": {
+      "churnSeries": "Churn",
+      "retentionSeries": "Retention",
+      "npsSeries": "NPS",
+      "newSeries": "New",
+      "totalSeries": "Total customers"
+    }
   },
   "team": {
     "title": "Team",
@@ -763,7 +786,8 @@
       "avgCost": "Avg. cost",
       "productivity": "Productivity",
       "satisfaction": "Satisfaction",
-      "turnover": "Turnover"
+      "turnover": "Turnover",
+      "deptCount": "{count, plural, one {# department} other {# departments}}"
     },
     "headcountByDept": "Headcount by department",
     "productivityHeatmap": "Monthly productivity heatmap",
@@ -1210,53 +1234,103 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Create and manage custom reports about your metrics.",
-    "newReport": "New report",
-    "empty": "No reports created yet. Create the first one to get started.",
-    "delete": "Delete",
-    "runNow": "Run now",
-    "lastRun": "Last run:",
-    "back": "Back",
-    "cancel": "Cancel",
-    "saveReport": "Save report",
-    "saving": "Saving...",
-    "errorTitleRequired": "Title is required.",
-    "errorSectionsRequired": "Select at least one section.",
-    "builderTitle": "New report",
-    "builderSubtitle": "Configure sections, schedule, and recipients.",
-    "builderStepInfo": "Info",
-    "builderStepSections": "Sections",
-    "builderStepSchedule": "Schedule",
-    "builderTitleField": "Title",
-    "builderTitlePlaceholder": "e.g. Monthly sales report",
-    "builderDescription": "Description",
-    "builderSectionsHint": "Choose which sections to include in the report.",
-    "builderSchedule": "Frequency",
-    "builderRecipients": "Recipients",
-    "builderRecipientsHint": "Comma-separated list of email addresses.",
-    "scheduleOnDemand": "On demand",
-    "scheduleWeekly": "Weekly",
-    "scheduleMonthly": "Monthly",
-    "scheduledTitle": "Scheduled reports",
-    "scheduledSubtitle": "All reports with automated execution.",
-    "scheduledEmpty": "No scheduled reports.",
-    "scheduledRecipientsCount": "recipients",
-    "sectionKpiSummary": "KPI summary",
-    "sectionKpiSummaryDesc": "Overview of key indicators",
-    "sectionRevenue": "Revenue analysis",
-    "sectionRevenueDesc": "Revenue breakdown by category",
-    "sectionCosts": "Cost analysis",
-    "sectionCostsDesc": "Cost breakdown by category",
-    "sectionCashflow": "Cashflow trend",
-    "sectionCashflowDesc": "Monthly and cumulative cashflow",
-    "sectionTopCustomers": "Top customers",
-    "sectionTopCustomersDesc": "Customers by revenue and MRR",
-    "sectionChurn": "Churn and retention",
-    "sectionChurnDesc": "Churn rate per period",
-    "sectionForecast": "3-month forecast",
-    "sectionForecastDesc": "Revenue and cost forecast",
-    "sectionBenchmarks": "Industry benchmarks",
-    "sectionBenchmarksDesc": "Comparison with industry average"
+    "subtitle": "Generate, download and share your business reports",
+    "newReport": "New Report",
+    "scheduled": {
+      "title": "Scheduled reports",
+      "subtitle": "Configure recurring email reports",
+      "new": "New schedule",
+      "frequency": "Frequency",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "recipients": "Recipients",
+      "recipientsHint": "Comma-separated emails",
+      "active": "Active",
+      "paused": "Paused",
+      "saved": "Configuration saved",
+      "proOnly": "Scheduled reports are available on PRO and Enterprise plans"
+    },
+    "empty": {
+      "title": "No reports yet",
+      "description": "Create your first professional PDF report to share insights and analysis.",
+      "cta": "Create first report"
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions",
+      "download": "Download",
+      "view": "View",
+      "share": "Share",
+      "delete": "Delete"
+    },
+    "type": {
+      "complete": "Complete",
+      "executive": "Executive Summary",
+      "finance": "Finance only",
+      "market": "Market only",
+      "operations": "Operations only",
+      "custom": "Custom"
+    },
+    "status": {
+      "ready": "Ready",
+      "generating": "Generating...",
+      "failed": "Failed"
+    },
+    "builder": {
+      "title": "Create Report",
+      "subtitle": "Configure your report in a few steps",
+      "preview": "Preview",
+      "generate": "Generate PDF",
+      "generating": "Generating PDF...",
+      "step": "Step {current} of {total}",
+      "step1": {
+        "title": "Report type",
+        "description": "Choose the type of report you want to generate"
+      },
+      "step2": {
+        "title": "Period",
+        "description": "Select the reference period for the data",
+        "1m": "Last month",
+        "3m": "Last 3 months",
+        "6m": "Last 6 months",
+        "12m": "Last 12 months",
+        "custom": "Custom period",
+        "from": "From",
+        "to": "To"
+      },
+      "step3": {
+        "title": "Sections",
+        "description": "Select the sections to include",
+        "executive": "Executive Summary",
+        "finance": "Finance",
+        "cashflow": "Cash Flow",
+        "market": "Market",
+        "operations": "Operations",
+        "projections": "Projections",
+        "benchmark": "Benchmark",
+        "recommendations": "AI Recommendations"
+      },
+      "step4": {
+        "title": "Options",
+        "description": "Language and chart settings",
+        "language": "Report language",
+        "languageIt": "Italiano",
+        "languageEn": "English",
+        "includeCharts": "Include charts"
+      }
+    },
+    "share": {
+      "title": "Share report",
+      "publicLink": "Public link",
+      "publicLinkDesc": "Anyone with the link can view the report",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "proOnly": "Available on PRO and Enterprise plans"
+    }
   },
   "customDashboards": {
     "title": "Custom Dashboards",
@@ -1425,106 +1499,6 @@
       "a4": "Yes, the Free plan lets you try the essentials with no time limit.",
       "q5": "Can I pay by bank transfer?",
       "a5": "For Enterprise, yes — contact our sales team."
-    }
-  },
-  "reports": {
-    "title": "Reports",
-    "subtitle": "Generate, download and share your business reports",
-    "newReport": "New Report",
-    "scheduled": {
-      "title": "Scheduled reports",
-      "subtitle": "Configure recurring email reports",
-      "new": "New schedule",
-      "frequency": "Frequency",
-      "weekly": "Weekly",
-      "monthly": "Monthly",
-      "quarterly": "Quarterly",
-      "recipients": "Recipients",
-      "recipientsHint": "Comma-separated emails",
-      "active": "Active",
-      "paused": "Paused",
-      "saved": "Configuration saved",
-      "proOnly": "Scheduled reports are available on PRO and Enterprise plans"
-    },
-    "empty": {
-      "title": "No reports yet",
-      "description": "Create your first professional PDF report to share insights and analysis.",
-      "cta": "Create first report"
-    },
-    "table": {
-      "title": "Title",
-      "type": "Type",
-      "date": "Date",
-      "status": "Status",
-      "actions": "Actions",
-      "download": "Download",
-      "view": "View",
-      "share": "Share",
-      "delete": "Delete"
-    },
-    "type": {
-      "complete": "Complete",
-      "executive": "Executive Summary",
-      "finance": "Finance only",
-      "market": "Market only",
-      "operations": "Operations only",
-      "custom": "Custom"
-    },
-    "status": {
-      "ready": "Ready",
-      "generating": "Generating...",
-      "failed": "Failed"
-    },
-    "builder": {
-      "title": "Create Report",
-      "subtitle": "Configure your report in a few steps",
-      "preview": "Preview",
-      "generate": "Generate PDF",
-      "generating": "Generating PDF...",
-      "step": "Step {current} of {total}",
-      "step1": {
-        "title": "Report type",
-        "description": "Choose the type of report you want to generate"
-      },
-      "step2": {
-        "title": "Period",
-        "description": "Select the reference period for the data",
-        "1m": "Last month",
-        "3m": "Last 3 months",
-        "6m": "Last 6 months",
-        "12m": "Last 12 months",
-        "custom": "Custom period",
-        "from": "From",
-        "to": "To"
-      },
-      "step3": {
-        "title": "Sections",
-        "description": "Select the sections to include",
-        "executive": "Executive Summary",
-        "finance": "Finance",
-        "cashflow": "Cash Flow",
-        "market": "Market",
-        "operations": "Operations",
-        "projections": "Projections",
-        "benchmark": "Benchmark",
-        "recommendations": "AI Recommendations"
-      },
-      "step4": {
-        "title": "Options",
-        "description": "Language and chart settings",
-        "language": "Report language",
-        "languageIt": "Italiano",
-        "languageEn": "English",
-        "includeCharts": "Include charts"
-      }
-    },
-    "share": {
-      "title": "Share report",
-      "publicLink": "Public link",
-      "publicLinkDesc": "Anyone with the link can view the report",
-      "copy": "Copy link",
-      "copied": "Copied!",
-      "proOnly": "Available on PRO and Enterprise plans"
     }
   },
   "plan": {
