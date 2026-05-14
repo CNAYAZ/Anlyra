@@ -14,7 +14,7 @@ import { generateId } from '@/lib/utils';
 import { WidgetLibrary } from '@/components/builder/WidgetLibrary';
 import { WidgetConfigDialog } from '@/components/builder/WidgetConfigDialog';
 
-const BuilderCanvas = dynamic(() => import('@/components/builder/BuilderCanvas').then((m) => m.BuilderCanvas), {
+const BuilderCanvas = dynamic(() => import('@/components/builder/BuilderCanvas'), {
   ssr: false,
   loading: () => (
     <div className="grid h-[60vh] grid-cols-3 gap-4 p-6">
