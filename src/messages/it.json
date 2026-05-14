@@ -355,7 +355,12 @@
       "mrr": "MRR",
       "customers": "Clienti Attivi",
       "vsPrev": "vs mese precedente",
-      "months": "mesi"
+      "months": "mesi",
+      "revenue12m": "Ricavi 12m",
+      "costs12m": "Costi 12m",
+      "cashAvailable": "Cash disponibile",
+      "activeCustomers": "Clienti attivi",
+      "runwayLabel": "Runway"
     },
     "chart": {
       "revenueVsCosts": "Ricavi vs Costi — ultimi 12 mesi",
@@ -368,8 +373,19 @@
       "addData": "Aggiungi Dato",
       "generateReport": "Genera Report",
       "askAi": "Chiedi all'AI",
-      "importFile": "Importa File"
-    }
+      "importFile": "Importa File",
+      "finance": "Apri dashboard finanza",
+      "market": "Analisi mercato",
+      "operations": "KPI operativi",
+      "aiChat": "Chat con l'AI"
+    },
+    "aiSpotlightBadge": "Insight automatico",
+    "aiSpotlightSummary": "Margine netto al {margin} negli ultimi 12 mesi. Burn rate {burnRate}/mese, runway {runway} mesi.",
+    "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
+    "lastMonthRevenue": "Ultimo mese — Ricavi",
+    "lastMonthCosts": "Ultimo mese — Costi",
+    "lastMonthNetProfit": "Ultimo mese — Profitto netto",
+    "goToFinance": "Vai alla dashboard finanza completa"
   },
   "finance": {
     "title": "Finanza",
@@ -752,7 +768,14 @@
     "npsTrend": "Andamento NPS",
     "csatTrend": "Andamento CSAT",
     "newCustomers": "Nuovi clienti per mese",
-    "cumulativeGrowth": "Crescita clienti cumulativa"
+    "cumulativeGrowth": "Crescita clienti cumulativa",
+    "charts": {
+      "churnSeries": "Churn",
+      "retentionSeries": "Retention",
+      "npsSeries": "NPS",
+      "newSeries": "Nuovi",
+      "totalSeries": "Clienti totali"
+    }
   },
   "team": {
     "title": "Team",
@@ -763,7 +786,8 @@
       "avgCost": "Costo medio",
       "productivity": "Produttività",
       "satisfaction": "Soddisfazione",
-      "turnover": "Turnover"
+      "turnover": "Turnover",
+      "deptCount": "{count, plural, one {# dipartimento} other {# dipartimenti}}"
     },
     "headcountByDept": "Organico per dipartimento",
     "productivityHeatmap": "Heatmap produttività mensile",
@@ -1210,53 +1234,103 @@
   },
   "reports": {
     "title": "Report",
-    "subtitle": "Crea e gestisci report personalizzati sulle tue metriche.",
-    "newReport": "Nuovo report",
-    "empty": "Nessun report creato. Crea il primo per iniziare.",
-    "delete": "Elimina",
-    "runNow": "Esegui ora",
-    "lastRun": "Ultima esecuzione:",
-    "back": "Indietro",
-    "cancel": "Annulla",
-    "saveReport": "Salva report",
-    "saving": "Salvataggio...",
-    "errorTitleRequired": "Il titolo è obbligatorio.",
-    "errorSectionsRequired": "Seleziona almeno una sezione.",
-    "builderTitle": "Nuovo report",
-    "builderSubtitle": "Configura sezioni, pianificazione e destinatari.",
-    "builderStepInfo": "Informazioni",
-    "builderStepSections": "Sezioni",
-    "builderStepSchedule": "Pianificazione",
-    "builderTitleField": "Titolo",
-    "builderTitlePlaceholder": "Es. Report mensile vendite",
-    "builderDescription": "Descrizione",
-    "builderSectionsHint": "Scegli quali sezioni includere nel report.",
-    "builderSchedule": "Frequenza",
-    "builderRecipients": "Destinatari",
-    "builderRecipientsHint": "Lista di email separate da virgola.",
-    "scheduleOnDemand": "Su richiesta",
-    "scheduleWeekly": "Settimanale",
-    "scheduleMonthly": "Mensile",
-    "scheduledTitle": "Report pianificati",
-    "scheduledSubtitle": "Tutti i report con esecuzione automatica.",
-    "scheduledEmpty": "Nessun report pianificato.",
-    "scheduledRecipientsCount": "destinatari",
-    "sectionKpiSummary": "Riepilogo KPI",
-    "sectionKpiSummaryDesc": "Panoramica dei principali indicatori",
-    "sectionRevenue": "Analisi ricavi",
-    "sectionRevenueDesc": "Breakdown ricavi per categoria",
-    "sectionCosts": "Analisi costi",
-    "sectionCostsDesc": "Breakdown costi per categoria",
-    "sectionCashflow": "Andamento cassa",
-    "sectionCashflowDesc": "Cashflow mensile e cumulato",
-    "sectionTopCustomers": "Top clienti",
-    "sectionTopCustomersDesc": "Clienti per fatturato e MRR",
-    "sectionChurn": "Churn e retention",
-    "sectionChurnDesc": "Tasso di abbandono per periodo",
-    "sectionForecast": "Previsioni 3 mesi",
-    "sectionForecastDesc": "Forecast ricavi e costi",
-    "sectionBenchmarks": "Benchmark settore",
-    "sectionBenchmarksDesc": "Confronto con la media di settore"
+    "subtitle": "Genera, scarica e condividi i tuoi report aziendali",
+    "newReport": "Nuovo Report",
+    "scheduled": {
+      "title": "Report schedulati",
+      "subtitle": "Configura report ricorrenti via email",
+      "new": "Nuova schedulazione",
+      "frequency": "Frequenza",
+      "weekly": "Settimanale",
+      "monthly": "Mensile",
+      "quarterly": "Trimestrale",
+      "recipients": "Destinatari",
+      "recipientsHint": "Email separate da virgola",
+      "active": "Attivo",
+      "paused": "In pausa",
+      "saved": "Configurazione salvata",
+      "proOnly": "I report schedulati sono disponibili sui piani PRO ed Enterprise"
+    },
+    "empty": {
+      "title": "Nessun report generato",
+      "description": "Crea il tuo primo report PDF professionale per condividere insight e analisi.",
+      "cta": "Crea il primo report"
+    },
+    "table": {
+      "title": "Titolo",
+      "type": "Tipo",
+      "date": "Data",
+      "status": "Stato",
+      "actions": "Azioni",
+      "download": "Scarica",
+      "view": "Visualizza",
+      "share": "Condividi",
+      "delete": "Elimina"
+    },
+    "type": {
+      "complete": "Completo",
+      "executive": "Executive Summary",
+      "finance": "Solo Finanza",
+      "market": "Solo Mercato",
+      "operations": "Solo Operazioni",
+      "custom": "Custom"
+    },
+    "status": {
+      "ready": "Pronto",
+      "generating": "Generazione...",
+      "failed": "Fallito"
+    },
+    "builder": {
+      "title": "Crea Report",
+      "subtitle": "Configura il tuo report in pochi passaggi",
+      "preview": "Anteprima",
+      "generate": "Genera PDF",
+      "generating": "Generazione PDF in corso...",
+      "step": "Passo {current} di {total}",
+      "step1": {
+        "title": "Tipo di report",
+        "description": "Scegli il tipo di report che vuoi generare"
+      },
+      "step2": {
+        "title": "Periodo",
+        "description": "Seleziona il periodo di riferimento dei dati",
+        "1m": "Ultimo mese",
+        "3m": "Ultimi 3 mesi",
+        "6m": "Ultimi 6 mesi",
+        "12m": "Ultimi 12 mesi",
+        "custom": "Periodo personalizzato",
+        "from": "Dal",
+        "to": "Al"
+      },
+      "step3": {
+        "title": "Sezioni",
+        "description": "Seleziona le sezioni da includere",
+        "executive": "Executive Summary",
+        "finance": "Finanza",
+        "cashflow": "Cash Flow",
+        "market": "Mercato",
+        "operations": "Operazioni",
+        "projections": "Proiezioni",
+        "benchmark": "Benchmark",
+        "recommendations": "Raccomandazioni AI"
+      },
+      "step4": {
+        "title": "Opzioni",
+        "description": "Lingua e impostazioni grafiche",
+        "language": "Lingua del report",
+        "languageIt": "Italiano",
+        "languageEn": "English",
+        "includeCharts": "Includi grafici"
+      }
+    },
+    "share": {
+      "title": "Condividi report",
+      "publicLink": "Link pubblico",
+      "publicLinkDesc": "Chiunque abbia il link puo visualizzare il report",
+      "copy": "Copia link",
+      "copied": "Copiato!",
+      "proOnly": "Disponibile sui piani PRO ed Enterprise"
+    }
   },
   "customDashboards": {
     "title": "Dashboard Custom",
@@ -1425,106 +1499,6 @@
       "a4": "Sì, il piano Free ti permette di provare le funzionalità essenziali senza limiti di tempo.",
       "q5": "Posso pagare con bonifico?",
       "a5": "Per il piano Enterprise sì, contatta il nostro team commerciale."
-    }
-  },
-  "reports": {
-    "title": "Report",
-    "subtitle": "Genera, scarica e condividi i tuoi report aziendali",
-    "newReport": "Nuovo Report",
-    "scheduled": {
-      "title": "Report schedulati",
-      "subtitle": "Configura report ricorrenti via email",
-      "new": "Nuova schedulazione",
-      "frequency": "Frequenza",
-      "weekly": "Settimanale",
-      "monthly": "Mensile",
-      "quarterly": "Trimestrale",
-      "recipients": "Destinatari",
-      "recipientsHint": "Email separate da virgola",
-      "active": "Attivo",
-      "paused": "In pausa",
-      "saved": "Configurazione salvata",
-      "proOnly": "I report schedulati sono disponibili sui piani PRO ed Enterprise"
-    },
-    "empty": {
-      "title": "Nessun report generato",
-      "description": "Crea il tuo primo report PDF professionale per condividere insight e analisi.",
-      "cta": "Crea il primo report"
-    },
-    "table": {
-      "title": "Titolo",
-      "type": "Tipo",
-      "date": "Data",
-      "status": "Stato",
-      "actions": "Azioni",
-      "download": "Scarica",
-      "view": "Visualizza",
-      "share": "Condividi",
-      "delete": "Elimina"
-    },
-    "type": {
-      "complete": "Completo",
-      "executive": "Executive Summary",
-      "finance": "Solo Finanza",
-      "market": "Solo Mercato",
-      "operations": "Solo Operazioni",
-      "custom": "Custom"
-    },
-    "status": {
-      "ready": "Pronto",
-      "generating": "Generazione...",
-      "failed": "Fallito"
-    },
-    "builder": {
-      "title": "Crea Report",
-      "subtitle": "Configura il tuo report in pochi passaggi",
-      "preview": "Anteprima",
-      "generate": "Genera PDF",
-      "generating": "Generazione PDF in corso...",
-      "step": "Passo {current} di {total}",
-      "step1": {
-        "title": "Tipo di report",
-        "description": "Scegli il tipo di report che vuoi generare"
-      },
-      "step2": {
-        "title": "Periodo",
-        "description": "Seleziona il periodo di riferimento dei dati",
-        "1m": "Ultimo mese",
-        "3m": "Ultimi 3 mesi",
-        "6m": "Ultimi 6 mesi",
-        "12m": "Ultimi 12 mesi",
-        "custom": "Periodo personalizzato",
-        "from": "Dal",
-        "to": "Al"
-      },
-      "step3": {
-        "title": "Sezioni",
-        "description": "Seleziona le sezioni da includere",
-        "executive": "Executive Summary",
-        "finance": "Finanza",
-        "cashflow": "Cash Flow",
-        "market": "Mercato",
-        "operations": "Operazioni",
-        "projections": "Proiezioni",
-        "benchmark": "Benchmark",
-        "recommendations": "Raccomandazioni AI"
-      },
-      "step4": {
-        "title": "Opzioni",
-        "description": "Lingua e impostazioni grafiche",
-        "language": "Lingua del report",
-        "languageIt": "Italiano",
-        "languageEn": "English",
-        "includeCharts": "Includi grafici"
-      }
-    },
-    "share": {
-      "title": "Condividi report",
-      "publicLink": "Link pubblico",
-      "publicLinkDesc": "Chiunque abbia il link puo visualizzare il report",
-      "copy": "Copia link",
-      "copied": "Copiato!",
-      "proOnly": "Disponibile sui piani PRO ed Enterprise"
     }
   },
   "plan": {
