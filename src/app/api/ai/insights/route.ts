@@ -5,7 +5,7 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-// Derive a priority label from the impact string stored in the active Insight model.
+// Derive a priority label from the impact string stored in the Insight model.
 function impactToPriority(impact: string): string {
   const i = impact.toLowerCase();
   if (i.includes('alt') || i.includes('hig') || i.includes('critic')) return 'HIGH';
@@ -13,14 +13,14 @@ function impactToPriority(impact: string): string {
   return 'LOW';
 }
 
-// Derive a type label from the tone string stored in the active Insight model.
+// Derive a type label from the tone string stored in the Insight model.
 function toneToType(tone: string): string {
   switch (tone.toLowerCase()) {
-    case 'urgent':   return 'WARNING';
-    case 'positive': return 'OPPORTUNITY';
+    case 'urgent':     return 'WARNING';
+    case 'positive':   return 'OPPORTUNITY';
     case 'analytical': return 'STRATEGY';
-    case 'action':   return 'ACTION';
-    default:         return 'INSIGHT';
+    case 'action':     return 'ACTION';
+    default:           return 'INSIGHT';
   }
 }
 
@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
           (a.createdAt < b.createdAt ? 1 : -1),
       );
 
-    // Optional client-side filters (type / priority — status not persisted on Insight model)
     const sp = req.nextUrl.searchParams;
     const typeFilter = sp.get('type');
     const priorityFilter = sp.get('priority');

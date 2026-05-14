@@ -4,13 +4,13 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-// The active Insight model has no `status` field — status is derived client-side.
-// This endpoint confirms the insight exists and returns it so the UI optimistic
-// update can be validated. A full status-persistence migration is tracked separately.
+// The Insight DB table has 7 columns (id, organizationId, title, summary, impact, tone, createdAt).
+// status/type/priority/content/confidence are derived by the GET route, not stored.
+// PATCH acknowledges the request and returns the insight with status='REVIEWED' for optimistic UI.
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
     const { organizationId } = await getCurrentContext();
-    await req.json().catch(() => null); // consume body
+    await req.json().catch(() => null);
 
     const existing = await prisma.insight.findFirst({
       where: { id: ctx.params.id, organizationId },
