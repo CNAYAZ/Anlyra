@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Pro",
-    "tagline": "Analisi aziendale intelligente"
+    "tagline": "Analisi aziendale intelligente",
+    "logoSubtitle": "Analytics"
   },
   "nav": {
     "overview": "Overview",
@@ -82,7 +83,10 @@
     "creditsRemaining": "{count} crediti rimanenti",
     "buyMore": "Acquista altri",
     "popoverTitle": "Crediti AI",
-    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti."
+    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti.",
+    "notificationsTitle": "Notifiche",
+    "notificationsEmpty": "Nessuna notifica al momento",
+    "notificationsSettings": "Preferenze notifiche"
   },
   "user": {
     "profile": "Profilo",
@@ -321,6 +325,10 @@
     "done": "Fatto",
     "freeStart": "Inizia Gratis",
     "login": "Accedi",
+    "loginSubtitle": "Accedi per visualizzare il tuo dashboard.",
+    "email": "Email",
+    "password": "Password",
+    "newHere": "Prima volta qui?",
     "signup": "Registrati",
     "logout": "Esci",
     "dashboard": "Dashboard",

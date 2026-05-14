@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Settings, User } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 export function UserMenu() {
   const t = useTranslations();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -31,9 +32,11 @@ export function UserMenu() {
     .toUpperCase();
 
   const handleLogout = () => {
+    console.log('[logout] handler triggered');
     setOpen(false);
-    // Placeholder: block 2 UI skeleton only, real auth wired in later block
-    window.alert(t('user.logout'));
+    // Full browser navigation so the server redirect from /api/auth/logout is followed correctly.
+    // router.push() (client-side) does not reliably follow server-side redirects from API routes.
+    window.location.href = `/api/auth/logout?locale=${locale}`;
   };
 
   return (

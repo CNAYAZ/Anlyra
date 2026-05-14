@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@/i18n/navigation';
+import { Link } from '@/i18n/routing';
 import { Sparkles } from 'lucide-react';
 
 export async function generateMetadata({
-  params
+  params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
@@ -17,7 +17,7 @@ export async function generateMetadata({
 }
 
 export default async function LoginPage({
-  params
+  params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
@@ -26,7 +26,7 @@ export default async function LoginPage({
   const t = await getTranslations({ locale, namespace: 'common' });
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f8fafc] px-4">
+    <main className="grid min-h-screen place-items-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center text-center">
           <Link href="/" className="flex items-center gap-2">
@@ -36,32 +36,32 @@ export default async function LoginPage({
             <span className="font-heading text-lg font-bold text-primary">{t('appName')}</span>
           </Link>
           <CardTitle className="mt-4">{t('login')}</CardTitle>
-          <CardDescription>Sign in to access your dashboard.</CardDescription>
+          <CardDescription>{t('loginSubtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" placeholder="you@company.com" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" />
             </div>
             <Button className="w-full" type="button" asChild>
-              <Link href="/dashboard">{t('login')}</Link>
+              <Link href="/">{t('login')}</Link>
             </Button>
           </form>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <Button variant="outline" type="button">
+            <Button variant="secondary" type="button">
               Google
             </Button>
-            <Button variant="outline" type="button">
+            <Button variant="secondary" type="button">
               Microsoft
             </Button>
           </div>
-          <p className="mt-4 text-center text-xs text-slate-500">
-            New here?{' '}
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            {t('newHere')}{' '}
             <Link href="/onboarding" className="text-primary-accent hover:underline">
               {t('freeStart')}
             </Link>
