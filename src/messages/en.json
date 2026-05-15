@@ -666,7 +666,16 @@
     },
     "overview": {
       "title": "Market overview",
-      "auto": "Auto-generated from data"
+      "auto": "Auto-generated from data",
+      "cardTitle": "Summary",
+      "growthLabel": "Estimated growth: ",
+      "competitorsLabel": "Monitored competitors: ",
+      "suggestionsTitle": "Suggestions",
+      "suggestions": [
+        "Expand into SMB segments with the highest growth.",
+        "Monitor pricing of leading competitors.",
+        "Increase brand awareness through content channels."
+      ]
     },
     "competitors": {
       "title": "Competitors",
@@ -682,7 +691,13 @@
       "radar": "Multi-dimensional comparison",
       "radarHelp": "Our company (blue) vs competitors (grey)",
       "share": "Market share distribution",
-      "you": "Our company"
+      "you": "Our company",
+      "emptyTitle": "No competitors",
+      "emptyDesc": "Add a competitor to start the analysis.",
+      "monitoredCount": "{count, plural, one {# monitored competitor} other {# monitored competitors}}",
+      "estimatedRevenue": "Estimated revenue",
+      "quality": "Quality",
+      "pricing": "Pricing"
     },
     "trends": {
       "title": "Market trends",
@@ -715,7 +730,8 @@
         "product": "Product",
         "brand": "Brand"
       }
-    }
+    },
+    "tamSubtitle": "TAM · SAM · SOM and market share"
   },
   "operations": {
     "title": "Operations",

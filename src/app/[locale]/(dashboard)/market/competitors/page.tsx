@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
@@ -28,6 +29,7 @@ type Response = { profile: Profile; competitors: Competitor[] };
 
 export default function MarketCompetitorsPage() {
   const locale = useAppLocale();
+  const t = useTranslations('market');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['market', 'competitors'],
     queryFn: () => apiFetch<Response>('/api/analysis/market/competitors'),
@@ -35,29 +37,29 @@ export default function MarketCompetitorsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Competitor" subtitle="Quota di mercato e posizionamento" />
+      <PageHeader title={t('competitors.title')} subtitle={t('competitors.subtitle')} />
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : isLoading || !data ? (
         <ChartSkeleton />
       ) : data.competitors.length === 0 ? (
         <Card>
-          <CardHeader title="Nessun competitor" />
-          <p className="text-sm text-muted-foreground">Aggiungi competitor per iniziare l'analisi.</p>
+          <CardHeader title={t('competitors.emptyTitle')} />
+          <p className="text-sm text-muted-foreground">{t('competitors.emptyDesc')}</p>
         </Card>
       ) : (
         <Card>
-          <CardHeader title={`${data.competitors.length} competitor monitorati`} />
+          <CardHeader title={t('competitors.monitoredCount', { count: data.competitors.length })} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-border">
                 <tr className="text-left text-xs uppercase text-muted-foreground">
-                  <th className="py-2 pr-4">Nome</th>
-                  <th className="py-2 pr-4">Quota mercato</th>
-                  <th className="py-2 pr-4">Ricavi stimati</th>
-                  <th className="py-2 pr-4">Dipendenti</th>
-                  <th className="py-2 pr-4">Qualità</th>
-                  <th className="py-2 pr-4">Pricing</th>
+                  <th className="py-2 pr-4">{t('competitors.name')}</th>
+                  <th className="py-2 pr-4">{t('competitors.marketShare')}</th>
+                  <th className="py-2 pr-4">{t('competitors.estimatedRevenue')}</th>
+                  <th className="py-2 pr-4">{t('competitors.employees')}</th>
+                  <th className="py-2 pr-4">{t('competitors.quality')}</th>
+                  <th className="py-2 pr-4">{t('competitors.pricing')}</th>
                 </tr>
               </thead>
               <tbody>
