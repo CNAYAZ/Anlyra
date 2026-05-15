@@ -12,8 +12,8 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'common' });
-  return { title: t('login') };
+  const t = await getTranslations({ locale, namespace: 'login' });
+  return { title: t('title') };
 }
 
 export default async function LoginPage({
@@ -23,7 +23,7 @@ export default async function LoginPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+  const t = await getTranslations({ locale, namespace: 'login' });
 
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4">
@@ -35,35 +35,41 @@ export default async function LoginPage({
             </span>
             <span className="font-heading text-lg font-bold text-primary">{t('appName')}</span>
           </Link>
-          <CardTitle className="mt-4">{t('login')}</CardTitle>
-          <CardDescription>{t('loginSubtitle')}</CardDescription>
+          <CardTitle className="mt-4">{t('title')}</CardTitle>
+          <CardDescription>{t('subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-3">
+          <form action="/api/auth/login-demo" method="post" className="space-y-3">
+            <input type="hidden" name="locale" value={locale} />
             <div className="space-y-1.5">
-              <Label htmlFor="email">{t('email')}</Label>
-              <Input id="email" type="email" placeholder="you@company.com" />
+              <Label htmlFor="email">{t('emailLabel')}</Label>
+              <Input id="email" name="email" type="email" placeholder={t('emailPlaceholder')} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">{t('password')}</Label>
-              <Input id="password" type="password" />
+              <Label htmlFor="password">{t('passwordLabel')}</Label>
+              <Input id="password" name="password" type="password" placeholder={t('passwordPlaceholder')} />
             </div>
-            <Button className="w-full" type="button" asChild>
-              <Link href="/">{t('login')}</Link>
+            <Button className="w-full" type="submit">
+              {t('signInDemoButton')}
             </Button>
           </form>
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="relative my-4 flex items-center gap-3">
+            <hr className="flex-1 border-border" />
+            <span className="text-xs text-muted-foreground">{t('divider')}</span>
+            <hr className="flex-1 border-border" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" type="button">
-              Google
+              {t('signInWithGoogle')}
             </Button>
             <Button variant="secondary" type="button">
-              Microsoft
+              {t('signInWithMicrosoft')}
             </Button>
           </div>
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            {t('newHere')}{' '}
+            {t('signUpPrompt')}{' '}
             <Link href="/onboarding" className="text-primary-accent hover:underline">
-              {t('freeStart')}
+              {t('signUpLink')}
             </Link>
           </p>
         </CardContent>
