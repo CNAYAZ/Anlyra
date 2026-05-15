@@ -2072,5 +2072,23 @@
     "locked": "Feature locked",
     "lockedDescription": "This feature is available from the {plan} plan.",
     "upgrade": "Upgrade plan"
+  },
+  "login": {
+    "appName": "Anlyra",
+    "title": "Sign in to Anlyra",
+    "subtitle": "Enter your credentials to continue",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@company.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Your password",
+    "signInButton": "Sign in",
+    "signInDemoButton": "Sign in as demo",
+    "signInWithGoogle": "Continue with Google",
+    "signInWithMicrosoft": "Continue with Microsoft",
+    "divider": "or",
+    "signUpPrompt": "New here?",
+    "signUpLink": "Start for free",
+    "forgotPasswordLink": "Forgot password?",
+    "errorInvalid": "Invalid email or password."
   }
 }
