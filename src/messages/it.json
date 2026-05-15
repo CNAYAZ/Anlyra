@@ -666,7 +666,16 @@
     },
     "overview": {
       "title": "Sintesi del mercato",
-      "auto": "Sintesi generata dai dati"
+      "auto": "Sintesi generata dai dati",
+      "cardTitle": "Sintesi",
+      "growthLabel": "Crescita stimata: ",
+      "competitorsLabel": "Competitor monitorati: ",
+      "suggestionsTitle": "Suggerimenti",
+      "suggestions": [
+        "Espandere nei segmenti PMI a maggior crescita.",
+        "Monitorare il pricing dei competitor leader.",
+        "Aumentare la brand awareness su canali content."
+      ]
     },
     "competitors": {
       "title": "Competitor",
@@ -682,7 +691,13 @@
       "radar": "Confronto multidimensionale",
       "radarHelp": "La mia azienda (blu) vs competitor (grigi)",
       "share": "Distribuzione market share",
-      "you": "La mia azienda"
+      "you": "La mia azienda",
+      "emptyTitle": "Nessun competitor",
+      "emptyDesc": "Aggiungi competitor per iniziare l'analisi.",
+      "monitoredCount": "{count, plural, one {# competitor monitorato} other {# competitor monitorati}}",
+      "estimatedRevenue": "Ricavi stimati",
+      "quality": "Qualità",
+      "pricing": "Pricing"
     },
     "trends": {
       "title": "Trend di mercato",
@@ -715,7 +730,8 @@
         "product": "Prodotto",
         "brand": "Brand"
       }
-    }
+    },
+    "tamSubtitle": "TAM · SAM · SOM e quota di mercato"
   },
   "operations": {
     "title": "Operazioni",

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
 import { Globe } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { KpiCard } from '@/components/ui/kpi-card';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
@@ -24,15 +25,18 @@ type MarketSummary = {
 
 export default function MarketOverviewPage() {
   const locale = useAppLocale();
+  const t = useTranslations('market');
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['market', 'summary'],
     queryFn: () => apiFetch<MarketSummary>('/api/analysis/market'),
   });
 
+  const suggestions = t.raw('overview.suggestions') as string[];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Market" subtitle="TAM · SAM · SOM e quota di mercato" />
+      <PageHeader title={t('title')} subtitle={t('tamSubtitle')} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
@@ -40,13 +44,13 @@ export default function MarketOverviewPage() {
         ) : (
           <>
             <KpiCard
-              label="Quota di mercato"
+              label={t('kpi.marketShare')}
               value={formatPercent(data.marketSharePct, locale)}
               icon={Globe}
             />
-            <KpiCard label="TAM" value={formatCurrency(data.tam, locale)} />
-            <KpiCard label="SAM" value={formatCurrency(data.sam, locale)} />
-            <KpiCard label="SOM" value={formatCurrency(data.som, locale)} />
+            <KpiCard label={t('kpi.tam')} value={formatCurrency(data.tam, locale)} />
+            <KpiCard label={t('kpi.sam')} value={formatCurrency(data.sam, locale)} />
+            <KpiCard label={t('kpi.som')} value={formatCurrency(data.som, locale)} />
           </>
         )}
       </div>
@@ -58,14 +62,14 @@ export default function MarketOverviewPage() {
           <ChartSkeleton />
         ) : (
           <Card>
-            <CardHeader title="Sintesi" />
+            <CardHeader title={t('overview.cardTitle')} />
             <div className="space-y-2 text-sm">
               <div>
-                <span className="text-muted-foreground">Crescita stimata: </span>
+                <span className="text-muted-foreground">{t('overview.growthLabel')}</span>
                 <span className="font-medium">{formatPercent(data?.growthPct ?? 0, locale)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Competitor monitorati: </span>
+                <span className="text-muted-foreground">{t('overview.competitorsLabel')}</span>
                 <span className="font-medium">{formatNumber(data?.competitorCount ?? 0, locale)}</span>
               </div>
               {data?.overview && (
@@ -76,11 +80,11 @@ export default function MarketOverviewPage() {
         )}
 
         <Card>
-          <CardHeader title="Suggerimenti" />
+          <CardHeader title={t('overview.suggestionsTitle')} />
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• Espandere nei segmenti PMI a maggior crescita.</li>
-            <li>• Monitorare il pricing dei competitor leader.</li>
-            <li>• Aumentare la brand awareness su canali content.</li>
+            {suggestions.map((tip, i) => (
+              <li key={i}>• {tip}</li>
+            ))}
           </ul>
         </Card>
       </div>
