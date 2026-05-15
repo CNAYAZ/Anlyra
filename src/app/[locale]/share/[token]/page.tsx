@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/utils';
 export default function PublicSharePage() {
   const params = useParams<{ locale: string; token: string }>();
   const tReports = useTranslations('reports');
+  const t = useTranslations('share');
   const reports = useReportsStore((s) => s.reports);
   const [hydrated, setHydrated] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -43,8 +44,8 @@ export default function PublicSharePage() {
         <div className="card max-w-md w-full">
           <EmptyState
             icon={FileText}
-            title="Link non disponibile / Link not available"
-            description="Il link non e valido o e stato disabilitato."
+            title={t('linkUnavailableTitle')}
+            description={t('linkUnavailableDesc')}
           />
         </div>
       </div>
@@ -76,7 +77,7 @@ export default function PublicSharePage() {
     <div className="min-h-screen bg-bg-light">
       <header className="border-b border-slate-200 bg-white">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="font-heading font-bold text-primary text-lg">Pro</div>
+          <div className="font-heading font-bold text-primary text-lg">{t('appName')}</div>
           <button
             onClick={onDownload}
             disabled={downloading}

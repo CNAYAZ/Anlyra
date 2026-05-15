@@ -764,8 +764,10 @@
   },
   "efficiency": {
     "title": "Efficienza",
-    "subtitle": "Produttività e ricavo per dipendente",
+    "subtitle": "Ricavi per dipendente e produttività dipartimenti",
     "revenuePerEmployeeTrend": "Ricavi per dipendente — ultimi 12 mesi",
+    "revenueCardTitle": "Ricavi per dipendente (trend)",
+    "revenueLineName": "Ricavi/dipendente",
     "departmentProductivity": "Produttività per dipartimento",
     "department": "Dipartimento",
     "productivity": "Produttività"
@@ -2072,6 +2074,24 @@
     "locked": "Funzionalità bloccata",
     "lockedDescription": "Questa funzionalità è disponibile dal piano {plan}.",
     "upgrade": "Aggiorna piano"
+  },
+  "positioning": {
+    "title": "Posizionamento",
+    "subtitle": "Mappa qualità/prezzo e analisi SWOT",
+    "mapTitle": "Mappa qualità vs pricing",
+    "priceAxis": "Prezzo",
+    "qualityAxis": "Qualità",
+    "companyName": "TechFlow SRL",
+    "competitorLabel": "Competitor",
+    "strength": "Punti di forza",
+    "weakness": "Punti di debolezza",
+    "opportunity": "Opportunità",
+    "threat": "Minacce"
+  },
+  "share": {
+    "appName": "Anlyra",
+    "linkUnavailableTitle": "Link non disponibile",
+    "linkUnavailableDesc": "Il link non è valido o è stato disabilitato."
   },
   "login": {
     "appName": "Anlyra",
