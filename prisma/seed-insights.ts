@@ -2,10 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Active Insight model fields: id (auto), organizationId, title, summary, impact, tone, createdAt
-// Fields NOT in model (derived by API): type, priority, status, content, confidence
-// tone values mapped by API: urgent→WARNING, positive→OPPORTUNITY, analytical→STRATEGY, action→ACTION, *→INSIGHT
-// impact values mapped by API: contains 'alt'|'hig'|'critic'→HIGH, contains 'med'→MEDIUM, else→LOW
+// Insight model fields: id (auto), organizationId, title, summary, impact, tone, createdAt
+// type/priority/status/content/confidence are derived by the API from tone/impact.
 
 async function main() {
   const org = await prisma.organization.findFirst({ where: { slug: 'techflow-srl' } })
@@ -18,7 +16,6 @@ async function main() {
 
   console.log(`📋 Seeding 6 insights for ${org.name}...`);
 
-  // Idempotent: remove existing insights for this org before re-seeding
   const deleted = await prisma.insight.deleteMany({ where: { organizationId: org.id } });
   if (deleted.count > 0) console.log(`  🗑  Rimossi ${deleted.count} insight precedenti`);
 

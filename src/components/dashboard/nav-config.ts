@@ -45,7 +45,7 @@ export const mainNav: NavItemConfig[] = [
   {
     key: 'overview',
     labelKey: 'nav.overview',
-    href: '/',
+    href: '/overview',
     icon: Home,
   },
   {

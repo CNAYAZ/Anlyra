@@ -11,7 +11,7 @@ export function SiteFooter() {
       title: t('product'),
       links: [
         { href: '/#features', label: t('features') },
-        { href: '/#pricing', label: t('pricing') },
+        { href: '/pricing', label: t('pricing') },
         { href: '/#how', label: tc('appName') + ' Changelog', display: t('changelog') }
       ]
     },

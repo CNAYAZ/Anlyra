@@ -20,20 +20,20 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
-          <a href="#features" className="hover:text-slate-900">{t('nav.features')}</a>
-          <a href="#how" className="hover:text-slate-900">{t('nav.howItWorks')}</a>
-          <a href="#pricing" className="hover:text-slate-900">{t('nav.pricing')}</a>
-          <a href="#testimonials" className="hover:text-slate-900">{t('nav.testimonials')}</a>
+        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <a href="/#features" className="hover:text-foreground">{t('nav.features')}</a>
+          <a href="/#how" className="hover:text-foreground">{t('nav.howItWorks')}</a>
+          <Link href="/pricing" className="hover:text-foreground">{t('nav.pricing')}</Link>
+          <a href="/#testimonials" className="hover:text-foreground">{t('nav.testimonials')}</a>
         </nav>
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link href="/login" className="hidden text-sm text-slate-600 hover:text-slate-900 sm:inline">
+          <Link href="/login" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
             {t('common.login')}
           </Link>
-          <Button asChild size="sm">
-            <Link href="/onboarding">{t('common.freeStart')}</Link>
+          <Button asChild variant="primary" size="sm">
+            <Link href="/login?signup=pro">{t('landing.hero.cta1')}</Link>
           </Button>
         </div>
       </div>
