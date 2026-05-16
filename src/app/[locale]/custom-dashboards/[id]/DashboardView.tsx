@@ -9,7 +9,7 @@ import { Skeleton, EmptyState } from '@/components/ui/state';
 import { useDashboardsStore } from '@/lib/store/dashboards';
 import { formatDate } from '@/lib/utils';
 
-const ReadOnlyGrid = dynamic(() => import('./ReadOnlyGrid').then((m) => m.ReadOnlyGrid), {
+const ReadOnlyGrid = dynamic(() => import('./ReadOnlyGrid'), {
   ssr: false,
   loading: () => (
     <div className="grid grid-cols-3 gap-4 p-6">

@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
@@ -17,6 +18,7 @@ type EfficiencyData = {
 
 export default function OperationsEfficiencyPage() {
   const locale = useAppLocale();
+  const t = useTranslations('efficiency');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['operations', 'efficiency'],
     queryFn: () => apiFetch<EfficiencyData>('/api/analysis/operations/efficiency'),
@@ -24,7 +26,7 @@ export default function OperationsEfficiencyPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Efficienza" subtitle="Ricavi per dipendente e produttività dipartimenti" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
@@ -33,7 +35,7 @@ export default function OperationsEfficiencyPage() {
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <Card>
-            <CardHeader title="Ricavi per dipendente (trend)" />
+            <CardHeader title={t('revenueCardTitle')} />
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.revenuePerEmployeeTrend}>
@@ -42,14 +44,14 @@ export default function OperationsEfficiencyPage() {
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v as number, locale)} />
                   <Tooltip formatter={(v: number) => formatCurrency(v, locale)} />
                   <Legend />
-                  <Line type="monotone" dataKey="value" name="Ricavi/dipendente" stroke="#6366f1" strokeWidth={2} />
+                  <Line type="monotone" dataKey="value" name={t('revenueLineName')} stroke="#6366f1" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Produttività per dipartimento" />
+            <CardHeader title={t('departmentProductivity')} />
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.departmentProductivity}>
@@ -57,7 +59,7 @@ export default function OperationsEfficiencyPage() {
                   <XAxis dataKey="department" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => formatNumber(v as number, locale)} />
                   <Tooltip />
-                  <Bar dataKey="productivity" name="Produttività" fill="#10b981" />
+                  <Bar dataKey="productivity" name={t('productivity')} fill="#10b981" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

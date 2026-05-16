@@ -355,7 +355,12 @@
       "mrr": "MRR",
       "customers": "Clienti Attivi",
       "vsPrev": "vs mese precedente",
-      "months": "mesi"
+      "months": "mesi",
+      "revenue12m": "Ricavi 12m",
+      "costs12m": "Costi 12m",
+      "cashAvailable": "Cash disponibile",
+      "activeCustomers": "Clienti attivi",
+      "runwayLabel": "Runway"
     },
     "chart": {
       "revenueVsCosts": "Ricavi vs Costi — ultimi 12 mesi",
@@ -368,8 +373,19 @@
       "addData": "Aggiungi Dato",
       "generateReport": "Genera Report",
       "askAi": "Chiedi all'AI",
-      "importFile": "Importa File"
-    }
+      "importFile": "Importa File",
+      "finance": "Apri dashboard finanza",
+      "market": "Analisi mercato",
+      "operations": "KPI operativi",
+      "aiChat": "Chat con l'AI"
+    },
+    "aiSpotlightBadge": "Insight automatico",
+    "aiSpotlightSummary": "Margine netto al {margin} negli ultimi 12 mesi. Burn rate {burnRate}/mese, runway {runway} mesi.",
+    "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
+    "lastMonthRevenue": "Ultimo mese — Ricavi",
+    "lastMonthCosts": "Ultimo mese — Costi",
+    "lastMonthNetProfit": "Ultimo mese — Profitto netto",
+    "goToFinance": "Vai alla dashboard finanza completa"
   },
   "finance": {
     "title": "Finanza",
@@ -650,7 +666,16 @@
     },
     "overview": {
       "title": "Sintesi del mercato",
-      "auto": "Sintesi generata dai dati"
+      "auto": "Sintesi generata dai dati",
+      "cardTitle": "Sintesi",
+      "growthLabel": "Crescita stimata: ",
+      "competitorsLabel": "Competitor monitorati: ",
+      "suggestionsTitle": "Suggerimenti",
+      "suggestions": [
+        "Espandere nei segmenti PMI a maggior crescita.",
+        "Monitorare il pricing dei competitor leader.",
+        "Aumentare la brand awareness su canali content."
+      ]
     },
     "competitors": {
       "title": "Competitor",
@@ -666,7 +691,13 @@
       "radar": "Confronto multidimensionale",
       "radarHelp": "La mia azienda (blu) vs competitor (grigi)",
       "share": "Distribuzione market share",
-      "you": "La mia azienda"
+      "you": "La mia azienda",
+      "emptyTitle": "Nessun competitor",
+      "emptyDesc": "Aggiungi competitor per iniziare l'analisi.",
+      "monitoredCount": "{count, plural, one {# competitor monitorato} other {# competitor monitorati}}",
+      "estimatedRevenue": "Ricavi stimati",
+      "quality": "Qualità",
+      "pricing": "Pricing"
     },
     "trends": {
       "title": "Trend di mercato",
@@ -699,7 +730,8 @@
         "product": "Prodotto",
         "brand": "Brand"
       }
-    }
+    },
+    "tamSubtitle": "TAM · SAM · SOM e quota di mercato"
   },
   "operations": {
     "title": "Operazioni",
@@ -732,8 +764,10 @@
   },
   "efficiency": {
     "title": "Efficienza",
-    "subtitle": "Produttività e ricavo per dipendente",
+    "subtitle": "Ricavi per dipendente e produttività dipartimenti",
     "revenuePerEmployeeTrend": "Ricavi per dipendente — ultimi 12 mesi",
+    "revenueCardTitle": "Ricavi per dipendente (trend)",
+    "revenueLineName": "Ricavi/dipendente",
     "departmentProductivity": "Produttività per dipartimento",
     "department": "Dipartimento",
     "productivity": "Produttività"
@@ -752,7 +786,14 @@
     "npsTrend": "Andamento NPS",
     "csatTrend": "Andamento CSAT",
     "newCustomers": "Nuovi clienti per mese",
-    "cumulativeGrowth": "Crescita clienti cumulativa"
+    "cumulativeGrowth": "Crescita clienti cumulativa",
+    "charts": {
+      "churnSeries": "Churn",
+      "retentionSeries": "Retention",
+      "npsSeries": "NPS",
+      "newSeries": "Nuovi",
+      "totalSeries": "Clienti totali"
+    }
   },
   "team": {
     "title": "Team",
@@ -763,7 +804,8 @@
       "avgCost": "Costo medio",
       "productivity": "Produttività",
       "satisfaction": "Soddisfazione",
-      "turnover": "Turnover"
+      "turnover": "Turnover",
+      "deptCount": "{count, plural, one {# dipartimento} other {# dipartimenti}}"
     },
     "headcountByDept": "Organico per dipartimento",
     "productivityHeatmap": "Heatmap produttività mensile",
@@ -1210,53 +1252,103 @@
   },
   "reports": {
     "title": "Report",
-    "subtitle": "Crea e gestisci report personalizzati sulle tue metriche.",
-    "newReport": "Nuovo report",
-    "empty": "Nessun report creato. Crea il primo per iniziare.",
-    "delete": "Elimina",
-    "runNow": "Esegui ora",
-    "lastRun": "Ultima esecuzione:",
-    "back": "Indietro",
-    "cancel": "Annulla",
-    "saveReport": "Salva report",
-    "saving": "Salvataggio...",
-    "errorTitleRequired": "Il titolo è obbligatorio.",
-    "errorSectionsRequired": "Seleziona almeno una sezione.",
-    "builderTitle": "Nuovo report",
-    "builderSubtitle": "Configura sezioni, pianificazione e destinatari.",
-    "builderStepInfo": "Informazioni",
-    "builderStepSections": "Sezioni",
-    "builderStepSchedule": "Pianificazione",
-    "builderTitleField": "Titolo",
-    "builderTitlePlaceholder": "Es. Report mensile vendite",
-    "builderDescription": "Descrizione",
-    "builderSectionsHint": "Scegli quali sezioni includere nel report.",
-    "builderSchedule": "Frequenza",
-    "builderRecipients": "Destinatari",
-    "builderRecipientsHint": "Lista di email separate da virgola.",
-    "scheduleOnDemand": "Su richiesta",
-    "scheduleWeekly": "Settimanale",
-    "scheduleMonthly": "Mensile",
-    "scheduledTitle": "Report pianificati",
-    "scheduledSubtitle": "Tutti i report con esecuzione automatica.",
-    "scheduledEmpty": "Nessun report pianificato.",
-    "scheduledRecipientsCount": "destinatari",
-    "sectionKpiSummary": "Riepilogo KPI",
-    "sectionKpiSummaryDesc": "Panoramica dei principali indicatori",
-    "sectionRevenue": "Analisi ricavi",
-    "sectionRevenueDesc": "Breakdown ricavi per categoria",
-    "sectionCosts": "Analisi costi",
-    "sectionCostsDesc": "Breakdown costi per categoria",
-    "sectionCashflow": "Andamento cassa",
-    "sectionCashflowDesc": "Cashflow mensile e cumulato",
-    "sectionTopCustomers": "Top clienti",
-    "sectionTopCustomersDesc": "Clienti per fatturato e MRR",
-    "sectionChurn": "Churn e retention",
-    "sectionChurnDesc": "Tasso di abbandono per periodo",
-    "sectionForecast": "Previsioni 3 mesi",
-    "sectionForecastDesc": "Forecast ricavi e costi",
-    "sectionBenchmarks": "Benchmark settore",
-    "sectionBenchmarksDesc": "Confronto con la media di settore"
+    "subtitle": "Genera, scarica e condividi i tuoi report aziendali",
+    "newReport": "Nuovo Report",
+    "scheduled": {
+      "title": "Report schedulati",
+      "subtitle": "Configura report ricorrenti via email",
+      "new": "Nuova schedulazione",
+      "frequency": "Frequenza",
+      "weekly": "Settimanale",
+      "monthly": "Mensile",
+      "quarterly": "Trimestrale",
+      "recipients": "Destinatari",
+      "recipientsHint": "Email separate da virgola",
+      "active": "Attivo",
+      "paused": "In pausa",
+      "saved": "Configurazione salvata",
+      "proOnly": "I report schedulati sono disponibili sui piani PRO ed Enterprise"
+    },
+    "empty": {
+      "title": "Nessun report generato",
+      "description": "Crea il tuo primo report PDF professionale per condividere insight e analisi.",
+      "cta": "Crea il primo report"
+    },
+    "table": {
+      "title": "Titolo",
+      "type": "Tipo",
+      "date": "Data",
+      "status": "Stato",
+      "actions": "Azioni",
+      "download": "Scarica",
+      "view": "Visualizza",
+      "share": "Condividi",
+      "delete": "Elimina"
+    },
+    "type": {
+      "complete": "Completo",
+      "executive": "Executive Summary",
+      "finance": "Solo Finanza",
+      "market": "Solo Mercato",
+      "operations": "Solo Operazioni",
+      "custom": "Custom"
+    },
+    "status": {
+      "ready": "Pronto",
+      "generating": "Generazione...",
+      "failed": "Fallito"
+    },
+    "builder": {
+      "title": "Crea Report",
+      "subtitle": "Configura il tuo report in pochi passaggi",
+      "preview": "Anteprima",
+      "generate": "Genera PDF",
+      "generating": "Generazione PDF in corso...",
+      "step": "Passo {current} di {total}",
+      "step1": {
+        "title": "Tipo di report",
+        "description": "Scegli il tipo di report che vuoi generare"
+      },
+      "step2": {
+        "title": "Periodo",
+        "description": "Seleziona il periodo di riferimento dei dati",
+        "1m": "Ultimo mese",
+        "3m": "Ultimi 3 mesi",
+        "6m": "Ultimi 6 mesi",
+        "12m": "Ultimi 12 mesi",
+        "custom": "Periodo personalizzato",
+        "from": "Dal",
+        "to": "Al"
+      },
+      "step3": {
+        "title": "Sezioni",
+        "description": "Seleziona le sezioni da includere",
+        "executive": "Executive Summary",
+        "finance": "Finanza",
+        "cashflow": "Cash Flow",
+        "market": "Mercato",
+        "operations": "Operazioni",
+        "projections": "Proiezioni",
+        "benchmark": "Benchmark",
+        "recommendations": "Raccomandazioni AI"
+      },
+      "step4": {
+        "title": "Opzioni",
+        "description": "Lingua e impostazioni grafiche",
+        "language": "Lingua del report",
+        "languageIt": "Italiano",
+        "languageEn": "English",
+        "includeCharts": "Includi grafici"
+      }
+    },
+    "share": {
+      "title": "Condividi report",
+      "publicLink": "Link pubblico",
+      "publicLinkDesc": "Chiunque abbia il link puo visualizzare il report",
+      "copy": "Copia link",
+      "copied": "Copiato!",
+      "proOnly": "Disponibile sui piani PRO ed Enterprise"
+    }
   },
   "customDashboards": {
     "title": "Dashboard Custom",
@@ -1425,106 +1517,6 @@
       "a4": "Sì, il piano Free ti permette di provare le funzionalità essenziali senza limiti di tempo.",
       "q5": "Posso pagare con bonifico?",
       "a5": "Per il piano Enterprise sì, contatta il nostro team commerciale."
-    }
-  },
-  "reports": {
-    "title": "Report",
-    "subtitle": "Genera, scarica e condividi i tuoi report aziendali",
-    "newReport": "Nuovo Report",
-    "scheduled": {
-      "title": "Report schedulati",
-      "subtitle": "Configura report ricorrenti via email",
-      "new": "Nuova schedulazione",
-      "frequency": "Frequenza",
-      "weekly": "Settimanale",
-      "monthly": "Mensile",
-      "quarterly": "Trimestrale",
-      "recipients": "Destinatari",
-      "recipientsHint": "Email separate da virgola",
-      "active": "Attivo",
-      "paused": "In pausa",
-      "saved": "Configurazione salvata",
-      "proOnly": "I report schedulati sono disponibili sui piani PRO ed Enterprise"
-    },
-    "empty": {
-      "title": "Nessun report generato",
-      "description": "Crea il tuo primo report PDF professionale per condividere insight e analisi.",
-      "cta": "Crea il primo report"
-    },
-    "table": {
-      "title": "Titolo",
-      "type": "Tipo",
-      "date": "Data",
-      "status": "Stato",
-      "actions": "Azioni",
-      "download": "Scarica",
-      "view": "Visualizza",
-      "share": "Condividi",
-      "delete": "Elimina"
-    },
-    "type": {
-      "complete": "Completo",
-      "executive": "Executive Summary",
-      "finance": "Solo Finanza",
-      "market": "Solo Mercato",
-      "operations": "Solo Operazioni",
-      "custom": "Custom"
-    },
-    "status": {
-      "ready": "Pronto",
-      "generating": "Generazione...",
-      "failed": "Fallito"
-    },
-    "builder": {
-      "title": "Crea Report",
-      "subtitle": "Configura il tuo report in pochi passaggi",
-      "preview": "Anteprima",
-      "generate": "Genera PDF",
-      "generating": "Generazione PDF in corso...",
-      "step": "Passo {current} di {total}",
-      "step1": {
-        "title": "Tipo di report",
-        "description": "Scegli il tipo di report che vuoi generare"
-      },
-      "step2": {
-        "title": "Periodo",
-        "description": "Seleziona il periodo di riferimento dei dati",
-        "1m": "Ultimo mese",
-        "3m": "Ultimi 3 mesi",
-        "6m": "Ultimi 6 mesi",
-        "12m": "Ultimi 12 mesi",
-        "custom": "Periodo personalizzato",
-        "from": "Dal",
-        "to": "Al"
-      },
-      "step3": {
-        "title": "Sezioni",
-        "description": "Seleziona le sezioni da includere",
-        "executive": "Executive Summary",
-        "finance": "Finanza",
-        "cashflow": "Cash Flow",
-        "market": "Mercato",
-        "operations": "Operazioni",
-        "projections": "Proiezioni",
-        "benchmark": "Benchmark",
-        "recommendations": "Raccomandazioni AI"
-      },
-      "step4": {
-        "title": "Opzioni",
-        "description": "Lingua e impostazioni grafiche",
-        "language": "Lingua del report",
-        "languageIt": "Italiano",
-        "languageEn": "English",
-        "includeCharts": "Includi grafici"
-      }
-    },
-    "share": {
-      "title": "Condividi report",
-      "publicLink": "Link pubblico",
-      "publicLinkDesc": "Chiunque abbia il link puo visualizzare il report",
-      "copy": "Copia link",
-      "copied": "Copiato!",
-      "proOnly": "Disponibile sui piani PRO ed Enterprise"
     }
   },
   "plan": {
@@ -1944,17 +1936,395 @@
     }
   },
   "legal": {
+    "common": {
+      "disclaimerLabel": "⚠️ Documento in fase di revisione legale",
+      "disclaimer": "Questo documento è in fase di revisione legale e non costituisce consulenza legale ufficiale. Per contratti commerciali ufficiali contattare hello@anlyra.com. Anlyra è gestito da Claudio Nayaz, persona fisica (entità giuridica formale in via di costituzione).",
+      "tocTitle": "Indice",
+      "readAlso": "Leggi anche"
+    },
+    "nav": {
+      "privacy": "Privacy Policy",
+      "terms": "Termini di Servizio",
+      "cookies": "Cookie Policy"
+    },
     "privacy": {
       "title": "Privacy Policy",
-      "lastUpdated": "Ultimo aggiornamento: 26 aprile 2026"
+      "subtitle": "Come Anlyra raccoglie, tratta e protegge i tuoi dati personali (GDPR · CCPA · LGPD)",
+      "lastRevised": "Ultima revisione: 15 maggio 2026",
+      "sections": [
+        {
+          "id": "controller",
+          "title": "1. Titolare del trattamento",
+          "paragraphs": [
+            "Anlyra è un servizio SaaS gestito da Claudio Nayaz, persona fisica (in via di costituzione come entità giuridica formale). Indirizzo email di contatto: hello@anlyra.com.",
+            "Ai sensi del Regolamento UE 2016/679 (GDPR), il Titolare del trattamento è la persona o entità che determina le finalità e i mezzi del trattamento dei dati personali degli Utenti."
+          ]
+        },
+        {
+          "id": "data-types",
+          "title": "2. Tipologie di dati raccolti",
+          "paragraphs": [
+            "Anlyra raccoglie le seguenti categorie di dati personali:"
+          ],
+          "items": [
+            "Dati di account: indirizzo email, nome, nome dell'organizzazione, preferenze di lingua e tema.",
+            "Dati di utilizzo: azioni eseguite in app, log di navigazione, indirizzo IP, tipo di browser e dispositivo.",
+            "Dati caricati dall'utente: file CSV/Excel contenenti dati finanziari e di mercato, testi di prompt inviati all'AI.",
+            "Cookie tecnici: token di sessione (pro_session), preferenza lingua, preferenza tema. Consultare la Cookie Policy.",
+            "Dati di fatturazione: gestiti direttamente da Stripe; Anlyra conserva esclusivamente gli identificativi di cliente e abbonamento.",
+            "Dati NON raccolti: credenziali bancarie, IBAN, accessi a conti correnti reali o dati finanziari sensibili di natura personale."
+          ]
+        },
+        {
+          "id": "purposes",
+          "title": "3. Finalità del trattamento",
+          "items": [
+            "Erogazione del Servizio Anlyra: dashboard finanziarie, analisi AI, report e funzionalità operative.",
+            "Assistenza clienti e gestione delle richieste di supporto tecnico.",
+            "Analisi statistiche aggregate e anonime finalizzate al miglioramento del Servizio.",
+            "Invio di comunicazioni transazionali (conferma account, notifiche di sistema, aggiornamenti critici).",
+            "Adempimento di obblighi legali: contabilità, normativa antiriciclaggio e antifrode."
+          ]
+        },
+        {
+          "id": "legal-basis",
+          "title": "4. Base giuridica del trattamento (GDPR art. 6)",
+          "items": [
+            "Esecuzione del contratto (art. 6 par. 1 lett. b): trattamento necessario per fornire il Servizio richiesto.",
+            "Consenso esplicito (art. 6 par. 1 lett. a): per comunicazioni di marketing opzionali e cookie non essenziali.",
+            "Interesse legittimo (art. 6 par. 1 lett. f): per garantire la sicurezza del sistema e prevenire frodi.",
+            "Obbligo legale (art. 6 par. 1 lett. c): per adempiere a obblighi fiscali e normativi applicabili."
+          ]
+        },
+        {
+          "id": "transfers",
+          "title": "5. Trasferimento dati a sub-responsabili",
+          "paragraphs": [
+            "Anlyra si avvale dei seguenti sub-responsabili del trattamento per operare il Servizio. Tutti sono vincolati da accordi conformi al GDPR:"
+          ],
+          "items": [
+            "Anthropic (USA): API Claude per la generazione di insights AI, alert e forecasting. Trasferimento coperto da Standard Contractual Clauses (SCC) approvate dalla Commissione UE.",
+            "Vercel (USA): hosting e deployment dell'applicazione web. Coperto da SCC UE.",
+            "Supabase (UE): database principale PostgreSQL. I dati sono residenti in Europa.",
+            "Stripe (USA): elaborazione dei pagamenti futuri. Coperto da SCC UE.",
+            "Resend (USA): invio di email transazionali. Coperto da SCC UE.",
+            "Anlyra non vende, affitta né cede i dati personali degli Utenti a terzi per finalità di marketing o profilazione."
+          ]
+        },
+        {
+          "id": "retention",
+          "title": "6. Tempi di conservazione dei dati",
+          "items": [
+            "Account attivo: i dati personali sono conservati per tutta la durata del rapporto contrattuale.",
+            "Dopo la cancellazione dell'account: tutti i dati personali vengono eliminati entro 30 giorni dalla richiesta.",
+            "Log di sistema e audit log: conservati per un massimo di 12 mesi dalla loro creazione.",
+            "Backup crittografati: conservati per 90 giorni, poi eliminati in modo permanente e irrecuperabile.",
+            "Dati fiscali e di fatturazione: conservati per i termini previsti dalla legge italiana (10 anni)."
+          ]
+        },
+        {
+          "id": "rights",
+          "title": "7. Diritti dell'interessato (GDPR artt. 15-22)",
+          "paragraphs": [
+            "In qualità di interessato, hai il diritto di:"
+          ],
+          "items": [
+            "Accesso (art. 15): ottenere conferma e copia dei dati personali che Anlyra tratta che ti riguardano.",
+            "Rettifica (art. 16): correggere dati inesatti o integrare dati incompleti.",
+            "Cancellazione — diritto all'oblio (art. 17): richiedere l'eliminazione dei tuoi dati personali.",
+            "Portabilità (art. 20): ricevere i tuoi dati in formato strutturato, leggibile da macchina e interoperabile.",
+            "Opposizione (art. 21): opporti al trattamento effettuato sulla base dell'interesse legittimo.",
+            "Limitazione (art. 18): richiedere la limitazione del trattamento in specifiche circostanze previste dalla norma.",
+            "Per esercitare i tuoi diritti: invia una email a hello@anlyra.com con oggetto 'Privacy Request'. Risponderemo entro 30 giorni dalla ricezione."
+          ]
+        },
+        {
+          "id": "ccpa",
+          "title": "8. Diritti CCPA — Residenti in California (USA)",
+          "paragraphs": [
+            "Se risiedi nello Stato della California, il California Consumer Privacy Act (CCPA) ti conferisce i seguenti diritti aggiuntivi:"
+          ],
+          "items": [
+            "Diritto di sapere: richiedere informazioni dettagliate sulle categorie di dati raccolti e sulle finalità del trattamento.",
+            "Diritto di cancellazione: equivalente al diritto all'oblio previsto dal GDPR.",
+            "Diritto di opt-out dalla vendita: Anlyra non vende dati personali a terzi. Non è necessario alcun opt-out attivo.",
+            "Diritto di non discriminazione: non subirai alcuna penalità, differenza di prezzo o qualità del servizio per l'esercizio dei tuoi diritti CCPA.",
+            "Per richieste CCPA: hello@anlyra.com con oggetto 'CCPA Request'."
+          ]
+        },
+        {
+          "id": "lgpd",
+          "title": "9. Tutela LGPD — Utenti in Brasile",
+          "paragraphs": [
+            "Anlyra si impegna a rispettare la Lei Geral de Proteção de Dados (LGPD, Lei n° 13.709/2018). Gli utenti brasiliani hanno diritto a:"
+          ],
+          "items": [
+            "Accesso e conferma del trattamento dei propri dati personali.",
+            "Correzione di dati incompleti, inesatti o obsoleti.",
+            "Anonimizzazione, blocco o eliminazione di dati trattati in modo non conforme alla LGPD.",
+            "Portabilità dei dati verso un altro fornitore di servizi.",
+            "Revoca del consenso in qualsiasi momento, senza penalità.",
+            "Per richieste LGPD: hello@anlyra.com con oggetto 'LGPD Request'."
+          ]
+        },
+        {
+          "id": "security",
+          "title": "10. Sicurezza dei dati",
+          "items": [
+            "Cifratura TLS 1.3 in transito per tutte le comunicazioni tra client e server.",
+            "Cifratura AES-256 a riposo per database, backup e file caricati dall'utente.",
+            "Autenticazione a due fattori (2FA) disponibile come misura aggiuntiva opzionale.",
+            "Controllo degli accessi basato su ruoli (RBAC) per limitare l'accesso ai dati ai soli soggetti autorizzati.",
+            "Audit log degli accessi ai dati sensibili, conservati per 12 mesi.",
+            "Revisioni periodiche della sicurezza e vulnerability assessment del sistema."
+          ]
+        },
+        {
+          "id": "changes",
+          "title": "11. Modifiche alla Privacy Policy",
+          "paragraphs": [
+            "Anlyra si riserva il diritto di modificare la presente Privacy Policy in qualsiasi momento. In caso di modifiche sostanziali, gli Utenti riceveranno notifica via email e tramite banner nell'applicazione almeno 30 giorni prima dell'entrata in vigore delle modifiche.",
+            "Il proseguimento dell'utilizzo del Servizio dopo la notifica costituisce accettazione delle modifiche."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "12. Contatti — Privacy e DPO",
+          "paragraphs": [
+            "Per qualsiasi richiesta relativa alla privacy, per esercitare i tuoi diritti o per domande sul trattamento dei dati personali: email hello@anlyra.com — oggetto: 'Privacy Inquiry'.",
+            "Risposta garantita entro 30 giorni dalla ricezione della richiesta.",
+            "Hai il diritto di presentare reclamo all'Autorità di controllo competente. In Italia: Garante per la protezione dei dati personali (garanteprivacy.it)."
+          ]
+        }
+      ]
     },
     "terms": {
       "title": "Termini di Servizio",
-      "lastUpdated": "Ultimo aggiornamento: 26 aprile 2026"
+      "subtitle": "Contratto di utilizzo del Servizio Anlyra tra Claudio Nayaz (gestore) e l'Utente",
+      "lastRevised": "Ultima revisione: 15 maggio 2026",
+      "sections": [
+        {
+          "id": "definitions",
+          "title": "1. Definizioni",
+          "items": [
+            "Anlyra: il Servizio SaaS descritto nei presenti Termini, gestito da Claudio Nayaz (in via di costituzione come entità giuridica formale).",
+            "Utente / Cliente: la persona fisica o giuridica che crea un account e utilizza il Servizio.",
+            "Servizio: la piattaforma Anlyra accessibile via web, incluse funzionalità AI, dashboard, report e integrazioni.",
+            "Contenuti: tutti i dati, file e informazioni caricati dall'Utente sulla piattaforma.",
+            "Account: le credenziali di accesso e il profilo associato all'Utente per utilizzare il Servizio."
+          ]
+        },
+        {
+          "id": "acceptance",
+          "title": "2. Accettazione dei termini",
+          "paragraphs": [
+            "L'accesso e l'utilizzo del Servizio Anlyra implicano l'accettazione integrale dei presenti Termini di Servizio. Se non accetti questi Termini nella loro interezza, ti preghiamo di non utilizzare il Servizio.",
+            "Anlyra si riserva il diritto di aggiornare i presenti Termini. L'utilizzo continuato del Servizio dopo notifica delle modifiche costituisce accettazione delle stesse."
+          ]
+        },
+        {
+          "id": "service-description",
+          "title": "3. Descrizione del servizio",
+          "paragraphs": [
+            "Anlyra è una piattaforma SaaS per l'analisi aziendale rivolta a PMI, consulenti e startup. Il Servizio comprende:"
+          ],
+          "items": [
+            "Dashboard finanziarie: analisi di ricavi, costi, flusso di cassa e budget.",
+            "Analisi operativa: monitoraggio team, clienti, efficienza e produttività.",
+            "Analisi di mercato: posizionamento competitivo, quota di mercato e analisi SWOT.",
+            "Funzionalità AI powered by Claude (Anthropic): insights automatici, alert intelligenti e forecasting.",
+            "Report personalizzati, dashboard custom e condivisione tramite link sicuro.",
+            "I limiti di utilizzo (crediti AI, storage, numero utenti) variano in base al piano sottoscritto."
+          ]
+        },
+        {
+          "id": "account",
+          "title": "4. Account utente",
+          "items": [
+            "Devi avere almeno 18 anni per creare un account Anlyra o rappresentare un'entità legale autorizzata.",
+            "Ogni persona fisica o entità giuridica può registrare un solo account principale.",
+            "Sei responsabile della riservatezza delle tue credenziali di accesso e di tutta l'attività effettuata con il tuo account.",
+            "È vietato condividere le credenziali di accesso con terzi non autorizzati.",
+            "Devi notificare immediatamente Anlyra a hello@anlyra.com in caso di accesso non autorizzato al tuo account."
+          ]
+        },
+        {
+          "id": "billing",
+          "title": "5. Piani e fatturazione",
+          "paragraphs": [
+            "Anlyra offre i seguenti piani:"
+          ],
+          "items": [
+            "Piano gratuito: funzionalità limitate, senza addebito. Ideale per valutare il Servizio.",
+            "Piano Pro: abbonamento mensile o annuale (sconto 20% sull'annuale). Dettagli e prezzi aggiornati su anlyra.com/pricing.",
+            "Piano Enterprise: prezzo su misura per organizzazioni con esigenze avanzate. Contattare hello@anlyra.com.",
+            "Prova gratuita: 14 giorni senza carta di credito richiesta per i piani a pagamento.",
+            "I pagamenti sono elaborati in sicurezza tramite Stripe. Anlyra non conserva i dati della carta di pagamento.",
+            "Gli abbonamenti si rinnovano automaticamente. Puoi annullare in qualsiasi momento; l'effetto è a fine del periodo di fatturazione corrente.",
+            "Crediti AI aggiuntivi: acquistabili separatamente, non hanno scadenza e non sono trasferibili."
+          ]
+        },
+        {
+          "id": "refund",
+          "title": "6. Politica di rimborso",
+          "items": [
+            "Rimborso completo garantito entro 14 giorni dal primo pagamento (garanzia soddisfatto o rimborsato).",
+            "Dopo i primi 14 giorni: nessun rimborso pro-rata per il periodo di fatturazione non ancora trascorso.",
+            "Crediti AI acquistati separatamente: non rimborsabili una volta parzialmente o totalmente utilizzati.",
+            "Per richiedere un rimborso: invia email a hello@anlyra.com con oggetto 'Refund Request' entro i termini indicati."
+          ]
+        },
+        {
+          "id": "acceptable-use",
+          "title": "7. Uso accettabile",
+          "paragraphs": [
+            "È vietato utilizzare il Servizio Anlyra per:"
+          ],
+          "items": [
+            "Svolgere attività illegali, fraudolente o che violino normative applicabili.",
+            "Violare i diritti di proprietà intellettuale di terzi.",
+            "Tentare accessi non autorizzati ai sistemi di Anlyra o di terze parti.",
+            "Effettuare reverse engineering, decompilazione o disassemblaggio del software.",
+            "Utilizzare le funzionalità AI per generare contenuti illegali, offensivi, discriminatori o in violazione dei Termini di utilizzo di Anthropic.",
+            "Inviare spam, comunicazioni non sollecitate o condurre campagne di phishing.",
+            "La violazione delle presenti regole può comportare sospensione o chiusura immediata dell'account, senza rimborso."
+          ]
+        },
+        {
+          "id": "ip",
+          "title": "8. Proprietà intellettuale",
+          "paragraphs": [
+            "Anlyra mantiene tutti i diritti di proprietà intellettuale sul software, i marchi, i design, le API e le tecnologie proprietarie del Servizio.",
+            "L'Utente mantiene la piena titolarità dei Contenuti caricati sulla piattaforma e dei propri dati aziendali.",
+            "L'Utente concede ad Anlyra una licenza limitata, non esclusiva, non cedibile, per ospitare ed elaborare i Contenuti esclusivamente al fine di erogare il Servizio.",
+            "Anlyra può utilizzare dati aggregati e anonimizzati (non riconducibili all'identità di alcun Utente) per migliorare le funzionalità del Servizio e addestrare modelli interni."
+          ]
+        },
+        {
+          "id": "liability",
+          "title": "9. Limitazione di responsabilità",
+          "paragraphs": [
+            "Il Servizio è fornito 'così come è' (AS IS) senza garanzie di disponibilità ininterrotta al 100%. Anlyra si impegna a garantire un uptime del 99% su base mensile (SLA Enterprise in arrivo).",
+            "La responsabilità complessiva di Anlyra nei confronti dell'Utente è limitata all'importo totale pagato negli ultimi 12 mesi precedenti l'evento che ha generato il danno.",
+            "Gli output delle funzionalità AI (insights, alert, forecasting) sono generati automaticamente e possono contenere imprecisioni. L'Utente è tenuto a verificare gli insight prima di basarvi decisioni aziendali critiche. Anlyra non è responsabile delle conseguenze di tali decisioni."
+          ]
+        },
+        {
+          "id": "modifications",
+          "title": "10. Modifiche al servizio",
+          "paragraphs": [
+            "Anlyra si riserva il diritto di aggiungere, modificare o rimuovere funzionalità del Servizio al fine di migliorarlo o per motivi tecnici e legali.",
+            "Per modifiche sostanziali che impattano negativamente le funzionalità esistenti, sarà fornito un preavviso di almeno 30 giorni via email e tramite banner nell'applicazione."
+          ]
+        },
+        {
+          "id": "termination",
+          "title": "11. Risoluzione del contratto",
+          "items": [
+            "Utente: puoi cancellare il tuo account in qualsiasi momento dalla sezione Impostazioni dell'app. Non sono previste penali.",
+            "Anlyra: può sospendere o chiudere un account con preavviso di 30 giorni, o immediatamente in caso di violazioni gravi dei presenti Termini.",
+            "Dopo la cancellazione: i tuoi Contenuti e dati personali saranno conservati per 30 giorni per permettere l'export, poi eliminati definitivamente e in modo irrecuperabile."
+          ]
+        },
+        {
+          "id": "law",
+          "title": "12. Legge applicabile e foro competente",
+          "paragraphs": [
+            "I presenti Termini sono disciplinati dalla legge italiana (Codice Civile italiano e normativa UE applicabile, incluso il GDPR).",
+            "Per controversie di importo non superiore a €5.000, le parti si impegnano a tentare una risoluzione preliminare tramite mediazione civile.",
+            "Foro competente: Tribunale di Milano (placeholder soggetto a revisione al momento della costituzione della società irlandese).",
+            "Per gli Utenti qualificati come consumatori (B2C), si applicano le norme inderogabili di tutela del consumatore del paese di residenza dell'Utente."
+          ]
+        },
+        {
+          "id": "contact-terms",
+          "title": "13. Contatti",
+          "paragraphs": [
+            "Per domande, richieste o contestazioni relative ai presenti Termini di Servizio: email hello@anlyra.com.",
+            "Risposta garantita entro 5 giorni lavorativi dalla ricezione."
+          ]
+        }
+      ]
     },
     "cookies": {
       "title": "Cookie Policy",
-      "lastUpdated": "Ultimo aggiornamento: 26 aprile 2026"
+      "subtitle": "Informativa sull'utilizzo di cookie e tecnologie di tracciamento da parte di Anlyra",
+      "lastRevised": "Ultima revisione: 15 maggio 2026",
+      "sections": [
+        {
+          "id": "what-are",
+          "title": "1. Cosa sono i cookie",
+          "paragraphs": [
+            "I cookie sono piccoli file di testo memorizzati sul dispositivo dell'Utente durante la navigazione. Anlyra utilizza cookie e tecnologie simili (localStorage, sessionStorage) per garantire il funzionamento del Servizio e migliorare l'esperienza utente.",
+            "I cookie tecnici di Anlyra non vengono condivisi con terzi per finalità pubblicitarie o di profilazione comportamentale."
+          ]
+        },
+        {
+          "id": "types",
+          "title": "2. Categorie di cookie utilizzate",
+          "items": [
+            "Strettamente necessari: indispensabili per il funzionamento del Servizio (autenticazione, sicurezza, preferenze di base). Non richiedono il consenso dell'Utente.",
+            "Analitici anonimi (futuri): raccolgono informazioni aggregate e anonime sull'utilizzo del Servizio (es. Plausible Analytics o Umami). Richiedono consenso esplicito prima dell'attivazione.",
+            "NESSUN cookie di marketing o retargeting pubblicitario.",
+            "NESSUN cookie di profilazione comportamentale a fini commerciali.",
+            "NESSUN cookie di terze parti per scopi pubblicitari o di tracciamento cross-site."
+          ]
+        },
+        {
+          "id": "cookie-table",
+          "title": "3. Tabella dei cookie attualmente in uso",
+          "paragraphs": [
+            "La seguente tabella elenca i cookie attivi su Anlyra:"
+          ],
+          "tableHeaders": [
+            "Nome",
+            "Scopo",
+            "Durata",
+            "Tipo"
+          ],
+          "tableRows": [
+            [
+              "pro_session",
+              "Token di sessione per l'autenticazione dell'utente",
+              "7 giorni",
+              "Strettamente necessario"
+            ],
+            [
+              "locale",
+              "Preferenza lingua selezionata dall'utente (it / en)",
+              "12 mesi",
+              "Strettamente necessario"
+            ],
+            [
+              "theme",
+              "Preferenza tema visivo (chiaro / scuro)",
+              "12 mesi",
+              "Strettamente necessario"
+            ]
+          ]
+        },
+        {
+          "id": "manage",
+          "title": "4. Come gestire le preferenze cookie",
+          "paragraphs": [
+            "Puoi gestire le tue preferenze cookie nei seguenti modi:"
+          ],
+          "items": [
+            "Banner cookie all'accesso: accetta tutto, rifiuta i cookie non essenziali o personalizza le scelte per categoria (funzionalità in arrivo).",
+            "Impostazioni del browser: puoi bloccare o eliminare i cookie tramite le impostazioni di privacy del tuo browser (Chrome, Firefox, Safari, Edge).",
+            "Link 'Gestisci preferenze cookie' presente nel footer del sito.",
+            "Attenzione: il blocco dei cookie strettamente necessari (es. pro_session) impedisce il corretto funzionamento del Servizio e l'accesso all'account."
+          ]
+        },
+        {
+          "id": "changes-cookies",
+          "title": "5. Modifiche alla Cookie Policy",
+          "paragraphs": [
+            "Anlyra si riserva il diritto di aggiornare la presente Cookie Policy in qualsiasi momento. Le modifiche saranno comunicate tramite notifica nell'applicazione e aggiornamento della data di revisione in questa pagina.",
+            "Per domande sui cookie o sulle tecnologie di tracciamento utilizzate: hello@anlyra.com."
+          ]
+        }
+      ]
     },
     "banner": {
       "title": "Rispettiamo la tua privacy",
@@ -2082,5 +2452,41 @@
     "locked": "Funzionalità bloccata",
     "lockedDescription": "Questa funzionalità è disponibile dal piano {plan}.",
     "upgrade": "Aggiorna piano"
+  },
+  "positioning": {
+    "title": "Posizionamento",
+    "subtitle": "Mappa qualità/prezzo e analisi SWOT",
+    "mapTitle": "Mappa qualità vs pricing",
+    "priceAxis": "Prezzo",
+    "qualityAxis": "Qualità",
+    "companyName": "TechFlow SRL",
+    "competitorLabel": "Competitor",
+    "strength": "Punti di forza",
+    "weakness": "Punti di debolezza",
+    "opportunity": "Opportunità",
+    "threat": "Minacce"
+  },
+  "share": {
+    "appName": "Anlyra",
+    "linkUnavailableTitle": "Link non disponibile",
+    "linkUnavailableDesc": "Il link non è valido o è stato disabilitato."
+  },
+  "login": {
+    "appName": "Anlyra",
+    "title": "Accedi ad Anlyra",
+    "subtitle": "Inserisci le tue credenziali per continuare",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@company.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "La tua password",
+    "signInButton": "Accedi",
+    "signInDemoButton": "Accedi come demo",
+    "signInWithGoogle": "Continua con Google",
+    "signInWithMicrosoft": "Continua con Microsoft",
+    "divider": "oppure",
+    "signUpPrompt": "Prima volta qui?",
+    "signUpLink": "Inizia gratis",
+    "forgotPasswordLink": "Password dimenticata?",
+    "errorInvalid": "Email o password non validi."
   }
 }

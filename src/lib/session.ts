@@ -3,8 +3,7 @@
 import { prisma } from './prisma';
 
 const DEMO_EMAIL = 'demo@pro.app';
-const DEMO_SLUG = 'techflow-srl';
-const DEMO_NAME = 'TechFlow SRL';
+const DEMO_ORG_ID = 'demo-org';
 
 export async function getCurrentContext() {
   const user = await prisma.user.upsert({
@@ -13,12 +12,15 @@ export async function getCurrentContext() {
     create: { email: DEMO_EMAIL, name: 'Demo User' },
   });
 
+  // Anchor on the hardcoded id so the context always resolves to the same org
+  // regardless of slug. All seeded data (Alert_b7, Insight, etc.) references 'demo-org'.
   const org = await prisma.organization.upsert({
-    where: { slug: DEMO_SLUG },
+    where: { id: DEMO_ORG_ID },
     update: {},
     create: {
-      name: DEMO_NAME,
-      slug: DEMO_SLUG,
+      id: DEMO_ORG_ID,
+      name: 'Anlyra Demo',
+      slug: 'demo',
       industry: 'SaaS B2B',
       employees: 18,
     },

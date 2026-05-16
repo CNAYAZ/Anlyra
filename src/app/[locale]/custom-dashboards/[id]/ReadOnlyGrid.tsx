@@ -6,7 +6,7 @@ import { WidgetRenderer } from '@/components/widgets/WidgetRenderer';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
 
-export function ReadOnlyGrid({ widgets }: { widgets: Widget[] }) {
+export default function ReadOnlyGrid({ widgets }: { widgets: Widget[] }) {
   const layout: Layout[] = widgets.map((w) => ({
     i: w.id,
     x: w.layout.x,

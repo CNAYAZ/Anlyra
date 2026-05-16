@@ -20,7 +20,7 @@ interface BuilderCanvasProps {
 const COLS = 12;
 const ROW_HEIGHT = 40;
 
-export function BuilderCanvas({ widgets, isPreview, onChange, onConfigure, onAdd }: BuilderCanvasProps) {
+export default function BuilderCanvas({ widgets, isPreview, onChange, onConfigure, onAdd }: BuilderCanvasProps) {
   const layout: Layout[] = widgets.map((w) => ({
     i: w.id,
     x: w.layout.x,
