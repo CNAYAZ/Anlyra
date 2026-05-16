@@ -1499,24 +1499,91 @@
     }
   },
   "pricing": {
-    "title": "Piani semplici e trasparenti",
-    "subtitle": "Scegli il piano adatto al tuo business. Cambia o annulla quando vuoi.",
-    "ctaFree": "Inizia Gratis",
-    "ctaUpgrade": "Inizia Ora",
-    "everythingIn": "Tutto del piano {plan}, più:",
-    "compareTitle": "Confronto completo",
-    "faqTitle": "Domande frequenti",
-    "faq": {
-      "q1": "Posso cambiare piano in qualsiasi momento?",
-      "a1": "Sì, puoi fare upgrade o downgrade quando vuoi. Le modifiche saranno applicate dal ciclo di fatturazione successivo.",
-      "q2": "Cosa succede se supero i limiti del piano?",
-      "a2": "Ti avviseremo prima di raggiungere i limiti. Per import e dashboard, dovrai fare l'upgrade. Per i crediti AI, puoi acquistare pacchetti aggiuntivi.",
-      "q3": "I crediti AI scadono?",
-      "a3": "I crediti inclusi nel piano si rinnovano ogni mese. I crediti acquistati separatamente non scadono mai.",
-      "q4": "C'è un periodo di prova?",
-      "a4": "Sì, il piano Free ti permette di provare le funzionalità essenziali senza limiti di tempo.",
-      "q5": "Posso pagare con bonifico?",
-      "a5": "Per il piano Enterprise sì, contatta il nostro team commerciale."
+    "hero": {
+      "title": "Prezzi semplici e trasparenti",
+      "subtitle": "Inizia gratis per 14 giorni, nessuna carta di credito richiesta."
+    },
+    "toggle": {
+      "monthly": "Mensile",
+      "annual": "Annuale",
+      "discountBadge": "Sconto -17%"
+    },
+    "plans": {
+      "pro": {
+        "badge": "PIÙ POPOLARE",
+        "name": "Pro",
+        "tagline": "Per professionisti e PMI",
+        "priceMonthly": "€49",
+        "priceAnnual": "€490",
+        "billedMonthly": "/mese",
+        "billedAnnual": "/anno",
+        "billedNote": "fatturato annualmente",
+        "features": [
+          "200 crediti AI / mese",
+          "Fino a 5 utenti per organizzazione",
+          "Tutte le analisi (Finance, Market, Operations)",
+          "Report PDF illimitati",
+          "Custom Dashboards illimitate",
+          "Storia dati fino a 36 mesi",
+          "Integrazioni native (Stripe, banche PSD2, Google Sheets, CSV)",
+          "Email support (risposta entro 24h)"
+        ],
+        "cta": "Prova gratis 14 giorni",
+        "footerNote": "Nessuna carta richiesta · Cancella in 1 click"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "Per aziende con esigenze avanzate",
+        "priceLabel": "Custom",
+        "priceSubtitle": "Tariffa personalizzata in base alle esigenze",
+        "featuresPrefix": "Tutto del piano Pro, più:",
+        "features": [
+          "Utenti illimitati",
+          "Crediti AI illimitati",
+          "SSO via SAML 2.0",
+          "Audit log avanzato",
+          "Custom integrations (API personalizzate)",
+          "SLA 99% uptime garantito",
+          "Account manager dedicato",
+          "Priority support (risposta entro 4h)",
+          "On-premise option disponibile",
+          "DPA personalizzato"
+        ],
+        "cta": "Contatta il team",
+        "footerNote": "Demo personalizzata · Onboarding dedicato"
+      }
+    },
+    "faq": [
+      {
+        "q": "Posso annullare in qualsiasi momento?",
+        "a": "Sì. Puoi annullare il piano Pro in qualsiasi momento dalla dashboard. L'abbonamento resta attivo fino alla fine del periodo di fatturazione."
+      },
+      {
+        "q": "Cosa succede dopo i 14 giorni di prova?",
+        "a": "Alla fine della prova, ti chiederemo se vuoi continuare. Se non aggiungi un metodo di pagamento, il tuo account passa automaticamente in modalità sola lettura."
+      },
+      {
+        "q": "Cosa sono i crediti AI?",
+        "a": "Ogni interazione AI (generazione di insight, alert, forecast, chat) consuma un credito. Il piano Pro include 200 crediti al mese, sufficienti per la maggior parte dei team. Crediti extra acquistabili in bundle."
+      },
+      {
+        "q": "I miei dati sono al sicuro?",
+        "a": "Sì. Anlyra è GDPR-compliant. I tuoi dati sono crittografati in transito e a riposo, non vengono mai usati per addestrare modelli AI, e non vengono mai venduti a terze parti. Vedi la Privacy Policy per dettagli."
+      },
+      {
+        "q": "Posso passare da Pro a Enterprise?",
+        "a": "Sì, in qualsiasi momento. Contattaci e ti aiutiamo nella migrazione senza interruzioni."
+      },
+      {
+        "q": "Quali metodi di pagamento accettate?",
+        "a": "Carte di credito (Visa, Mastercard, Amex) tramite Stripe. Per Enterprise: bonifico bancario e fatturazione mensile."
+      }
+    ],
+    "finalCta": {
+      "title": "Pronto a iniziare?",
+      "subtitle": "Inizia gratis, nessuna carta richiesta.",
+      "ctaPrimary": "Prova gratis 14 giorni",
+      "ctaSecondary": "Contatta il team"
     }
   },
   "plan": {
