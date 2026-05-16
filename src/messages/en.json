@@ -1936,21 +1936,399 @@
     }
   },
   "legal": {
+    "common": {
+      "disclaimerLabel": "⚠️ Document under legal review",
+      "disclaimer": "This document is under legal review and does not constitute official legal advice. For official commercial contracts please contact hello@anlyra.com. Anlyra is operated by Claudio Nayaz, a natural person (formal legal entity pending incorporation).",
+      "tocTitle": "Table of Contents",
+      "readAlso": "Read also"
+    },
+    "nav": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy"
+    },
     "privacy": {
       "title": "Privacy Policy",
-      "lastUpdated": "Last updated: April 26, 2026"
+      "subtitle": "How Anlyra collects, processes and protects your personal data (GDPR · CCPA · LGPD)",
+      "lastRevised": "Last revised: May 15, 2026",
+      "sections": [
+        {
+          "id": "controller",
+          "title": "1. Data Controller",
+          "paragraphs": [
+            "Anlyra is a SaaS service operated by Claudio Nayaz, a natural person (formal legal entity pending incorporation). Contact email: hello@anlyra.com.",
+            "Under EU Regulation 2016/679 (GDPR), the Data Controller is the person or entity that determines the purposes and means of processing users' personal data."
+          ]
+        },
+        {
+          "id": "data-types",
+          "title": "2. Types of data collected",
+          "paragraphs": [
+            "Anlyra collects the following categories of personal data:"
+          ],
+          "items": [
+            "Account data: email address, name, organisation name, language and theme preferences.",
+            "Usage data: in-app actions, navigation logs, IP address, browser type and device.",
+            "User-uploaded data: CSV/Excel files containing financial and market data, AI prompt text.",
+            "Technical cookies: session token (pro_session), language preference, theme preference. See Cookie Policy.",
+            "Billing data: processed by Stripe; Anlyra stores only customer and subscription identifiers.",
+            "NOT collected: banking credentials, IBANs, access to real bank accounts, or sensitive personal financial information."
+          ]
+        },
+        {
+          "id": "purposes",
+          "title": "3. Processing purposes",
+          "items": [
+            "Providing the Anlyra Service: financial dashboards, AI analytics, reports and operational features.",
+            "Customer support and handling technical assistance requests.",
+            "Aggregated, anonymous statistical analysis to improve the Service.",
+            "Sending transactional communications (account confirmation, system notifications, critical updates).",
+            "Fulfilling legal obligations: accounting, anti-money-laundering and fraud prevention compliance."
+          ]
+        },
+        {
+          "id": "legal-basis",
+          "title": "4. Legal basis for processing (GDPR Art. 6)",
+          "items": [
+            "Contract performance (Art. 6(1)(b)): processing necessary to provide the requested Service.",
+            "Explicit consent (Art. 6(1)(a)): for optional marketing communications and non-essential cookies.",
+            "Legitimate interest (Art. 6(1)(f)): to ensure system security and prevent fraud.",
+            "Legal obligation (Art. 6(1)(c)): to comply with applicable tax and regulatory requirements."
+          ]
+        },
+        {
+          "id": "transfers",
+          "title": "5. Data transfers to sub-processors",
+          "paragraphs": [
+            "Anlyra uses the following sub-processors to operate the Service. All are bound by GDPR-compliant agreements:"
+          ],
+          "items": [
+            "Anthropic (USA): Claude API for generating AI insights, alerts and forecasting. Transfer covered by Standard Contractual Clauses (SCCs) approved by the EU Commission.",
+            "Vercel (USA): web application hosting and deployment. Covered by EU SCCs.",
+            "Supabase (EU): main PostgreSQL database. Data is stored within the European Union.",
+            "Stripe (USA): future payment processing. Covered by EU SCCs.",
+            "Resend (USA): transactional email delivery. Covered by EU SCCs.",
+            "Anlyra does not sell, rent or share users' personal data with third parties for marketing or profiling purposes."
+          ]
+        },
+        {
+          "id": "retention",
+          "title": "6. Data retention periods",
+          "items": [
+            "Active account: personal data is retained for the entire duration of the contractual relationship.",
+            "After account deletion: all personal data is permanently deleted within 30 days of the request.",
+            "System logs and audit logs: retained for a maximum of 12 months from creation.",
+            "Encrypted backups: retained for 90 days, then permanently and irrecoverably deleted.",
+            "Tax and billing data: retained for the period required by Italian law (10 years)."
+          ]
+        },
+        {
+          "id": "rights",
+          "title": "7. Data subject rights (GDPR Arts. 15-22)",
+          "paragraphs": [
+            "As a data subject, you have the right to:"
+          ],
+          "items": [
+            "Access (Art. 15): obtain confirmation and a copy of the personal data Anlyra processes about you.",
+            "Rectification (Art. 16): correct inaccurate or incomplete data.",
+            "Erasure — right to be forgotten (Art. 17): request the deletion of your personal data.",
+            "Portability (Art. 20): receive your data in a structured, machine-readable, interoperable format.",
+            "Objection (Art. 21): object to processing carried out on the basis of legitimate interest.",
+            "Restriction (Art. 18): request restriction of processing in specific circumstances provided for by law.",
+            "To exercise your rights: send an email to hello@anlyra.com with subject 'Privacy Request'. We will respond within 30 days of receipt."
+          ]
+        },
+        {
+          "id": "ccpa",
+          "title": "8. CCPA Rights — California residents (USA)",
+          "paragraphs": [
+            "If you reside in the State of California, the California Consumer Privacy Act (CCPA) grants you the following additional rights:"
+          ],
+          "items": [
+            "Right to know: request detailed information about the categories of data collected and the purposes of processing.",
+            "Right to delete: equivalent to the right to erasure (right to be forgotten) under GDPR.",
+            "Right to opt out of sale: Anlyra does not sell personal data to third parties. No active opt-out is required.",
+            "Right to non-discrimination: you will not face any penalty, price difference or quality reduction for exercising your CCPA rights.",
+            "For CCPA requests: hello@anlyra.com with subject 'CCPA Request'."
+          ]
+        },
+        {
+          "id": "lgpd",
+          "title": "9. LGPD Protection — Users in Brazil",
+          "paragraphs": [
+            "Anlyra is committed to complying with Brazil's Lei Geral de Proteção de Dados (LGPD, Law No. 13,709/2018). Brazilian users have the right to:"
+          ],
+          "items": [
+            "Access and confirmation of the processing of their personal data.",
+            "Correction of incomplete, inaccurate or outdated data.",
+            "Anonymisation, blocking or deletion of data processed in non-compliance with the LGPD.",
+            "Portability of data to another service provider.",
+            "Revocation of consent at any time, without penalty.",
+            "For LGPD requests: hello@anlyra.com with subject 'LGPD Request'."
+          ]
+        },
+        {
+          "id": "security",
+          "title": "10. Data security",
+          "items": [
+            "TLS 1.3 encryption in transit for all client-server communications.",
+            "AES-256 encryption at rest for databases, backups and user-uploaded files.",
+            "Two-factor authentication (2FA) available as an optional additional security measure.",
+            "Role-based access control (RBAC) to restrict data access to authorised personnel only.",
+            "Audit logs of access to sensitive data, retained for 12 months.",
+            "Periodic security reviews and vulnerability assessments of the system."
+          ]
+        },
+        {
+          "id": "changes",
+          "title": "11. Changes to this Privacy Policy",
+          "paragraphs": [
+            "Anlyra reserves the right to modify this Privacy Policy at any time. In the event of material changes, Users will be notified by email and via an in-app banner at least 30 days before the changes take effect.",
+            "Continued use of the Service after notification constitutes acceptance of the changes."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "12. Contact — Privacy and DPO",
+          "paragraphs": [
+            "For any privacy-related request, to exercise your rights, or for questions about the processing of your personal data: email hello@anlyra.com — subject: 'Privacy Inquiry'.",
+            "Response guaranteed within 30 days of receipt.",
+            "You have the right to lodge a complaint with the competent supervisory authority. In Italy: Garante per la protezione dei dati personali (garanteprivacy.it)."
+          ]
+        }
+      ]
     },
     "terms": {
       "title": "Terms of Service",
-      "lastUpdated": "Last updated: April 26, 2026"
+      "subtitle": "Service agreement between Claudio Nayaz (operator) and the User of Anlyra",
+      "lastRevised": "Last revised: May 15, 2026",
+      "sections": [
+        {
+          "id": "definitions",
+          "title": "1. Definitions",
+          "items": [
+            "Anlyra: the SaaS Service described in these Terms, operated by Claudio Nayaz (formal legal entity pending incorporation).",
+            "User / Customer: the natural person or legal entity that creates an account and uses the Service.",
+            "Service: the Anlyra platform accessible via the web, including AI features, dashboards, reports and integrations.",
+            "Content: all data, files and information uploaded by the User to the platform.",
+            "Account: the access credentials and profile associated with the User to access the Service."
+          ]
+        },
+        {
+          "id": "acceptance",
+          "title": "2. Acceptance of terms",
+          "paragraphs": [
+            "Accessing and using the Anlyra Service implies full acceptance of these Terms of Service. If you do not accept these Terms in their entirety, please do not use the Service.",
+            "Anlyra reserves the right to update these Terms. Continued use of the Service after notification of changes constitutes acceptance of those changes."
+          ]
+        },
+        {
+          "id": "service-description",
+          "title": "3. Service description",
+          "paragraphs": [
+            "Anlyra is a SaaS platform for business analytics aimed at SMBs, consultants and startups. The Service includes:"
+          ],
+          "items": [
+            "Financial dashboards: revenue, costs, cash flow and budget analysis.",
+            "Operational analytics: team, customer, efficiency and productivity monitoring.",
+            "Market analysis: competitive positioning, market share and SWOT analysis.",
+            "AI features powered by Claude (Anthropic): automatic insights, intelligent alerts and forecasting.",
+            "Custom reports, custom dashboards and secure link sharing.",
+            "Usage limits (AI credits, storage, number of users) vary by subscribed plan."
+          ]
+        },
+        {
+          "id": "account",
+          "title": "4. User account",
+          "items": [
+            "You must be at least 18 years old to create an Anlyra account or represent an authorised legal entity.",
+            "Each natural person or legal entity may register only one primary account.",
+            "You are responsible for the confidentiality of your access credentials and for all activity performed under your account.",
+            "Sharing access credentials with unauthorised third parties is strictly prohibited.",
+            "You must immediately notify Anlyra at hello@anlyra.com of any unauthorised access to your account."
+          ]
+        },
+        {
+          "id": "billing",
+          "title": "5. Plans and billing",
+          "paragraphs": [
+            "Anlyra offers the following plans:"
+          ],
+          "items": [
+            "Free plan: limited features, no charge. Ideal for evaluating the Service.",
+            "Pro plan: monthly or annual subscription (20% discount on annual). Current pricing at anlyra.com/pricing.",
+            "Enterprise plan: custom pricing for organisations with advanced needs. Contact hello@anlyra.com.",
+            "Free trial: 14 days with no credit card required for paid plans.",
+            "Payments are securely processed by Stripe. Anlyra does not store payment card data.",
+            "Subscriptions auto-renew. You may cancel at any time; cancellation takes effect at the end of the current billing period.",
+            "Additional AI credits: purchasable separately, never expire and are non-transferable."
+          ]
+        },
+        {
+          "id": "refund",
+          "title": "6. Refund policy",
+          "items": [
+            "Full refund guaranteed within 14 days of the first payment (money-back guarantee).",
+            "After the first 14 days: no pro-rata refund for the unused portion of the billing period.",
+            "Separately purchased AI credits: non-refundable once partially or fully used.",
+            "To request a refund: email hello@anlyra.com with subject 'Refund Request' within the applicable deadline."
+          ]
+        },
+        {
+          "id": "acceptable-use",
+          "title": "7. Acceptable use",
+          "paragraphs": [
+            "It is prohibited to use the Anlyra Service to:"
+          ],
+          "items": [
+            "Engage in illegal or fraudulent activities, or activities that violate applicable laws.",
+            "Infringe the intellectual property rights of third parties.",
+            "Attempt unauthorised access to Anlyra's or third parties' systems.",
+            "Reverse engineer, decompile or disassemble the software.",
+            "Use AI features to generate illegal, offensive, discriminatory content or content that violates Anthropic's Usage Policies.",
+            "Send spam, unsolicited communications or conduct phishing campaigns.",
+            "Violation of these rules may result in immediate suspension or closure of the account without refund."
+          ]
+        },
+        {
+          "id": "ip",
+          "title": "8. Intellectual property",
+          "paragraphs": [
+            "Anlyra retains all intellectual property rights in the software, trademarks, designs, APIs and proprietary technologies of the Service.",
+            "The User retains full ownership of the Content uploaded to the platform and their own business data.",
+            "The User grants Anlyra a limited, non-exclusive, non-transferable licence to host and process Content solely for the purpose of providing the Service.",
+            "Anlyra may use aggregated and anonymised data (not attributable to any individual User's identity) to improve Service features and train internal models."
+          ]
+        },
+        {
+          "id": "liability",
+          "title": "9. Limitation of liability",
+          "paragraphs": [
+            "The Service is provided 'as is' without guarantees of 100% uninterrupted availability. Anlyra aims to maintain 99% monthly uptime (Enterprise SLA forthcoming).",
+            "Anlyra's total liability to the User is capped at the total amount paid in the 12 months preceding the event giving rise to the claim.",
+            "AI feature outputs (insights, alerts, forecasting) are automatically generated and may contain inaccuracies. The User is responsible for verifying insights before relying on them for critical business decisions. Anlyra is not liable for the consequences of such decisions."
+          ]
+        },
+        {
+          "id": "modifications",
+          "title": "10. Service modifications",
+          "paragraphs": [
+            "Anlyra reserves the right to add, modify or remove Service features in order to improve them or for technical and legal reasons.",
+            "For material changes that negatively impact existing functionality, at least 30 days' notice will be provided by email and via an in-app banner."
+          ]
+        },
+        {
+          "id": "termination",
+          "title": "11. Termination",
+          "items": [
+            "User: you may cancel your account at any time from the Settings section of the app. No cancellation fees apply.",
+            "Anlyra: may suspend or close an account with 30 days' notice, or immediately in the event of serious violations of these Terms.",
+            "After cancellation: your Content and personal data will be retained for 30 days to allow export, then permanently and irrecoverably deleted."
+          ]
+        },
+        {
+          "id": "law",
+          "title": "12. Governing law and jurisdiction",
+          "paragraphs": [
+            "These Terms are governed by Italian law (Italian Civil Code and applicable EU regulations, including the GDPR).",
+            "For disputes not exceeding €5,000, the parties agree to first attempt resolution through civil mediation.",
+            "Jurisdiction: Court of Milan (placeholder subject to revision upon incorporation of the Irish entity).",
+            "For Users qualifying as consumers (B2C), the mandatory consumer protection laws of the User's country of residence shall apply."
+          ]
+        },
+        {
+          "id": "contact-terms",
+          "title": "13. Contact",
+          "paragraphs": [
+            "For questions, requests or disputes relating to these Terms of Service: email hello@anlyra.com.",
+            "Response guaranteed within 5 business days of receipt."
+          ]
+        }
+      ]
     },
     "cookies": {
       "title": "Cookie Policy",
-      "lastUpdated": "Last updated: April 26, 2026"
+      "subtitle": "Information on Anlyra's use of cookies and tracking technologies",
+      "lastRevised": "Last revised: May 15, 2026",
+      "sections": [
+        {
+          "id": "what-are",
+          "title": "1. What are cookies?",
+          "paragraphs": [
+            "Cookies are small text files stored on the User's device during browsing. Anlyra uses cookies and similar technologies (localStorage, sessionStorage) to ensure the Service functions correctly and to improve the user experience.",
+            "Anlyra's technical cookies are not shared with third parties for advertising or behavioural profiling purposes."
+          ]
+        },
+        {
+          "id": "types",
+          "title": "2. Categories of cookies used",
+          "items": [
+            "Strictly necessary: essential for the Service to function (authentication, security, basic preferences). Do not require User consent.",
+            "Anonymous analytics (future): collect aggregate, anonymous information on Service usage (e.g. Plausible Analytics or Umami). Require explicit consent before activation.",
+            "NO marketing or advertising retargeting cookies.",
+            "NO behavioural profiling cookies for commercial purposes.",
+            "NO third-party cookies for advertising or cross-site tracking."
+          ]
+        },
+        {
+          "id": "cookie-table",
+          "title": "3. Cookies currently in use",
+          "paragraphs": [
+            "The following table lists the cookies currently active on Anlyra:"
+          ],
+          "tableHeaders": [
+            "Name",
+            "Purpose",
+            "Duration",
+            "Type"
+          ],
+          "tableRows": [
+            [
+              "pro_session",
+              "User session token for authentication",
+              "7 days",
+              "Strictly necessary"
+            ],
+            [
+              "locale",
+              "User's selected language preference (it / en)",
+              "12 months",
+              "Strictly necessary"
+            ],
+            [
+              "theme",
+              "Visual theme preference (light / dark)",
+              "12 months",
+              "Strictly necessary"
+            ]
+          ]
+        },
+        {
+          "id": "manage",
+          "title": "4. Managing cookie preferences",
+          "paragraphs": [
+            "You can manage your cookie preferences in the following ways:"
+          ],
+          "items": [
+            "Cookie banner on first visit: accept all, reject non-essential cookies, or customise choices per category (feature coming soon).",
+            "Browser settings: block or delete cookies via your browser's privacy settings (Chrome, Firefox, Safari, Edge).",
+            "'Manage cookie preferences' link available in the site footer.",
+            "Please note: blocking strictly necessary cookies (e.g. pro_session) will prevent the Service from working correctly and block access to your account."
+          ]
+        },
+        {
+          "id": "changes-cookies",
+          "title": "5. Changes to this Cookie Policy",
+          "paragraphs": [
+            "Anlyra reserves the right to update this Cookie Policy at any time. Changes will be communicated via an in-app notification and by updating the revision date on this page.",
+            "For questions about cookies or the tracking technologies we use: hello@anlyra.com."
+          ]
+        }
+      ]
     },
     "banner": {
       "title": "We respect your privacy",
-      "description": "We use cookies to improve your experience, analyze traffic and personalize content. You can accept all, reject or customize your choices.",
+      "description": "We use cookies to improve your experience, analyse traffic and personalise content. You can accept all, reject, or customise your choices.",
       "accept": "Accept all",
       "reject": "Reject",
       "customize": "Customize",
@@ -1958,7 +2336,7 @@
       "categories": {
         "necessary": {
           "title": "Necessary",
-          "description": "Essential for the site to work."
+          "description": "Essential for the website to function."
         },
         "analytics": {
           "title": "Analytics",
@@ -1966,7 +2344,7 @@
         },
         "marketing": {
           "title": "Marketing",
-          "description": "For personalized offers and campaigns."
+          "description": "For personalised offers and campaigns."
         }
       }
     }
