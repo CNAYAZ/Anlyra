@@ -1499,24 +1499,91 @@
     }
   },
   "pricing": {
-    "title": "Simple, transparent pricing",
-    "subtitle": "Pick the plan that fits your business. Change or cancel anytime.",
-    "ctaFree": "Start Free",
-    "ctaUpgrade": "Get Started",
-    "everythingIn": "Everything in {plan}, plus:",
-    "compareTitle": "Full comparison",
-    "faqTitle": "Frequently asked questions",
-    "faq": {
-      "q1": "Can I change plan at any time?",
-      "a1": "Yes, you can upgrade or downgrade anytime. Changes apply from the next billing cycle.",
-      "q2": "What happens if I exceed my plan limits?",
-      "a2": "We notify you before you hit the limits. For imports and dashboards you'll need to upgrade. For AI credits you can buy extra packs.",
-      "q3": "Do AI credits expire?",
-      "a3": "Plan credits refresh every month. Credits you purchase separately never expire.",
-      "q4": "Is there a free trial?",
-      "a4": "Yes, the Free plan lets you try the essentials with no time limit.",
-      "q5": "Can I pay by bank transfer?",
-      "a5": "For Enterprise, yes — contact our sales team."
+    "hero": {
+      "title": "Simple, transparent pricing",
+      "subtitle": "Start free for 14 days, no credit card required."
+    },
+    "toggle": {
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "discountBadge": "-17% off"
+    },
+    "plans": {
+      "pro": {
+        "badge": "MOST POPULAR",
+        "name": "Pro",
+        "tagline": "For professionals and SMBs",
+        "priceMonthly": "$54",
+        "priceAnnual": "$540",
+        "billedMonthly": "/mo",
+        "billedAnnual": "/yr",
+        "billedNote": "billed annually",
+        "features": [
+          "200 AI credits / month",
+          "Up to 5 users per organization",
+          "All analytics (Finance, Market, Operations)",
+          "Unlimited PDF reports",
+          "Unlimited Custom Dashboards",
+          "Up to 36 months data history",
+          "Native integrations (Stripe, PSD2 banks, Google Sheets, CSV)",
+          "Email support (response within 24h)"
+        ],
+        "cta": "Start free 14-day trial",
+        "footerNote": "No credit card required · Cancel in 1 click"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For companies with advanced requirements",
+        "priceLabel": "Custom",
+        "priceSubtitle": "Custom pricing based on your needs",
+        "featuresPrefix": "Everything in Pro, plus:",
+        "features": [
+          "Unlimited users",
+          "Unlimited AI credits",
+          "SSO via SAML 2.0",
+          "Advanced audit log",
+          "Custom integrations (custom APIs)",
+          "Guaranteed 99% uptime SLA",
+          "Dedicated account manager",
+          "Priority support (response within 4h)",
+          "On-premise option available",
+          "Custom DPA"
+        ],
+        "cta": "Contact our team",
+        "footerNote": "Custom demo · Dedicated onboarding"
+      }
+    },
+    "faq": [
+      {
+        "q": "Can I cancel at any time?",
+        "a": "Yes. You can cancel your Pro plan at any time from the dashboard. Your subscription remains active until the end of the billing period."
+      },
+      {
+        "q": "What happens after the 14-day trial?",
+        "a": "At the end of the trial, we'll ask if you'd like to continue. If you don't add a payment method, your account automatically switches to read-only mode."
+      },
+      {
+        "q": "What are AI credits?",
+        "a": "Each AI interaction (insight generation, alerts, forecasting, chat) consumes one credit. The Pro plan includes 200 credits per month, enough for most teams. Additional credits available in bundles."
+      },
+      {
+        "q": "Is my data secure?",
+        "a": "Yes. Anlyra is GDPR-compliant. Your data is encrypted in transit and at rest, is never used to train AI models, and is never sold to third parties. See the Privacy Policy for details."
+      },
+      {
+        "q": "Can I upgrade from Pro to Enterprise?",
+        "a": "Yes, at any time. Contact us and we'll help you migrate without any interruption."
+      },
+      {
+        "q": "What payment methods do you accept?",
+        "a": "Credit cards (Visa, Mastercard, Amex) via Stripe. For Enterprise: bank transfer and monthly invoicing."
+      }
+    ],
+    "finalCta": {
+      "title": "Ready to get started?",
+      "subtitle": "Start free, no credit card required.",
+      "ctaPrimary": "Start free 14-day trial",
+      "ctaSecondary": "Contact our team"
     }
   },
   "plan": {
