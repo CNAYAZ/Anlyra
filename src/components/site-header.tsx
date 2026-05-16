@@ -29,11 +29,11 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link href="/login" className="hidden text-sm text-slate-600 hover:text-slate-900 sm:inline">
+          <Link href="/login" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
             {t('common.login')}
           </Link>
-          <Button asChild size="sm">
-            <Link href="/onboarding">{t('common.freeStart')}</Link>
+          <Button asChild variant="primary" size="sm">
+            <Link href="/login?signup=pro">{t('landing.hero.cta1')}</Link>
           </Button>
         </div>
       </div>

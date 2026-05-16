@@ -1774,120 +1774,117 @@
   },
   "landing": {
     "hero": {
-      "badge": "Nuovo • AI Agent in Beta",
-      "title": "Analizza il tuo business con l'AI",
-      "subtitle": "La piattaforma all-in-one per PMI, consulenti e startup. Importa i dati, ottieni insight AI in pochi secondi e prendi decisioni migliori.",
-      "ctaPrimary": "Inizia Gratis",
-      "ctaSecondary": "Vedi la Demo",
-      "trust": "Nessuna carta di credito • 2 import gratuiti al mese • Italiano e Inglese"
+      "title": "L'AI che analizza la tua azienda. Senza accedere ai tuoi conti bancari.",
+      "subtitle": "Anlyra trasforma i tuoi CSV finanziari e dati di mercato in insight strategici, alert automatici e forecast accurati. Privacy-first, made in Italy.",
+      "cta1": "Prova gratis 14 giorni",
+      "cta2": "Vedi i prezzi",
+      "disclaimer": "Nessuna carta richiesta · GDPR-compliant · Setup in 5 minuti"
+    },
+    "problem": {
+      "title": "Le PMI italiane meritano un'AI che le rispetti",
+      "points": [
+        {
+          "title": "Privacy garantita",
+          "desc": "I tuoi dati restano tuoi. L'AI non li usa per addestrarsi e non vengono mai ceduti a terze parti."
+        },
+        {
+          "title": "Insight in 30 secondi",
+          "desc": "Carica un CSV, ricevi analisi finanziarie complete con KPI, anomalie e suggerimenti strategici."
+        },
+        {
+          "title": "GDPR-compliant nativamente",
+          "desc": "Documentazione legale completa, server europei, audit log accessibili. Conformità europea garantita."
+        }
+      ]
     },
     "features": {
-      "title": "Tutto quello che ti serve, in un'unica piattaforma",
-      "subtitle": "Sei moduli che lavorano insieme per darti la visione completa del tuo business.",
-      "items": {
-        "finance": {
-          "title": "Finanza",
-          "description": "P&L, cash flow, KPI finanziari e proiezioni in tempo reale."
+      "title": "Tutto quello che serve. Niente di più.",
+      "items": [
+        {
+          "title": "Analisi finanziaria",
+          "desc": "Ricavi, costi, margini, cash flow. Dati visualizzati in dashboard intuitive aggiornate in tempo reale."
         },
-        "market": {
-          "title": "Mercato",
-          "description": "Analisi competitiva, trend di settore e segmentazione clienti."
+        {
+          "title": "AI Insights",
+          "desc": "Suggerimenti strategici personalizzati. La nostra AI legge i tuoi dati e propone azioni concrete."
         },
-        "operations": {
-          "title": "Operazioni",
-          "description": "Efficienza, processi, supply chain e produttività team."
+        {
+          "title": "Alert automatici",
+          "desc": "Notifiche quando qualcosa cambia. Margine in calo? Cliente a rischio churn? Lo sai prima."
         },
-        "ai": {
-          "title": "AI Insight",
-          "description": "Claude analizza i tuoi dati e suggerisce azioni concrete."
+        {
+          "title": "Forecasting",
+          "desc": "Previsioni a 3, 6, 12 mesi. Pianifica con dati concreti, non con intuizioni."
         },
-        "reports": {
-          "title": "Report",
-          "description": "Esporta PDF brandizzati e condividi con il tuo team."
+        {
+          "title": "Benchmark settore",
+          "desc": "Confronta i tuoi KPI con la mediana del settore. Capisci dove stai davvero rispetto ai competitor."
         },
-        "dashboard": {
-          "title": "Dashboard Custom",
-          "description": "Drag & drop per costruire la dashboard perfetta per te."
+        {
+          "title": "Report PDF",
+          "desc": "Genera report professionali con un click. Pronti per consigli di amministrazione e investitori."
         }
-      }
+      ]
     },
     "howItWorks": {
-      "title": "Come funziona",
-      "subtitle": "Dal caricamento dati alle decisioni in tre passi.",
-      "steps": {
-        "upload": {
+      "title": "Da CSV a insight in 3 step",
+      "steps": [
+        {
+          "number": "1",
           "title": "Carica i tuoi dati",
-          "description": "CSV, Excel, integrazioni native o inserimento manuale. Tu scegli."
+          "desc": "CSV finanziari, Excel, o connetti Stripe e banche europee via PSD2. Nessun accesso ai tuoi conti."
         },
-        "analyze": {
+        {
+          "number": "2",
           "title": "L'AI analizza",
-          "description": "Claude individua trend, anomalie e opportunità nascoste nei tuoi dati."
+          "desc": "Anlyra elabora migliaia di transazioni in pochi secondi. Privacy garantita, dati mai condivisi."
         },
-        "decide": {
-          "title": "Decisioni migliori",
-          "description": "Ricevi raccomandazioni concrete e guarda crescere i tuoi KPI."
+        {
+          "number": "3",
+          "title": "Ricevi insight",
+          "desc": "Dashboard, alert, forecast e report. Decidi con dati concreti e smetti di fare analisi a mano."
         }
-      }
+      ]
     },
-    "pricing": {
-      "title": "Un piano per ogni esigenza",
-      "subtitle": "Inizia gratis. Cresci quando sei pronto.",
-      "monthly": "Mensile",
-      "yearly": "Annuale",
-      "yearlyDiscount": "Risparmia il 20%",
-      "perMonth": "/mese",
-      "popular": "Più popolare",
-      "starter": {
-        "name": "Starter",
-        "description": "Per piccole realtà che iniziano",
-        "cta": "Inizia con Starter"
-      },
-      "pro": {
-        "name": "Pro",
-        "description": "Per team in crescita",
-        "cta": "Scegli Pro"
-      },
-      "enterprise": {
-        "name": "Enterprise",
-        "description": "Per organizzazioni complesse",
-        "cta": "Contattaci"
-      },
-      "features": {
-        "users": "{count, plural, =1 {1 utente} other {# utenti}}",
-        "unlimitedUsers": "Utenti illimitati",
-        "orgs": "{count, plural, =1 {1 organizzazione} other {# organizzazioni}}",
-        "unlimitedOrgs": "Organizzazioni illimitate",
-        "imports": "{count, plural, =1 {1 import/mese} other {# import/mese}}",
-        "unlimitedImports": "Import illimitati",
-        "credits": "{count} crediti AI/mese",
-        "financeBasic": "Finanza base",
-        "allModules": "Tutti i moduli",
-        "aiAgent": "AI Agent",
-        "audit": "Audit log + 2FA",
-        "realtime": "Collaborazione real-time",
-        "support": "Supporto prioritario"
-      }
+    "trust": {
+      "title": "La tua privacy è la nostra strategia",
+      "paragraph": "Anlyra è progettata da zero con la privacy come architettura, non come ripensamento. I tuoi dati finanziari restano sui nostri server europei, non vengono mai usati per addestrare modelli AI di terze parti, e tu hai il pieno controllo per cancellarli in qualsiasi momento.",
+      "promises": [
+        "Server EU-based con encryption at rest",
+        "Compliance GDPR + audit log accessibili",
+        "Mai dati condivisi con terze parti",
+        "Cancellazione account: 30 giorni, garantito",
+        "DPO contattabile per ogni dubbio"
+      ]
     },
     "testimonials": {
-      "title": "Dicono di noi",
-      "subtitle": "PMI e consulenti che hanno trasformato il loro modo di lavorare.",
-      "items": {
-        "0": {
-          "quote": "Abbiamo dimezzato il tempo dedicato ai report mensili. Ora possiamo concentrarci sulle decisioni, non sulla raccolta dati.",
-          "name": "Giulia Bianchi",
-          "role": "CFO, Lumina SRL"
+      "title": "Stanno parlando di Anlyra",
+      "items": [
+        {
+          "initials": "MC",
+          "name": "Marco C.",
+          "role": "CEO, Startup SaaS",
+          "quote": "Anlyra ha ridotto il tempo che dedico al reporting da 8 ore a settimana a 30 minuti. Decisivo per una startup."
         },
-        "1": {
-          "quote": "L'AI ha individuato un'anomalia nei costi operativi che ci stava costando 4.000€ al mese. Ripagato in una settimana.",
-          "name": "Marco Rossi",
-          "role": "Founder, Praxis Studio"
+        {
+          "initials": "GR",
+          "name": "Giulia R.",
+          "role": "Consulente Finance",
+          "quote": "Lo uso con 12 dei miei clienti PMI. L'AI cattura pattern che mi sfuggivano. Indispensabile."
         },
-        "2": {
-          "quote": "Lo uso con tutti i miei clienti. Le dashboard custom sono il loro pezzo preferito: chiare, veloci, professionali.",
-          "name": "Elena Conti",
-          "role": "Consulente strategico"
+        {
+          "initials": "AT",
+          "name": "Andrea T.",
+          "role": "CFO, Scaleup B2B",
+          "quote": "Privacy-first e prezzo accessibile. Non ci voleva un altro tool che condividesse i nostri numeri con OpenAI."
         }
-      }
+      ]
+    },
+    "finalCta": {
+      "title": "Inizia oggi. Senza rischio.",
+      "subtitle": "14 giorni di prova gratuita, nessuna carta richiesta. Cancella in qualsiasi momento.",
+      "ctaPrimary": "Inizia ora gratis",
+      "ctaSecondary": "Parla con noi"
     },
     "footer": {
       "company": "Azienda",
