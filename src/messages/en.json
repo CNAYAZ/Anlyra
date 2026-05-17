@@ -1501,7 +1501,7 @@
   "pricing": {
     "hero": {
       "title": "Simple, transparent pricing",
-      "subtitle": "Start free for 14 days, no credit card required."
+      "subtitle": "Three plans for every growth stage. 7-day trial, 14-day money-back guarantee."
     },
     "toggle": {
       "monthly": "Monthly",
@@ -1510,9 +1510,8 @@
     },
     "plans": {
       "pro": {
-        "badge": "MOST POPULAR",
         "name": "Pro",
-        "tagline": "For professionals and SMBs",
+        "tagline": "For professionals and SMBs starting their data-driven journey",
         "priceMonthly": "$54",
         "priceAnnual": "$540",
         "billedMonthly": "/mo",
@@ -1524,66 +1523,104 @@
           "All analytics (Finance, Market, Operations)",
           "Unlimited PDF reports",
           "Unlimited Custom Dashboards",
-          "Up to 36 months data history",
-          "Native integrations (Stripe, PSD2 banks, Google Sheets, CSV)",
-          "Email support (response within 24h)"
+          "24 months data history",
+          "Standard integrations (Stripe, PSD2 banks, Google Sheets, Excel, CSV)",
+          "Email support (response < 24h)"
         ],
-        "cta": "Start free 14-day trial",
-        "footerNote": "No credit card required · Cancel in 1 click"
+        "cta": "Start 7-day trial",
+        "footerNote": "Card required · Cancel in 1 click"
+      },
+      "advanced": {
+        "badge": "MOST POPULAR",
+        "name": "Advanced",
+        "tagline": "For growing teams that want deeper insights",
+        "priceMonthly": "$159",
+        "priceAnnual": "$1,590",
+        "billedMonthly": "/mo",
+        "billedAnnual": "/yr",
+        "billedNote": "billed annually",
+        "featuresPrefix": "Everything in Pro, plus:",
+        "features": [
+          "700 AI credits / month (3.5x vs Pro)",
+          "Up to 15 users",
+          "36 months data history",
+          "Advanced industry benchmarks",
+          "Extended forecasting (12+ months)",
+          "API access (read-only for external dashboards)",
+          "Custom report templates",
+          "Priority email support (response < 8h)"
+        ],
+        "cta": "Start 7-day trial",
+        "footerNote": "Card required · Cancel in 1 click"
       },
       "enterprise": {
         "name": "Enterprise",
-        "tagline": "For companies with advanced requirements",
+        "tagline": "For companies with custom requirements",
+        "taglineSub": "Pricing varies by users, data volume, and specific requirements",
         "priceLabel": "Custom",
-        "priceSubtitle": "Custom pricing based on your needs",
-        "featuresPrefix": "Everything in Pro, plus:",
+        "featuresPrefix": "Everything in Advanced, plus:",
         "features": [
           "Unlimited users",
           "Unlimited AI credits",
           "SSO via SAML 2.0",
           "Advanced audit log",
-          "Custom integrations (custom APIs)",
+          "Custom integrations and APIs",
           "Guaranteed 99% uptime SLA",
           "Dedicated account manager",
-          "Priority support (response within 4h)",
-          "On-premise option available",
-          "Custom DPA"
+          "Priority support (response < 4h)",
+          "Custom DPA",
+          "On-premise option (on request)"
         ],
-        "cta": "Contact our team",
+        "cta": "Contact our sales team",
         "footerNote": "Custom demo · Dedicated onboarding"
       }
+    },
+    "moneyBack": {
+      "title": "14-day money-back guarantee",
+      "subtitle": "If Anlyra doesn't convince you within the first 14 days of your first payment, we'll refund the full amount. No questions asked, no hassle. Write to us and we'll take care of it."
+    },
+    "demo": {
+      "label": "Have specific requirements or want to see the product before trying it?",
+      "link": "Book a personalized 30-minute demo"
     },
     "faq": [
       {
         "q": "Can I cancel at any time?",
-        "a": "Yes. You can cancel your Pro plan at any time from the dashboard. Your subscription remains active until the end of the billing period."
+        "a": "Yes. You can cancel your plan at any time from the dashboard. Your subscription remains active until the end of the current billing period."
       },
       {
-        "q": "What happens after the 14-day trial?",
-        "a": "At the end of the trial, we'll ask if you'd like to continue. If you don't add a payment method, your account automatically switches to read-only mode."
+        "q": "What happens after the trial?",
+        "a": "The trial lasts 7 days and requires a credit card. When it expires, the plan activates automatically at the chosen plan's price. You can cancel before expiry in 1 click from settings."
       },
       {
         "q": "What are AI credits?",
-        "a": "Each AI interaction (insight generation, alerts, forecasting, chat) consumes one credit. The Pro plan includes 200 credits per month, enough for most teams. Additional credits available in bundles."
+        "a": "Each AI interaction (insight generation, alerts, forecasting, chat) consumes one credit. Pro includes 200 credits per month, Advanced includes 700. Additional credits available in bundles."
       },
       {
         "q": "Is my data secure?",
         "a": "Yes. Anlyra is GDPR-compliant. Your data is encrypted in transit and at rest, is never used to train AI models, and is never sold to third parties. See the Privacy Policy for details."
       },
       {
-        "q": "Can I upgrade from Pro to Enterprise?",
-        "a": "Yes, at any time. Contact us and we'll help you migrate without any interruption."
+        "q": "Can I upgrade from Pro to Advanced, or to Enterprise?",
+        "a": "Yes, at any time. Upgrades take effect immediately with prorated billing. For Enterprise, contact us and we'll help you migrate without any interruption."
       },
       {
         "q": "What payment methods do you accept?",
         "a": "Credit cards (Visa, Mastercard, Amex) via Stripe. For Enterprise: bank transfer and monthly invoicing."
+      },
+      {
+        "q": "Is there a free plan?",
+        "a": "No, we chose not to offer a permanent free plan in order to guarantee service quality and support for all customers. Instead, we offer a 7-day trial and a 14-day money-back guarantee from first payment."
+      },
+      {
+        "q": "Can I see a demo first?",
+        "a": "Yes, write to us at hello@anlyra.com and we'll arrange a personalized 30-minute demo."
       }
     ],
     "finalCta": {
       "title": "Ready to get started?",
-      "subtitle": "Start free, no credit card required.",
-      "ctaPrimary": "Start free 14-day trial",
-      "ctaSecondary": "Contact our team"
+      "subtitle": "7-day trial. 14-day money-back guarantee. Zero risk.",
+      "ctaPrimary": "Start 7-day trial"
     }
   },
   "plan": {
@@ -2165,7 +2202,7 @@
     "terms": {
       "title": "Terms of Service",
       "subtitle": "Service agreement between Claudio Nayaz (operator) and the User of Anlyra",
-      "lastRevised": "Last revised: May 15, 2026",
+      "lastRevised": "Last revised: May 17, 2026",
       "sections": [
         {
           "id": "definitions",
@@ -2214,28 +2251,32 @@
         },
         {
           "id": "billing",
-          "title": "5. Plans and billing",
+          "title": "5. Plans and Billing",
           "paragraphs": [
-            "Anlyra offers the following plans:"
+            "Anlyra offers the following paid plans:"
           ],
           "items": [
-            "Free plan: limited features, no charge. Ideal for evaluating the Service.",
-            "Pro plan: monthly or annual subscription (20% discount on annual). Current pricing at anlyra.com/pricing.",
-            "Enterprise plan: custom pricing for organisations with advanced needs. Contact hello@anlyra.com.",
-            "Free trial: 14 days with no credit card required for paid plans.",
-            "Payments are securely processed by Stripe. Anlyra does not store payment card data.",
-            "Subscriptions auto-renew. You may cancel at any time; cancellation takes effect at the end of the current billing period.",
-            "Additional AI credits: purchasable separately, never expire and are non-transferable."
+            "Pro Plan: monthly or annual subscription (~17% annual discount). For professionals and SMBs.",
+            "Advanced Plan: monthly or annual subscription (~17% annual discount). For growing teams requiring more AI resources and extended analytics.",
+            "Enterprise Plan: custom pricing based on user count, data volumes, and specific requirements. Contact hello@anlyra.com.",
+            "Free trial: 7 days for Pro and Advanced plans. Requires a valid payment method at activation.",
+            "Automatic renewal: at the end of the trial or each billing period, the subscription automatically renews at the chosen plan price. You may cancel at any time from settings; cancellation takes effect at the end of the current period.",
+            "Payments are processed securely via Stripe. Anlyra does not store payment card data.",
+            "Additional AI credits: purchasable separately, do not expire, and are non-transferable to other accounts."
           ]
         },
         {
           "id": "refund",
-          "title": "6. Refund policy",
+          "title": "6. Refund Policy",
+          "paragraphs": [
+            "Anlyra offers a money-back guarantee for new customers. The conditions are as follows:"
+          ],
           "items": [
-            "Full refund guaranteed within 14 days of the first payment (money-back guarantee).",
-            "After the first 14 days: no pro-rata refund for the unused portion of the billing period.",
-            "Separately purchased AI credits: non-refundable once partially or fully used.",
-            "To request a refund: email hello@anlyra.com with subject 'Refund Request' within the applicable deadline."
+            "14-day guarantee: full refund guaranteed within the first 14 days from the date of the first actual payment (not from the end of the trial). No questions asked, no hassle.",
+            "How to request a refund: send an email to hello@anlyra.com with subject 'Refund — 14-Day Guarantee' within the stated period. The refund is processed within 7 business days.",
+            "After the guarantee period: no pro-rata refunds are provided for unused portions of billing periods.",
+            "Exception for service outages: in the event of a service interruption exceeding 48 consecutive hours attributable to Anlyra, we will evaluate refunds or credits on a case-by-case basis.",
+            "Separately purchased AI credits: non-refundable once partially or fully consumed."
           ]
         },
         {
