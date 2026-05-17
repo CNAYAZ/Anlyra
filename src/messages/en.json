@@ -1811,26 +1811,27 @@
   },
   "landing": {
     "hero": {
-      "title": "AI that analyzes your business. Without accessing your bank accounts.",
-      "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, automatic alerts, and accurate forecasts. Privacy-first, built in Europe.",
-      "cta1": "Start free 14-day trial",
+      "title": "AI analysis for your business. Privacy taken seriously.",
+      "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, automatic alerts, and accurate forecasts. European servers. Never sold, never identifiable data shared, never used to train third-party AI.",
+      "cta1": "Start 7-day trial",
       "cta2": "See pricing",
-      "disclaimer": "No credit card required · GDPR-compliant · Setup in 5 minutes"
+      "disclaimer": "7-day trial · GDPR-compliant · Setup in 5 minutes",
+      "previewCaption": "A complete overview of your business, always at your fingertips."
     },
     "problem": {
       "title": "SMBs deserve an AI that respects them",
       "points": [
         {
-          "title": "Privacy guaranteed",
-          "desc": "Your data stays yours. The AI never uses it for training and is never shared with third parties."
+          "title": "Serious privacy",
+          "desc": "Your data stays in Europe, encrypted, never sold. We use anonymous aggregates to improve the product, never identifiable data from your company."
         },
         {
           "title": "Insights in 30 seconds",
-          "desc": "Upload a CSV, get complete financial analysis with KPIs, anomalies, and strategic suggestions."
+          "desc": "Upload a CSV, get complete financial analysis without lifting a finger. No complex configuration, no manual training."
         },
         {
-          "title": "GDPR-compliant by design",
-          "desc": "Full legal documentation, European servers, accessible audit logs. European compliance guaranteed."
+          "title": "No trackers, no profiling",
+          "desc": "No marketing cookies, no behavioral data passed to Google, Facebook, or others. The website is as clean as the product."
         }
       ]
     },
@@ -1884,14 +1885,15 @@
       ]
     },
     "trust": {
-      "title": "Your privacy is our strategy",
-      "paragraph": "Anlyra is designed from the ground up with privacy as architecture, not an afterthought. Your financial data stays on our European servers, is never used to train third-party AI models, and you have full control to delete it at any time.",
+      "title": "Your privacy isn't a disclaimer, it's an architecture",
+      "paragraph": "Anlyra is designed from the ground up with privacy as a foundation, not a legal afterthought. Your financial data stays on our European servers. We may use it in aggregated and anonymous form to calculate industry benchmarks or improve the product — never identifiable data from your company. Never sold. Never used to train third-party AI. You always have control, and you can delete everything at any time.",
       "promises": [
-        "EU-based servers with encryption at rest",
-        "GDPR compliance + accessible audit logs",
-        "Data never shared with third parties",
-        "Account deletion: 30 days, guaranteed",
-        "DPO reachable for any question"
+        "EU-based servers, data encrypted at rest and in transit",
+        "Never identifiable data sold or shared with third parties",
+        "Never used to train third-party AI (Anthropic API: no-training DPA)",
+        "Anonymous aggregates only for benchmarks and product improvement",
+        "GDPR-compliant, European compliance built-in",
+        "Account deletion: data removed within 30 days, guaranteed"
       ]
     },
     "testimonials": {
@@ -2051,7 +2053,7 @@
     "privacy": {
       "title": "Privacy Policy",
       "subtitle": "How Anlyra collects, processes and protects your personal data (GDPR · CCPA · LGPD)",
-      "lastRevised": "Last revised: May 15, 2026",
+      "lastRevised": "Last revised: May 17, 2026",
       "sections": [
         {
           "id": "controller",
@@ -2063,33 +2065,49 @@
         },
         {
           "id": "data-types",
-          "title": "2. Types of data collected",
+          "title": "2. Types of Data Collected",
           "paragraphs": [
-            "Anlyra collects the following categories of personal data:"
+            "Anlyra collects only the data strictly necessary to provide the Service. Here is what we collect, without omissions:"
           ],
           "items": [
-            "Account data: email address, name, organisation name, language and theme preferences.",
-            "Usage data: in-app actions, navigation logs, IP address, browser type and device.",
-            "User-uploaded data: CSV/Excel files containing financial and market data, AI prompt text.",
-            "Technical cookies: session token (pro_session), language preference, theme preference. See Cookie Policy.",
-            "Billing data: processed by Stripe; Anlyra stores only customer and subscription identifiers.",
-            "NOT collected: banking credentials, IBANs, access to real bank accounts, or sensitive personal financial information."
+            "Account data: email address, name, organization name. Collected at registration.",
+            "Payment data: card numbers are handled entirely by Stripe and never pass through our servers. Anlyra receives only the Stripe transaction ID and subscription ID.",
+            "Identity verification (future): for Enterprise customers or anti-fraud checks, Stripe Identity may request an identity document and selfie. Verification is handled entirely by Stripe. Not active by default for Pro and Advanced plans.",
+            "Financial data uploaded by the user: CSV files, data from PSD2 integrations (with the user's explicit consent), manual entries. Stored on our European servers, encrypted at rest and in transit. We never use the identifiable content for any purpose other than providing the Service.",
+            "Usage logs: IP address, browser, operating system, in-app actions, timestamps. Required for security, anti-fraud, and technical debugging.",
+            "Essential cookies: session token (pro_session), language preference, theme preference. No profiling cookies, no marketing cookies, no third-party trackers."
           ]
         },
         {
           "id": "purposes",
-          "title": "3. Processing purposes",
+          "title": "3. Purposes of Processing",
           "items": [
-            "Providing the Anlyra Service: financial dashboards, AI analytics, reports and operational features.",
-            "Customer support and handling technical assistance requests.",
-            "Aggregated, anonymous statistical analysis to improve the Service.",
-            "Sending transactional communications (account confirmation, system notifications, critical updates).",
-            "Fulfilling legal obligations: accounting, anti-money-laundering and fraud prevention compliance."
+            "Service delivery: responding to your requests, generating AI insights, displaying dashboards, calculating forecasts, producing reports. This is the primary purpose — everything else comes after.",
+            "Product improvement: we use aggregated and anonymous data (never identifiable at the level of a single company) to understand which features work and which don't. No individual profiles.",
+            "Industry benchmarks: we use aggregated and anonymous data to calculate industry statistics (e.g., average SaaS margin). No data traceable to a single company is ever exposed to third parties.",
+            "Customer support: we read your messages to help you when you contact us. We do not use these conversations for other purposes.",
+            "Security and anti-fraud: monitoring suspicious activity, blocking unauthorized access, protecting your data.",
+            "Legal obligations: billing, anti-money laundering regulations where applicable, responding to requests from competent authorities."
+          ]
+        },
+        {
+          "id": "never",
+          "title": "4. What We NEVER Do with Your Data",
+          "paragraphs": [
+            "Six promises with no exceptions, not even for commercial reasons:"
+          ],
+          "items": [
+            "NEVER sell your data to third parties, under any circumstances.",
+            "NEVER use your data to train third-party AI models (Anthropic, OpenAI, Google, others).",
+            "NEVER share identifiable data at the level of a single company with customers, partners, or investors.",
+            "NEVER access your bank accounts or perform operations on your behalf. PSD2 requires your active consent for each connection.",
+            "NEVER use marketing cookies, behavioral profiling, or third-party trackers.",
+            "NEVER waive these rules, even if requested by commercial partners or investors."
           ]
         },
         {
           "id": "legal-basis",
-          "title": "4. Legal basis for processing (GDPR Art. 6)",
+          "title": "5. Legal basis for processing (GDPR Art. 6)",
           "items": [
             "Contract performance (Art. 6(1)(b)): processing necessary to provide the requested Service.",
             "Explicit consent (Art. 6(1)(a)): for optional marketing communications and non-essential cookies.",
@@ -2099,22 +2117,22 @@
         },
         {
           "id": "transfers",
-          "title": "5. Data transfers to sub-processors",
+          "title": "6. Data Transfers to Sub-processors",
           "paragraphs": [
-            "Anlyra uses the following sub-processors to operate the Service. All are bound by GDPR-compliant agreements:"
+            "Anlyra uses the following sub-processors. All are bound by GDPR-compliant agreements (SCCs or EU-US Data Privacy Framework):"
           ],
           "items": [
-            "Anthropic (USA): Claude API for generating AI insights, alerts and forecasting. Transfer covered by Standard Contractual Clauses (SCCs) approved by the EU Commission.",
-            "Vercel (USA): web application hosting and deployment. Covered by EU SCCs.",
-            "Supabase (EU): main PostgreSQL database. Data is stored within the European Union.",
-            "Stripe (USA): future payment processing. Covered by EU SCCs.",
-            "Resend (USA): transactional email delivery. Covered by EU SCCs.",
-            "Anlyra does not sell, rent or share users' personal data with third parties for marketing or profiling purposes."
+            "Anthropic (USA) — Claude API: your data passes through Anthropic when you request an AI insight. Anthropic does NOT use API-received data to train its own models (Anthropic DPA). The transfer is covered by Standard Contractual Clauses (SCCs) approved by the European Commission.",
+            "Stripe (USA) — Payments and KYC: Stripe is PCI-DSS Level 1 certified and adheres to the EU-US Data Privacy Framework. Anlyra does not access payment card data.",
+            "Vercel (USA) — Application hosting: CDN and serverless infrastructure. Covered by the EU-US Data Privacy Framework.",
+            "Supabase (EU) — Primary database: PostgreSQL servers in Europe. Data remains in the EU.",
+            "Resend (USA) — Transactional emails: service emails only (account confirmation, notifications). No marketing emails. Covered by EU SCCs.",
+            "Anlyra does not sell, rent, or transfer Users' personal data to third parties for marketing or profiling purposes."
           ]
         },
         {
           "id": "retention",
-          "title": "6. Data retention periods",
+          "title": "7. Data retention periods",
           "items": [
             "Active account: personal data is retained for the entire duration of the contractual relationship.",
             "After account deletion: all personal data is permanently deleted within 30 days of the request.",
@@ -2125,7 +2143,7 @@
         },
         {
           "id": "rights",
-          "title": "7. Data subject rights (GDPR Arts. 15-22)",
+          "title": "8. Data subject rights (GDPR Arts. 15-22)",
           "paragraphs": [
             "As a data subject, you have the right to:"
           ],
@@ -2141,7 +2159,7 @@
         },
         {
           "id": "ccpa",
-          "title": "8. CCPA Rights — California residents (USA)",
+          "title": "9. CCPA Rights — California residents (USA)",
           "paragraphs": [
             "If you reside in the State of California, the California Consumer Privacy Act (CCPA) grants you the following additional rights:"
           ],
@@ -2155,7 +2173,7 @@
         },
         {
           "id": "lgpd",
-          "title": "9. LGPD Protection — Users in Brazil",
+          "title": "10. LGPD Protection — Users in Brazil",
           "paragraphs": [
             "Anlyra is committed to complying with Brazil's Lei Geral de Proteção de Dados (LGPD, Law No. 13,709/2018). Brazilian users have the right to:"
           ],
@@ -2170,7 +2188,7 @@
         },
         {
           "id": "security",
-          "title": "10. Data security",
+          "title": "11. Data security",
           "items": [
             "TLS 1.3 encryption in transit for all client-server communications.",
             "AES-256 encryption at rest for databases, backups and user-uploaded files.",
@@ -2182,7 +2200,7 @@
         },
         {
           "id": "changes",
-          "title": "11. Changes to this Privacy Policy",
+          "title": "12. Changes to this Privacy Policy",
           "paragraphs": [
             "Anlyra reserves the right to modify this Privacy Policy at any time. In the event of material changes, Users will be notified by email and via an in-app banner at least 30 days before the changes take effect.",
             "Continued use of the Service after notification constitutes acceptance of the changes."
@@ -2190,7 +2208,7 @@
         },
         {
           "id": "contact",
-          "title": "12. Contact — Privacy and DPO",
+          "title": "13. Contact — Privacy and DPO",
           "paragraphs": [
             "For any privacy-related request, to exercise your rights, or for questions about the processing of your personal data: email hello@anlyra.com — subject: 'Privacy Inquiry'.",
             "Response guaranteed within 30 days of receipt.",
@@ -2297,12 +2315,12 @@
         },
         {
           "id": "ip",
-          "title": "8. Intellectual property",
+          "title": "8. Intellectual Property",
           "paragraphs": [
-            "Anlyra retains all intellectual property rights in the software, trademarks, designs, APIs and proprietary technologies of the Service.",
-            "The User retains full ownership of the Content uploaded to the platform and their own business data.",
-            "The User grants Anlyra a limited, non-exclusive, non-transferable licence to host and process Content solely for the purpose of providing the Service.",
-            "Anlyra may use aggregated and anonymised data (not attributable to any individual User's identity) to improve Service features and train internal models."
+            "Anlyra retains all intellectual property rights in the software, trademarks, designs, APIs, and proprietary technologies of the Service.",
+            "The User retains full ownership of the data and Content uploaded to the platform. Anlyra receives a limited, non-exclusive, non-transferable license to host and process such Content solely for the purpose of delivering the requested Service.",
+            "Use of aggregated and anonymous data: Anlyra may use AGGREGATED AND ANONYMOUS data, never traceable to the identity of a single company, to: (a) improve the product and its own internal analysis models; (b) calculate industry statistics for the Benchmark feature. Under no circumstances do these aggregates contain or expose identifiable data at the level of a single organization.",
+            "Anlyra will NEVER use data (whether identifiable or aggregated) to train third-party AI models (Anthropic, OpenAI, Google, or other AI providers), nor will it grant such license to third parties."
           ]
         },
         {

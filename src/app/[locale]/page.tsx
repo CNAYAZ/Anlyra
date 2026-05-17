@@ -51,6 +51,7 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
       heroCta1={t('hero.cta1')}
       heroCta2={t('hero.cta2')}
       heroDisclaimer={t('hero.disclaimer')}
+      heroPreviewCaption={t('hero.previewCaption')}
       problemTitle={t('problem.title')}
       problemPoints={t.raw('problem.points') as ProblemPoint[]}
       featuresTitle={t('features.title')}
