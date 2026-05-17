@@ -29,6 +29,7 @@ export type LandingPageProps = {
   heroCta1: string;
   heroCta2: string;
   heroDisclaimer: string;
+  heroPreviewCaption: string;
   problemTitle: string;
   problemPoints: ProblemPoint[];
   featuresTitle: string;
@@ -55,6 +56,7 @@ export function LandingPage({
   heroCta1,
   heroCta2,
   heroDisclaimer,
+  heroPreviewCaption,
   problemTitle,
   problemPoints,
   featuresTitle,
@@ -95,12 +97,12 @@ export function LandingPage({
             </div>
             <p className="mt-5 text-xs text-muted-foreground">{heroDisclaimer}</p>
 
-            {/* Hero placeholder illustration */}
+            {/* Hero illustration placeholder */}
             <div className="mx-auto mt-14 flex max-w-2xl items-center justify-center rounded-2xl border border-border bg-muted/50 py-20">
               <div className="flex flex-col items-center gap-3">
                 <Sparkles className="h-14 w-14 text-primary-accent opacity-40" />
                 <span className="text-sm text-muted-foreground opacity-60">
-                  Dashboard preview — coming soon
+                  {heroPreviewCaption}
                 </span>
               </div>
             </div>
