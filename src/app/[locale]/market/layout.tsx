@@ -7,7 +7,7 @@ export default async function MarketLayout({ children }: { children: ReactNode }
   const t = await getTranslations("market");
   return (
     <>
-      <Topbar title={t("title")} subtitle={t("subtitle")} />
+      <Topbar />
       <div className="px-6 pt-4">
         <MarketTabs />
       </div>

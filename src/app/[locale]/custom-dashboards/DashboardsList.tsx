@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Plus, LayoutDashboard, Pencil, Eye, Trash2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardSubtitle, CardTitle } from '@/components/ui/card';
-import { EmptyState, Skeleton } from '@/components/ui/state';
+import { Card, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/states';
 import { Badge } from '@/components/ui/badge';
-import { Dialog } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useDashboardsStore } from '@/lib/store/dashboards';
 import { usePlanStore } from '@/lib/store/plan';
 import { dashboardLimit } from '@/lib/plan';
@@ -52,7 +53,7 @@ export function DashboardsList() {
         </div>
         <div className="flex items-center gap-2">
           {Number.isFinite(limit) && (
-            <Badge tone="neutral">
+            <Badge variant="neutral">
               {dashboards.length} / {limit}
             </Badge>
           )}
@@ -85,28 +86,18 @@ export function DashboardsList() {
           ))}
         </div>
       ) : dashboards.length === 0 ? (
-        <EmptyState
-          icon={<LayoutDashboard className="h-10 w-10" />}
-          title={t('dashboards.empty.title')}
-          description={t('dashboards.empty.description')}
-          action={
-            <Button onClick={handleCreate} disabled={!canCreate}>
-              <Plus className="h-4 w-4" />
-              {t('dashboards.empty.cta')}
-            </Button>
-          }
-        />
+        <EmptyState message={t('dashboards.empty.title')} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {dashboards.map((d) => (
             <Card key={d.id} className="flex flex-col gap-3">
               <div>
                 <CardTitle className="truncate">{d.name}</CardTitle>
-                <CardSubtitle>
+                <p className="text-sm text-muted-foreground">
                   {t('dashboards.updatedAt')} {formatDate(d.updatedAt, locale)}
-                </CardSubtitle>
+                </p>
               </div>
-              <Badge tone="primary" className="w-max">
+              <Badge variant="info" className="w-max">
                 {t('dashboards.widgets', { count: d.widgets.length })}
               </Badge>
               <div className="mt-auto flex items-center gap-2 pt-2">
@@ -138,13 +129,16 @@ export function DashboardsList() {
         </div>
       )}
 
-      <Dialog
-        open={!!pendingDelete}
-        onClose={() => setPendingDelete(null)}
-        title={t('common.delete')}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+      <Dialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('common.delete')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-700">
+            {target ? t('dashboards.deleteConfirm', { name: target.name }) : ''}
+          </p>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setPendingDelete(null)}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -156,12 +150,8 @@ export function DashboardsList() {
             >
               {t('common.delete')}
             </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-slate-700">
-          {target ? t('dashboards.deleteConfirm', { name: target.name }) : ''}
-        </p>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

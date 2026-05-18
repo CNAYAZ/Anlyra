@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import type { IntegrationStatus, Plan } from "@prisma/client";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+type IntegrationStatus = "CONNECTED" | "ERROR" | "DISCONNECTED";
+type Plan = "FREEMIUM" | "STARTER" | "PRO" | "ENTERPRISE";
 import { planMeets } from "@/lib/plan/feature-gate";
 import type { IntegrationDefinition } from "@/lib/integrations/registry";
 
@@ -36,13 +38,13 @@ export function IntegrationCard({ definition, status, plan }: Props) {
           </div>
           <CardTitle>{definition.name}</CardTitle>
         </div>
-        <Badge tone={STATUS_TONE[status]}>{t(`status.${status}`)}</Badge>
+        <Badge variant={STATUS_TONE[status]}>{t(`status.${status}`)}</Badge>
       </CardHeader>
       <p className="mb-4 flex-1 text-sm text-slate-600">
         {tProvider(definition.descriptionKey)}
       </p>
       <div className="flex items-center justify-between">
-        <Badge tone="info">{t(`categories.${definition.category}`)}</Badge>
+        <Badge variant="info">{t(`categories.${definition.category}`)}</Badge>
         {allowed ? (
           <Link href={`/integrations/${definition.id}`}>
             <Button variant={isConnected ? "secondary" : "primary"} size="sm">
@@ -51,7 +53,7 @@ export function IntegrationCard({ definition, status, plan }: Props) {
           </Link>
         ) : (
           <div className="flex items-center gap-2">
-            <Badge tone="warning">
+            <Badge variant="warning">
               {t("lockedOn", { plan: definition.requiredPlan })}
             </Badge>
             <Link href="/billing">

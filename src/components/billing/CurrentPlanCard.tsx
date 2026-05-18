@@ -3,9 +3,9 @@
 import { useTranslations, useLocale } from "next-intl";
 import { useState } from "react";
 import { CalendarClock, ShieldCheck } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { usePlan } from "@/lib/billing/context";
 import { PLANS } from "@/lib/billing/plans";
 import { formatDate } from "@/lib/utils";
@@ -23,7 +23,7 @@ export function CurrentPlanCard() {
     status === "active"
       ? { label: t("active"), variant: "success" as const }
       : status === "trialing"
-        ? { label: t("trialing"), variant: "primary" as const }
+        ? { label: t("trialing"), variant: "info" as const }
         : status === "past_due"
           ? { label: t("pastDue"), variant: "warning" as const }
           : { label: t("canceled"), variant: "danger" as const };
@@ -63,7 +63,7 @@ export function CurrentPlanCard() {
       )}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={openPortal} disabled={busy || plan === "FREE"} variant="outline">
+        <Button onClick={openPortal} disabled={busy || plan === "FREE"} variant="secondary">
           {t("manageBtn")}
         </Button>
         {plan !== "ENTERPRISE" && (

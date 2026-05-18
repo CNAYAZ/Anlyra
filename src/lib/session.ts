@@ -42,6 +42,14 @@ export async function getCurrentContext() {
   return { userId: user.id, organizationId: org.id };
 }
 
+export async function getCurrentOrganization() {
+  const { organizationId } = await getCurrentContext();
+  return {
+    id: organizationId,
+    plan: 'PRO' as const,
+  };
+}
+
 // Deterministic PRNG so demo data is stable
 function mulberry32(seed: number) {
   let a = seed;

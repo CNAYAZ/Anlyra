@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import type { SyncFrequency } from "@prisma/client";
-import { Button } from "@/components/ui/Button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+
+type SyncFrequency = "H6" | "H12" | "H24";
 
 interface Props {
   providerId: string;
@@ -83,7 +84,7 @@ export function IntegrationManager({
     <Card>
       <CardHeader>
         <CardTitle>{providerId}</CardTitle>
-        <Badge tone={status === "CONNECTED" ? "success" : "danger"}>
+        <Badge variant={status === "CONNECTED" ? "success" : "danger"}>
           {t(`status.${status}`)}
         </Badge>
       </CardHeader>

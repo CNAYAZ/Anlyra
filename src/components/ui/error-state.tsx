@@ -20,7 +20,7 @@ export function ErrorState({
       <h3 className="mt-3 font-heading text-base font-semibold text-slate-900">{title}</h3>
       {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
       {onRetry ? (
-        <Button variant="outline" className="mt-4" onClick={onRetry}>
+        <Button variant="secondary" className="mt-4" onClick={onRetry}>
           {retryLabel ?? 'Retry'}
         </Button>
       ) : null}

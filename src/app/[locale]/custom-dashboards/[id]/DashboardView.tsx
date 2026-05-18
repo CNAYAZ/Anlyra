@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, Pencil } from 'lucide-react';
-import { Skeleton, EmptyState } from '@/components/ui/state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/states';
 import { useDashboardsStore } from '@/lib/store/dashboards';
 import { formatDate } from '@/lib/utils';
 
@@ -43,19 +44,7 @@ export function DashboardView({ id }: { id: string }) {
   if (!dashboard) {
     return (
       <div className="mx-auto max-w-screen-2xl px-6 py-12">
-        <EmptyState
-          title={t('view.notFound')}
-          description={t('view.notFoundDescription')}
-          action={
-            <Link
-              href="/custom-dashboards"
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary-accent px-4 text-sm font-medium text-white hover:bg-primary-hover"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t('view.back')}
-            </Link>
-          }
-        />
+        <EmptyState message={t('view.notFound')} />
       </div>
     );
   }
@@ -89,7 +78,7 @@ export function DashboardView({ id }: { id: string }) {
       <div className="flex-1 overflow-auto bg-bg-light scrollbar-thin">
         {dashboard.widgets.length === 0 ? (
           <div className="p-12">
-            <EmptyState title={t('builder.canvasEmpty')} />
+            <EmptyState message={t('builder.canvasEmpty')} />
           </div>
         ) : (
           <ReadOnlyGrid widgets={dashboard.widgets} />

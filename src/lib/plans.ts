@@ -78,3 +78,16 @@ export function hasFeature(plan: Plan, feature: keyof PlanLimits): boolean {
   const value = PLAN_LIMITS[plan][feature];
   return typeof value === 'boolean' ? value : value !== 0;
 }
+
+const PLAN_ORDER: Plan[] = ['free', 'starter', 'pro', 'enterprise'];
+
+export function hasPlan(current: Plan, required: Plan): boolean {
+  return PLAN_ORDER.indexOf(current) >= PLAN_ORDER.indexOf(required);
+}
+
+export const TEAM_LIMITS: Record<Plan, number | 'unlimited'> = {
+  free: 1,
+  starter: 1,
+  pro: 10,
+  enterprise: 'unlimited',
+};

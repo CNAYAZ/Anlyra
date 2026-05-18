@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 
 export interface SyncLogRow {
@@ -53,7 +53,7 @@ export function SyncLogTable({ logs }: Props) {
                 {formatDate(new Date(log.startedAt), locale)}
               </td>
               <td className="px-4 py-2.5">
-                <Badge tone={TONES[log.status]}>{log.status}</Badge>
+                <Badge variant={TONES[log.status]}>{log.status}</Badge>
               </td>
               <td className="px-4 py-2.5 font-mono text-slate-700">
                 {log.recordsCount}

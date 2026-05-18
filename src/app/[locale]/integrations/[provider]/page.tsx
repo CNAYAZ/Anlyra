@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganization } from "@/lib/session";
+import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
 import { ConnectionWizard } from "@/components/integrations/ConnectionWizard";
@@ -11,7 +11,7 @@ import {
   SyncLogTable,
   type SyncLogRow,
 } from "@/components/integrations/SyncLogTable";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,8 @@ export default async function ProviderPage({ params }: Props) {
 
   const t = await getTranslations("integrations");
   const tCommon = await getTranslations("common");
-  const org = await getCurrentOrganization();
+  const { organizationId } = await getCurrentContext();
+  const org = { id: organizationId, plan: 'PRO' as const };
 
   if (!planMeets(org.plan, definition.requiredPlan)) {
     return (
@@ -61,7 +62,7 @@ export default async function ProviderPage({ params }: Props) {
   const logs: SyncLogRow[] =
     integration?.syncLogs.map((l) => ({
       id: l.id,
-      status: l.status,
+      status: l.status as SyncLogRow["status"],
       recordsCount: l.recordsCount,
       errorMessage: l.errorMessage,
       startedAt: l.startedAt.toISOString(),
@@ -87,7 +88,7 @@ export default async function ProviderPage({ params }: Props) {
         <IntegrationManager
           providerId={definition.id}
           status={integration.status as "CONNECTED" | "ERROR"}
-          frequency={integration.frequency}
+          frequency={integration.frequency as "H6" | "H12" | "H24"}
           lastSyncAt={integration.lastSyncAt?.toISOString() ?? null}
         />
       ) : (

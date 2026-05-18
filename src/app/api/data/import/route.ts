@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
         rowsImported: imported,
         rowsErrors: errors.length,
         status: 'COMPLETED',
-        errors: errors.length ? errors : undefined,
+        errors: errors.length ? JSON.stringify(errors) : undefined,
       },
     });
 
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       where: { id: importBatch.id },
       data: {
         status: 'FAILED',
-        errors: [{ message: err instanceof Error ? err.message : 'unknown' }],
+        errors: JSON.stringify([{ message: err instanceof Error ? err.message : 'unknown' }]),
       },
     });
     return fail(err instanceof Error ? err.message : 'import failed', 500);

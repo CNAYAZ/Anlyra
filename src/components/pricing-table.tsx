@@ -121,7 +121,7 @@ export function PricingTable() {
             <Button
               asChild
               className="mt-6"
-              variant={plan.popular ? 'default' : 'outline'}
+              variant={plan.popular ? 'primary' : 'secondary'}
             >
               <Link href="/onboarding">{t(`${plan.id}.cta`)}</Link>
             </Button>

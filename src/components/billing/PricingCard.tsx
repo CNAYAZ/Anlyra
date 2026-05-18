@@ -9,8 +9,8 @@ import {
   yearlySavingsPct,
   PLAN_ORDER,
 } from "@/lib/billing/plans";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/LinkButton";
 import {
   convertFromEuroCents,
@@ -58,7 +58,7 @@ export function PricingCard({
         <h3 className="font-heading text-xl font-semibold text-slate-900">
           {tPlans(plan.nameKey as "billing.plans.pro.name")}
         </h3>
-        {plan.highlight && <Badge variant="primary">{tCommon("mostPopular")}</Badge>}
+        {plan.highlight && <Badge variant="info">{tCommon("mostPopular")}</Badge>}
       </div>
 
       <p className="text-sm text-slate-600">
@@ -144,7 +144,7 @@ export function PricingCard({
           <UpgradeButton
             plan={planId as Exclude<PlanId, "FREE">}
             cycle={cycle}
-            variant={plan.highlight ? "primary" : "outline"}
+            variant={plan.highlight ? "primary" : "secondary"}
             label={t("ctaUpgrade")}
             className="w-full"
           />

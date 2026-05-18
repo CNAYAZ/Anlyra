@@ -45,3 +45,15 @@ export function getCurrentUser() {
     plan: s.plan,
   };
 }
+
+export async function requireUser() {
+  const s = getSession();
+  if (!s) throw new Error('Unauthorized');
+  return {
+    id: s.userId,
+    email: s.email,
+    name: s.name,
+    orgId: s.organizationId,
+    plan: s.plan,
+  };
+}

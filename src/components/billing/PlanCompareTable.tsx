@@ -11,7 +11,7 @@ import {
 } from "@/lib/billing/plans";
 import { convertFromEuroCents, detectCurrencyFromLocale, type Currency } from "@/lib/billing/currency";
 import { formatCurrency } from "@/lib/utils";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Cycle } from "./PriceToggle";
 
@@ -85,7 +85,7 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
                     <span className="font-heading text-base font-semibold text-slate-900">
                       {name}
                     </span>
-                    {isHighlighted && <Badge variant="primary">{tCommon("mostPopular")}</Badge>}
+                    {isHighlighted && <Badge variant="info">{tCommon("mostPopular")}</Badge>}
                     {isCurrent && <Badge variant="success">{tCommon("currentPlan")}</Badge>}
                   </div>
                   <div className="mt-2">

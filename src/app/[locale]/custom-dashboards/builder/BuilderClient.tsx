@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, Eye, Save, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardsStore } from '@/lib/store/dashboards';
 import { WIDGET_META, type Widget, type WidgetConfig, type WidgetType } from '@/lib/widgets/types';
 import { generateId } from '@/lib/utils';
@@ -156,7 +156,7 @@ export function BuilderClient() {
               {t('builder.saved')}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={() => setIsPreview((v) => !v)}>
+          <Button variant="secondary" size="sm" onClick={() => setIsPreview((v) => !v)}>
             <Eye className="h-4 w-4" />
             {isPreview ? t('builder.exitPreview') : t('builder.preview')}
           </Button>

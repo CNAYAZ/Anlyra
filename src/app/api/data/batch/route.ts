@@ -33,12 +33,17 @@ export async function POST(req: NextRequest) {
       return ok({ count: res.count });
     }
     const res = await prisma.competitor.createMany({
-      data: parsed.data.data.map((c) => ({
-        ...c,
-        website: c.website || null,
-        userId,
-        organizationId,
-      })),
+      data: parsed.data.data.map((c) => {
+        const { strengths, weaknesses, ...rest } = c;
+        return {
+          ...rest,
+          website: c.website || null,
+          userId,
+          organizationId,
+          strengths: JSON.stringify(strengths ?? []),
+          weaknesses: JSON.stringify(weaknesses ?? []),
+        };
+      }),
     });
     return ok({ count: res.count });
   } catch (err) {

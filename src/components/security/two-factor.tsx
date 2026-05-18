@@ -49,7 +49,7 @@ export function TwoFactor() {
             <CardTitle>{t('title')}</CardTitle>
             <CardDescription>{t('description')}</CardDescription>
           </div>
-          <Badge variant={enabled ? 'success' : 'outline'}>
+          <Badge variant={enabled ? 'success' : 'neutral'}>
             <ShieldCheck className="mr-1 h-3 w-3" />
             {enabled ? t('enabled') : t('disabled')}
           </Badge>
@@ -61,7 +61,7 @@ export function TwoFactor() {
         ) : null}
 
         {enabled ? (
-          <Button variant="outline" onClick={() => setEnabled(false)}>
+          <Button variant="secondary" onClick={() => setEnabled(false)}>
             {t('disable')}
           </Button>
         ) : null}

@@ -12,9 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input, Label } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/fetcher";
+import { apiFetch } from "@/lib/api/fetcher";
 import type { Competitor } from "@/types/market";
 
 const formSchema = z.object({
@@ -171,7 +172,7 @@ export function CompetitorFormDialog({
           ) : null}
 
           <DialogFooter className="col-span-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose}>
               {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting || mutation.isPending}>

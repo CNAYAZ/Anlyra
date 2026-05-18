@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/Button";
-import { Card, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Card, CardTitle } from "@/components/ui/card";
 
 interface Props {
   providerId: string;

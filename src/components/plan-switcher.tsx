@@ -4,7 +4,7 @@ import { useSession } from '@/lib/session-store';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Plan } from '@/lib/plans';
 
-const plans: Plan[] = ['FREEMIUM', 'STARTER', 'PRO', 'ENTERPRISE'];
+const plans: Plan[] = ['free', 'starter', 'pro', 'enterprise'];
 
 export function PlanSwitcher() {
   const plan = useSession((s) => s.plan);

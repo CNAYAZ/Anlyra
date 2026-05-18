@@ -34,7 +34,7 @@ export function Hero() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg" variant="secondary">
               <Link href="#how">
                 <PlayCircle className="mr-2 h-4 w-4" />
                 {t('ctaSecondary')}

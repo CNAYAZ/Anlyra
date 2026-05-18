@@ -26,9 +26,14 @@ export async function PATCH(
       where: { id: params.id, organizationId: orgId },
     });
     if (!competitor) return fail("Competitor not found", 404);
+    const { strengths, weaknesses, ...rest } = body;
     const updated = await prisma.competitor.update({
       where: { id: competitor.id },
-      data: body,
+      data: {
+        ...rest,
+        ...(strengths !== undefined ? { strengths: JSON.stringify(strengths) } : {}),
+        ...(weaknesses !== undefined ? { weaknesses: JSON.stringify(weaknesses) } : {}),
+      },
     });
     return ok(updated);
   } catch (e) {

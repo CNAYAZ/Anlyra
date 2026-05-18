@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCompactCurrency, formatNumber, formatPercent } from "@/lib/format";
-import { useLocale } from "@/hooks/use-locale";
+import { useAppLocale } from "@/hooks/use-locale";
 import type { Competitor } from "@/types/market";
 
 export function CompetitorTable({
@@ -18,7 +18,7 @@ export function CompetitorTable({
 }) {
   const t = useTranslations("market.competitors");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
+  const locale = useAppLocale();
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">

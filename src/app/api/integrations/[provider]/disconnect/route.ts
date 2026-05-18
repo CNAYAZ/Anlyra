@@ -1,6 +1,6 @@
 import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganization } from "@/lib/session";
+import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 
 export async function POST(
@@ -10,7 +10,8 @@ export async function POST(
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 
-  const org = await getCurrentOrganization();
+  const { organizationId } = await getCurrentContext();
+  const org = { id: organizationId, plan: 'PRO' as const };
   await prisma.integration.update({
     where: {
       organizationId_provider: {

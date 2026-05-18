@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Progress } from "@/components/ui/Progress";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { buildUsageMetrics, type UsageSnapshot } from "@/lib/billing/usage";
 import { usePlan } from "@/lib/billing/context";
 import { formatNumber } from "@/lib/utils";
@@ -34,7 +34,7 @@ export function UsageMeter({ snapshot }: { snapshot: UsageSnapshot }) {
                       })}
                 </span>
               </div>
-              <Progress value={m.unlimited ? 0 : m.percent} variant={variant} />
+              <Progress value={m.unlimited ? 0 : m.percent} />
             </div>
           );
         })}

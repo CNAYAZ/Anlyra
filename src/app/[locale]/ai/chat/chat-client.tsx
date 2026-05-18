@@ -27,8 +27,11 @@ type Props = {
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   const json = (await res.json()) as ApiResponse<T>;
-  if (!json.success || json.data === undefined) {
-    throw new Error(json.error ?? 'Request failed');
+  if (!json.success) {
+    throw new Error((json as { success: false; error: string }).error ?? 'Request failed');
+  }
+  if (json.data === undefined) {
+    throw new Error('Request failed');
   }
   return json.data;
 }

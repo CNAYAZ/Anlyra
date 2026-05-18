@@ -65,7 +65,7 @@ export function BillingClient({
                 key={p}
                 plan={p}
                 cycle={cycle}
-                variant={PLANS[p].highlight ? "primary" : "outline"}
+                variant={PLANS[p].highlight ? "primary" : "secondary"}
                 label={
                   isCurrent ? t("currentPlanCard.title") : isLower ? "Downgrade" : "Upgrade"
                 }

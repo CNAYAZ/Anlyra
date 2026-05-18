@@ -7,7 +7,7 @@ import {
   formatNumber,
   formatPercent,
 } from "@/lib/format";
-import { useLocale } from "@/hooks/use-locale";
+import { useAppLocale } from "@/hooks/use-locale";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -33,7 +33,7 @@ export function ComparisonTable({
   employeesAnchor: number;
 }) {
   const t = useTranslations("market.positioning");
-  const locale = useLocale();
+  const locale = useAppLocale();
 
   const fmtPct = (v: number) => `${formatPercent(v, locale)}%`;
   const fmtCur = (v: number) => formatCompactCurrency(v, locale);

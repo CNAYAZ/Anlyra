@@ -89,7 +89,7 @@ export function CookieBanner() {
               ) : (
                 <Button onClick={() => decide(true, true)}>{t('accept')}</Button>
               )}
-              <Button variant="outline" onClick={() => decide(false, false)}>
+              <Button variant="secondary" onClick={() => decide(false, false)}>
                 {t('reject')}
               </Button>
               {!customizing ? (

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrganization } from "@/lib/session";
+import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
 
@@ -14,7 +14,8 @@ export async function POST(
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 
-  const org = await getCurrentOrganization();
+  const { organizationId } = await getCurrentContext();
+  const org = { id: organizationId, plan: 'PRO' as const };
   if (!planMeets(org.plan, definition.requiredPlan)) {
     return fail(`Requires plan ${definition.requiredPlan}`, 403);
   }

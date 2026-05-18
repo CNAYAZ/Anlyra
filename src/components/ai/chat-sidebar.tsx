@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
+import type { Locale } from '@/i18n/config';
 import { Plus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +24,7 @@ export function ChatSidebar({ conversations, loading, activeId, onSelect, onNew 
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-card/40">
       <div className="border-b border-border p-3">
-        <Button onClick={onNew} className="w-full justify-start gap-2" variant="default">
+        <Button onClick={onNew} className="w-full justify-start gap-2" variant="secondary">
           <Plus className="h-4 w-4" />
           {t('newConversation')}
         </Button>
@@ -56,7 +57,7 @@ export function ChatSidebar({ conversations, loading, activeId, onSelect, onNew 
                   )}
                 >
                   <span className="line-clamp-1 text-sm font-medium text-foreground">{c.title}</span>
-                  <span className="text-xs text-muted-foreground">{formatRelative(c.updatedAt, locale)}</span>
+                  <span className="text-xs text-muted-foreground">{formatRelative(c.updatedAt, locale as Locale)}</span>
                 </button>
               </li>
             ))}

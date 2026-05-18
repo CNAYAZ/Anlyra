@@ -13,7 +13,7 @@ import {
 import { useTranslations } from "next-intl";
 import type { Competitor, MarketProfile } from "@/types/market";
 import { formatPercent } from "@/lib/format";
-import { useLocale } from "@/hooks/use-locale";
+import { useAppLocale } from "@/hooks/use-locale";
 
 export function ShareBarChart({
   profile,
@@ -23,7 +23,7 @@ export function ShareBarChart({
   competitors: Competitor[];
 }) {
   const t = useTranslations("market.competitors");
-  const locale = useLocale();
+  const locale = useAppLocale();
 
   const data = [
     { name: t("you"), share: profile.marketSharePct, isYou: true },

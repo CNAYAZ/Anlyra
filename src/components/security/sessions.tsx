@@ -64,7 +64,7 @@ export function Sessions() {
             <CardTitle>{t('title')}</CardTitle>
             <CardDescription>{t('description')}</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={revokeAll}>
+          <Button variant="secondary" size="sm" onClick={revokeAll}>
             {t('revokeAll')}
           </Button>
         </div>

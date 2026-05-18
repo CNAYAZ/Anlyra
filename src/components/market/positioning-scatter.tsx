@@ -15,7 +15,7 @@ import {
 import { useTranslations } from "next-intl";
 import type { Competitor, MarketProfile } from "@/types/market";
 import { formatPercent } from "@/lib/format";
-import { useLocale } from "@/hooks/use-locale";
+import { useAppLocale } from "@/hooks/use-locale";
 
 type Point = {
   name: string;
@@ -33,7 +33,7 @@ export function PositioningScatter({
   competitors: Competitor[];
 }) {
   const t = useTranslations("market.positioning");
-  const locale = useLocale();
+  const locale = useAppLocale();
 
   const youPoint: Point[] = [
     {

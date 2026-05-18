@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Download, FileText, Loader2 } from 'lucide-react';
 import { useReportsStore } from '@/lib/reports/store';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ReportPreview } from '@/components/reports/builder/ReportPreview';
 import { formatDate } from '@/lib/utils';

@@ -11,7 +11,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
       <AlertTriangle className="h-8 w-8 text-danger" />
       <p className="text-sm text-muted-foreground">{t("error")}</p>
       {onRetry ? (
-        <Button variant="outline" size="sm" onClick={onRetry}>
+        <Button variant="secondary" size="sm" onClick={onRetry}>
           {t("retry")}
         </Button>
       ) : null}

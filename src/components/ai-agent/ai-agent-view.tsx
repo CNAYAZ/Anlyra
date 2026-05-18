@@ -10,7 +10,7 @@ export function AiAgentView() {
   const t = useTranslations('aiAgent');
 
   return (
-    <FeatureGate required="ENTERPRISE">
+    <FeatureGate required="enterprise">
       <div className="space-y-6">
         <Card>
           <CardHeader>

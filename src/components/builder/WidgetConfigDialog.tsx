@@ -4,9 +4,16 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input, Label, Select, Textarea } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { METRIC_KEYS, PERIOD_KEYS, WIDGET_META, widgetConfigSchema, type Widget, type WidgetConfig } from '@/lib/widgets/types';
 
 interface WidgetConfigDialogProps {
@@ -48,21 +55,11 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
   });
 
   return (
-    <Dialog
-      open
-      onClose={onClose}
-      title={`${t('title')} · ${tWidgets(`${widget.type}.name`)}`}
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose} type="button">
-            {tCommon('cancel')}
-          </Button>
-          <Button onClick={submit} type="button">
-            {tCommon('save')}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{`${t('title')} · ${tWidgets(`${widget.type}.name`)}`}</DialogTitle>
+        </DialogHeader>
       <form className="space-y-4" onSubmit={submit}>
         {meta.configurable.includes('title') && (
           <div>
@@ -77,13 +74,13 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
               control={form.control}
               name="metric"
               render={({ field }) => (
-                <Select id="metric" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)}>
+                <select id="metric" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
                   {METRIC_KEYS.map((m) => (
                     <option key={m} value={m}>
                       {tMetrics(m)}
                     </option>
                   ))}
-                </Select>
+                </select>
               )}
             />
           </div>
@@ -95,13 +92,13 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
               control={form.control}
               name="period"
               render={({ field }) => (
-                <Select id="period" value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value)}>
+                <select id="period" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
                   {PERIOD_KEYS.map((p) => (
                     <option key={p} value={p}>
                       {tPeriods(p)}
                     </option>
                   ))}
-                </Select>
+                </select>
               )}
             />
           </div>
@@ -136,7 +133,16 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
           </div>
         )}
         {meta.configurable.length === 0 && <p className="text-sm text-slate-500">{t('noOptions')}</p>}
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} type="button">
+            {tCommon('cancel')}
+          </Button>
+          <Button onClick={submit} type="button">
+            {tCommon('save')}
+          </Button>
+        </DialogFooter>
       </form>
+      </DialogContent>
     </Dialog>
   );
 }

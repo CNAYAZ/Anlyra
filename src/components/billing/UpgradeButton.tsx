@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { PlanId } from "@/lib/billing/plans";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import type { Cycle } from "./PriceToggle";
 
 export function UpgradeButton({
@@ -16,7 +16,7 @@ export function UpgradeButton({
 }: {
   plan: Exclude<PlanId, "FREE">;
   cycle: Cycle;
-  variant?: "primary" | "outline" | "secondary";
+  variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   label?: string;
   className?: string;

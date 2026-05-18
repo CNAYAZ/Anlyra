@@ -47,7 +47,7 @@ export function TeamManager() {
 
   const limit = TEAM_LIMITS[plan];
   const limitReached = limit !== 'unlimited' && members.length >= limit;
-  const starterBlocked = plan === 'STARTER' || plan === 'FREEMIUM';
+  const starterBlocked = plan === 'starter' || plan === 'free';
 
   const { register, handleSubmit, reset, setValue, watch, formState } = useForm<InviteValues>({
     resolver: zodResolver(inviteSchema),
@@ -191,7 +191,7 @@ export function TeamManager() {
                             ? 'success'
                             : m.status === 'pending'
                             ? 'warning'
-                            : 'outline'
+                            : 'neutral'
                         }
                       >
                         {t(`status.${m.status}`)}

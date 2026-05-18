@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Sparkles } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { CREDIT_PACKS } from "@/lib/billing/plans";
 import { convertFromEuroCents, detectCurrencyFromLocale } from "@/lib/billing/currency";
 import { formatCurrency, formatNumber } from "@/lib/utils";
