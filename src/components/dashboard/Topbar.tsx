@@ -13,6 +13,7 @@ import { UserMenu } from './UserMenu';
 export function Topbar() {
   const t = useTranslations('topbar');
   const toggleMobile = useSidebarStore((s) => s.toggleMobile);
+  const unreadCount = 0;
 
   return (
     <header className="sticky top-0 z-30 flex h-topbar items-center gap-3 border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
@@ -31,7 +32,7 @@ export function Topbar() {
 
       <div className="flex items-center gap-1 sm:gap-2">
         <CreditsCounter />
-        <NotificationBell count={3} />
+        <NotificationBell count={unreadCount} />
         <LanguageSwitch />
         <ThemeToggle />
         <UserMenu />
