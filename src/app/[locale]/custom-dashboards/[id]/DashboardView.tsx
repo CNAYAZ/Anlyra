@@ -51,25 +51,25 @@ export function DashboardView({ id }: { id: string }) {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-6 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-6 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/custom-dashboards"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-bg-dark"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label={t('nav.back')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="min-w-0">
             <h1 className="truncate font-heading text-lg font-semibold text-bg-dark">{dashboard.name}</h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {t('dashboards.updatedAt')} {formatDate(dashboard.updatedAt, locale)}
             </p>
           </div>
         </div>
         <Link
           href={`/custom-dashboards/builder?id=${dashboard.id}`}
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-bg-dark hover:bg-slate-50"
+          className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted"
         >
           <Pencil className="h-4 w-4" />
           {t('common.edit')}

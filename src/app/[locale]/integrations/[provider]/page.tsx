@@ -34,7 +34,7 @@ export default async function ProviderPage({ params }: Props) {
         <h1 className="mb-2 font-heading text-2xl font-bold">
           {definition.name}
         </h1>
-        <p className="mb-6 text-slate-600">
+        <p className="mb-6 text-muted-foreground">
           {t("lockedOn", { plan: definition.requiredPlan })}
         </p>
         <Link href="/billing">
@@ -77,10 +77,10 @@ export default async function ProviderPage({ params }: Props) {
       >
         ← {tCommon("back")}
       </Link>
-      <h1 className="mb-1 font-heading text-3xl font-bold text-slate-900">
+      <h1 className="mb-1 font-heading text-3xl font-bold text-foreground">
         {definition.name}
       </h1>
-      <p className="mb-8 text-slate-600">
+      <p className="mb-8 text-muted-foreground">
         {t(`providers.${definition.descriptionKey}` as never)}
       </p>
 
@@ -99,7 +99,7 @@ export default async function ProviderPage({ params }: Props) {
       )}
 
       <section className="mt-10">
-        <h2 className="mb-4 font-heading text-xl font-semibold text-slate-900">
+        <h2 className="mb-4 font-heading text-xl font-semibold text-foreground">
           {t("logs.title")}
         </h2>
         <SyncLogTable logs={logs} />

@@ -75,7 +75,7 @@ export default function PublicSharePage() {
 
   return (
     <div className="min-h-screen bg-bg-light">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="font-heading font-bold text-primary text-lg">{t('appName')}</div>
           <button
@@ -94,10 +94,10 @@ export default function PublicSharePage() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 lg:p-10">
-        <h1 className="text-3xl font-heading font-bold text-slate-900">
+        <h1 className="text-3xl font-heading font-bold text-foreground">
           {report.title}
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           {tReports(`type.${report.type}`)} •{' '}
           {formatDate(report.createdAt, params.locale)}
         </p>

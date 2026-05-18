@@ -110,7 +110,7 @@ export function DashboardsList() {
                 </Link>
                 <Link
                   href={`/custom-dashboards/builder?id=${d.id}`}
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-bg-dark transition-colors hover:bg-slate-50"
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
                   <Pencil className="h-4 w-4" />
                   {t('common.edit')}
@@ -134,7 +134,7 @@ export function DashboardsList() {
           <DialogHeader>
             <DialogTitle>{t('common.delete')}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-foreground">
             {target ? t('dashboards.deleteConfirm', { name: target.name }) : ''}
           </p>
           <DialogFooter>

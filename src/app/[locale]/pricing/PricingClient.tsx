@@ -14,10 +14,10 @@ export function PricingClient({ isAuthenticated }: { isAuthenticated: boolean })
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-10 p-6 py-10">
       <header className="flex flex-col items-center gap-4 text-center">
-        <h1 className="font-heading text-4xl font-bold tracking-tight text-slate-900">
+        <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground">
           {t("title")}
         </h1>
-        <p className="max-w-2xl text-slate-600">{t("subtitle")}</p>
+        <p className="max-w-2xl text-muted-foreground">{t("subtitle")}</p>
         <PriceToggle value={cycle} onChange={setCycle} />
       </header>
 
@@ -28,16 +28,16 @@ export function PricingClient({ isAuthenticated }: { isAuthenticated: boolean })
       </section>
 
       <section>
-        <h2 className="mb-4 font-heading text-2xl font-semibold text-slate-900">
+        <h2 className="mb-4 font-heading text-2xl font-semibold text-foreground">
           {t("compareTitle")}
         </h2>
-        <div className="rounded-card border border-slate-200 bg-white p-4">
+        <div className="rounded-card border border-border bg-card p-4">
           <PlanCompareTable cycle={cycle} currentPlan={null} />
         </div>
       </section>
 
       <section>
-        <h2 className="mb-4 font-heading text-2xl font-semibold text-slate-900">
+        <h2 className="mb-4 font-heading text-2xl font-semibold text-foreground">
           {t("faqTitle")}
         </h2>
         <FaqAccordion />

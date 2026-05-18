@@ -50,7 +50,7 @@ export default function ReportDetailPage() {
     <div className="p-8 max-w-6xl mx-auto">
       <Link
         href={`/${params.locale}/reports`}
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 mb-3"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"
       >
         <ChevronLeft className="h-4 w-4" />
         {tCommon('back')}
@@ -88,7 +88,7 @@ export default function ReportDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="card">
-          <h3 className="font-heading font-semibold text-slate-900 mb-3">
+          <h3 className="font-heading font-semibold text-foreground mb-3">
             {tBuilder('step3.title')}
           </h3>
           <div className="flex flex-wrap gap-2">

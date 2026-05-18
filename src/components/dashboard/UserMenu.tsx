@@ -32,7 +32,6 @@ export function UserMenu() {
     .toUpperCase();
 
   const handleLogout = () => {
-    console.log('[logout] handler triggered');
     setOpen(false);
     // Full browser navigation so the server redirect from /api/auth/logout is followed correctly.
     // router.push() (client-side) does not reliably follow server-side redirects from API routes.

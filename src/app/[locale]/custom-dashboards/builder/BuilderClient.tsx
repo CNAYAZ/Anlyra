@@ -95,7 +95,7 @@ export function BuilderClient() {
   if (!hasHydrated || !bootstrapped) {
     return (
       <div className="flex h-[calc(100vh-3.5rem)]">
-        <div className="hidden w-72 border-r border-slate-200 bg-white p-4 md:block">
+        <div className="hidden w-72 border-r border-border bg-card p-4 md:block">
           <Skeleton className="mb-3 h-6 w-32" />
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="mb-2 h-14 w-full" />
@@ -115,11 +115,11 @@ export function BuilderClient() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-6 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-6 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/custom-dashboards"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-bg-dark"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label={t('nav.back')}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -134,18 +134,18 @@ export function BuilderClient() {
                 if (e.key === 'Enter' || e.key === 'Escape') setEditingName(false);
               }}
               placeholder={t('builder.namePlaceholder')}
-              className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-3 font-heading text-lg font-semibold text-bg-dark focus:border-primary-accent focus:outline-none focus:ring-2 focus:ring-primary-accent/30"
+              className="h-9 min-w-0 rounded-md border border-border bg-card px-3 font-heading text-lg font-semibold text-bg-dark focus:border-primary-accent focus:outline-none focus:ring-2 focus:ring-primary-accent/30"
             />
           ) : (
             <button
               type="button"
               onClick={() => setEditingName(true)}
-              className="group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-50"
+              className="group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 hover:bg-muted"
             >
               <span className="truncate font-heading text-lg font-semibold text-bg-dark">
                 {name || t('builder.namePlaceholder')}
               </span>
-              <Pencil className="h-3.5 w-3.5 text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" />
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
             </button>
           )}
         </div>
