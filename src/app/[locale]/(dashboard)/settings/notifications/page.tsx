@@ -96,7 +96,7 @@ export default function SettingsNotificationsPage() {
                           className={`relative inline-block h-6 w-11 rounded-full transition-colors ${enabled ? 'bg-success' : 'bg-muted'}`}
                         >
                           <span
-                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`}
                           />
                         </button>
                       </td>

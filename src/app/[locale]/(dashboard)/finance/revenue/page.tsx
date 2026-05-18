@@ -118,7 +118,7 @@ export default function RevenuePage() {
       </div>
 
       <Card className="p-0">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
           <h3 className="font-heading font-semibold text-base">{t('table.title')}</h3>
           <CategoryFilter
             value={category}
