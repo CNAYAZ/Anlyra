@@ -29,7 +29,7 @@ export function AiAgentView() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">{t('description')}</p>
+            <p className="text-sm text-muted-foreground">{t('description')}</p>
           </CardContent>
         </Card>
 
@@ -57,10 +57,10 @@ function FeatureCard({
         <span className="grid h-10 w-10 place-items-center rounded-md bg-accent/10 text-accent">
           <Icon className="h-5 w-5" />
         </span>
-        <h3 className="mt-3 font-heading text-base font-semibold text-slate-900">
+        <h3 className="mt-3 font-heading text-base font-semibold text-foreground">
           {t(`${titleKey}.title`)}
         </h3>
-        <p className="mt-1 text-sm text-slate-500">{t(`${titleKey}.description`)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t(`${titleKey}.description`)}</p>
       </CardContent>
     </Card>
   );

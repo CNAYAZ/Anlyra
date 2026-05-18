@@ -8,9 +8,9 @@ import { useCreditsStore } from '@/stores/credits-store';
 import { cn } from '@/lib/utils';
 
 function colorFor(n: number): string {
-  if (n < 10) return 'text-danger bg-red-50 border-red-200';
-  if (n <= 20) return 'text-warning bg-amber-50 border-amber-200';
-  return 'text-success bg-green-50 border-green-200';
+  if (n < 10) return 'text-danger bg-danger/10 border-danger/30';
+  if (n <= 20) return 'text-warning bg-warning/10 border-warning/30';
+  return 'text-success bg-success/10 border-success/30';
 }
 
 export function CreditsBadge() {

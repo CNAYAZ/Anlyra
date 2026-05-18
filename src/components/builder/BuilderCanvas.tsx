@@ -97,8 +97,8 @@ function EmptyCanvas(props: React.HTMLAttributes<HTMLDivElement>) {
   const t = useTranslations('builder');
   return (
     <div {...props} className="flex h-[60vh] items-center justify-center p-12 text-center">
-      <div className="rounded-card border-2 border-dashed border-slate-300 bg-white px-12 py-16">
-        <p className="text-sm text-slate-500">{t('canvasEmpty')}</p>
+      <div className="rounded-card border-2 border-dashed border-border bg-card px-12 py-16">
+        <p className="text-sm text-muted-foreground">{t('canvasEmpty')}</p>
       </div>
     </div>
   );

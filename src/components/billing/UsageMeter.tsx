@@ -24,8 +24,8 @@ export function UsageMeter({ snapshot }: { snapshot: UsageSnapshot }) {
           return (
             <div key={m.key}>
               <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="text-slate-700">{t(m.key)}</span>
-                <span className="num text-slate-600">
+                <span className="text-foreground">{t(m.key)}</span>
+                <span className="num text-muted-foreground">
                   {m.unlimited
                     ? t("usedUnlimited", { used: formatNumber(m.used, locale) })
                     : t("usedOf", {

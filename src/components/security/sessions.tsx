@@ -70,20 +70,20 @@ export function Sessions() {
         </div>
       </CardHeader>
       <CardContent>
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border/50">
           {sessions.map((s) => {
             const Icon = s.mobile ? Smartphone : Monitor;
             return (
               <li key={s.id} className="flex items-center justify-between gap-4 py-3">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-slate-100 text-slate-600">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-muted text-muted-foreground">
                     <Icon className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-foreground">
                       {s.device} · {s.browser}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {s.location} · {s.ip} · {t('lastActive')}: {formatDate(s.lastActive, locale)}
                     </p>
                   </div>

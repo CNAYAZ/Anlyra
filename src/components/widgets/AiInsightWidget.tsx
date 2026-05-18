@@ -16,7 +16,7 @@ export function AiInsightWidget({ widget }: { widget: Widget }) {
         <Sparkles className="h-4 w-4" />
         {insight.generatedBy}
       </div>
-      <ul className="flex-1 space-y-2 overflow-auto text-sm leading-relaxed text-slate-700 scrollbar-thin">
+      <ul className="flex-1 space-y-2 overflow-auto text-sm leading-relaxed text-foreground scrollbar-thin">
         {insight.bullets.map((b, i) => (
           <li key={i} className="flex gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-accent" />

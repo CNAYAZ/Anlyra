@@ -44,7 +44,7 @@ export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-slate-200 bg-white">
+    <footer className="border-t border-border bg-background">
       <div className="container py-12">
         <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-1">
@@ -56,16 +56,16 @@ export function SiteFooter() {
                 {tc('appName')}
               </span>
             </Link>
-            <p className="mt-3 text-sm text-slate-500">{tc('tagline')}</p>
+            <p className="mt-3 text-sm text-muted-foreground">{tc('tagline')}</p>
           </div>
 
           {groups.map((g) => (
             <div key={g.title}>
-              <h4 className="font-heading text-sm font-semibold text-slate-900">{g.title}</h4>
+              <h4 className="font-heading text-sm font-semibold text-foreground">{g.title}</h4>
               <ul className="mt-3 space-y-2">
                 {g.links.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-sm text-slate-500 hover:text-slate-900">
+                    <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground">
                       {('display' in l && l.display) || l.label}
                     </Link>
                   </li>
@@ -75,7 +75,7 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-6 text-sm text-slate-500 md:flex-row md:items-center">
+        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground md:flex-row md:items-center">
           <p>© {year} {tc('appName')}. {t('rights')}</p>
           <p>Made with Claude</p>
         </div>

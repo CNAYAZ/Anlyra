@@ -22,10 +22,10 @@ const priorityBorder: Record<string, string> = {
 };
 
 const typeIconBg: Record<string, string> = {
-  STRATEGY: 'bg-amber-50 text-amber-600',
-  WARNING: 'bg-red-50 text-danger',
-  OPPORTUNITY: 'bg-emerald-50 text-emerald-600',
-  ACTION: 'bg-blue-50 text-primary-accent',
+  STRATEGY: 'bg-warning/10 text-warning',
+  WARNING: 'bg-danger/10 text-danger',
+  OPPORTUNITY: 'bg-success/10 text-success',
+  ACTION: 'bg-primary-accent/10 text-primary-accent',
 };
 
 const statusVariant: Record<string, 'neutral' | 'success' | 'info' | 'warning'> = {

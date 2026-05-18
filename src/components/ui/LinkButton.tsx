@@ -9,9 +9,9 @@ const linkButtonVariants = cva(
     variants: {
       variant: {
         primary: "bg-primary-accent text-white hover:bg-primary-hover",
-        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-        outline: "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
-        ghost: "text-slate-700 hover:bg-slate-100",
+        secondary: "bg-muted text-foreground hover:bg-muted/80",
+        outline: "border border-border bg-card text-foreground hover:bg-muted/50",
+        ghost: "text-foreground hover:bg-muted",
       },
       size: {
         sm: "h-8 px-3 text-sm",

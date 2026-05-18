@@ -31,7 +31,7 @@ export function InvoicesList({ invoices }: { invoices: InvoiceRow[] }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
+            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="py-2 pr-4">{t("date")}</th>
                 <th className="py-2 pr-4">#</th>
@@ -42,12 +42,12 @@ export function InvoicesList({ invoices }: { invoices: InvoiceRow[] }) {
             </thead>
             <tbody>
               {invoices.map((inv) => (
-                <tr key={inv.id} className="border-t border-slate-100">
-                  <td className="py-3 pr-4 text-slate-700">
+                <tr key={inv.id} className="border-t border-border/50">
+                  <td className="py-3 pr-4 text-foreground">
                     {formatDate(inv.periodEnd, locale)}
                   </td>
-                  <td className="py-3 pr-4 text-slate-600">{inv.number}</td>
-                  <td className="num py-3 pr-4 text-slate-900">
+                  <td className="py-3 pr-4 text-muted-foreground">{inv.number}</td>
+                  <td className="num py-3 pr-4 text-foreground">
                     {formatCurrency(
                       inv.amountCents,
                       (inv.currency as "EUR" | "USD" | "GBP") ?? "EUR",
@@ -71,7 +71,7 @@ export function InvoicesList({ invoices }: { invoices: InvoiceRow[] }) {
                         PDF
                       </a>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                 </tr>

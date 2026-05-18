@@ -66,10 +66,10 @@ export function CreditsCard({
           return (
             <div
               key={pack.id}
-              className="flex flex-col items-start gap-2 rounded-card border border-slate-200 p-4"
+              className="flex flex-col items-start gap-2 rounded-card border border-border p-4"
             >
-              <div className="text-sm text-slate-500">+{formatNumber(pack.credits, locale)} {t("credits")}</div>
-              <div className="num text-xl font-semibold text-slate-900">
+              <div className="text-sm text-muted-foreground">+{formatNumber(pack.credits, locale)} {t("credits")}</div>
+              <div className="num text-xl font-semibold text-foreground">
                 {formatCurrency(display, currency, locale)}
               </div>
               <Button
@@ -86,20 +86,20 @@ export function CreditsCard({
       </div>
 
       <div className="mt-6">
-        <h4 className="mb-2 font-heading text-sm font-semibold text-slate-700">{t("history")}</h4>
+        <h4 className="mb-2 font-heading text-sm font-semibold text-foreground">{t("history")}</h4>
         {history.length === 0 ? (
           <EmptyState message={t("history")} />
         ) : (
-          <ul className="divide-y divide-slate-100 rounded-card border border-slate-200">
+          <ul className="divide-y divide-border/50 rounded-card border border-border">
             {history.map((entry) => (
               <li
                 key={entry.id}
                 className="flex items-center justify-between gap-4 px-4 py-2 text-sm"
               >
-                <span className="text-slate-600">
+                <span className="text-muted-foreground">
                   {new Date(entry.createdAt).toLocaleDateString(locale === "it" ? "it-IT" : "en-US")}
                 </span>
-                <span className="text-slate-500">{entry.reason}</span>
+                <span className="text-muted-foreground">{entry.reason}</span>
                 <span
                   className={
                     "num font-semibold " + (entry.delta >= 0 ? "text-success" : "text-danger")

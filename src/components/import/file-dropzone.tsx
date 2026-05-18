@@ -63,7 +63,7 @@ export function FileDropzone({ onFile, disabled }: Props) {
           'relative flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed p-10 text-center transition-colors',
           isDragging
             ? 'border-primary-accent bg-primary-accent/5'
-            : 'border-border bg-white hover:bg-muted/30',
+            : 'border-border bg-card hover:bg-muted/30',
           disabled && 'pointer-events-none opacity-60'
         )}
       >

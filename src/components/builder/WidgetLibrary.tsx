@@ -52,10 +52,10 @@ export function WidgetLibrary({ onAdd }: WidgetLibraryProps) {
   };
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-4 py-3">
-        <h2 className="font-heading text-sm font-semibold text-bg-dark">{tBuilder('library')}</h2>
-        <p className="mt-0.5 text-xs text-slate-500">{tBuilder('librarySubtitle')}</p>
+    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-card">
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="font-heading text-sm font-semibold text-foreground">{tBuilder('library')}</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">{tBuilder('librarySubtitle')}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-3 scrollbar-thin">
         <div className="grid grid-cols-1 gap-2">
@@ -68,14 +68,14 @@ export function WidgetLibrary({ onAdd }: WidgetLibraryProps) {
                 draggable
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => onAdd(type)}
-                className="group flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-all hover:border-primary-accent/40 hover:shadow-card active:cursor-grabbing"
+                className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:border-primary-accent/40 hover:shadow-card active:cursor-grabbing"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-accent/10 text-primary-accent group-hover:bg-primary-accent group-hover:text-white">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-bg-dark">{tWidgets(`${type}.name`)}</p>
-                  <p className="truncate text-xs text-slate-500">{tWidgets(`${type}.description`)}</p>
+                  <p className="truncate text-xs text-muted-foreground">{tWidgets(`${type}.description`)}</p>
                 </div>
               </button>
             );

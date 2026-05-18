@@ -68,17 +68,17 @@ export function TwoFactor() {
 
         {setupOpen && !enabled ? (
           <div className="grid gap-6 md:grid-cols-[200px_1fr] md:items-start">
-            <div className="grid h-[200px] w-[200px] place-items-center rounded-md border border-slate-200 bg-white p-2">
+            <div className="grid h-[200px] w-[200px] place-items-center rounded-md border border-border bg-card p-2">
               {qrDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={qrDataUrl} alt="2FA QR code" className="h-full w-full" />
               ) : (
-                <span className="text-xs text-slate-400">Generating…</span>
+                <span className="text-xs text-muted-foreground">Generating…</span>
               )}
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">{t('scan')}</p>
-              <p className="rounded-md bg-slate-100 px-3 py-2 font-mono text-xs text-slate-700">
+              <p className="text-sm text-muted-foreground">{t('scan')}</p>
+              <p className="rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground">
                 {secret}
               </p>
               <div className="space-y-1.5">

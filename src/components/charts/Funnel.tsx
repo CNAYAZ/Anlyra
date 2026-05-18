@@ -22,7 +22,7 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
         const conversion = i === 0 ? 1 : s.value / stages[i - 1].value;
         return (
           <div key={s.label} className="flex items-center gap-3">
-            <div className="w-28 text-xs text-slate-600 truncate" title={s.label}>
+            <div className="w-28 text-xs text-muted-foreground truncate" title={s.label}>
               {s.label}
             </div>
             <div className="flex-1 relative">
@@ -36,7 +36,7 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
                 {formatNumber(s.value, locale)}
               </div>
             </div>
-            <div className="w-16 text-right num text-xs text-slate-500">
+            <div className="w-16 text-right num text-xs text-muted-foreground">
               {(conversion * 100).toFixed(1)}%
             </div>
           </div>

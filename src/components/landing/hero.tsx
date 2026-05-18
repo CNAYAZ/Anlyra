@@ -61,9 +61,9 @@ function DashboardPreview() {
   return (
     <div className="rounded-2xl border bg-card p-3 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.25)]">
       <div className="flex items-center gap-1.5 px-2 pb-2">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+        <span className="h-2.5 w-2.5 rounded-full bg-danger/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+        <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
       </div>
       <div className="grid gap-3 rounded-xl bg-[#0f172a] p-4 md:grid-cols-3">
         <KpiCard label="MRR" value="€48.230" trend="+12.4%" tone="up" />
@@ -100,7 +100,7 @@ function KpiCard({
     <div className="rounded-lg bg-muted p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 font-mono text-2xl font-semibold text-card-foreground">{value}</p>
-      <p className={`mt-1 text-xs ${tone === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>{trend}</p>
+      <p className={`mt-1 text-xs ${tone === 'up' ? 'text-success' : 'text-danger'}`}>{trend}</p>
     </div>
   );
 }
@@ -129,7 +129,7 @@ function InsightCard() {
   return (
     <div className="rounded-lg border border-accent/20 bg-accent/5 p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-accent">AI Insight</p>
-      <p className="mt-2 text-sm text-slate-700">
+      <p className="mt-2 text-sm text-foreground">
         Conversion drops 18% on weekends. Consider running a weekend-only promo to recover.
       </p>
       <button className="mt-3 text-xs font-medium text-accent hover:underline">View details →</button>

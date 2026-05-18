@@ -49,11 +49,11 @@ export function ShareModal({
   return (
     <Modal open={open} onClose={onClose} title={t('title')}>
       {!canShare ? (
-        <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4">
-          <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-lg bg-warning/10 border border-warning p-4">
+          <Lock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-amber-900">{t('proOnly')}</p>
-            <button className="mt-2 text-sm font-medium text-amber-700 hover:underline">
+            <p className="text-sm font-medium text-foreground">{t('proOnly')}</p>
+            <button className="mt-2 text-sm font-medium text-warning hover:underline">
               {tCommon('upgrade')}
             </button>
           </div>
@@ -62,19 +62,19 @@ export function ShareModal({
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-900">{t('publicLink')}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{t('publicLinkDesc')}</p>
+              <p className="text-sm font-medium text-foreground">{t('publicLink')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('publicLinkDesc')}</p>
             </div>
             <button
               onClick={onToggle}
               role="switch"
               aria-checked={report.shareEnabled}
               className={`relative h-6 w-11 rounded-full transition-colors ${
-                report.shareEnabled ? 'bg-primary-accent' : 'bg-slate-300'
+                report.shareEnabled ? 'bg-primary-accent' : 'bg-muted-foreground/30'
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
                   report.shareEnabled ? 'translate-x-5' : ''
                 }`}
               />

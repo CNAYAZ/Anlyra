@@ -13,7 +13,7 @@ export function LanguageSwitcher() {
   const [, startTransition] = useTransition();
 
   return (
-    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+    <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
       <Globe className="h-4 w-4" aria-hidden />
       <select
         value={locale}

@@ -122,7 +122,7 @@ function Row({
     <div className="flex items-start justify-between gap-4">
       <div>
         <Label className="text-foreground">{title}</Label>
-        <p className="text-xs text-slate-500">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>

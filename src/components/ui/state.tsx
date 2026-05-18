@@ -32,7 +32,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
   return (
     <div className="card flex flex-col items-center justify-center text-center py-10 gap-2">
       <AlertCircle className="w-8 h-8 text-danger" />
-      <p className="text-sm text-slate-600 dark:text-slate-300">{t('error')}</p>
+      <p className="text-sm text-muted-foreground">{t('error')}</p>
       {onRetry && (
         <button onClick={onRetry} className="btn-secondary mt-2">
           {t('retry')}
@@ -46,8 +46,8 @@ export function EmptyState({ message }: { message?: string }) {
   const t = useTranslations('common');
   return (
     <div className="card flex flex-col items-center justify-center text-center py-10 gap-2">
-      <Inbox className="w-8 h-8 text-slate-400" />
-      <p className="text-sm text-slate-500">{message ?? t('empty')}</p>
+      <Inbox className="w-8 h-8 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">{message ?? t('empty')}</p>
     </div>
   );
 }

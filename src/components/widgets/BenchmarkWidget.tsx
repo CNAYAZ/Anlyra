@@ -26,15 +26,15 @@ export function BenchmarkWidget({ widget }: { widget: Widget }) {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{tMetrics(metric)}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{tMetrics(metric)}</p>
       <div className="flex flex-1 flex-col justify-center gap-3">
         {rows.map((r) => (
           <div key={r.label}>
             <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-slate-600">{r.label}</span>
+              <span className="text-muted-foreground">{r.label}</span>
               <span className="font-mono text-bg-dark">{fmt(r.value)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full"
                 style={{ width: `${(r.value / max) * 100}%`, background: r.color }}

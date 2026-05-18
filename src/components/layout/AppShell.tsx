@@ -52,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="px-5 py-5 border-b border-slate-100">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card">
+        <div className="px-5 py-5 border-b border-border/50">
           <Link href="/" className="flex items-center gap-2">
             <span className="h-8 w-8 rounded-lg bg-primary text-white grid place-items-center font-heading font-bold">
               P
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   active
                     ? 'bg-primary text-white'
-                    : 'text-slate-700 hover:bg-slate-100',
+                    : 'text-foreground hover:bg-muted',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -87,8 +87,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
 
           {isOps && (
-            <div className="pt-4 mt-4 border-t border-slate-100">
-              <p className="px-3 pb-2 text-xs uppercase tracking-wider text-slate-400 font-semibold">
+            <div className="pt-4 mt-4 border-t border-border/50">
+              <p className="px-3 pb-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                 {t('nav.operations')}
               </p>
               {OPS_NAV.map((item) => {
@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
                       active
                         ? 'bg-accent/10 text-accent font-medium'
-                        : 'text-slate-600 hover:bg-slate-50',
+                        : 'text-muted-foreground hover:bg-muted/50',
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -114,8 +114,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <div className="px-3 py-3 border-t border-slate-100">
-          <p className="px-2 text-xs text-slate-400 mb-1">{t('common.language')}</p>
+        <div className="px-3 py-3 border-t border-border/50">
+          <p className="px-2 text-xs text-muted-foreground mb-1">{t('common.language')}</p>
           <div className="flex gap-1">
             {(['it', 'en'] as const).map((l) => (
               <button
@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
                   locale === l
                     ? 'bg-primary text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
                 )}
               >
                 {l.toUpperCase()}

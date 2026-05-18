@@ -29,7 +29,7 @@ export function GaugeWidget({ widget }: { widget: Widget }) {
 
   return (
     <div className="flex h-full flex-col items-center justify-center">
-      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{tMetrics(metric)}</p>
+      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{tMetrics(metric)}</p>
       <svg viewBox="0 0 180 110" className="w-full max-w-[200px]">
         <path d={`M 20 86 A 70 70 0 0 1 160 86`} stroke="#e2e8f0" strokeWidth={14} fill="none" strokeLinecap="round" />
         <path
@@ -43,7 +43,7 @@ export function GaugeWidget({ widget }: { widget: Widget }) {
           {formatValue(value)}
         </text>
       </svg>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-muted-foreground">
         Target: <span className="font-mono">{formatValue(target)}</span>
       </p>
     </div>

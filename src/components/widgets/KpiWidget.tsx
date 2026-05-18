@@ -26,8 +26,8 @@ export function KpiWidget({ widget }: { widget: Widget }) {
   return (
     <div className="flex h-full flex-col justify-between">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{tMetrics(metric)}</p>
-        <p className="text-xs text-slate-400">{tPeriods(period)}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{tMetrics(metric)}</p>
+        <p className="text-xs text-muted-foreground">{tPeriods(period)}</p>
       </div>
       <p className="font-mono text-3xl font-semibold leading-tight" style={{ color }}>
         {formatted}

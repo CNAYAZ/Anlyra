@@ -90,8 +90,8 @@ export function IntegrationManager({
       </CardHeader>
       <div className="space-y-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">{t("lastSync")}</span>
-          <span className="font-mono text-slate-800">
+          <span className="text-muted-foreground">{t("lastSync")}</span>
+          <span className="font-mono text-foreground">
             {lastSyncAt
               ? formatDate(new Date(lastSyncAt), locale)
               : t("neverSynced")}
@@ -100,7 +100,7 @@ export function IntegrationManager({
         <div>
           <label
             htmlFor="freq"
-            className="mb-1.5 block text-sm font-medium text-slate-700"
+            className="mb-1.5 block text-sm font-medium text-foreground"
           >
             {t("frequency.label")}
           </label>
@@ -109,7 +109,7 @@ export function IntegrationManager({
             value={currentFreq}
             onChange={(e) => changeFrequency(e.target.value as SyncFrequency)}
             disabled={pending}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-primary-accent focus:outline-none focus:ring-1 focus:ring-primary-accent"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary-accent focus:outline-none focus:ring-1 focus:ring-primary-accent"
           >
             {FREQUENCIES.map((f) => (
               <option key={f} value={f}>

@@ -24,7 +24,7 @@ export function PeriodFilter({ value, onChange }: { value: PeriodRange; onChange
 
   return (
     <div className="relative inline-flex items-center gap-1">
-      <div className="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
+      <div className="inline-flex items-center rounded-lg border border-border overflow-hidden text-xs">
         {OPTIONS.map((opt) => (
           <button
             key={opt}
@@ -32,8 +32,8 @@ export function PeriodFilter({ value, onChange }: { value: PeriodRange; onChange
             className={cn(
               'px-3 py-1.5 font-medium whitespace-nowrap transition-colors',
               value.period === opt
-                ? 'bg-primary-600 text-white'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+                ? 'bg-primary-accent text-white'
+                : 'text-muted-foreground hover:bg-muted',
             )}
           >
             {t(opt)}
@@ -42,10 +42,10 @@ export function PeriodFilter({ value, onChange }: { value: PeriodRange; onChange
         <button
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            'px-3 py-1.5 font-medium whitespace-nowrap flex items-center gap-1 transition-colors border-l border-slate-200 dark:border-slate-700',
+            'px-3 py-1.5 font-medium whitespace-nowrap flex items-center gap-1 transition-colors border-l border-border',
             value.period === 'custom'
-              ? 'bg-primary-600 text-white'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
+              ? 'bg-primary-accent text-white'
+              : 'text-muted-foreground hover:bg-muted',
           )}
         >
           <CalendarRange className="w-3 h-3" />
@@ -54,14 +54,14 @@ export function PeriodFilter({ value, onChange }: { value: PeriodRange; onChange
       </div>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1 z-20 p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-card flex flex-col gap-2 text-xs">
+        <div className="absolute top-full right-0 mt-1 z-20 p-3 rounded-lg bg-card border border-border shadow-card flex flex-col gap-2 text-xs">
           <label className="flex items-center gap-2">
-            <span className="w-10 text-slate-500">From</span>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+            <span className="w-10 text-muted-foreground">From</span>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-2 py-1 rounded-md border border-border bg-background" />
           </label>
           <label className="flex items-center gap-2">
-            <span className="w-10 text-slate-500">To</span>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+            <span className="w-10 text-muted-foreground">To</span>
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-2 py-1 rounded-md border border-border bg-background" />
           </label>
           <div className="flex items-center justify-end gap-2 pt-1">
             <button
@@ -71,7 +71,7 @@ export function PeriodFilter({ value, onChange }: { value: PeriodRange; onChange
                 onChange({ period: '12m' });
                 setOpen(false);
               }}
-              className="px-2 py-1 text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
+              className="px-2 py-1 text-muted-foreground hover:text-foreground"
             >
               Reset
             </button>

@@ -74,7 +74,7 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
               control={form.control}
               name="metric"
               render={({ field }) => (
-                <select id="metric" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
+                <select id="metric" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
                   {METRIC_KEYS.map((m) => (
                     <option key={m} value={m}>
                       {tMetrics(m)}
@@ -92,7 +92,7 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
               control={form.control}
               name="period"
               render={({ field }) => (
-                <select id="period" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
+                <select id="period" value={field.value ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => field.onChange(e.target.value)} className="flex h-10 w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1">
                   {PERIOD_KEYS.map((p) => (
                     <option key={p} value={p}>
                       {tPeriods(p)}
@@ -132,7 +132,7 @@ export function WidgetConfigDialog({ widget, onClose, onSave }: WidgetConfigDial
             <Textarea id="text" rows={5} {...form.register('text')} />
           </div>
         )}
-        {meta.configurable.length === 0 && <p className="text-sm text-slate-500">{t('noOptions')}</p>}
+        {meta.configurable.length === 0 && <p className="text-sm text-muted-foreground">{t('noOptions')}</p>}
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} type="button">
             {tCommon('cancel')}

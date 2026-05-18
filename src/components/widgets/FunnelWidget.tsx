@@ -18,7 +18,7 @@ export function FunnelWidget({ widget }: { widget: Widget }) {
         const conv = i === 0 ? 100 : (step.value / steps[i - 1].value) * 100;
         return (
           <div key={step.label} className="flex items-center gap-3">
-            <div className="w-20 shrink-0 text-xs font-medium text-slate-600">{step.label}</div>
+            <div className="w-20 shrink-0 text-xs font-medium text-muted-foreground">{step.label}</div>
             <div className="relative flex-1">
               <div
                 className="flex h-6 items-center rounded px-2 text-xs font-mono font-medium text-white"
@@ -27,7 +27,7 @@ export function FunnelWidget({ widget }: { widget: Widget }) {
                 {formatNumber(step.value, locale)}
               </div>
             </div>
-            <div className="w-12 shrink-0 text-right text-xs font-mono text-slate-500">
+            <div className="w-12 shrink-0 text-right text-xs font-mono text-muted-foreground">
               {formatNumber(conv, locale, { maximumFractionDigits: 0 })}%
             </div>
           </div>

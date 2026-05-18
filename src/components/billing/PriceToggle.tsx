@@ -15,13 +15,13 @@ export function PriceToggle({
   const t = useTranslations("common");
   const tBilling = useTranslations("billing.compare");
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-200 bg-white p-1 text-sm">
+    <div className="inline-flex items-center rounded-full border border-border bg-card p-1 text-sm">
       <button
         type="button"
         onClick={() => onChange("monthly")}
         className={cn(
           "rounded-full px-4 py-1.5 font-medium transition-colors",
-          value === "monthly" ? "bg-primary-accent text-white" : "text-slate-600",
+          value === "monthly" ? "bg-primary-accent text-white" : "text-muted-foreground",
         )}
         aria-pressed={value === "monthly"}
       >
@@ -32,7 +32,7 @@ export function PriceToggle({
         onClick={() => onChange("yearly")}
         className={cn(
           "flex items-center gap-2 rounded-full px-4 py-1.5 font-medium transition-colors",
-          value === "yearly" ? "bg-primary-accent text-white" : "text-slate-600",
+          value === "yearly" ? "bg-primary-accent text-white" : "text-muted-foreground",
         )}
         aria-pressed={value === "yearly"}
       >

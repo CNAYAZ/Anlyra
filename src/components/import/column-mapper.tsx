@@ -62,7 +62,7 @@ export function ColumnMapper({
           return (
             <div
               key={header}
-              className="flex items-center justify-between gap-3 rounded-card border border-border bg-white p-3"
+              className="flex items-center justify-between gap-3 rounded-card border border-border bg-card p-3"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

@@ -29,14 +29,14 @@ function PriceCell({
   const t = useTranslations("common");
   const cents =
     cycle === "monthly" ? PLANS[plan].pricing.monthlyCents : PLANS[plan].pricing.yearlyCents;
-  if (cents === 0) return <span className="text-slate-500">—</span>;
+  if (cents === 0) return <span className="text-muted-foreground">—</span>;
   const display = convertFromEuroCents(cents, currency);
   return (
     <div className="flex items-baseline gap-1">
-      <span className="num text-2xl font-semibold text-slate-900">
+      <span className="num text-2xl font-semibold text-foreground">
         {formatCurrency(display, currency, locale)}
       </span>
-      <span className="text-xs text-slate-500">
+      <span className="text-xs text-muted-foreground">
         {cycle === "monthly" ? t("perMonth") : t("perYear")}
       </span>
     </div>
@@ -65,7 +65,7 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
       <table className="w-full min-w-[720px] border-separate border-spacing-0">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 w-1/3 bg-white p-4 text-left font-heading text-sm font-semibold text-slate-500">
+            <th className="sticky left-0 z-10 w-1/3 bg-card p-4 text-left font-heading text-sm font-semibold text-muted-foreground">
               {t("feature")}
             </th>
             {visiblePlans.map((p) => {
@@ -82,7 +82,7 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-heading text-base font-semibold text-slate-900">
+                    <span className="font-heading text-base font-semibold text-foreground">
                       {name}
                     </span>
                     {isHighlighted && <Badge variant="info">{tCommon("mostPopular")}</Badge>}
@@ -98,12 +98,12 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
         </thead>
         <tbody>
           {(["users", "orgs", "imports", "aiCredits", "customDashboards"] as const).map((k) => (
-            <tr key={k} className="border-t border-slate-100">
-              <td className="sticky left-0 bg-white p-3 text-sm text-slate-700">
+            <tr key={k} className="border-t border-border/50">
+              <td className="sticky left-0 bg-card p-3 text-sm text-foreground">
                 <LimitLabel kind={k} />
               </td>
               {visiblePlans.map((p) => (
-                <td key={p} className="p-3 text-sm text-slate-700">
+                <td key={p} className="p-3 text-sm text-foreground">
                   <LimitText value={PLANS[p].limits[k]} kind={k} />
                 </td>
               ))}
@@ -112,14 +112,14 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
           <tr>
             <td
               colSpan={visiblePlans.length + 1}
-              className="pt-6 pb-2 text-xs uppercase tracking-wide text-slate-400"
+              className="pt-6 pb-2 text-xs uppercase tracking-wide text-muted-foreground"
             >
               Features
             </td>
           </tr>
           {ALL_FEATURES.map((f: FeatureKey) => (
-            <tr key={f} className="border-t border-slate-100">
-              <td className="sticky left-0 bg-white p-3 text-sm text-slate-700">{tFeat(f)}</td>
+            <tr key={f} className="border-t border-border/50">
+              <td className="sticky left-0 bg-card p-3 text-sm text-foreground">{tFeat(f)}</td>
               {visiblePlans.map((p) => {
                 const has = PLANS[p].features.includes(f);
                 return (
@@ -127,7 +127,7 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
                     {has ? (
                       <Check className="h-4 w-4 text-success" aria-label="included" />
                     ) : (
-                      <X className="h-4 w-4 text-slate-300" aria-label="not included" />
+                      <X className="h-4 w-4 text-muted-foreground/50" aria-label="not included" />
                     )}
                   </td>
                 );

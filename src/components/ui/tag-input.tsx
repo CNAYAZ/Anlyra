@@ -31,7 +31,7 @@ export function TagInput({
   return (
     <div
       className={cn(
-        'flex min-h-[40px] w-full flex-wrap items-center gap-1.5 rounded-[10px] border border-border bg-white px-2 py-1.5 text-sm focus-within:ring-2 focus-within:ring-primary-accent focus-within:ring-offset-1'
+        'flex min-h-[40px] w-full flex-wrap items-center gap-1.5 rounded-[10px] border border-border bg-background px-2 py-1.5 text-sm focus-within:ring-2 focus-within:ring-primary-accent focus-within:ring-offset-1'
       )}
     >
       {value.map((tag, idx) => (

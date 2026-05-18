@@ -11,7 +11,7 @@ export function PlanSwitcher() {
   const setPlan = useSession((s) => s.setPlan);
 
   return (
-    <div className="flex items-center gap-2 text-xs text-slate-500">
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
       <span>Plan</span>
       <Select value={plan} onValueChange={(v) => setPlan(v as Plan)}>
         <SelectTrigger className="h-8 w-[160px]">

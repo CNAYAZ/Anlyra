@@ -12,8 +12,8 @@ export function PageHeader({
   return (
     <header className="flex items-start justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-2xl font-heading font-semibold text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        <h1 className="text-2xl font-heading font-semibold text-foreground">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
     </header>
@@ -36,11 +36,11 @@ export function Section({
       {(title || description) && (
         <header className="mb-4">
           {title && (
-            <h2 className="text-base font-heading font-semibold text-slate-800">
+            <h2 className="text-base font-heading font-semibold text-foreground">
               {title}
             </h2>
           )}
-          {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </header>
       )}
       {children}

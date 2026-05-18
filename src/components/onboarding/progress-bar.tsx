@@ -7,9 +7,9 @@ export function OnboardingProgress({ current, total }: { current: number; total:
   const t = useTranslations('onboarding');
   const value = (current / total) * 100;
   return (
-    <div className="border-b border-slate-200 bg-white">
+    <div className="border-b border-border bg-card">
       <div className="container py-3">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>Pro</span>
           <span>{t('progress', { current, total })}</span>
         </div>

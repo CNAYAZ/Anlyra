@@ -58,7 +58,7 @@ export function OnboardingFlow() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-muted/30">
       <OnboardingProgress current={step} total={TOTAL_STEPS} />
 
       <div className="container max-w-3xl py-10 md:py-14">
@@ -117,7 +117,7 @@ export function OnboardingFlow() {
           )}
         </AnimatePresence>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           {t('progress', { current: step, total: TOTAL_STEPS })} ·{' '}
           <button onClick={() => router.push('/dashboard')} className="hover:underline">
             {tc('skip')}
@@ -135,7 +135,7 @@ function StepShell({ children, onNext: _onNext }: { children: React.ReactNode; o
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25 }}
-      className="rounded-lg border border-slate-200 bg-white p-6 shadow-card md:p-10"
+      className="rounded-lg border border-border bg-card p-6 shadow-card md:p-10"
     >
       {children}
     </motion.div>
@@ -154,10 +154,10 @@ function Step1({ onNext }: { onNext: () => void }) {
       >
         <Sparkles className="h-9 w-9" />
       </motion.div>
-      <h1 className="mt-6 font-heading text-3xl font-bold text-slate-900 md:text-4xl">
+      <h1 className="mt-6 font-heading text-3xl font-bold text-foreground md:text-4xl">
         {t('title')}
       </h1>
-      <p className="mt-3 text-slate-600">{t('subtitle')}</p>
+      <p className="mt-3 text-muted-foreground">{t('subtitle')}</p>
       <Button size="lg" className="mt-8" onClick={onNext}>
         {t('cta')}
         <ArrowRight className="ml-2 h-4 w-4" />
@@ -194,8 +194,8 @@ function Step2({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <h2 className="font-heading text-2xl font-bold text-slate-900">{t('title')}</h2>
-      <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
+      <h2 className="font-heading text-2xl font-bold text-foreground">{t('title')}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Field label={t('fields.name')} error={formState.errors.name?.message}>
@@ -314,8 +314,8 @@ function Step3({
   const tc = useTranslations('common');
   return (
     <div>
-      <h2 className="font-heading text-2xl font-bold text-slate-900">{t('title')}</h2>
-      <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
+      <h2 className="font-heading text-2xl font-bold text-foreground">{t('title')}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {IMPORT_MODES.map((m) => {
@@ -330,17 +330,17 @@ function Step3({
                 'flex items-start gap-3 rounded-lg border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md',
                 selected
                   ? 'border-primary-accent ring-1 ring-primary-accent'
-                  : 'border-slate-200 bg-white'
+                  : 'border-border bg-card'
               )}
             >
               <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-heading text-base font-semibold text-slate-900">
+                <p className="font-heading text-base font-semibold text-foreground">
                   {t(`options.${m}.title`)}
                 </p>
-                <p className="mt-0.5 text-sm text-slate-500">{t(`options.${m}.description`)}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{t(`options.${m}.description`)}</p>
               </div>
             </button>
           );
@@ -370,8 +370,8 @@ function Step4({
   const tc = useTranslations('common');
   return (
     <div>
-      <h2 className="font-heading text-2xl font-bold text-slate-900">{t('title')}</h2>
-      <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
+      <h2 className="font-heading text-2xl font-bold text-foreground">{t('title')}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         {TEMPLATES.map((tpl) => {
@@ -385,10 +385,10 @@ function Step4({
                 'rounded-lg border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md',
                 selected
                   ? 'border-primary-accent ring-1 ring-primary-accent'
-                  : 'border-slate-200 bg-white'
+                  : 'border-border bg-card'
               )}
             >
-              <div className="flex h-24 items-end gap-1 rounded-md bg-slate-50 p-3">
+              <div className="flex h-24 items-end gap-1 rounded-md bg-muted/50 p-3">
                 {[60, 80, 45, 90, 70].map((h, i) => (
                   <div
                     key={i}
@@ -397,10 +397,10 @@ function Step4({
                   />
                 ))}
               </div>
-              <p className="mt-3 font-heading text-base font-semibold text-slate-900">
+              <p className="mt-3 font-heading text-base font-semibold text-foreground">
                 {t(`templates.${tpl}.name`)}
               </p>
-              <p className="mt-0.5 text-sm text-slate-500">{t(`templates.${tpl}.description`)}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t(`templates.${tpl}.description`)}</p>
             </button>
           );
         })}
@@ -446,11 +446,11 @@ function Step5({
         >
           <Check className="h-8 w-8" />
         </motion.div>
-        <h2 className="mt-5 font-heading text-2xl font-bold text-slate-900">{t('title')}</h2>
-        <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
+        <h2 className="mt-5 font-heading text-2xl font-bold text-foreground">{t('title')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <dl className="mx-auto mt-8 max-w-md space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-5">
+      <dl className="mx-auto mt-8 max-w-md space-y-3 rounded-lg border border-border bg-muted/50 p-5">
         <Row label={t('summary.company')} value={company?.name ?? '—'} />
         <Row
           label={t('summary.industry')}
@@ -501,8 +501,8 @@ function Field({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 text-sm">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-900">{value}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
     </div>
   );
 }

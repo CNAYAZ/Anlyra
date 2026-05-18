@@ -51,7 +51,7 @@ export function ValidationReport({
         ) : null}
       </div>
       {issues.length > 0 ? (
-        <ul className="max-h-48 space-y-1 overflow-auto rounded-card border border-border bg-white p-3 text-xs">
+        <ul className="max-h-48 space-y-1 overflow-auto rounded-card border border-border bg-card p-3 text-xs">
           {issues.slice(0, 50).map((issue, idx) => (
             <li
               key={idx}

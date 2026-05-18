@@ -46,26 +46,26 @@ export function NotificationPrefs() {
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-md border border-slate-200">
-          <div className="grid grid-cols-[1fr_120px_120px] bg-slate-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="overflow-hidden rounded-md border border-border">
+          <div className="grid grid-cols-[1fr_120px_120px] bg-muted/50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <span>Type</span>
             <span className="text-right">{t('channels.inApp')}</span>
             <span className="text-right">{t('channels.email')}</span>
           </div>
-          <ul className="divide-y divide-slate-100 bg-white">
+          <ul className="divide-y divide-border/50 bg-card">
             {TYPES.map((row) => {
               const Icon = row.icon;
               return (
                 <li key={row.key} className="grid grid-cols-[1fr_120px_120px] items-center px-4 py-4">
                   <div className="flex items-start gap-3">
-                    <span className="grid h-9 w-9 place-items-center rounded-md bg-slate-100 text-slate-600">
+                    <span className="grid h-9 w-9 place-items-center rounded-md bg-muted text-muted-foreground">
                       <Icon className="h-4 w-4" />
                     </span>
                     <div>
-                      <p className="text-sm font-medium text-slate-900">
+                      <p className="text-sm font-medium text-foreground">
                         {t(`types.${row.key}.title`)}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {t(`types.${row.key}.description`)}
                       </p>
                     </div>

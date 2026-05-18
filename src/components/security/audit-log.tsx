@@ -98,9 +98,9 @@ export function AuditLog() {
             </Select>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-md border border-slate-200">
-            <table className="w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <div className="mt-4 overflow-hidden rounded-md border border-border">
+            <table className="w-full divide-y divide-border text-sm">
+              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">{t('columns.when')}</th>
                   <th className="px-3 py-2 font-medium">{t('columns.who')}</th>
@@ -109,23 +109,23 @@ export function AuditLog() {
                   <th className="px-3 py-2 font-medium">{t('columns.ip')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-border/50 bg-card">
                 {filtered.map((e) => (
                   <tr key={e.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-500">
+                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                       {formatDate(e.when, locale)}
                     </td>
-                    <td className="px-3 py-2 text-slate-900">{e.who}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-slate-700">{e.action}</td>
-                    <td className="px-3 py-2 text-slate-700">{e.target}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-slate-500">{e.ip}</td>
+                    <td className="px-3 py-2 text-foreground">{e.who}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-foreground">{e.action}</td>
+                    <td className="px-3 py-2 text-foreground">{e.target}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{e.ip}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             {filtered.length === 0 ? (
-              <div className="border-t border-slate-200 bg-slate-50 p-6">
+              <div className="border-t border-border bg-muted/50 p-6">
                 <EmptyState title={tc('empty')} />
               </div>
             ) : null}

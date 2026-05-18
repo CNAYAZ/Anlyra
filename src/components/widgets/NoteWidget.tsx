@@ -7,8 +7,8 @@ export function NoteWidget({ widget }: { widget: Widget }) {
   const t = useTranslations('widgets.note');
   const text = widget.config.text?.trim();
   return (
-    <div className="h-full overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-slate-700 scrollbar-thin">
-      {text || <span className="text-slate-400">{t('description')}</span>}
+    <div className="h-full overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-foreground scrollbar-thin">
+      {text || <span className="text-muted-foreground">{t('description')}</span>}
     </div>
   );
 }

@@ -44,8 +44,8 @@ export function ReportsTable({ locale, plan }: { locale: string; plan: Plan }) {
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-muted/50 border-b border-border">
+              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-card py-3 font-semibold">{t('table.title')}</th>
                 <th className="px-card py-3 font-semibold">{t('table.type')}</th>
                 <th className="px-card py-3 font-semibold">{t('table.date')}</th>
@@ -53,19 +53,19 @@ export function ReportsTable({ locale, plan }: { locale: string; plan: Plan }) {
                 <th className="px-card py-3 font-semibold text-right">{t('table.actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/50">
               {reports.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/60">
+                <tr key={r.id} className="hover:bg-muted/30">
                   <td className="px-card py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="h-8 w-8 rounded-lg bg-primary-accent/10 flex items-center justify-center">
                         <FileText className="h-4 w-4 text-primary-accent" />
                       </div>
-                      <div className="font-medium text-slate-900">{r.title}</div>
+                      <div className="font-medium text-foreground">{r.title}</div>
                     </div>
                   </td>
-                  <td className="px-card py-3 text-slate-600">{t(`type.${r.type}`)}</td>
-                  <td className="px-card py-3 text-slate-600">{formatDate(r.createdAt, locale)}</td>
+                  <td className="px-card py-3 text-muted-foreground">{t(`type.${r.type}`)}</td>
+                  <td className="px-card py-3 text-muted-foreground">{formatDate(r.createdAt, locale)}</td>
                   <td className="px-card py-3">
                     <StatusBadge status={r.status} />
                   </td>
@@ -98,7 +98,7 @@ export function ReportsTable({ locale, plan }: { locale: string; plan: Plan }) {
                       <button
                         onClick={() => removeReport(r.id)}
                         title={t('table.delete')}
-                        className="btn-ghost p-1.5 text-danger hover:bg-red-50"
+                        className="btn-ghost p-1.5 text-danger hover:bg-danger/10"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

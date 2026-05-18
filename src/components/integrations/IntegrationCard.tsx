@@ -33,14 +33,14 @@ export function IntegrationCard({ definition, status, plan }: Props) {
     <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 font-heading text-sm font-bold text-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted font-heading text-sm font-bold text-primary">
             {definition.name.slice(0, 2).toUpperCase()}
           </div>
           <CardTitle>{definition.name}</CardTitle>
         </div>
         <Badge variant={STATUS_TONE[status]}>{t(`status.${status}`)}</Badge>
       </CardHeader>
-      <p className="mb-4 flex-1 text-sm text-slate-600">
+      <p className="mb-4 flex-1 text-sm text-muted-foreground">
         {tProvider(definition.descriptionKey)}
       </p>
       <div className="flex items-center justify-between">

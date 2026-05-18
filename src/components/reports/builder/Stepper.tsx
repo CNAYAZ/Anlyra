@@ -25,7 +25,7 @@ export function Stepper({
                 status === 'active' &&
                   'border-primary-accent text-primary-accent bg-primary-accent/5',
                 status === 'pending' &&
-                  'border-slate-200 text-slate-400 bg-white'
+                  'border-border text-muted-foreground bg-card'
               )}
             >
               {status === 'done' ? <Check className="h-3.5 w-3.5" /> : idx + 1}
@@ -33,13 +33,13 @@ export function Stepper({
             <span
               className={cn(
                 'text-sm hidden sm:block',
-                status === 'pending' ? 'text-slate-400' : 'text-slate-700'
+                status === 'pending' ? 'text-muted-foreground' : 'text-foreground'
               )}
             >
               {step.label}
             </span>
             {idx < steps.length - 1 && (
-              <div className="h-px w-6 bg-slate-200 mx-1 hidden sm:block" />
+              <div className="h-px w-6 bg-border mx-1 hidden sm:block" />
             )}
           </li>
         );

@@ -20,13 +20,13 @@ export function HeatmapWidget({ widget }: { widget: Widget }) {
       <div className="grid flex-1" style={{ gridTemplateColumns: `2.5rem repeat(${hours.length}, minmax(0, 1fr))` }}>
         <div />
         {hours.map((h) => (
-          <div key={h} className="text-center text-[10px] text-slate-400">
+          <div key={h} className="text-center text-[10px] text-muted-foreground">
             {h}
           </div>
         ))}
         {days.map((day, di) => (
           <div key={day} className="contents">
-            <div className="flex items-center pr-1 text-[10px] text-slate-500">{day}</div>
+            <div className="flex items-center pr-1 text-[10px] text-muted-foreground">{day}</div>
             {hours.map((_, hi) => {
               const v = matrix[di][hi];
               return (

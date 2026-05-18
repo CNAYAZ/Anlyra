@@ -36,9 +36,9 @@ export function Heatmap({
       <table className="w-full border-separate border-spacing-1">
         <thead>
           <tr>
-            <th className="text-left text-xs font-medium text-slate-500 px-2 w-32" />
+            <th className="text-left text-xs font-medium text-muted-foreground px-2 w-32" />
             {columns.map((c) => (
-              <th key={c} className="text-xs font-medium text-slate-500 px-1 py-1">
+              <th key={c} className="text-xs font-medium text-muted-foreground px-1 py-1">
                 {c}
               </th>
             ))}
@@ -47,7 +47,7 @@ export function Heatmap({
         <tbody>
           {rows.map((row) => (
             <tr key={row.label}>
-              <td className="text-xs font-medium text-slate-700 px-2 whitespace-nowrap">{row.label}</td>
+              <td className="text-xs font-medium text-foreground px-2 whitespace-nowrap">{row.label}</td>
               {row.values.map((v, idx) => (
                 <td
                   key={idx}

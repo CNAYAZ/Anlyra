@@ -13,7 +13,7 @@ export function FaqAccordion() {
   const [open, setOpen] = useState<string | null>(null);
 
   return (
-    <ul className="divide-y divide-slate-200 rounded-card border border-slate-200 bg-white">
+    <ul className="divide-y divide-border rounded-card border border-border bg-card">
       {ITEMS.map((q) => {
         const isOpen = open === q;
         return (
@@ -24,10 +24,10 @@ export function FaqAccordion() {
               className="flex w-full items-center justify-between gap-3 p-4 text-left"
               aria-expanded={isOpen}
             >
-              <span className="font-heading font-medium text-slate-900">{t(q)}</span>
+              <span className="font-heading font-medium text-foreground">{t(q)}</span>
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 shrink-0 text-slate-500 transition-transform",
+                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
                   isOpen && "rotate-180",
                 )}
                 aria-hidden
@@ -42,7 +42,7 @@ export function FaqAccordion() {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <p className="px-4 pb-4 text-sm text-slate-600">
+                  <p className="px-4 pb-4 text-sm text-muted-foreground">
                     {t(q.replace("q", "a") as "a1")}
                   </p>
                 </motion.div>

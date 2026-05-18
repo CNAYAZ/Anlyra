@@ -26,20 +26,20 @@ export function WidgetFrame({
   return (
     <div
       className={cn(
-        'flex h-full w-full flex-col overflow-hidden rounded-card border border-slate-200 bg-white shadow-card',
+        'flex h-full w-full flex-col overflow-hidden rounded-card border border-border bg-card shadow-card',
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           {isEditable && (
-            <span className="drag-handle flex cursor-grab items-center text-slate-400 active:cursor-grabbing">
+            <span className="drag-handle flex cursor-grab items-center text-muted-foreground active:cursor-grabbing">
               <GripVertical className="h-4 w-4" />
             </span>
           )}
           <div className="min-w-0">
             {title && <p className="truncate font-heading text-sm font-semibold text-bg-dark">{title}</p>}
-            {subtitle && <p className="truncate text-xs text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
         {isEditable && (
@@ -49,7 +49,7 @@ export function WidgetFrame({
                 type="button"
                 onClick={onConfigure}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-bg-dark"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Configure"
               >
                 <Settings2 className="h-4 w-4" />
@@ -60,7 +60,7 @@ export function WidgetFrame({
                 type="button"
                 onClick={onRemove}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="rounded p-1 text-slate-400 transition-colors hover:bg-danger/10 hover:text-danger"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
                 aria-label="Remove"
               >
                 <X className="h-4 w-4" />

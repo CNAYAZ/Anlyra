@@ -9,7 +9,7 @@ import { Sparkles } from 'lucide-react';
 export function SiteHeader() {
   const t = useTranslations();
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-white">

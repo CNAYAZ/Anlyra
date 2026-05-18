@@ -45,7 +45,7 @@ export function CurrentPlanCard() {
         <div>
           <CardTitle>{t("title")}</CardTitle>
           <CardDescription>
-            <span className="font-heading text-2xl font-semibold text-slate-900">{planName}</span>
+            <span className="font-heading text-2xl font-semibold text-foreground">{planName}</span>
           </CardDescription>
         </div>
         <Badge variant={statusBadge.variant}>
@@ -54,7 +54,7 @@ export function CurrentPlanCard() {
       </CardHeader>
 
       {periodEnd && (
-        <div className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarClock className="h-4 w-4" aria-hidden />
           {cancelAtPeriodEnd
             ? t("endsOn", { date: formatDate(periodEnd, locale) })

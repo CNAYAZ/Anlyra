@@ -93,7 +93,7 @@ export function Gauge({
       <p className="num text-2xl font-semibold mt-1" style={{ color: statusHex }}>
         {formattedValue}
       </p>
-      <p className="text-xs text-slate-500 text-center mt-0.5">{label}</p>
+      <p className="text-xs text-muted-foreground text-center mt-0.5">{label}</p>
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function ConnectionWizard({ providerId, providerName }: Props) {
         <div>
           <label
             htmlFor="apiKey"
-            className="mb-1.5 block text-sm font-medium text-slate-700"
+            className="mb-1.5 block text-sm font-medium text-foreground"
           >
             {t("wizard.apiKey")}
           </label>
@@ -59,10 +59,10 @@ export function ConnectionWizard({ providerId, providerName }: Props) {
             minLength={4}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono focus:border-primary-accent focus:outline-none focus:ring-1 focus:ring-primary-accent"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm font-mono focus:border-primary-accent focus:outline-none focus:ring-1 focus:ring-primary-accent"
             placeholder="sk_test_..."
           />
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {t("wizard.apiKeyHint", { provider: providerName })}
           </p>
         </div>

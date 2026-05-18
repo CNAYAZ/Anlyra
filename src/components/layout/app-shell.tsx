@@ -44,7 +44,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background-light">
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-border bg-white md:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-border bg-card md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
             <Database className="h-4 w-4" />

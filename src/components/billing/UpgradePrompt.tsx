@@ -27,7 +27,7 @@ export function UpgradePrompt({ requiredPlan, title, description, compact }: Upg
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       className={
-        "relative flex flex-col items-center justify-center gap-4 rounded-card border border-dashed border-slate-300 bg-slate-50 text-center " +
+        "relative flex flex-col items-center justify-center gap-4 rounded-card border border-dashed border-border bg-muted/50 text-center " +
         (compact ? "p-6" : "p-10")
       }
       role="region"
@@ -37,10 +37,10 @@ export function UpgradePrompt({ requiredPlan, title, description, compact }: Upg
         <Lock className="h-6 w-6" aria-hidden />
       </div>
       <div className="max-w-md">
-        <h3 className="font-heading text-lg font-semibold text-slate-900">
+        <h3 className="font-heading text-lg font-semibold text-foreground">
           {title ?? t("lockedTitle")}
         </h3>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-muted-foreground">
           {description ?? t("lockedDescription", { plan: planName })}
         </p>
       </div>

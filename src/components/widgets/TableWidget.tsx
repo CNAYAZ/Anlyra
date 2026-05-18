@@ -17,8 +17,8 @@ export function TableWidget({ widget }: { widget: Widget }) {
   return (
     <div className="h-full overflow-auto scrollbar-thin">
       <table className="w-full text-left text-sm">
-        <thead className="sticky top-0 bg-white">
-          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="sticky top-0 bg-card">
+          <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
             <th className="py-2 pr-2 font-medium">{labels.product}</th>
             <th className="py-2 pr-2 text-right font-medium">{labels.revenue}</th>
             <th className="py-2 pr-2 text-right font-medium">{labels.orders}</th>
@@ -27,11 +27,11 @@ export function TableWidget({ widget }: { widget: Widget }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.name} className="border-b border-slate-100 last:border-0">
-              <td className="py-2 pr-2 font-medium text-bg-dark">{r.name}</td>
-              <td className="py-2 pr-2 text-right font-mono text-slate-700">{formatCurrency(r.revenue, locale)}</td>
-              <td className="py-2 pr-2 text-right font-mono text-slate-700">{formatNumber(r.orders, locale)}</td>
-              <td className="py-2 text-right font-mono text-slate-700">
+            <tr key={r.name} className="border-b border-border/50 last:border-0">
+              <td className="py-2 pr-2 font-medium text-foreground">{r.name}</td>
+              <td className="py-2 pr-2 text-right font-mono text-foreground">{formatCurrency(r.revenue, locale)}</td>
+              <td className="py-2 pr-2 text-right font-mono text-foreground">{formatNumber(r.orders, locale)}</td>
+              <td className="py-2 text-right font-mono text-foreground">
                 {formatNumber(r.margin, locale, { maximumFractionDigits: 1 })}%
               </td>
             </tr>

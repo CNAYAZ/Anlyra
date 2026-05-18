@@ -55,27 +55,27 @@ export function PricingCard({
       )}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-heading text-xl font-semibold text-slate-900">
+        <h3 className="font-heading text-xl font-semibold text-foreground">
           {tPlans(plan.nameKey as "billing.plans.pro.name")}
         </h3>
         {plan.highlight && <Badge variant="info">{tCommon("mostPopular")}</Badge>}
       </div>
 
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-muted-foreground">
         {tPlans(plan.taglineKey as "billing.plans.pro.tagline")}
       </p>
 
       <div className="flex items-baseline gap-1">
         {cents === 0 ? (
-          <span className="num text-4xl font-semibold text-slate-900">
+          <span className="num text-4xl font-semibold text-foreground">
             {formatCurrency(0, currency, locale)}
           </span>
         ) : (
           <>
-            <span className="num text-4xl font-semibold text-slate-900">
+            <span className="num text-4xl font-semibold text-foreground">
               {formatCurrency(convertFromEuroCents(cents, currency), currency, locale)}
             </span>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted-foreground">
               {cycle === "monthly" ? tCommon("perMonth") : tCommon("perYear")}
             </span>
           </>
@@ -88,7 +88,7 @@ export function PricingCard({
         </Badge>
       )}
 
-      <ul className="space-y-2 text-sm text-slate-700">
+      <ul className="space-y-2 text-sm text-foreground">
         <li className="flex items-start gap-2">
           <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
           {isUnlimited(limits.users)
@@ -116,9 +116,9 @@ export function PricingCard({
       </ul>
 
       {newFeatures.length > 0 && (
-        <div className="space-y-2 border-t border-slate-100 pt-4 text-sm">
+        <div className="space-y-2 border-t border-border/50 pt-4 text-sm">
           {previousPlan && (
-            <p className="text-xs uppercase tracking-wide text-slate-400">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {t("everythingIn", {
                 plan: tPlans(PLANS[previousPlan].nameKey as "billing.plans.pro.name"),
               })}
@@ -126,7 +126,7 @@ export function PricingCard({
           )}
           <ul className="space-y-2">
             {newFeatures.slice(0, 6).map((f) => (
-              <li key={f} className="flex items-start gap-2 text-slate-700">
+              <li key={f} className="flex items-start gap-2 text-foreground">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary-accent" aria-hidden />
                 {tFeat(f)}
               </li>
