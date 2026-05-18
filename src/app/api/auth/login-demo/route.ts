@@ -13,8 +13,13 @@ const DEMO_SESSION = {
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
-  const locale = (formData.get('locale') as string | null) ?? 'it';
-  const response = NextResponse.redirect(new URL(`/${locale}`, req.url), { status: 303 });
+  const raw = formData.get('locale');
+  const validLocale = ['it', 'en'].includes(String(raw)) ? String(raw) : 'it';
+
+  // Redirect directly to the dashboard overview — avoids the double-redirect
+  // through the landing page auth-gate where the cookie may not yet be forwarded.
+  const redirectUrl = new URL(`/${validLocale}/overview`, req.nextUrl.origin);
+  const response = NextResponse.redirect(redirectUrl, { status: 303 });
   response.cookies.set('pro_session', JSON.stringify(DEMO_SESSION), {
     httpOnly: true,
     sameSite: 'lax',

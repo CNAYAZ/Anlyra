@@ -2,15 +2,17 @@
 
 import { useEffect } from 'react';
 import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/store/sidebar';
 import { Logo } from './Logo';
 import { NavItem } from './NavItem';
 import { mainNav, footerNav } from './nav-config';
+import Link from 'next/link';
 
 export function Sidebar() {
   const t = useTranslations('topbar');
+  const locale = useLocale();
   const collapsed = useSidebarStore((s) => s.collapsed);
   const mobileOpen = useSidebarStore((s) => s.mobileOpen);
   const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed);
@@ -59,7 +61,9 @@ export function Sidebar() {
             collapsed ? 'justify-center px-2' : 'justify-between px-4',
           )}
         >
-          <Logo collapsed={collapsed} />
+          <Link href={`/${locale}/overview`} className="min-w-0">
+            <Logo collapsed={collapsed} />
+          </Link>
           <button
             type="button"
             onClick={closeMobile}
