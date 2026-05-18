@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* ─── shadcn base tokens (non rinominare) ─── */
     --background: 36 47% 96%;
     --foreground: 30 12% 15%;
 
@@ -20,13 +21,64 @@
     --input: 36 28% 86%;
     --ring: 217 91% 60%;
 
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-hover: 210 40% 96%;
-    --sidebar-active: 214 100% 97%;
+    /* ─── design system aliases (vivono ACCANTO ai token shadcn) ─── */
+    --bg:            36 47% 96%;
+    --fg:            30 12% 15%;
+    --fg-2:          30 8% 40%;
+    --fg-3:          30 7% 55%;
+    --border-strong: 36 22% 78%;
+    --input-bg:      36 47% 96%;
+
+    /* ─── sage brand palette (9 stop) ─── */
+    --sage-50:  98 22% 90%;
+    --sage-100: 96 20% 80%;
+    --sage-200: 96 18% 65%;
+    --sage-300: 96 25% 78%;
+    --sage-400: 95 22% 60%;
+    --sage-500: 98 17% 41%;
+    --sage-600: 100 18% 32%;
+    --sage-700: 102 20% 24%;
+    --sage-800: 102 22% 18%;
+
+    /* ─── semantici (success oliva · warning ocra · danger terracotta · info blu sereno) ─── */
+    --success-50:  72 35% 90%;
+    --success-500: 72 35% 35%;
+    --success-700: 75 35% 25%;
+    --warning-50:  35 60% 90%;
+    --warning-500: 35 60% 38%;
+    --warning-700: 35 60% 26%;
+    --danger-50:   12 50% 92%;
+    --danger-500:  12 45% 42%;
+    --danger-700:  12 45% 30%;
+    --info-50:    210 35% 92%;
+    --info-500:   210 35% 45%;
+    --info-700:   210 35% 32%;
+
+    /* ─── sidebar (panna scuro + sage-50 active — niente navy) ─── */
+    --sidebar:                    36 35% 93%;
+    --sidebar-foreground:         30 12% 18%;
+    --sidebar-hover:              36 30% 89%;
+    --sidebar-active:             98 22% 90%;
+    --sidebar-active-foreground: 102 20% 24%;
+    --sidebar-border:             36 22% 82%;
+
+    /* ─── elevation (warm shadow — NON nero puro) ─── */
+    --shadow-color: 30 25% 15%;
+    --elev-1: 0 1px 1px 0 hsl(var(--shadow-color) / 0.03), 0 1px 2px 0 hsl(var(--shadow-color) / 0.04);
+    --elev-2: 0 1px 2px 0 hsl(var(--shadow-color) / 0.04), 0 4px 10px -2px hsl(var(--shadow-color) / 0.06);
+    --elev-3: 0 2px 4px 0 hsl(var(--shadow-color) / 0.05), 0 12px 28px -6px hsl(var(--shadow-color) / 0.10);
+    --elev-4: 0 4px 8px 0 hsl(var(--shadow-color) / 0.06), 0 20px 40px -8px hsl(var(--shadow-color) / 0.14);
+
+    /* ─── radius (6 step) ─── */
+    --radius-xs:  4px;
+    --radius-sm:  6px;
+    --radius-md:  8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
   }
 
   .dark {
+    /* ─── shadcn dark tokens ─── */
     --background: 30 6% 10%;
     --foreground: 36 26% 90%;
 
@@ -39,14 +91,31 @@
     --muted: 30 7% 16%;
     --muted-foreground: 36 12% 60%;
 
-    --border: 35 9% 19%;
-    --input: 35 9% 19%;
+    --border: 35 9% 22%;
+    --input: 35 9% 22%;
     --ring: 217 91% 60%;
 
-    --sidebar: 222 47% 13%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-hover: 217 33% 20%;
-    --sidebar-active: 217 91% 20%;
+    /* ─── design system aliases dark ─── */
+    --bg:            30 6% 10%;
+    --fg:            36 26% 90%;
+    --fg-2:          36 12% 60%;
+    --fg-3:          36 10% 45%;
+    --border-strong: 35 9% 30%;
+    --input-bg:      30 7% 14%;
+
+    /* ─── sidebar dark (grigio caldo + sage-700/30 active) ─── */
+    --sidebar:                    30 7% 12%;
+    --sidebar-foreground:         36 22% 84%;
+    --sidebar-hover:              30 7% 16%;
+    --sidebar-active:            100 14% 20%;
+    --sidebar-active-foreground:  96 25% 78%;
+    --sidebar-border:             35 9% 22%;
+
+    /* ─── elevation dark (border + inset highlight warm) ─── */
+    --elev-1: inset 0 1px 0 0 hsl(36 26% 100% / 0.02), 0 1px 2px 0 hsl(0 0% 0% / 0.30);
+    --elev-2: inset 0 1px 0 0 hsl(36 26% 100% / 0.03), 0 4px 10px -2px hsl(0 0% 0% / 0.40);
+    --elev-3: inset 0 1px 0 0 hsl(36 26% 100% / 0.04), 0 12px 28px -6px hsl(0 0% 0% / 0.55);
+    --elev-4: inset 0 1px 0 0 hsl(36 26% 100% / 0.05), 0 20px 40px -8px hsl(0 0% 0% / 0.70);
   }
 
   * {
@@ -55,14 +124,21 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss03';
+    hyphens: auto;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+    text-wrap: balance;
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   .font-numeric {
-    @apply font-mono;
+    @apply font-mono tabular-nums;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
+    letter-spacing: -0.022em;
   }
 }
 
