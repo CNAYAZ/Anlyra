@@ -1,4 +1,4 @@
-import type { Plan } from "@prisma/client";
+type Plan = "FREEMIUM" | "STARTER" | "PRO" | "ENTERPRISE";
 
 const PLAN_RANK: Record<Plan, number> = {
   FREEMIUM: 0,

@@ -1,8 +1,8 @@
 import type { AIBusinessContext } from './ai-context';
-import type { Locale } from '@prisma/client';
+import type { Locale } from '@/i18n/config';
 
 export function mockChatResponse(message: string, ctx: AIBusinessContext, locale: Locale): string {
-  const it = locale === 'IT';
+  const it = locale === 'it';
   const lastFin = ctx.financials[0];
   const churn = ctx.kpis.find((k) => k.name.toLowerCase().includes('churn'));
   const cac = ctx.kpis.find((k) => k.name.toLowerCase().includes('cac'));
@@ -34,7 +34,7 @@ export function mockChatResponse(message: string, ctx: AIBusinessContext, locale
 }
 
 export function mockInsights(ctx: AIBusinessContext, locale: Locale) {
-  const it = locale === 'IT';
+  const it = locale === 'it';
   const lastFin = ctx.financials[0];
   const margin = lastFin?.margin ?? 30;
   const revenue = lastFin?.revenue ?? 100000;

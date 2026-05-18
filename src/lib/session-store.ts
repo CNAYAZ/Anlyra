@@ -15,7 +15,7 @@ type SessionState = {
 export const useSession = create<SessionState>()(
   persist(
     (set) => ({
-      plan: 'PRO',
+      plan: 'pro',
       setPlan: (plan) => set({ plan }),
       onboardingCompleted: false,
       completeOnboarding: () => set({ onboardingCompleted: true }),

@@ -43,20 +43,24 @@ export function Gauge({
     return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y}`;
   }
 
+  const COLOR_GOOD = '#16a34a';
+  const COLOR_WARN = '#d97706';
+  const COLOR_BAD = '#dc2626';
+
   const stops = invert
     ? [
-        { from: 0, to: 1 - goodAt, color: STATUS_COLORS['on-target'].hex },
-        { from: 1 - goodAt, to: 1 - warnAt, color: STATUS_COLORS.warning.hex },
-        { from: 1 - warnAt, to: 1, color: STATUS_COLORS['off-target'].hex },
+        { from: 0, to: 1 - goodAt, color: COLOR_GOOD },
+        { from: 1 - goodAt, to: 1 - warnAt, color: COLOR_WARN },
+        { from: 1 - warnAt, to: 1, color: COLOR_BAD },
       ]
     : [
-        { from: 0, to: warnAt, color: STATUS_COLORS['off-target'].hex },
-        { from: warnAt, to: goodAt, color: STATUS_COLORS.warning.hex },
-        { from: goodAt, to: 1, color: STATUS_COLORS['on-target'].hex },
+        { from: 0, to: warnAt, color: COLOR_BAD },
+        { from: warnAt, to: goodAt, color: COLOR_WARN },
+        { from: goodAt, to: 1, color: COLOR_GOOD },
       ];
 
   const needle = polar(cx, cy, r - 12, angle);
-  const statusHex = STATUS_COLORS[status].hex;
+  const statusHex = status === 'good' ? COLOR_GOOD : status === 'warn' ? COLOR_WARN : COLOR_BAD;
 
   return (
     <div className="flex flex-col items-center">

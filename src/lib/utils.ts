@@ -47,12 +47,13 @@ export function formatPercent(value: number, locale: Locale = 'it', digits = 1):
   }).format(value / 100);
 }
 
-export function formatNumber(value: number, locale: Locale = 'it', digits = 0): string {
+export function formatNumber(value: number, locale: Locale = 'it', opts: Intl.NumberFormatOptions | number = 0): string {
   if (!Number.isFinite(value)) value = 0;
-  return new Intl.NumberFormat(intlLocale(locale), {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(value);
+  const options: Intl.NumberFormatOptions =
+    typeof opts === 'number'
+      ? { minimumFractionDigits: opts, maximumFractionDigits: opts }
+      : opts;
+  return new Intl.NumberFormat(intlLocale(locale), options).format(value);
 }
 
 export function formatCurrencyCompact(value: number, locale: Locale = 'it', currency = 'EUR'): string {

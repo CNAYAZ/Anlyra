@@ -2,7 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 import { ArrowDownRight, ArrowUpRight, CircleDot } from 'lucide-react';
-import { STATUS_COLORS, cn, type StatusLevel } from '@/lib/utils';
+import { cn, type StatusLevel } from '@/lib/utils';
+
+const STATUS_CLASS: Record<StatusLevel, { bg: string; text: string; ring: string }> = {
+  good: { bg: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-200' },
+  warn: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200' },
+  bad: { bg: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-200' },
+};
 
 export interface KpiCardProps {
   label: string;
@@ -15,11 +21,11 @@ export interface KpiCardProps {
 
 export function KpiCard({ label, description, value, status, delta, target }: KpiCardProps) {
   const t = useTranslations('operations.status');
-  const colors = STATUS_COLORS[status];
+  const colors = STATUS_CLASS[status];
   const statusLabel =
-    status === 'on-target'
+    status === 'good'
       ? t('onTarget')
-      : status === 'warning'
+      : status === 'warn'
         ? t('warning')
         : t('offTarget');
 
