@@ -27,13 +27,13 @@ export function CardSkeleton() {
 export function ErrorState({ onRetry }: { onRetry?: () => void }) {
   const t = useTranslations('common');
   return (
-    <div className="card flex items-center gap-3 text-rose-700">
+    <div className="card flex items-center gap-3 text-danger">
       <AlertCircle className="h-5 w-5 shrink-0" />
       <p className="text-sm flex-1">{t('error')}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
+          className="inline-flex items-center gap-1 rounded-md bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/20"
         >
           <RefreshCw className="h-3 w-3" /> {t('retry')}
         </button>

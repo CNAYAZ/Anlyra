@@ -85,7 +85,7 @@ export function generateId(prefix = 'id'): string {
 }
 
 export const STATUS_COLORS: Record<StatusLevel, string> = {
-  good: 'text-green-600 dark:text-green-400',
-  warn: 'text-amber-600 dark:text-amber-400',
-  bad: 'text-red-600 dark:text-red-400',
+  good: 'text-success',
+  warn: 'text-warning',
+  bad: 'text-danger',
 };
