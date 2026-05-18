@@ -14,8 +14,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import type { Locale } from '@/i18n/config';
 import type { InsightDTO } from '@/types/ai';
-import type { InsightStatus } from '@prisma/client';
+
+type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
 
 type Props = {
   insight: InsightDTO | null;
@@ -27,7 +29,7 @@ type Props = {
 
 export function InsightDetail({ insight, open, onOpenChange, onUpdateStatus, pending }: Props) {
   const t = useTranslations('insights');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
 
   if (!insight) return null;
   const pct = Math.round(insight.confidence * 100);
@@ -37,12 +39,12 @@ export function InsightDetail({ insight, open, onOpenChange, onUpdateStatus, pen
       <DialogContent>
         <DialogHeader>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{t(`type.${insight.type}`)}</Badge>
-            <Badge variant="outline">{t(`priority.${insight.priority}`)}</Badge>
+            <Badge variant="neutral">{t(`type.${insight.type}`)}</Badge>
+            <Badge variant="neutral">{t(`priority.${insight.priority}`)}</Badge>
             <Badge variant="info">{t(`status.${insight.status}`)}</Badge>
           </div>
           <DialogTitle className="text-xl mt-2">{insight.title}</DialogTitle>
-          <DialogDescription>{formatDate(insight.createdAt, locale, { dateStyle: 'long' })}</DialogDescription>
+          <DialogDescription>{formatDate(insight.createdAt, locale)}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 text-sm leading-relaxed">
@@ -68,7 +70,7 @@ export function InsightDetail({ insight, open, onOpenChange, onUpdateStatus, pen
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={pending || insight.status === 'IGNORED'}
             onClick={() => onUpdateStatus(insight.id, 'IGNORED')}
@@ -77,7 +79,7 @@ export function InsightDetail({ insight, open, onOpenChange, onUpdateStatus, pen
             {t('markIgnored')}
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={pending || insight.status === 'REVIEWED'}
             onClick={() => onUpdateStatus(insight.id, 'REVIEWED')}

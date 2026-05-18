@@ -5,34 +5,34 @@ import { AlertTriangle, ArrowRight, Lightbulb, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
+import type { Locale } from '@/i18n/config';
 import type { InsightDTO } from '@/types/ai';
-import type { InsightPriority, InsightType } from '@prisma/client';
 
-const typeIcon: Record<InsightType, React.ComponentType<{ className?: string }>> = {
+const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
   STRATEGY: Lightbulb,
   WARNING: AlertTriangle,
   OPPORTUNITY: Star,
   ACTION: ArrowRight,
 };
 
-const priorityBorder: Record<InsightPriority, string> = {
+const priorityBorder: Record<string, string> = {
   HIGH: 'border-l-danger',
   MEDIUM: 'border-l-warning',
   LOW: 'border-l-primary-accent',
 };
 
-const typeIconBg: Record<InsightType, string> = {
+const typeIconBg: Record<string, string> = {
   STRATEGY: 'bg-amber-50 text-amber-600',
   WARNING: 'bg-red-50 text-danger',
   OPPORTUNITY: 'bg-emerald-50 text-emerald-600',
   ACTION: 'bg-blue-50 text-primary-accent',
 };
 
-const statusVariant: Record<InsightDTO['status'], 'secondary' | 'success' | 'info' | 'warning'> = {
+const statusVariant: Record<string, 'neutral' | 'success' | 'info' | 'warning'> = {
   NEW: 'info',
   REVIEWED: 'warning',
   IMPLEMENTED: 'success',
-  IGNORED: 'secondary',
+  IGNORED: 'neutral',
 };
 
 type Props = {
@@ -42,7 +42,7 @@ type Props = {
 
 export function InsightCard({ insight, onClick }: Props) {
   const t = useTranslations('insights');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const Icon = typeIcon[insight.type];
 
   return (
@@ -65,8 +65,8 @@ export function InsightCard({ insight, onClick }: Props) {
       </div>
       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
         <Badge variant={statusVariant[insight.status]}>{t(`status.${insight.status}`)}</Badge>
-        <Badge variant="outline">{t(`type.${insight.type}`)}</Badge>
-        <Badge variant="outline">{t(`priority.${insight.priority}`)}</Badge>
+        <Badge variant="neutral">{t(`type.${insight.type}`)}</Badge>
+        <Badge variant="neutral">{t(`priority.${insight.priority}`)}</Badge>
         <span className="ml-auto text-muted-foreground">{formatDate(insight.createdAt, locale)}</span>
       </div>
     </button>

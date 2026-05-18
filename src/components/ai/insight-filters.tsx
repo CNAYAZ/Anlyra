@@ -2,7 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { InsightPriority, InsightStatus, InsightType } from '@prisma/client';
+type InsightType = 'STRATEGY' | 'WARNING' | 'OPPORTUNITY' | 'ACTION';
+type InsightPriority = 'HIGH' | 'MEDIUM' | 'LOW';
+type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
 
 export type InsightFilterValues = {
   type: InsightType | 'ALL';
