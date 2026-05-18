@@ -29,10 +29,10 @@ type Resp = { profile: Profile; competitors: Competitor[]; swot: SwotItem[] };
 const SWOT_KINDS: SwotKind[] = ['STRENGTH', 'WEAKNESS', 'OPPORTUNITY', 'THREAT'];
 
 const SWOT_CLS: Record<SwotKind, string> = {
-  STRENGTH: 'bg-green-500/10 border-green-500/40',
-  WEAKNESS: 'bg-red-500/10 border-red-500/40',
-  OPPORTUNITY: 'bg-blue-500/10 border-blue-500/40',
-  THREAT: 'bg-amber-500/10 border-amber-500/40',
+  STRENGTH: 'bg-success/10 border-success/40',
+  WEAKNESS: 'bg-danger/10 border-danger/40',
+  OPPORTUNITY: 'bg-primary-accent/10 border-primary-accent/40',
+  THREAT: 'bg-warning/10 border-warning/40',
 };
 
 const SWOT_KEY: Record<SwotKind, 'strength' | 'weakness' | 'opportunity' | 'threat'> = {

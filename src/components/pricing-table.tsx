@@ -88,30 +88,30 @@ export function PricingTable() {
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: idx * 0.05 }}
             className={cn(
-              'relative flex flex-col rounded-lg border bg-white p-6 shadow-card',
-              plan.popular ? 'border-primary-accent ring-1 ring-primary-accent' : 'border-slate-200'
+              'relative flex flex-col rounded-lg border bg-card p-6 shadow-card',
+              plan.popular ? 'border-primary-accent ring-1 ring-primary-accent' : 'border-border'
             )}
           >
             {plan.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary-accent px-3 py-1 text-xs font-medium text-white">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary-accent px-3 py-1 text-xs font-medium text-primary-accent-foreground">
                 {t('popular')}
               </span>
             )}
-            <h3 className="font-heading text-xl font-semibold text-slate-900">
+            <h3 className="font-heading text-xl font-semibold text-foreground">
               {t(`${plan.id}.name`)}
             </h3>
-            <p className="mt-1 text-sm text-slate-500">{t(`${plan.id}.description`)}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t(`${plan.id}.description`)}</p>
 
             <div className="mt-5 flex items-baseline gap-1">
-              <span className="font-mono text-4xl font-bold text-slate-900">
+              <span className="font-mono text-4xl font-bold text-foreground">
                 €{cycle === 'monthly' ? plan.monthly : plan.yearly}
               </span>
-              <span className="text-sm text-slate-500">{t('perMonth')}</span>
+              <span className="text-sm text-muted-foreground">{t('perMonth')}</span>
             </div>
 
             <ul className="mt-6 flex-1 space-y-3">
               {plan.features.map((f) => (
-                <li key={f.key} className="flex items-start gap-2 text-sm text-slate-700">
+                <li key={f.key} className="flex items-start gap-2 text-sm text-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span>{t(`features.${f.key}`, f.values as never)}</span>
                 </li>
@@ -147,7 +147,7 @@ function CycleButton({
       onClick={onClick}
       className={cn(
         'inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
-        active ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+        active ? 'bg-primary-accent text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
       )}
     >
       {children}

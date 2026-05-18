@@ -36,7 +36,7 @@ export function KpiCard({
       ? 'text-success bg-success/10'
       : resolvedTone === 'negative'
         ? 'text-danger bg-danger/10'
-        : 'text-slate-500 bg-slate-100 dark:bg-slate-800';
+        : 'text-muted-foreground bg-muted';
 
   const Arrow = positive ? ArrowUpRight : negative ? ArrowDownRight : Minus;
   const sign = hasDelta && deltaPercent! > 0 ? '+' : '';
@@ -46,14 +46,14 @@ export function KpiCard({
       <div className="flex items-start justify-between gap-2">
         <span className="kpi-label">{label}</span>
         {Icon && (
-          <span className="w-8 h-8 rounded-md bg-primary-600/10 text-primary-600 flex items-center justify-center">
+          <span className="w-8 h-8 rounded-md bg-primary-accent/10 text-primary-accent flex items-center justify-center">
             <Icon className="w-4 h-4" />
           </span>
         )}
       </div>
       <div className="flex items-baseline gap-1">
         <span className="kpi-value truncate">{value}</span>
-        {suffix && <span className="text-sm text-slate-500 font-medium">{suffix}</span>}
+        {suffix && <span className="text-sm text-muted-foreground font-medium">{suffix}</span>}
       </div>
       {hasDelta && (
         <div className="flex items-center gap-1.5 text-xs">
@@ -64,7 +64,7 @@ export function KpiCard({
               {deltaPercent!.toFixed(1)}%
             </span>
           </span>
-          {deltaLabel && <span className="text-slate-500">{deltaLabel}</span>}
+          {deltaLabel && <span className="text-muted-foreground">{deltaLabel}</span>}
         </div>
       )}
     </div>

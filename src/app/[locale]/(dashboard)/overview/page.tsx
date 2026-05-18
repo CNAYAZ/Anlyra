@@ -36,10 +36,10 @@ type FinanceResponse = {
 };
 
 const QUICK_ACTIONS: { href: string; labelKey: string; icon: typeof BarChart3; tone: string }[] = [
-  { href: '/finance', labelKey: 'finance', icon: BarChart3, tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  { href: '/market', labelKey: 'market', icon: Globe, tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-  { href: '/operations', labelKey: 'operations', icon: Activity, tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  { href: '/ai/chat', labelKey: 'aiChat', icon: MessageSquare, tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+  { href: '/finance', labelKey: 'finance', icon: BarChart3, tone: 'bg-primary-accent/10 text-primary-accent' },
+  { href: '/market', labelKey: 'market', icon: Globe, tone: 'bg-secondary/10 text-secondary-foreground' },
+  { href: '/operations', labelKey: 'operations', icon: Activity, tone: 'bg-success/10 text-success' },
+  { href: '/ai/chat', labelKey: 'aiChat', icon: MessageSquare, tone: 'bg-warning/10 text-warning' },
 ];
 
 export default function OverviewPage() {
@@ -106,8 +106,8 @@ export default function OverviewPage() {
             <ChartSkeleton />
           ) : (
             <div className="space-y-3">
-              <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800/60 dark:bg-amber-950/30">
-                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
+                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
                 <div>
                   <div className="text-sm font-medium">{t('aiSpotlightBadge')}</div>
                   <p className="text-sm text-muted-foreground">{aiSpotlight}</p>
@@ -131,7 +131,7 @@ export default function OverviewPage() {
               )}
               <Link
                 href="/finance"
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary-accent hover:underline"
               >
                 {t('goToFinance')} <ArrowRight className="h-4 w-4" />
               </Link>
@@ -148,7 +148,7 @@ export default function OverviewPage() {
                 <Link
                   key={qa.href}
                   href={qa.href}
-                  className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary-500/40 hover:bg-muted/40"
+                  className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:border-primary-accent/40 hover:bg-muted/40"
                 >
                   <span className={`grid h-9 w-9 place-items-center rounded-lg ${qa.tone}`}>
                     <Icon className="h-4 w-4" />

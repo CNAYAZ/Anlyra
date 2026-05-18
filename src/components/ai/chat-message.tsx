@@ -14,7 +14,7 @@ export function ChatMessage({ role, content }: Props) {
       <div
         className={cn(
           'grid h-9 w-9 shrink-0 place-items-center rounded-full',
-          isUser ? 'bg-blue-600 text-white' : 'bg-accent text-white'
+          isUser ? 'bg-primary-accent text-white' : 'bg-muted text-muted-foreground'
         )}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -23,7 +23,7 @@ export function ChatMessage({ role, content }: Props) {
         className={cn(
           'max-w-[78%] rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
           isUser
-            ? 'bg-blue-600 text-white rounded-tr-sm'
+            ? 'bg-primary-accent text-white rounded-tr-sm'
             : 'bg-muted text-foreground rounded-tl-sm'
         )}
       >

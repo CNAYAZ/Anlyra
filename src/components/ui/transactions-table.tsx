@@ -49,7 +49,7 @@ export function TransactionsTable({
     const active = sortBy === key;
     const Icon = !active ? ArrowUpDown : sortOrder === 'asc' ? ArrowUp : ArrowDown;
     return (
-      <button onClick={() => onSort(key)} className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-50">
+      <button onClick={() => onSort(key)} className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground">
         {label}
         <Icon className={cn('w-3 h-3', active ? 'opacity-100' : 'opacity-40')} />
       </button>
@@ -57,13 +57,13 @@ export function TransactionsTable({
   };
 
   const amountClass =
-    amountTone === 'positive' ? 'text-success' : amountTone === 'negative' ? 'text-danger' : 'text-slate-900 dark:text-slate-50';
+    amountTone === 'positive' ? 'text-success' : amountTone === 'negative' ? 'text-danger' : 'text-foreground';
 
   return (
     <div className="card overflow-hidden p-0">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="text-left px-4 py-3">{header(t('date'), 'date')}</th>
               <th className="text-left px-4 py-3">{header(t('category'), 'category')}</th>
@@ -75,18 +75,18 @@ export function TransactionsTable({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center text-slate-500 py-8">
+                <td colSpan={5} className="text-center text-muted-foreground py-8">
                   {t('empty')}
                 </td>
               </tr>
             )}
             {rows.map((r) => (
-              <tr key={r.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                <td className="px-4 py-3 whitespace-nowrap num text-slate-600 dark:text-slate-300">{formatDate(r.date, locale)}</td>
+              <tr key={r.id} className="border-t border-border hover:bg-muted/40">
+                <td className="px-4 py-3 whitespace-nowrap num text-muted-foreground">{formatDate(r.date, locale)}</td>
                 <td className="px-4 py-3 capitalize">{r.category.replace(/_/g, ' ')}</td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-300 truncate max-w-[280px]">{r.description ?? '—'}</td>
+                <td className="px-4 py-3 text-muted-foreground truncate max-w-[280px]">{r.description ?? '—'}</td>
                 <td className="px-4 py-3">
-                  <span className="chip bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">{r.source}</span>
+                  <span className="chip bg-muted text-muted-foreground uppercase">{r.source}</span>
                 </td>
                 <td className={cn('px-4 py-3 text-right num font-medium', amountClass)}>{formatCurrency(r.amount, locale)}</td>
               </tr>
@@ -95,7 +95,7 @@ export function TransactionsTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-border text-xs text-muted-foreground">
         <span>
           {t('showing')} {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)} {t('of')} {total} {t('results')}
         </span>
@@ -103,7 +103,7 @@ export function TransactionsTable({
           <button
             onClick={() => onPageChange(Math.max(1, page - 1))}
             disabled={page <= 1}
-            className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="px-2 py-1 rounded-md border border-border disabled:opacity-40 hover:bg-muted"
           >
             {t('prev')}
           </button>
@@ -113,7 +113,7 @@ export function TransactionsTable({
           <button
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
-            className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="px-2 py-1 rounded-md border border-border disabled:opacity-40 hover:bg-muted"
           >
             {t('next')}
           </button>

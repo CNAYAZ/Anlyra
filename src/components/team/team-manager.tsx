@@ -76,10 +76,10 @@ export function TeamManager() {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-500">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
             <Lock className="h-5 w-5" />
           </div>
-          <h3 className="mt-3 font-heading text-lg font-semibold text-slate-900">
+          <h3 className="mt-3 font-heading text-lg font-semibold text-foreground">
             {t('limits.starter')}
           </h3>
           <Button asChild className="mt-4">
@@ -103,7 +103,7 @@ export function TeamManager() {
         </CardHeader>
         <CardContent>
           {limitReached ? (
-            <div className="rounded-md border border-warning/30 bg-warning/5 p-4 text-sm text-slate-700">
+            <div className="rounded-md border border-warning/30 bg-warning/5 p-4 text-sm text-foreground">
               {t('limits.proLimit')}
             </div>
           ) : (
@@ -152,9 +152,9 @@ export function TeamManager() {
           <CardTitle>{t('members.title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-md border border-slate-200">
-            <table className="w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <div className="overflow-hidden rounded-md border border-border">
+            <table className="w-full divide-y divide-border text-sm">
+              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">{t('members.name')}</th>
                   <th className="px-3 py-2 font-medium">{t('members.email')}</th>
@@ -163,11 +163,11 @@ export function TeamManager() {
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-border bg-card">
                 {members.map((m) => (
                   <tr key={m.id}>
-                    <td className="px-3 py-2 text-slate-900">{m.name}</td>
-                    <td className="px-3 py-2 text-slate-600">{m.email}</td>
+                    <td className="px-3 py-2 text-foreground">{m.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{m.email}</td>
                     <td className="px-3 py-2">
                       {m.role === 'owner' ? (
                         <Badge>{t('roles.owner')}</Badge>

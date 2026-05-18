@@ -5,9 +5,9 @@ import { ArrowDownRight, ArrowUpRight, CircleDot } from 'lucide-react';
 import { cn, type StatusLevel } from '@/lib/utils';
 
 const STATUS_CLASS: Record<StatusLevel, { bg: string; text: string; ring: string }> = {
-  good: { bg: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-200' },
-  warn: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200' },
-  bad: { bg: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-200' },
+  good: { bg: 'bg-success/10', text: 'text-success', ring: 'ring-success/30' },
+  warn: { bg: 'bg-warning/10', text: 'text-warning', ring: 'ring-warning/30' },
+  bad: { bg: 'bg-danger/10', text: 'text-danger', ring: 'ring-danger/30' },
 };
 
 export interface KpiCardProps {
@@ -33,8 +33,8 @@ export function KpiCard({ label, description, value, status, delta, target }: Kp
     <div className="card flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-slate-600">{label}</p>
-          {description && <p className="text-xs text-slate-400 mt-0.5">{description}</p>}
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
         <span
           className={cn(
@@ -57,7 +57,7 @@ export function KpiCard({ label, description, value, status, delta, target }: Kp
           <span
             className={cn(
               'inline-flex items-center text-xs font-medium num',
-              delta >= 0 ? 'text-emerald-600' : 'text-rose-600',
+              delta >= 0 ? 'text-success' : 'text-danger',
             )}
           >
             {delta >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -67,7 +67,7 @@ export function KpiCard({ label, description, value, status, delta, target }: Kp
       </div>
 
       {target && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           {target}
         </p>
       )}

@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState } from '@/components/ui/state';
@@ -22,6 +23,7 @@ type Trend = {
 
 export default function MarketTrendsPage() {
   const locale = useAppLocale();
+  const t = useTranslations('market');
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['market', 'trends'],
     queryFn: () => apiFetch<{ trends: Trend[] }>('/api/analysis/market/trends'),
@@ -29,14 +31,14 @@ export default function MarketTrendsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Trend di mercato" subtitle="Evoluzione TAM/SAM/SOM negli ultimi 18 mesi" />
+      <PageHeader title={t('trends.title')} subtitle={t('trends.subtitle')} />
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : isLoading || !data ? (
         <ChartSkeleton />
       ) : (
         <Card>
-          <CardHeader title="TAM · SAM · SOM" />
+          <CardHeader title={t('trends.tamSamSom')} />
           <div className="h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.trends}>
