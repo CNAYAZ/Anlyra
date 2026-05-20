@@ -22,15 +22,15 @@ export function Logo({
         aria-label={t('name')}
         className="shrink-0"
       >
-        <rect width="36" height="36" rx="8" fill="#1e3a5f" />
+        <rect width="36" height="36" rx="8" fill="hsl(var(--sage-500))" />
         <path
           d="M8 10h6.2c2.8 0 4.8 1.7 4.8 4.2 0 2.6-2 4.3-4.8 4.3H11V26H8V10zm3 6.2h3c1.3 0 2.1-.8 2.1-2s-.8-2-2.1-2h-3v4zM22 26V10h3v16h-3z"
-          fill="#3b82f6"
+          fill="white"
         />
       </svg>
       {!collapsed && (
         <div className="flex flex-col leading-tight">
-          <span className="font-heading font-bold text-lg text-primary dark:text-primary-accent">
+          <span className="font-heading font-bold text-lg text-sage-700 dark:text-sage-300">
             {t('name')}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
