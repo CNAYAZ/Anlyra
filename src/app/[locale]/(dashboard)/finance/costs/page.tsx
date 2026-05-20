@@ -84,7 +84,6 @@ export default function CostsPage() {
             <KpiCard
               label={t('kpi.ratio')}
               value={formatPercent(data.kpis.ratio, locale)}
-              tone={data.kpis.ratio < 70 ? 'positive' : data.kpis.ratio < 90 ? 'neutral' : 'negative'}
             />
           </>
         )}

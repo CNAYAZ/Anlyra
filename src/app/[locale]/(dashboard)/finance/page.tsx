@@ -23,6 +23,20 @@ type FinanceResponse = {
   cumulativeCash: { period: string; inflow: number; outflow: number; net: number; cumulative: number }[];
 };
 
+function toDelta(
+  pct: number | null | undefined,
+  locale: string,
+  invert = false,
+): { value: string; sentiment: 'positive' | 'negative'; direction: 'up' | 'down' | 'flat' } | undefined {
+  if (pct == null) return undefined;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return {
+    value: formatPercent(pct, locale),
+    sentiment: good ? 'positive' : 'negative',
+    direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+  };
+}
+
 export default function FinancePage() {
   const locale = useAppLocale();
   const t = useTranslations('finance');
@@ -56,20 +70,19 @@ export default function FinancePage() {
             <KpiCard
               label={t('kpi.revenue')}
               value={formatCurrency(data.kpis.totalRevenue, locale)}
-              deltaPercent={data.kpis.momRevenueGrowth}
+              delta={toDelta(data.kpis.momRevenueGrowth, locale)}
             />
             <KpiCard
               label={t('kpi.costs')}
               value={formatCurrency(data.kpis.totalCosts, locale)}
-              deltaPercent={data.kpis.momCostGrowth}
-              invertDelta
+              delta={toDelta(data.kpis.momCostGrowth, locale, true)}
             />
             <KpiCard label={t('kpi.grossMargin')} value={formatPercent(data.kpis.grossMargin, locale)} />
             <KpiCard label={t('kpi.operatingMargin')} value={formatPercent(data.kpis.operatingMargin, locale)} />
             <KpiCard
               label={t('kpi.netMargin')}
               value={formatPercent(data.kpis.netMargin, locale)}
-              deltaPercent={data.kpis.momNetMarginDelta}
+              delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
           </>
         )}
