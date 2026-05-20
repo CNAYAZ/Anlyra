@@ -35,6 +35,20 @@ type FinanceResponse = {
   cumulativeCash: { period: string; inflow: number; outflow: number; net: number; cumulative: number }[];
 };
 
+function toDelta(
+  pct: number | null | undefined,
+  locale: string,
+  invert = false,
+): { value: string; sentiment: 'positive' | 'negative'; direction: 'up' | 'down' | 'flat' } | undefined {
+  if (pct == null) return undefined;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return {
+    value: formatPercent(pct, locale),
+    sentiment: good ? 'positive' : 'negative',
+    direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+  };
+}
+
 const QUICK_ACTIONS: { href: string; labelKey: string; icon: typeof BarChart3; tone: string }[] = [
   { href: '/finance', labelKey: 'finance', icon: BarChart3, tone: 'bg-primary-accent/10 text-primary-accent' },
   { href: '/market', labelKey: 'market', icon: Globe, tone: 'bg-secondary/10 text-secondary-foreground' },
@@ -73,20 +87,19 @@ export default function OverviewPage() {
             <KpiCard
               label={t('kpi.revenue12m')}
               value={formatCurrency(data.kpis.totalRevenue, locale)}
-              deltaPercent={data.kpis.momRevenueGrowth}
+              delta={toDelta(data.kpis.momRevenueGrowth, locale)}
               icon={TrendingUp}
             />
             <KpiCard
               label={t('kpi.costs12m')}
               value={formatCurrency(data.kpis.totalCosts, locale)}
-              deltaPercent={data.kpis.momCostGrowth}
-              invertDelta
+              delta={toDelta(data.kpis.momCostGrowth, locale, true)}
               icon={TrendingDown}
             />
             <KpiCard
               label={t('kpi.netMargin')}
               value={formatPercent(data.kpis.netMargin, locale)}
-              deltaPercent={data.kpis.momNetMarginDelta}
+              delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
             <KpiCard
               label={t('kpi.cashAvailable')}
@@ -170,13 +183,13 @@ export default function OverviewPage() {
             <KpiCard
               label={t('kpi.mrr')}
               value={formatCurrency(data.kpis.mrr, locale)}
-              deltaPercent={data.kpis.momMrrDelta}
+              delta={toDelta(data.kpis.momMrrDelta, locale)}
               icon={BarChart3}
             />
             <KpiCard
               label={t('kpi.activeCustomers')}
               value={formatNumber(data.kpis.activeCustomers, locale)}
-              deltaPercent={data.kpis.momCustomersDelta}
+              delta={toDelta(data.kpis.momCustomersDelta, locale)}
               icon={Users}
             />
             <KpiCard label="ARPU" value={formatCurrency(data.kpis.arpu, locale)} icon={Brain} />

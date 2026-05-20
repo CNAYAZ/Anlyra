@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, BarChart3 } from 'lucide-react';
+import { AlertCircle, BarChart3, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sparkline } from './sparkline';
 import { DeltaBadge } from './delta-badge';
@@ -26,7 +26,7 @@ export interface KpiCardProps {
   subtitle?: string;
   sparkline?: number[];
   sparklineAriaLabel?: string;
-  icon?: React.ReactNode;
+  icon?: LucideIcon;
   density?: 'default' | 'dense';
   state?: 'idle' | 'loading' | 'empty' | 'error';
   empty?: { message: string; hint?: string };
@@ -64,7 +64,7 @@ export function KpiCard({
   subtitle,
   sparkline,
   sparklineAriaLabel,
-  icon,
+  icon: Icon,
   density = 'default',
   state = 'idle',
   empty,
@@ -90,9 +90,9 @@ export function KpiCard({
         <p className="text-[10.5px] font-medium uppercase tracking-wider text-fg-3 break-keep leading-tight">
           {label}
         </p>
-        {icon && (
+        {Icon && (
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm text-fg-3 hover:bg-muted transition-colors">
-            {icon}
+            <Icon className="h-4 w-4" aria-hidden />
           </span>
         )}
       </div>

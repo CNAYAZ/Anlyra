@@ -37,6 +37,20 @@ function formatValue(unit: KpiPoint['unit'], value: number, locale: string) {
   return formatNumber(value, locale, 0);
 }
 
+function toDelta(
+  pct: number | null | undefined,
+  locale: string,
+  invert = false,
+): { value: string; sentiment: 'positive' | 'negative'; direction: 'up' | 'down' | 'flat' } | undefined {
+  if (pct == null) return undefined;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return {
+    value: formatPercent(pct, locale),
+    sentiment: good ? 'positive' : 'negative',
+    direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+  };
+}
+
 export default function OperationsOverviewPage() {
   const locale = useAppLocale();
   const { data, isLoading, isError, refetch } = useQuery({
@@ -57,10 +71,8 @@ export default function OperationsOverviewPage() {
               key={k.key}
               label={LABELS[k.key] ?? k.key}
               value={formatValue(k.unit, k.value, locale)}
-              deltaPercent={k.delta}
+              delta={toDelta(k.delta, locale, k.key === 'churnRate')}
               icon={Activity}
-              tone={k.status === 'good' ? 'positive' : k.status === 'bad' ? 'negative' : 'neutral'}
-              invertDelta={k.key === 'churnRate'}
             />
           ))
         )}
