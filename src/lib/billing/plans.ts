@@ -1,4 +1,4 @@
-export type PlanId = "FREE" | "STARTER" | "PRO" | "ENTERPRISE";
+export type PlanId = "FREE" | "STARTER" | "PRO" | "ADVANCED" | "ENTERPRISE";
 
 export type FeatureKey =
   | "financial_basic"
@@ -44,6 +44,7 @@ export interface Plan {
   features: FeatureKey[];
   integrations: IntegrationKey[];
   highlight?: boolean;
+  contact?: boolean;
 }
 
 export const ALL_FEATURES: FeatureKey[] = [
@@ -99,8 +100,8 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "PRO",
     nameKey: "billing.plans.pro.name",
     taglineKey: "billing.plans.pro.tagline",
-    pricing: { monthlyCents: 7900, yearlyCents: 66000 },
-    limits: { users: 10, orgs: 5, imports: -1, aiCredits: 100, customDashboards: 5 },
+    pricing: { monthlyCents: 4900, yearlyCents: 49000 },
+    limits: { users: 5, orgs: 1, imports: -1, aiCredits: 200, customDashboards: -1 },
     features: [
       "financial_basic",
       "financial_full",
@@ -117,20 +118,45 @@ export const PLANS: Record<PlanId, Plan> = {
       "share_reports",
     ],
     integrations: ["stripe", "quickbooks", "xero"],
+  },
+  ADVANCED: {
+    id: "ADVANCED",
+    nameKey: "billing.plans.advanced.name",
+    taglineKey: "billing.plans.advanced.tagline",
+    pricing: { monthlyCents: 14900, yearlyCents: 149000 },
+    limits: { users: 15, orgs: 1, imports: -1, aiCredits: 700, customDashboards: -1 },
+    features: [
+      "financial_basic",
+      "financial_full",
+      "market",
+      "operations",
+      "ai_chat",
+      "ai_insights",
+      "ai_forecast",
+      "ai_benchmark",
+      "ai_alerts",
+      "charts_interactive",
+      "report_basic",
+      "report_full",
+      "share_reports",
+      "collaboration",
+    ],
+    integrations: ["stripe", "quickbooks", "xero", "salesforce", "hubspot"],
     highlight: true,
   },
   ENTERPRISE: {
     id: "ENTERPRISE",
     nameKey: "billing.plans.enterprise.name",
     taglineKey: "billing.plans.enterprise.tagline",
-    pricing: { monthlyCents: 19900, yearlyCents: 166000 },
-    limits: { users: -1, orgs: -1, imports: -1, aiCredits: 500, customDashboards: -1 },
+    pricing: { monthlyCents: 0, yearlyCents: 0 },
+    limits: { users: -1, orgs: -1, imports: -1, aiCredits: -1, customDashboards: -1 },
     features: ALL_FEATURES,
     integrations: ALL_INTEGRATIONS,
+    contact: true,
   },
 };
 
-export const PLAN_ORDER: PlanId[] = ["FREE", "STARTER", "PRO", "ENTERPRISE"];
+export const PLAN_ORDER: PlanId[] = ["FREE", "STARTER", "PRO", "ADVANCED", "ENTERPRISE"];
 
 export interface CreditPack {
   id: "credits_50" | "credits_200" | "credits_500";

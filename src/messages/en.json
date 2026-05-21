@@ -1461,6 +1461,11 @@
       "enterprise": {
         "name": "Enterprise",
         "tagline": "For teams and structured companies"
+      },
+      "advanced": {
+        "name": "Advanced",
+        "tagline": "For growing teams that want deeper insights",
+        "badge": "MOST POPULAR"
       }
     },
     "features": {
@@ -1496,6 +1501,13 @@
       "lockedDescription": "This feature is available from the {plan} plan. Upgrade to unlock it.",
       "viewPlans": "View Plans",
       "upgradeNow": "Upgrade now"
+    },
+    "moneyBack": {
+      "title": "14-day money-back guarantee",
+      "subtitle": "If Anlyra doesn't work for you within 14 days of your first payment, we'll refund the full amount. No questions asked."
+    },
+    "trial": {
+      "info": "7-day trial · Card required · Cancel in 1 click"
     }
   },
   "pricing": {

@@ -1461,6 +1461,11 @@
       "enterprise": {
         "name": "Enterprise",
         "tagline": "Per team e aziende strutturate"
+      },
+      "advanced": {
+        "name": "Avanzato",
+        "tagline": "Per team in crescita che vogliono insight più profondi",
+        "badge": "PIÙ POPOLARE"
       }
     },
     "features": {
@@ -1496,6 +1501,13 @@
       "lockedDescription": "Questa funzionalità è disponibile dal piano {plan}. Esegui l'upgrade per sbloccarla.",
       "viewPlans": "Vedi Piani",
       "upgradeNow": "Upgrade ora"
+    },
+    "moneyBack": {
+      "title": "Garanzia 14 giorni soddisfatti o rimborsati",
+      "subtitle": "Se Anlyra non ti convince entro i primi 14 giorni dal primo pagamento, ti rimborsiamo l'intero importo. Nessun vincolo, nessuna burocrazia."
+    },
+    "trial": {
+      "info": "7 giorni di prova · Carta richiesta · Cancella in 1 click"
     }
   },
   "pricing": {
