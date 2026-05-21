@@ -13,6 +13,10 @@ export function getStripePriceId(plan: PlanId, cycle: BillingCycle): string | nu
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
     },
+    ADVANCED: {
+      monthly: process.env.STRIPE_PRICE_ADVANCED_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_ADVANCED_YEARLY,
+    },
     ENTERPRISE: {
       monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
       yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
