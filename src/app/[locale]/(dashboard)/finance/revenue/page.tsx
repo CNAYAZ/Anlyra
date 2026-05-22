@@ -26,6 +26,20 @@ type RevenueResponse = {
   pagination: { total: number; page: number; pageSize: number; totalPages: number };
 };
 
+function toDelta(
+  pct: number | null | undefined,
+  locale: string,
+  invert = false,
+): { value: string; sentiment: 'positive' | 'negative'; direction: 'up' | 'down' | 'flat' } | undefined {
+  if (pct == null) return undefined;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return {
+    value: formatPercent(pct, locale),
+    sentiment: good ? 'positive' : 'negative',
+    direction: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+  };
+}
+
 export default function RevenuePage() {
   const locale = useAppLocale();
   const t = useTranslations('revenue');
@@ -80,8 +94,8 @@ export default function RevenuePage() {
               value={formatCurrency(data.kpis.totalRevenue, locale)}
               icon={TrendingUp}
             />
-            <KpiCard label={t('kpi.mom')} value={formatPercent(data.kpis.mom, locale)} deltaPercent={data.kpis.mom} />
-            <KpiCard label={t('kpi.yoy')} value={formatPercent(data.kpis.yoy, locale)} deltaPercent={data.kpis.yoy} />
+            <KpiCard label={t('kpi.mom')} value={formatPercent(data.kpis.mom, locale)} delta={toDelta(data.kpis.mom, locale)} />
+            <KpiCard label={t('kpi.yoy')} value={formatPercent(data.kpis.yoy, locale)} delta={toDelta(data.kpis.yoy, locale)} />
             <KpiCard label={t('kpi.arpu')} value={formatCurrency(data.kpis.arpu, locale)} />
           </>
         )}

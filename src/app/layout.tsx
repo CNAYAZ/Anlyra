@@ -1,25 +1,19 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['600', '700'],
-  variable: '--font-dm-sans',
+  variable: '--font-sans',
   display: 'swap',
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
-  variable: '--font-jetbrains-mono',
+  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -37,9 +31,12 @@ export default function RootLayout({
     <html
       lang="it"
       suppressHydrationWarning
-      className={`${inter.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

@@ -1,11 +1,16 @@
-import Link from 'next/link';
+import { ErrorState } from '@/components/ui/state';
 
 export default function GlobalNotFound() {
   return (
-    <html lang="en">
-      <body style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-        <h1>404 — Not found</h1>
-        <Link href="/it">Home</Link>
+    <html lang="it">
+      <body>
+        <ErrorState
+          variant="fullpage"
+          bigCode="404"
+          title="Pagina non trovata"
+          description="La pagina che stai cercando non esiste o è stata spostata."
+          support={{ href: '/it', label: 'Torna alla home' }}
+        />
       </body>
     </html>
   );

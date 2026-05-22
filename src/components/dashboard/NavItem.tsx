@@ -44,7 +44,7 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
         className={cn(
           'group relative flex h-10 w-10 items-center justify-center rounded-lg mx-auto transition-colors',
           isActive || isChildActive
-            ? 'bg-sidebar-active text-primary-accent'
+            ? 'bg-sidebar-active text-sidebar-active-foreground'
             : 'text-sidebar-foreground hover:bg-sidebar-hover',
         )}
         title={t(item.labelKey)}
@@ -64,12 +64,14 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
         onClick={onNavigate}
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'border-l-[3px]',
           isActive
-            ? 'bg-sidebar-active text-primary-accent'
-            : 'text-sidebar-foreground hover:bg-sidebar-hover',
+            ? 'bg-sidebar-active text-sidebar-active-foreground border-l-sage-500 dark:border-l-sage-300'
+            : 'text-sidebar-foreground hover:bg-sidebar-hover border-l-transparent',
         )}
+        aria-current={isActive ? 'page' : undefined}
       >
-        <Icon className="h-5 w-5 shrink-0" />
+        <Icon className="h-5 w-5 shrink-0 opacity-75" />
         <span className="truncate">{t(item.labelKey)}</span>
       </Link>
     );
@@ -82,13 +84,14 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'border-l-[3px]',
           isChildActive
-            ? 'bg-sidebar-active text-primary-accent'
-            : 'text-sidebar-foreground hover:bg-sidebar-hover',
+            ? 'bg-sidebar-active text-sidebar-active-foreground border-l-sage-500 dark:border-l-sage-300'
+            : 'text-sidebar-foreground hover:bg-sidebar-hover border-l-transparent',
         )}
         aria-expanded={open}
       >
-        <Icon className="h-5 w-5 shrink-0" />
+        <Icon className="h-5 w-5 shrink-0 opacity-75" />
         <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
         <ChevronDown
           className={cn('h-4 w-4 transition-transform', open && 'rotate-180')}
@@ -103,11 +106,12 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
                 <Link
                   href={child.href}
                   onClick={onNavigate}
+                  aria-current={childActive ? 'page' : undefined}
                   className={cn(
-                    'block rounded-md px-3 py-1.5 text-sm transition-colors',
+                    'block rounded-md px-3 py-1.5 text-sm transition-colors border-l-[3px]',
                     childActive
-                      ? 'bg-sidebar-active text-primary-accent font-medium'
-                      : 'text-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground',
+                      ? 'bg-sidebar-active text-sidebar-active-foreground font-medium border-l-sage-500 dark:border-l-sage-300'
+                      : 'text-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground border-l-transparent',
                   )}
                 >
                   {t(child.labelKey)}

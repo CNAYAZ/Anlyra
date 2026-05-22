@@ -10,7 +10,13 @@ export const Input = React.forwardRef<
       ref={ref}
       type={type}
       className={cn(
-        'flex h-10 w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm text-primary placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-9 w-full rounded-md border border-border-strong bg-input-bg px-3 text-[13.5px] text-foreground',
+        'transition-colors placeholder:text-fg-3',
+        'hover:border-sage-500/50',
+        'focus:border-sage-500 focus:ring-[3px] focus:ring-sage-500/20 focus:outline-none',
+        'disabled:bg-muted disabled:text-fg-3 disabled:cursor-not-allowed',
+        'data-[invalid=true]:border-danger-500 data-[invalid=true]:focus:ring-danger-500/20',
+        'read-only:bg-muted read-only:border-border',
         className
       )}
       {...props}
@@ -27,7 +33,12 @@ export const Textarea = React.forwardRef<
     <textarea
       ref={ref}
       className={cn(
-        'flex min-h-[80px] w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm text-primary placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-accent focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50',
+        'flex min-h-[80px] w-full rounded-md border border-border-strong bg-input-bg px-3 py-2 text-[13.5px] text-foreground',
+        'transition-colors placeholder:text-fg-3',
+        'hover:border-sage-500/50',
+        'focus:border-sage-500 focus:ring-[3px] focus:ring-sage-500/20 focus:outline-none',
+        'disabled:bg-muted disabled:text-fg-3 disabled:cursor-not-allowed',
+        'data-[invalid=true]:border-danger-500 data-[invalid=true]:focus:ring-danger-500/20',
         className
       )}
       {...props}

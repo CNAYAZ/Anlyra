@@ -54,15 +54,13 @@ export default function CashflowPage() {
             <KpiCard
               label={t('kpi.operating')}
               value={formatCurrency(data.kpis.operating, locale)}
-              tone={data.kpis.operating >= 0 ? 'positive' : 'negative'}
             />
             <KpiCard label={t('kpi.available')} value={formatCurrency(data.kpis.available, locale)} />
             <KpiCard label={t('kpi.workingCapital')} value={formatCurrency(data.kpis.workingCapital, locale)} />
             <KpiCard
               label={t('kpi.runway')}
               value={formatNumber(data.kpis.runway, locale, 1)}
-              suffix={tUnits('months')}
-              tone={data.kpis.runway >= 12 ? 'positive' : data.kpis.runway >= 6 ? 'neutral' : 'negative'}
+              unit={{ suffix: tUnits('months') }}
             />
           </>
         )}
