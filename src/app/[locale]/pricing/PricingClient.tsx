@@ -22,8 +22,8 @@ export function PricingClient({ isAuthenticated }: { isAuthenticated: boolean })
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <PricingCard planId="STARTER" cycle={cycle} showUpgradeButton={isAuthenticated} />
         <PricingCard planId="PRO" cycle={cycle} showUpgradeButton={isAuthenticated} />
+        <PricingCard planId="ADVANCED" cycle={cycle} showUpgradeButton={isAuthenticated} />
         <PricingCard planId="ENTERPRISE" cycle={cycle} showUpgradeButton={isAuthenticated} />
       </section>
 

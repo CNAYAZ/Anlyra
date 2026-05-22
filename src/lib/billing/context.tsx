@@ -52,13 +52,13 @@ export function BillingProvider({
 
 const DEFAULT_BILLING: BillingContextValue = {
   state: {
-    plan: "FREE" as PlanId,
+    plan: "PRO" as PlanId,
     status: "active",
     periodEnd: null,
     cancelAtPeriodEnd: false,
     aiCreditsBalance: 0,
   },
-  limits: PLANS["FREE" as PlanId]?.limits ?? ({} as PlanLimits),
+  limits: PLANS["PRO"].limits,
   hasFeature: () => false,
   hasIntegration: () => false,
 };

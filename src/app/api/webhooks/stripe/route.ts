@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 function planFromMetadata(meta: Record<string, string> | undefined): PlanId | null {
   const p = meta?.plan;
-  if (p === "STARTER" || p === "PRO" || p === "ENTERPRISE") return p;
+  if (p === "PRO" || p === "ADVANCED" || p === "ENTERPRISE") return p;
   return null;
 }
 
@@ -87,7 +87,7 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
   const existing = await getSubscription(orgId);
   await setSubscription({
     ...existing,
-    plan: "FREE",
+    plan: "PRO",
     status: "canceled",
     stripeSubscriptionId: null,
     cancelAtPeriodEnd: false,

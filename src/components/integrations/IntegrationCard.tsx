@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 type IntegrationStatus = "CONNECTED" | "ERROR" | "DISCONNECTED";
-type Plan = "FREEMIUM" | "STARTER" | "PRO" | "ENTERPRISE";
+type Plan = "PRO" | "ADVANCED" | "ENTERPRISE";
 import { planMeets } from "@/lib/plan/feature-gate";
 import type { IntegrationDefinition } from "@/lib/integrations/registry";
 

@@ -57,7 +57,7 @@ export function BillingClient({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          {(["STARTER", "PRO", "ADVANCED", "ENTERPRISE"] as const).map((p) => {
+          {(["PRO", "ADVANCED", "ENTERPRISE"] as const).map((p) => {
             const isCurrent = p === currentPlan;
             const isLower = PLAN_ORDER.indexOf(p) <= PLAN_ORDER.indexOf(currentPlan);
             return (

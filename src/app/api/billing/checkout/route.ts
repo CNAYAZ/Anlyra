@@ -7,7 +7,7 @@ import { getStripePriceId } from "@/lib/stripe/prices";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
 
 const Body = z.object({
-  plan: z.enum(["STARTER", "PRO", "ENTERPRISE"]),
+  plan: z.enum(["PRO", "ADVANCED", "ENTERPRISE"]),
   cycle: z.enum(["monthly", "yearly"]),
 });
 

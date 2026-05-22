@@ -1,4 +1,4 @@
-export type PlanId = "FREE" | "STARTER" | "PRO" | "ADVANCED" | "ENTERPRISE";
+export type PlanId = "PRO" | "ADVANCED" | "ENTERPRISE";
 
 export type FeatureKey =
   | "financial_basic"
@@ -78,24 +78,6 @@ export const ALL_INTEGRATIONS: IntegrationKey[] = [
 ];
 
 export const PLANS: Record<PlanId, Plan> = {
-  FREE: {
-    id: "FREE",
-    nameKey: "billing.plans.free.name",
-    taglineKey: "billing.plans.free.tagline",
-    pricing: { monthlyCents: 0, yearlyCents: 0 },
-    limits: { users: 1, orgs: 1, imports: 2, aiCredits: 3, customDashboards: 0 },
-    features: ["financial_basic"],
-    integrations: [],
-  },
-  STARTER: {
-    id: "STARTER",
-    nameKey: "billing.plans.starter.name",
-    taglineKey: "billing.plans.starter.tagline",
-    pricing: { monthlyCents: 2900, yearlyCents: 24000 },
-    limits: { users: 1, orgs: 1, imports: 5, aiCredits: 5, customDashboards: 0 },
-    features: ["financial_basic", "charts_interactive", "report_basic"],
-    integrations: [],
-  },
   PRO: {
     id: "PRO",
     nameKey: "billing.plans.pro.name",
@@ -156,7 +138,7 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
-export const PLAN_ORDER: PlanId[] = ["FREE", "STARTER", "PRO", "ADVANCED", "ENTERPRISE"];
+export const PLAN_ORDER: PlanId[] = ["PRO", "ADVANCED", "ENTERPRISE"];
 
 export interface CreditPack {
   id: "credits_50" | "credits_200" | "credits_500";

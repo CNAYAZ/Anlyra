@@ -33,7 +33,7 @@ export async function assertIntegration(
 
 export async function assertWithinLimit(
   orgId: string,
-  metric: keyof (typeof PLANS)["FREE"]["limits"],
+  metric: keyof (typeof PLANS)["PRO"]["limits"],
   current: number,
 ): Promise<void> {
   const sub = await getSubscription(orgId);
