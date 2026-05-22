@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/state';
 import { formatDate } from '@/lib/utils';
 import { FeatureGate } from '@/components/feature-gate';
 
