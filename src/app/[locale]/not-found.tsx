@@ -1,5 +1,4 @@
 import { ErrorState } from '@/components/ui/state';
-import { Link } from '@/i18n/routing';
 
 export default function NotFound() {
   return (
