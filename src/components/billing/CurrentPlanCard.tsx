@@ -63,7 +63,7 @@ export function CurrentPlanCard() {
       )}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={openPortal} disabled={busy || plan === "FREE"} variant="secondary">
+        <Button onClick={openPortal} disabled={busy} variant="secondary">
           {t("manageBtn")}
         </Button>
         {plan !== "ENTERPRISE" && (

@@ -136,13 +136,9 @@ export function PricingCard({
       )}
 
       <div className="mt-auto pt-4">
-        {planId === "FREE" ? (
-          <LinkButton href="/signup" variant="outline" className="w-full justify-center">
-            {t("ctaFree")}
-          </LinkButton>
-        ) : showUpgradeButton ? (
+        {showUpgradeButton ? (
           <UpgradeButton
-            plan={planId as Exclude<PlanId, "FREE">}
+            plan={planId}
             cycle={cycle}
             variant={plan.highlight ? "primary" : "secondary"}
             label={t("ctaUpgrade")}

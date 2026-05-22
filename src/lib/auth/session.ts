@@ -5,7 +5,7 @@ export type AppSession = {
   email: string;
   name: string;
   organizationId: string;
-  plan: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+  plan: 'PRO' | 'ADVANCED' | 'ENTERPRISE';
 };
 
 const DEMO_SESSION: AppSession = {

@@ -17,7 +17,7 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     id: "stripe",
     name: "Stripe",
     category: "finance",
-    requiredPlan: "STARTER",
+    requiredPlan: "PRO",
     logo: "/integrations/stripe.svg",
     descriptionKey: "stripe.description",
   },

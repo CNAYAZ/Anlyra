@@ -58,7 +58,7 @@ export function PlanCompareTable({ cycle, currentPlan }: { cycle: Cycle; current
   const locale = (useLocale() as "it" | "en") ?? "it";
   const currency = detectCurrencyFromLocale(locale === "it" ? "it-IT" : "en-US");
 
-  const visiblePlans: PlanId[] = ["STARTER", "PRO", "ENTERPRISE"];
+  const visiblePlans: PlanId[] = ["PRO", "ADVANCED", "ENTERPRISE"];
 
   return (
     <div className="overflow-x-auto">

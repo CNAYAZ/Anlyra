@@ -1,13 +1,12 @@
-type Plan = "FREEMIUM" | "STARTER" | "PRO" | "ENTERPRISE";
+type Plan = "PRO" | "ADVANCED" | "ENTERPRISE";
 
 const PLAN_RANK: Record<Plan, number> = {
-  FREEMIUM: 0,
-  STARTER: 1,
-  PRO: 2,
-  ENTERPRISE: 3,
+  PRO: 0,
+  ADVANCED: 1,
+  ENTERPRISE: 2,
 };
 
-export type RequiredPlan = "STARTER" | "PRO" | "ENTERPRISE";
+export type RequiredPlan = "PRO" | "ADVANCED" | "ENTERPRISE";
 
 export function planMeets(current: Plan, required: RequiredPlan): boolean {
   return PLAN_RANK[current] >= PLAN_RANK[required];

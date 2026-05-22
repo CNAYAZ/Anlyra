@@ -14,7 +14,7 @@ export function UpgradeButton({
   label,
   className,
 }: {
-  plan: Exclude<PlanId, "FREE">;
+  plan: PlanId;
   cycle: Cycle;
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";

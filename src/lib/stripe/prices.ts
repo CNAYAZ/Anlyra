@@ -3,12 +3,7 @@ import type { PlanId } from "@/lib/billing/plans";
 export type BillingCycle = "monthly" | "yearly";
 
 export function getStripePriceId(plan: PlanId, cycle: BillingCycle): string | null {
-  if (plan === "FREE") return null;
-  const map: Record<Exclude<PlanId, "FREE">, Record<BillingCycle, string | undefined>> = {
-    STARTER: {
-      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_STARTER_YEARLY,
-    },
+  const map: Record<PlanId, Record<BillingCycle, string | undefined>> = {
     PRO: {
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
