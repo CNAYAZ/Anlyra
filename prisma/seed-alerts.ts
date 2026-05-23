@@ -13,7 +13,7 @@ async function main() {
   console.log(`📋 Aggiungo alert a: ${org.name}`);
 
   // Remove existing demo alerts to avoid duplicates
-  await prisma.alert_b7.deleteMany({ where: { organizationId: org.id } });
+  await prisma.alert.deleteMany({ where: { organizationId: org.id } });
 
   const alerts = [
     {
@@ -74,7 +74,7 @@ async function main() {
 
   let created = 0;
   for (const alert of alerts) {
-    await prisma.alert_b7.upsert({
+    await prisma.alert.upsert({
       where: { organizationId_source: { organizationId: org.id, source: alert.source } },
       create: alert,
       update: alert,

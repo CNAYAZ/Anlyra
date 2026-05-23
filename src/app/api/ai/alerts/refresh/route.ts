@@ -237,7 +237,7 @@ export async function POST() {
 
     const upserted: string[] = [];
     for (const rule of triggered) {
-      await prisma.alert_b7.upsert({
+      await prisma.alert.upsert({
         where: { organizationId_source: { organizationId, source: rule.source } },
         create: {
           organizationId,

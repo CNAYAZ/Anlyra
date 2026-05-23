@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     if (severity) where.severity = severity;
     if (status) where.status = status;
 
-    const rows = await prisma.alert_b7.findMany({
+    const rows = await prisma.alert.findMany({
       where,
       orderBy: [
         { severity: 'desc' },
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       ],
     });
 
-    const newCount = await prisma.alert_b7.count({
+    const newCount = await prisma.alert.count({
       where: { organizationId, status: 'NEW' },
     });
 
