@@ -13,7 +13,7 @@ export async function getCurrentContext() {
   });
 
   // Anchor on the hardcoded id so the context always resolves to the same org
-  // regardless of slug. All seeded data (Alert_b7, Insight, etc.) references 'demo-org'.
+  // regardless of slug. All seeded data (Alert, Insight, etc.) references 'demo-org'.
   const org = await prisma.organization.upsert({
     where: { id: DEMO_ORG_ID },
     update: {},

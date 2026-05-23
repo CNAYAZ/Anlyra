@@ -16,12 +16,12 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     const parsed = PatchSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);
 
-    const existing = await prisma.alert_b7.findFirst({
+    const existing = await prisma.alert.findFirst({
       where: { id: ctx.params.id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 
-    const updated = await prisma.alert_b7.update({
+    const updated = await prisma.alert.update({
       where: { id: existing.id },
       data: { status: parsed.data.status },
     });
