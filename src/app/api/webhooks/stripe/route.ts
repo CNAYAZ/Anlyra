@@ -8,6 +8,8 @@ import {
   setSubscription,
 } from "@/lib/billing/repository";
 import type { PlanId } from "@/lib/billing/plans";
+import { sendEmail } from "@/lib/email";
+import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
 
 export const runtime = "nodejs";
 
@@ -112,6 +114,34 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     hostedUrl: invoice.hosted_invoice_url ?? null,
     pdfUrl: invoice.invoice_pdf ?? null,
   });
+
+  // Send payment confirmation email — fire-and-forget, never fails the webhook
+  try {
+    const stripe = getStripe();
+    const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+    if (customerId) {
+      const customer = await stripe.customers.retrieve(customerId);
+      const email = (customer as Stripe.Customer).email;
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: "Pagamento confermato — Anlyra",
+          html: paymentConfirmedTemplate({
+            userName: (customer as Stripe.Customer).name || "Cliente",
+            userEmail: email,
+            planName: invoice.lines.data[0]?.description || "Anlyra Pro",
+            amount: (invoice.amount_paid / 100).toFixed(2),
+            currency: invoice.currency.toUpperCase(),
+            nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString("it-IT"),
+            invoiceUrl: invoice.hosted_invoice_url || "",
+          }),
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[stripe-webhook] payment-confirmed email failed", e);
+    // Intentionally not re-throwing — email failure must not break the webhook response
+  }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
