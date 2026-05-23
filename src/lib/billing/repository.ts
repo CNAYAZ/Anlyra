@@ -90,13 +90,11 @@ export async function addCreditEntry(entry: CreditEntry): Promise<void> {
 
 export async function getBillingState(orgId: string): Promise<BillingState> {
   const sub = await getSubscription(orgId);
-  const balance = await getCreditBalance(orgId);
   return {
     plan: sub.plan,
     status: sub.status,
     periodEnd: sub.currentPeriodEnd ? sub.currentPeriodEnd.toISOString() : null,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-    aiCreditsBalance: balance,
   };
 }
 

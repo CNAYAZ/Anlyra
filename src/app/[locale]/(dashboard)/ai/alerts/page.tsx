@@ -14,12 +14,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/fetcher';
-import { usePlan } from '@/lib/billing/context';
+import { useCreditsStore } from '@/stores/credits-store';
 import type { AlertDTO, AlertStatus } from '@/types/ai';
 
 export default function AlertsPage() {
   const t = useTranslations('alerts');
-  const { aiCreditsBalance } = usePlan();
+  const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const qc = useQueryClient();
 
   const [filters, setFilters] = useState<AlertFilterValues>({

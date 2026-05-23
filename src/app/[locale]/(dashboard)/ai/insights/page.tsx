@@ -14,14 +14,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/fetcher';
-import { usePlan } from '@/lib/billing/context';
+import { useCreditsStore } from '@/stores/credits-store';
 import type { InsightDTO } from '@/types/ai';
 
 type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
 
 export default function InsightsPage() {
   const t = useTranslations('insights');
-  const { aiCreditsBalance } = usePlan();
+  const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const qc = useQueryClient();
 
   const [filters, setFilters] = useState<InsightFilterValues>({
