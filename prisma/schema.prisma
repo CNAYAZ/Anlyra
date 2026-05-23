@@ -126,10 +126,18 @@ model Insight {
   organizationId String
   title          String
   summary        String
-  impact         String
-  tone           String       @default("neutral")
+  type           String?
+  priority       String?
+  status         String?      @default("NEW")
+  content        String?      @default("")
+  confidence     Float?       @default(0.7)
+  impact         String?      @default("")
+  tone           String?      @default("neutral")
   createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, priority])
 }
 
 model User_b4 {
@@ -487,22 +495,6 @@ model AIMessage {
   createdAt      DateTime       @default(now())
 
   @@index([conversationId, createdAt])
-}
-
-model Insight_b7 {
-  id             String   @id @default(cuid())
-  organizationId String
-  type           String
-  priority       String
-  status         String   @default("NEW")
-  title          String
-  summary        String
-  content        String
-  confidence     Float    @default(0.7)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([organizationId, status, priority])
 }
 
 model Organization_b12 {

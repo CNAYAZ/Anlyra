@@ -96,9 +96,6 @@ function jitter(rand: () => number, spread = 0.2) {
 async function seedDemoData(organizationId: string) {
   await seedKpis(organizationId);
   await seedCompetitors(organizationId);
-  // legacy seed removed v5: seedInsights() wrote to Insight_b7 which has a
-  // FK constraint to Organization_b7 in SQLite — FK violated because the active
-  // organizationId belongs to the modern Organization table, not Organization_b7.
   await seedAlertConfigsAndAlerts(organizationId);
   const existingRecords = await prisma.financialRecord.count({ where: { organizationId } });
   if (existingRecords > 0) return;
@@ -199,62 +196,6 @@ async function seedCompetitors(organizationId: string) {
   });
 }
 
-// DEPRECATED — not called anymore (see "legacy seed removed v5" comment above).
-// Insight_b7 has FOREIGN KEY organizationId → Organization_b7 in SQLite (init migration).
-// Active Organization records are not in Organization_b7 → FK constraint violation.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function seedInsights(organizationId: string) {
-  const count = await prisma.insight_b7.count({ where: { organizationId } });
-  if (count > 0) return;
-  await prisma.insight_b7.createMany({
-    data: [
-      {
-        organizationId,
-        type: 'WARNING',
-        priority: 'HIGH',
-        status: 'NEW',
-        title: 'CAC in crescita oltre il target',
-        summary:
-          'Il costo di acquisizione è salito a 320 € contro un target di 250 €. Conversion rate stabile.',
-        content:
-          "Negli ultimi 3 mesi il CAC è cresciuto del 28% mentre il conversion rate è fermo al 2,8%. " +
-          "Il rapporto LTV/CAC è 15x ma il payback period si è allungato. " +
-          "Suggerimento: rivedi mix dei canali paid (paid social pesa il 42% e ha CAC peggiore). " +
-          "Sposta budget su content marketing e referral, target CAC 250 € entro 90 giorni.",
-        confidence: 0.86,
-      },
-      {
-        organizationId,
-        type: 'OPPORTUNITY',
-        priority: 'MEDIUM',
-        status: 'NEW',
-        title: 'Espansione piano Pro su clienti Starter',
-        summary:
-          'Il 38% dei clienti Starter usa già feature da piano Pro: opportunità di upselling.',
-        content:
-          "Analizzando l'uso delle feature, 118 clienti su 312 attivano funzionalità che richiederebbero il piano Pro. " +
-          "Un campagna di upgrade mirata con sconto del 20% per i primi 3 mesi può aumentare l'MRR di circa 9-12k €/mese. " +
-          "Suggerimento: lancia entro 30 giorni con email + in-app banner.",
-        confidence: 0.74,
-      },
-      {
-        organizationId,
-        type: 'STRATEGY',
-        priority: 'LOW',
-        status: 'NEW',
-        title: 'Espansione internazionale: DACH e Iberia',
-        summary:
-          "Il segmento PMI in DACH e Iberia è in crescita del 14% YoY: valutare espansione 2026.",
-        content:
-          "I dati di mercato indicano che il TAM in DACH cresce a doppia cifra. " +
-          "TechFlow ha già 7 clienti tedeschi via inbound: opportunità di local-first GTM. " +
-          "Investimento iniziale stimato 80-120k € per traduzione, GDPR compliance, " +
-          "primo sales rep di lingua tedesca. Break-even atteso al mese 14.",
-        confidence: 0.62,
-      },
-    ],
-  });
-}
 
 async function seedAlertConfigsAndAlerts(organizationId: string) {
   const cfgCount = await prisma.aiAlertConfig.count({ where: { organizationId } });
