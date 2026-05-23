@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
     const insights = rows
       .map((r) => ({
         id: r.id,
-        type: toneToType(r.tone),
-        priority: impactToPriority(r.impact),
+        type: toneToType(r.tone ?? ''),
+        priority: impactToPriority(r.impact ?? ''),
         status: 'NEW',
         title: r.title,
         summary: r.summary,

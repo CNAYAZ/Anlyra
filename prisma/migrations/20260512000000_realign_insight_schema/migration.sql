@@ -1,7 +1,8 @@
--- No-op migration: confirms schema.prisma Insight model matches the actual DB.
--- The DB was created via `prisma db push` with the original 7-column Insight schema.
--- Migration 20260508162711_fix_insight_model was never applied to the DB.
--- schema.prisma Insight model remains at 7 columns (id, organizationId, title, summary,
--- impact, tone, createdAt) which matches the actual SQLite table structure.
--- type/priority/status/content/confidence are derived by the API layer from tone/impact.
+-- Historical no-op migration (kept for migration history continuity).
+-- Originally written when the DB had 7-column Insight (created via db push).
+-- NOTE: as of 2026-05-23 this comment is superseded — the DB actually has
+--   13 columns after 20260508162711_fix_insight_model was applied in migration order.
+-- DEBITO 8 cleanup (2026-05-23):
+--   - 20260523_align_insight_schema_with_db: reconciles Prisma model to 13-col
+--   - 20260523_drop_insight_b7_zombie: removes Insight_b7 zombie table and model
 SELECT 1;
