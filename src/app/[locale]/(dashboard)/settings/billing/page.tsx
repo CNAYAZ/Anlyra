@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Check, Crown, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
+import { useCreditsStore } from '@/stores/credits-store';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
@@ -15,6 +16,7 @@ export default function SettingsBillingPage() {
   const t = useTranslations('settings');
   const tBilling = useTranslations('billing');
   const tPricing = useTranslations('pricing');
+  const aiCredits = useCreditsStore((s) => s.credits);
   const plan = usePlan();
   const currentPlanId = plan.plan;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -48,7 +50,7 @@ export default function SettingsBillingPage() {
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[11px] font-medium uppercase tracking-wider text-fg-3">{t('billingCredits')}</p>
-          <p className="font-heading text-xl font-semibold tabular-nums text-foreground">{plan.aiCreditsBalance}</p>
+          <p className="font-heading text-xl font-semibold tabular-nums text-foreground">{aiCredits}</p>
         </div>
       </div>
 

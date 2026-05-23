@@ -18,7 +18,6 @@ export interface BillingState {
   status: "active" | "trialing" | "past_due" | "canceled";
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
-  aiCreditsBalance: number;
 }
 
 interface BillingContextValue {
@@ -56,7 +55,6 @@ const DEFAULT_BILLING: BillingContextValue = {
     status: "active",
     periodEnd: null,
     cancelAtPeriodEnd: false,
-    aiCreditsBalance: 0,
   },
   limits: PLANS["PRO"].limits,
   hasFeature: () => false,
@@ -79,7 +77,6 @@ export function usePlan() {
     periodEnd: state.periodEnd,
     cancelAtPeriodEnd: state.cancelAtPeriodEnd,
     limits,
-    aiCreditsBalance: state.aiCreditsBalance,
   };
 }
 

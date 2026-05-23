@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/fetcher';
-import { usePlan } from '@/lib/billing/context';
+import { useCreditsStore } from '@/stores/credits-store';
 import type { ForecastSummary } from '@/lib/forecasting';
 import type { HistoricalPoint, ForecastPoint } from '@/components/ai/forecasting/forecast-chart';
 import type { Locale } from '@/lib/utils';
@@ -30,7 +30,7 @@ type ForecastResponse = {
 
 export default function ForecastingPage() {
   const t = useTranslations('forecasting');
-  const { aiCreditsBalance } = usePlan();
+  const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const locale = useLocale() as Locale;
 
   const [controls, setControls] = useState<ForecastControlValues>({
