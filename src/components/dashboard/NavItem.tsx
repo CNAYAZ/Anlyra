@@ -63,15 +63,15 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
         href={item.href}
         onClick={onNavigate}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          'border-l-[3px]',
+          'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+          "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-r-sm before:content-['']",
           isActive
-            ? 'bg-sidebar-active text-sidebar-active-foreground border-l-sage-500 dark:border-l-sage-300'
-            : 'text-sidebar-foreground hover:bg-sidebar-hover border-l-transparent',
+            ? 'bg-sidebar-active text-sidebar-active-foreground before:bg-sage-500 dark:before:bg-sage-300'
+            : 'text-sidebar-foreground hover:bg-sidebar-hover before:bg-transparent',
         )}
         aria-current={isActive ? 'page' : undefined}
       >
-        <Icon className="h-5 w-5 shrink-0 opacity-75" />
+        <Icon className={cn('h-5 w-5 shrink-0 transition-opacity duration-150', isActive ? 'opacity-100' : 'opacity-80')} />
         <span className="truncate">{t(item.labelKey)}</span>
       </Link>
     );
@@ -83,15 +83,15 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-          'border-l-[3px]',
+          'relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+          "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-r-sm before:content-['']",
           isChildActive
-            ? 'bg-sidebar-active text-sidebar-active-foreground border-l-sage-500 dark:border-l-sage-300'
-            : 'text-sidebar-foreground hover:bg-sidebar-hover border-l-transparent',
+            ? 'bg-sidebar-active text-sidebar-active-foreground before:bg-sage-500 dark:before:bg-sage-300'
+            : 'text-sidebar-foreground hover:bg-sidebar-hover before:bg-transparent',
         )}
         aria-expanded={open}
       >
-        <Icon className="h-5 w-5 shrink-0 opacity-75" />
+        <Icon className={cn('h-5 w-5 shrink-0 transition-opacity duration-150', isChildActive ? 'opacity-100' : 'opacity-80')} />
         <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
         <ChevronDown
           className={cn('h-4 w-4 transition-transform', open && 'rotate-180')}
@@ -108,10 +108,11 @@ export function NavItem({ item, collapsed, onNavigate }: NavItemProps) {
                   onClick={onNavigate}
                   aria-current={childActive ? 'page' : undefined}
                   className={cn(
-                    'block rounded-md px-3 py-1.5 text-sm transition-colors border-l-[3px]',
+                    "relative block rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
+                    "before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:rounded-r-sm before:content-['']",
                     childActive
-                      ? 'bg-sidebar-active text-sidebar-active-foreground font-medium border-l-sage-500 dark:border-l-sage-300'
-                      : 'text-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground border-l-transparent',
+                      ? 'bg-sidebar-active text-sidebar-active-foreground font-medium before:bg-sage-500 dark:before:bg-sage-300'
+                      : 'text-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground before:bg-transparent',
                   )}
                 >
                   {t(child.labelKey)}

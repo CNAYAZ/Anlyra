@@ -41,8 +41,8 @@ export function DeltaBadge({
     <span
       aria-label={ariaLabel}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5',
-        'text-[11.5px] font-medium tabular-nums leading-tight',
+        'inline-flex items-center gap-0.5 rounded-md px-2 py-0.5',
+        'text-[11.5px] font-semibold tabular-nums leading-tight',
         sentimentCls[sentiment],
         className,
       )}

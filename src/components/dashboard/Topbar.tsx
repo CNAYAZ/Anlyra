@@ -16,7 +16,7 @@ export function Topbar() {
   const unreadCount = 0;
 
   return (
-    <header className="sticky top-0 z-30 flex h-topbar items-center gap-6 border-b border-border bg-card px-6">
+    <header className="sticky top-0 z-30 flex h-topbar items-center gap-5 border-b border-border/60 bg-card/95 backdrop-blur-sm px-6">
       <button
         type="button"
         aria-label={t('openSidebar')}

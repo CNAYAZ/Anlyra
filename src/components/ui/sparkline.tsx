@@ -54,14 +54,14 @@ export function Sparkline({
       {/* area fill */}
       <path
         d={areaPath}
-        fillOpacity={0.12}
+        fillOpacity={0.10}
         className="fill-sage-500 dark:fill-sage-300"
       />
       {/* line */}
       <path
         d={linePath}
         fill="none"
-        strokeWidth={1.6}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
         className="stroke-sage-500 dark:stroke-sage-300"
