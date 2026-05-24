@@ -16,10 +16,10 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-9 w-full items-center justify-between rounded-md border border-border-strong bg-input-bg px-3 text-[13.5px] text-foreground',
-      'transition-colors placeholder:text-fg-3',
-      'hover:border-sage-500/50',
-      'focus:border-sage-500 focus:ring-[3px] focus:ring-sage-500/20 focus:outline-none',
+      'flex h-9 w-full items-center justify-between rounded-md border border-border-strong bg-input-bg px-3.5 text-[13.5px] text-foreground',
+      'transition-all duration-150 placeholder:text-fg-3',
+      'hover:border-sage-500/60',
+      'focus:border-sage-500 focus:ring-[3px] focus:ring-sage-500/25 focus:outline-none',
       'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted',
       'data-[placeholder]:text-fg-3',
       className
@@ -28,7 +28,7 @@ export const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+      <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -73,7 +73,7 @@ export const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       'relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-8 pr-2 text-[13px] outline-none',
-      'hover:bg-sage-50 hover:text-sage-700 focus:bg-sage-50 focus:text-sage-700',
+      'hover:bg-sage-50/50 hover:text-sage-700 focus:bg-sage-50 focus:text-sage-700',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}

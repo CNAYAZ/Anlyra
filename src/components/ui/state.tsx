@@ -201,13 +201,13 @@ export function ErrorState({
       <div
         role="alert"
         className={cn(
-          'min-h-screen flex flex-col items-center justify-center text-center px-6 py-16 bg-background',
+          'min-h-screen flex flex-col items-center justify-center text-center px-6 py-24 bg-background',
           className,
         )}
       >
         {bigCode && (
           <p
-            className="text-[88px] font-semibold tabular-nums leading-none text-fg-3/60 select-none mb-4"
+            className="text-[88px] font-medium tabular-nums leading-none tracking-[-0.05em] text-fg-3/50 select-none mb-6"
             aria-hidden
           >
             {bigCode}
@@ -231,7 +231,7 @@ export function ErrorState({
           <Button
             onClick={retryHandler}
             aria-label={retry?.ariaLabel ?? 'Riprova'}
-            className="gap-1.5"
+            className="gap-1.5 transition-all duration-200 hover:-translate-y-[1px]"
           >
             <RotateCcw className="h-4 w-4" aria-hidden />
             {retry?.label ?? 'Riprova'}
