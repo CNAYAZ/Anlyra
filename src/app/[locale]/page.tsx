@@ -8,6 +8,7 @@ import {
   type ProblemPoint,
   type TestimonialItem,
 } from '@/components/landing/landing-page';
+import { softwareApplicationSchema } from '@/lib/seo/json-ld';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -45,7 +46,14 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: 'landing' });
 
   return (
-    <LandingPage
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(softwareApplicationSchema()),
+        }}
+      />
+      <LandingPage
       heroTitle={t('hero.title')}
       heroSubtitle={t('hero.subtitle')}
       heroCta1={t('hero.cta1')}
@@ -67,6 +75,7 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
       finalCtaSubtitle={t('finalCta.subtitle')}
       finalCtaPrimary={t('finalCta.ctaPrimary')}
       finalCtaSecondary={t('finalCta.ctaSecondary')}
-    />
+      />
+    </>
   );
 }
