@@ -1,5 +1,8 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { PricingPage, type FaqItem } from '@/components/pricing/pricing-page';
+import { productSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.it';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -13,7 +16,48 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
   const t = await getTranslations({ locale, namespace: 'pricing' });
 
   return (
-    <PricingPage
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            productSchema({
+              name: 'Pro',
+              description:
+                'Analytics AI per piccoli team. 200 crediti AI, fino a 5 utenti.',
+              priceMonthly: 49,
+              priceYearly: 490,
+            }),
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            productSchema({
+              name: 'Avanzato',
+              description:
+                'Analytics AI per team in crescita. 700 crediti AI, fino a 15 utenti.',
+              priceMonthly: 149,
+              priceYearly: 1490,
+              isPopular: true,
+            }),
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbSchema([
+              { name: 'Home', url: `${SITE_URL}/${locale}` },
+              { name: 'Pricing', url: `${SITE_URL}/${locale}/pricing` },
+            ]),
+          ),
+        }}
+      />
+      <PricingPage
       heroTitle={t('hero.title')}
       heroSubtitle={t('hero.subtitle')}
       toggleMonthly={t('toggle.monthly')}
@@ -57,6 +101,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       finalCtaTitle={t('finalCta.title')}
       finalCtaSubtitle={t('finalCta.subtitle')}
       finalCtaPrimary={t('finalCta.ctaPrimary')}
-    />
+      />
+    </>
   );
 }
