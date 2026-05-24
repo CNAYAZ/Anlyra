@@ -19,7 +19,7 @@ export const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-[hsl(30_25%_8%/0.55)] backdrop-blur-sm',
+      'fixed inset-0 z-50 bg-[hsl(30_25%_8%/0.50)] backdrop-blur-md',
       'data-[state=open]:animate-in data-[state=open]:fade-in-0',
       'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
       className,
@@ -34,7 +34,7 @@ const dialogContentVariants = cva(
   [
     'fixed left-1/2 top-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2',
     'bg-card border border-border rounded-xl shadow-elev-4',
-    'max-h-[calc(100vh-40px)] overflow-hidden',
+    'max-h-[calc(100vh-48px)] overflow-hidden',
     'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
     'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
   ].join(' '),
@@ -81,7 +81,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName;
 /* ── Header ── */
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('px-6 pt-5 pb-1.5 flex items-start gap-3.5', className)} {...props} />
+    <div className={cn('px-6 pt-6 pb-2 flex items-start gap-3', className)} {...props} />
   );
 }
 
@@ -92,7 +92,7 @@ export const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-[17px] font-semibold tracking-tight text-foreground text-balance', className)}
+    className={cn('text-[17px] font-semibold tracking-tight text-foreground text-balance mb-1.5', className)}
     {...props}
   />
 ));
@@ -121,7 +121,7 @@ export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLD
   return (
     <div
       className={cn(
-        'px-5 py-3.5 border-t border-border bg-bg flex items-center justify-end gap-2',
+        'px-6 py-4 border-t border-border bg-bg flex items-center justify-end gap-2.5',
         className,
       )}
       {...props}

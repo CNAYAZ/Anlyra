@@ -29,14 +29,14 @@ export function Field({
   const errId = error ? `${id}-err` : undefined;
 
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
+    <div className={cn('flex flex-col gap-2', className)}>
       <label
         htmlFor={id}
-        className="inline-flex items-center gap-1 text-[12.5px] font-medium text-foreground tracking-tight"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-foreground tracking-tight"
       >
         {label}
         {required && (
-          <span aria-hidden className="text-danger-500 font-semibold">
+          <span aria-hidden className="text-danger-600 font-semibold">
             *
           </span>
         )}
@@ -67,7 +67,7 @@ export function Field({
         </p>
       ) : (
         help && (
-          <p id={helpId} className="text-[11.5px] text-fg-3 leading-snug">
+          <p id={helpId} className="text-[11.5px] text-fg-3 leading-relaxed">
             {help}
           </p>
         )

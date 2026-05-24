@@ -19,7 +19,7 @@ export const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-[hsl(30_25%_8%/0.55)] backdrop-blur-sm',
+      'fixed inset-0 z-50 bg-[hsl(30_25%_8%/0.50)] backdrop-blur-md',
       'data-[state=open]:animate-in data-[state=open]:fade-in-0',
       'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
       className,
@@ -96,7 +96,7 @@ SheetContent.displayName = 'SheetContent';
 
 export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('px-6 pt-5 pb-1.5 border-b border-border flex items-start gap-3.5', className)} {...props} />
+    <div className={cn('px-6 pt-6 pb-2 border-b border-border flex items-start gap-3', className)} {...props} />
   );
 }
 
@@ -131,7 +131,7 @@ export function SheetBody({ className, ...props }: React.HTMLAttributes<HTMLDivE
 export function SheetFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('px-5 py-3.5 border-t border-border flex items-center justify-end gap-2', className)}
+      className={cn('px-6 py-4 border-t border-border flex items-center justify-end gap-2.5', className)}
       {...props}
     />
   );
