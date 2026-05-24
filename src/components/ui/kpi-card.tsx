@@ -80,6 +80,7 @@ export function KpiCard({
     <div
       className={cn(
         'bg-card border border-border shadow-elev-1 flex flex-col',
+        'hover:shadow-elev-2 transition-shadow duration-200',
         isDense ? 'rounded-md p-3.5' : 'rounded-lg p-5',
         state === 'error' && 'border-danger-50',
         className,
@@ -126,7 +127,7 @@ export function KpiCard({
       {state === 'idle' && (
         <>
           {/* Value row */}
-          <div className="flex items-baseline flex-wrap gap-x-2.5 gap-y-1 mb-1">
+          <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 mb-1">
             <span
               className={cn(
                 "font-semibold text-foreground tabular-nums leading-[1.05] [font-feature-settings:'tnum'_1,'ss01'_1] tracking-[-0.022em]",
@@ -201,7 +202,7 @@ export function KpiCard({
             <Sparkline
               data={sparkline}
               aria-label={sparklineAriaLabel}
-              className={cn('mt-3.5 w-full', isDense ? 'h-7' : 'h-9')}
+              className={cn('mt-4 w-full', isDense ? 'h-7' : 'h-9')}
             />
           )}
         </>

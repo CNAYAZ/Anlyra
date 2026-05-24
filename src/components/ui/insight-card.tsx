@@ -36,14 +36,14 @@ export interface InsightCardProps {
 
 /* ── Priority maps ── */
 
-const borderL: Record<Priority, string> = {
-  critical:    'border-l-danger-500',
-  high:        'border-l-danger-500',
-  warning:     'border-l-warning-500',
-  medium:      'border-l-warning-500',
-  info:        'border-l-info-500',
-  low:         'border-l-info-500',
-  opportunity: 'border-l-success-500',
+const beforeBg: Record<Priority, string> = {
+  critical:    'before:bg-danger-500',
+  high:        'before:bg-danger-500',
+  warning:     'before:bg-warning-500',
+  medium:      'before:bg-warning-500',
+  info:        'before:bg-info-500',
+  low:         'before:bg-info-500',
+  opportunity: 'before:bg-success-500',
 };
 
 const iconWrap: Record<Priority, string> = {
@@ -144,13 +144,14 @@ export function InsightCard({
     <article
       aria-labelledby={titleId}
       className={cn(
-        'bg-card border border-border border-l-[3px] rounded-lg shadow-elev-1',
+        'relative bg-card border border-border rounded-lg shadow-elev-1',
         'grid grid-cols-[34px_1fr_auto] gap-x-3.5',
         density === 'default' ? 'p-5 pl-[22px]' : 'p-3.5 pl-4',
-        'transition-all',
-        onOpen && 'cursor-pointer hover:shadow-elev-2 hover:-translate-y-px focus-within:ring-2 focus-within:ring-sage-500 focus-within:ring-offset-2',
+        "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-sm before:content-['']",
+        beforeBg[priority],
+        'hover:-translate-y-[1px] hover:shadow-elev-2 transition-all duration-200 ease-out',
+        onOpen && 'cursor-pointer focus-within:ring-2 focus-within:ring-sage-500 focus-within:ring-offset-2',
         isDim && 'opacity-70',
-        borderL[priority],
         className,
       )}
       onClick={onOpen}
@@ -219,7 +220,7 @@ export function InsightCard({
               className="relative h-1 flex-1 max-w-[140px] bg-muted rounded-full overflow-hidden"
             >
               <div
-                className="absolute inset-y-0 left-0 bg-sage-500 dark:bg-sage-300 rounded-full"
+                className="absolute inset-y-0 left-0 bg-sage-500 dark:bg-sage-300 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(Math.max(confidence, 0), 100)}%` }}
               />
             </div>
@@ -246,7 +247,7 @@ export function InsightCard({
       {/* ── Footer actions (col-span-3, not in spotlight) ── */}
       {!isSpot && actions && (
         <div
-          className="col-span-3 flex items-center gap-1 pt-3.5 mt-3.5 border-t border-border"
+          className="col-span-3 flex items-center gap-1 pt-3 mt-3.5 border-t border-border"
           onClick={(e) => e.stopPropagation()}
         >
           {actions}

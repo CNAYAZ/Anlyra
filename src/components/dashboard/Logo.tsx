@@ -12,7 +12,7 @@ export function Logo({
 }) {
   const t = useTranslations('app');
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center gap-2.5', className)}>
       <svg
         width="36"
         height="36"
@@ -30,7 +30,7 @@ export function Logo({
       </svg>
       {!collapsed && (
         <div className="flex flex-col leading-tight">
-          <span className="font-heading font-bold text-lg text-sage-700 dark:text-sage-300">
+          <span className="font-heading font-bold text-lg tracking-[-0.01em] text-sage-700 dark:text-sage-300">
             {t('name')}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">

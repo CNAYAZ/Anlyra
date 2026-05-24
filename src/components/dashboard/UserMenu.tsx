@@ -44,7 +44,7 @@ export function UserMenu() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={t('topbar.userMenu')}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-sage-200 text-sage-800 dark:bg-sage-700 dark:text-sage-200 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-sage-200 text-sage-800 dark:bg-sage-700 dark:text-sage-200 text-[13px] font-semibold ring-2 ring-transparent hover:ring-sage-200 dark:hover:ring-sage-600 hover:opacity-90 transition-all duration-150 focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2"
       >
         {initials}
       </button>
