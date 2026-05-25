@@ -56,13 +56,15 @@ Ogni richiesta al motore AI — un insight generato, una risposta in chat, una p
 ### Posso acquistare crediti AI extra senza cambiare piano?
 Sì. I pacchetti di crediti aggiuntivi sono:
 
-| Pacchetto | Crediti | Prezzo |
-|-----------|--------:|-------:|
-| Starter   | 50      | €9     |
-| Medium    | 200     | €29    |
-| Large     | 500     | €59    |
+| Pacchetto | Crediti | Prezzo            |
+|-----------|--------:|------------------:|
+| Starter   | 50      | €[da definire]    |
+| Medium    | 200     | €[da definire]    |
+| Large     | 500     | €[da definire]    |
 
 I crediti extra si aggiungono al saldo esistente e non scadono con il rinnovo mensile.
+
+> **Nota credit pack pricing**: i prezzi dei credit pack sono in fase di definizione strategica. I prezzi finali saranno comunicati pre-launch commerciale. Le quantità (50/200/500 crediti) e la struttura (one-time purchase, non rinnovabile) sono confermate.
 
 ### Conviene il piano annuale?
 Il piano annuale è adatto a chi ha una necessità continuativa. Il risparmio è di circa il 17% rispetto al mensile. Se stai ancora valutando il prodotto, inizia dal mensile: puoi passare all'annuale in qualsiasi momento dal pannello di fatturazione.

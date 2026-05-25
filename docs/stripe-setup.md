@@ -124,18 +124,20 @@ Per acquisto crediti AI aggiuntivi senza upgrade piano. Gli ID dei pack nel codi
 
 **Pack 50 crediti**:
 - New product → `Anlyra Crediti AI · 50`
-- Price: `€19.00 EUR`, One-time
+- Price: `€[da definire] EUR`, One-time
 - → `STRIPE_PRICE_CREDITS_50`
 
 **Pack 200 crediti**:
 - New product → `Anlyra Crediti AI · 200`
-- Price: `€59.00 EUR`, One-time
+- Price: `€[da definire] EUR`, One-time
 - → `STRIPE_PRICE_CREDITS_200`
 
 **Pack 500 crediti**:
 - New product → `Anlyra Crediti AI · 500`
-- Price: `€129.00 EUR`, One-time
+- Price: `€[da definire] EUR`, One-time
 - → `STRIPE_PRICE_CREDITS_500`
+
+> **Nota credit pack pricing**: i prezzi dei credit pack sono in fase di definizione strategica. I prezzi finali saranno comunicati pre-launch commerciale. Le quantità (50/200/500 crediti) e la struttura (one-time purchase, non rinnovabile) sono confermate.
 
 ### 3.5 Tabella riassuntiva price IDs
 
@@ -149,9 +151,9 @@ Compila questa tabella man mano che crei i prodotti:
 | Avanzato | Yearly | €1490 | STRIPE_PRICE_ADVANCED_YEARLY | price_... |
 | Enterprise | Monthly | custom | STRIPE_PRICE_ENTERPRISE_MONTHLY | price_... (opz.) |
 | Enterprise | Yearly | custom | STRIPE_PRICE_ENTERPRISE_YEARLY | price_... (opz.) |
-| Credits | 50 | €19 | STRIPE_PRICE_CREDITS_50 | price_... |
-| Credits | 200 | €59 | STRIPE_PRICE_CREDITS_200 | price_... |
-| Credits | 500 | €129 | STRIPE_PRICE_CREDITS_500 | price_... |
+| Credits | 50 | €[da definire] | STRIPE_PRICE_CREDITS_50 | price_... |
+| Credits | 200 | €[da definire] | STRIPE_PRICE_CREDITS_200 | price_... |
+| Credits | 500 | €[da definire] | STRIPE_PRICE_CREDITS_500 | price_... |
 
 Poi inserisci tutti in Vercel Environment Variables (production).
 
