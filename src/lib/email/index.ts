@@ -6,3 +6,7 @@ export { verifyEmailTemplate } from './templates/verify-email';
 export { passwordResetTemplate } from './templates/password-reset';
 export { paymentConfirmedTemplate } from './templates/payment-confirmed';
 export { teamInviteTemplate } from './templates/team-invite';
+export { trialThreeDaysTemplate } from './templates/trial-3days';
+export { trialOneDayTemplate } from './templates/trial-1day';
+export { trialExpiredTemplate } from './templates/trial-expired';
+export { subscriptionCanceledTemplate } from './templates/subscription-canceled';
