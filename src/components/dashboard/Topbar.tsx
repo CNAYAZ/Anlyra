@@ -9,6 +9,7 @@ import { NotificationBell } from './NotificationBell';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitch } from './LanguageSwitch';
 import { UserMenu } from './UserMenu';
+import { OrgSwitcher } from './OrgSwitcher';
 
 export function Topbar() {
   const t = useTranslations('topbar');
@@ -31,6 +32,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        <OrgSwitcher />
         <CreditsCounter />
         <NotificationBell count={unreadCount} />
         <LanguageSwitch />

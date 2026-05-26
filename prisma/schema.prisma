@@ -9,35 +9,64 @@ generator client {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  name        String?
-  image       String?
-  locale      String       @default("it")
-  createdAt   DateTime     @default(now())
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  locale    String   @default("it")
+  createdAt DateTime @default(now())
+
+  // Auth.js adapter standard field (used by PrismaAdapter for OAuth users)
+  emailVerified DateTime?
+
+  // FASE D auth fields
+  emailVerifiedAt        DateTime?
+  passwordHash           String?
+  emailVerifyToken       String?   @unique
+  emailVerifyExpiresAt   DateTime?
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
+  twoFactorSecret        String?
+  twoFactorEnabledAt     DateTime?
+  twoFactorBackupCodes   String? // JSON array stringified
+  twoFactorRemindSentAt  DateTime?
+  lastLoginAt            DateTime?
+
   memberships Membership[]
+  accounts    Account[]
+  sessions    Session[]
+  sentInvites Invite[]     @relation("InviterRelation")
 }
 
 model Organization {
-  id               String          @id @default(cuid())
+  id               String   @id @default(cuid())
   name             String
-  slug             String          @unique
-  plan             String          @default("STARTER")
-  aiCredits        Int             @default(100)
-  aiCreditsBalance Int             @default(100)
-  currency         String          @default("EUR")
-  industry         String          @default("Generale")
-  employees        Int             @default(1)
-  country          String          @default("IT")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @default(now()) @updatedAt
-  memberships      Membership[]
-  transactions     Transaction[]
-  cashflowEntries  CashflowEntry[]
-  budgetEntries    BudgetEntry[]
-  customerStats    CustomerStat[]
-  subscriptions    Subscription[]
-  insights         Insight[]
+  slug             String   @unique
+  plan             String   @default("STARTER")
+  aiCredits        Int      @default(100)
+  aiCreditsBalance Int      @default(100)
+  currency         String   @default("EUR")
+  industry         String   @default("Generale")
+  employees        Int      @default(1)
+  country          String   @default("IT")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  // FASE D onboarding + trial fields
+  teamSize         String? // '1' | '2-5' | '6-15' | '16-50' | '50+'
+  vatNumber        String?
+  setupCompletedAt DateTime?
+  trialStartedAt   DateTime?
+  trialEndsAt      DateTime?
+
+  memberships     Membership[]
+  transactions    Transaction[]
+  cashflowEntries CashflowEntry[]
+  budgetEntries   BudgetEntry[]
+  customerStats   CustomerStat[]
+  subscriptions   Subscription[]
+  insights        Insight[]
+  invites         Invite[]
 }
 
 model Membership {
@@ -45,10 +74,69 @@ model Membership {
   userId         String
   organizationId String
   role           String       @default("owner")
+  isDefault      Boolean      @default(false)
+  joinedAt       DateTime     @default(now())
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Invite {
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String
+  invitedById    String
+  role           String // 'admin' | 'editor' | 'viewer'
+  token          String       @unique
+  acceptedAt     DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User         @relation("InviterRelation", fields: [invitedById], references: [id])
+
+  @@index([email])
+  @@index([organizationId])
+  @@index([token])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Transaction {

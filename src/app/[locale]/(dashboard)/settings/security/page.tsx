@@ -4,16 +4,16 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, ShieldCheck, KeyRound, Smartphone, X } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, KeyRound, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import TwoFactorPanel from './TwoFactorPanel';
 
 export default function SettingsSecurityPage() {
   const t = useTranslations('settings');
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
-  const [twoFa, setTwoFa] = useState(false);
   const [toast, setToast] = useState<'ok' | 'err' | null>(null);
 
   function changePassword(e: React.FormEvent) {
@@ -76,24 +76,7 @@ export default function SettingsSecurityPage() {
         </button>
       </form>
 
-      <div className="card flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Smartphone className="h-5 w-5 text-primary-accent" />
-          <div>
-            <h2 className="font-heading text-base font-semibold">{t('securityTwoFa')}</h2>
-            <p className="text-xs text-muted-foreground">{t('securityTwoFaDesc')}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setTwoFa(!twoFa)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${twoFa ? 'bg-success' : 'bg-muted'}`}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${twoFa ? 'translate-x-5' : 'translate-x-0.5'}`}
-          />
-        </button>
-      </div>
+      <TwoFactorPanel />
 
       <div className="card flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 text-success" />
