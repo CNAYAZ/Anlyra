@@ -1,11 +1,57 @@
-// Stub session helper used until full auth lands.
-// Returns the demo user/org for dev so SaaS features work end-to-end.
+// Bridge session helper (FASE D).
+// Prefers the authenticated NextAuth session + selected organization; falls
+// back to the demo user/org when no session is present so the dashboard keeps
+// working out of the box. Dashboard consumers migrate to the real session
+// transparently as users sign in.
+import { cookies } from 'next/headers';
 import { prisma } from './prisma';
+import { auth } from '@/auth';
 
 const DEMO_EMAIL = 'demo@pro.app';
 const DEMO_ORG_ID = 'demo-org';
+const ORG_COOKIE = 'current_org_id';
 
-export async function getCurrentContext() {
+async function resolveSessionContext(): Promise<{ userId: string; organizationId: string } | null> {
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return null;
+  }
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  // Selected org: cookie override → session default → any membership.
+  const cookieStore = await cookies();
+  const cookieOrgId = cookieStore.get(ORG_COOKIE)?.value;
+
+  let organizationId: string | undefined;
+  if (cookieOrgId) {
+    const valid = await prisma.membership.findFirst({
+      where: { userId, organizationId: cookieOrgId },
+      select: { organizationId: true },
+    });
+    organizationId = valid?.organizationId;
+  }
+  if (!organizationId && session?.currentOrgId) {
+    const valid = await prisma.membership.findFirst({
+      where: { userId, organizationId: session.currentOrgId },
+      select: { organizationId: true },
+    });
+    organizationId = valid?.organizationId;
+  }
+  if (!organizationId) {
+    const membership =
+      (await prisma.membership.findFirst({ where: { userId, isDefault: true } })) ??
+      (await prisma.membership.findFirst({ where: { userId } }));
+    organizationId = membership?.organizationId;
+  }
+
+  if (!organizationId) return null; // signed in but no org yet (pre-onboarding)
+  return { userId, organizationId };
+}
+
+async function getDemoContext(): Promise<{ userId: string; organizationId: string }> {
   const user = await prisma.user.upsert({
     where: { email: DEMO_EMAIL },
     update: {},
@@ -31,7 +77,7 @@ export async function getCurrentContext() {
   });
   if (!existingMembership) {
     await prisma.membership.create({
-      data: { userId: user.id, organizationId: org.id, role: 'owner' },
+      data: { userId: user.id, organizationId: org.id, role: 'owner', isDefault: true },
     });
   }
   // Ensure data exists even if membership existed but seeding never ran
@@ -42,11 +88,21 @@ export async function getCurrentContext() {
   return { userId: user.id, organizationId: org.id };
 }
 
+export async function getCurrentContext() {
+  const real = await resolveSessionContext();
+  if (real) return real;
+  return getDemoContext();
+}
+
 export async function getCurrentOrganization() {
   const { organizationId } = await getCurrentContext();
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { plan: true },
+  });
   return {
     id: organizationId,
-    plan: 'PRO' as const,
+    plan: (org?.plan as string) || 'PRO',
   };
 }
 
