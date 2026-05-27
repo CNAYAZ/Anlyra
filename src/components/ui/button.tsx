@@ -64,6 +64,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : 'button';
+
+    // Slot (asChild) requires exactly one React element child — never pass
+    // boolean short-circuit expressions alongside children.
+    const content = asChild
+      ? children
+      : loading && loadingMode === 'replace'
+        ? <Loader2 className="h-4 w-4 animate-spin" />
+        : (
+          <>
+            {loading && loadingMode === 'inline' && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
+            {children}
+          </>
+        );
+
     return (
       <Comp
         ref={ref}
@@ -72,14 +88,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading || undefined}
         {...props}
       >
-        {loading && loadingMode === 'inline' && (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        )}
-        {loading && loadingMode === 'replace' ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          children
-        )}
+        {content}
       </Comp>
     );
   }
