@@ -1,338 +1,282 @@
-# Posizione di Sicurezza e GDPR — Anlyra
+# Security & GDPR Posture — Anlyra
 
-**Versione:** 1.0
-**Data:** 2026-05-24
-**Status:** Living document — aggiornato ad ogni feature security implementata
+**Versione:** 2.0
+**Last updated:** 2026-05-28
+**Status:** Living document — aggiornato a ogni feature security implementata.
+**Audience:** prospect enterprise, security review / due diligence, DPO.
 
-> **Nota di onestà:** questo documento distingue esplicitamente tra misure
-> **già implementate** e misure **pianificate pre-launch**. Nessun claim falso.
-> Serve da documento di riferimento interno e da risposta standard a richieste
-> di due diligence di prospect enterprise.
+> **Nota di onestà.** Questo documento distingue esplicitamente tra misure **già implementate** e
+> misure **pianificate pre-launch**. Nessun claim falso. Serve da riferimento interno e da risposta
+> standard alle richieste di due diligence enterprise.
+
+**Documenti correlati**: [`security-audit-checklist.md`](security-audit-checklist.md) (51 item),
+[`postgres-migration-plan.md`](postgres-migration-plan.md), [`privacy-dpia-template.md`](privacy-dpia-template.md),
+[`gdpr/subprocessor-list.md`](gdpr/subprocessor-list.md), [`incident-response-playbook.md`](incident-response-playbook.md),
+[`DEPLOY.md`](DEPLOY.md).
 
 ---
 
-## 1. Approccio generale
+## 1. Security overview
 
-Anlyra è una piattaforma SaaS per PMI italiane che tratta dati finanziari aziendali
-confidenziali. La sicurezza e la privacy sono vincolanti by design, non un layer aggiunto
-post-hoc.
+Anlyra tratta dati finanziari e operativi aziendali confidenziali. La sicurezza e la privacy sono
+vincolanti **by design**, non un layer aggiunto post-hoc.
 
 **Principi fondamentali:**
 
-- **Privacy by design (Art. 25 GDPR):** architettura pensata per minimizzare la raccolta e
-  l'esposizione dei dati fin dalla prima riga di codice.
-- **Data residency EU:** database Supabase in Frankfurt (AWS eu-central-1). I dati
-  dei clienti non escono dall'UE salvo sub-processors US con DPA + SCC (vedi §3.7).
-- **No data selling:** Anlyra non vende, non affitta, non cede dati utente a terze parti per
-  finalità di marketing.
-- **No AI training:** i dati cliente non sono mai usati per fare training di modelli AI
-  (né di Anthropic, né di Anlyra). DPA con Anthropic lo garantisce contrattualmente.
-- **Least privilege:** ogni componente accede solo ai dati strettamente necessari. Le API
-  interne non espongono più di quanto serve al frontend.
+- **Privacy by design (Art. 25 GDPR)** — architettura pensata per minimizzare raccolta ed
+  esposizione dei dati fin dalla prima riga di codice.
+- **Defense in depth** — controlli su più livelli (edge, applicazione, DB, sub-processor); il
+  fallimento di un controllo non compromette l'intero sistema.
+- **Least privilege** — ogni componente accede solo ai dati strettamente necessari; le API interne
+  non espongono più del necessario al frontend; accesso ai dati bancari/finanziari limitato per ruolo.
+- **Data residency EU** — database in EU (Frankfurt/Stockholm). I dati non escono dall'UE salvo
+  sub-processor US coperti da DPA + SCC / Data Privacy Framework (§7).
+- **No data selling** — Anlyra non vende, affitta o cede dati utente a terzi per marketing.
+- **No AI training** — i dati cliente non sono mai usati per addestrare modelli AI (Anthropic né
+  proprietari). Garantito contrattualmente dal DPA con Anthropic.
 
 ---
 
-## 2. Sicurezza tecnica
+## 2. Data protection
 
-### 2.1 Autenticazione e sessione
+### 2.1 Encryption at rest
 
-**Implementato:**
+- **Implementato (prod target):** database Supabase Postgres cifrato **AES-256** at rest (default
+  della piattaforma). Storage e backup cifrati.
+- **Token integrazioni** (OAuth refresh token per QuickBooks/Fatture in Cloud/PSD2 — pianificate):
+  cifrati a livello applicativo prima della persistenza in `IntegrationConnection`.
 
-- Cookie di sessione custom `pro_session` — nessun framework di autenticazione esterno
-  (no NextAuth, no Clerk) che aggiunge superficie di attacco.
-- Cookie flags: `HttpOnly: true` (inaccessibile a JavaScript), `SameSite: lax`
-  (protezione CSRF per richieste cross-site), `Path: /`.
-- Il cookie non è leggibile da script client-side — impossibile estrarre via XSS.
+### 2.2 Encryption in transit
 
-**Pianificato pre-launch:**
+- **Implementato:** HTTPS enforced (TLS 1.2 minimo, TLS 1.3 preferito). Certificati gestiti da
+  Vercel, auto-rinnovati. Connessione app ↔ Supabase su TLS.
+- **HSTS:** `Strict-Transport-Security` con `max-age` lungo + `includeSubDomains; preload`
+  (configurato in `next.config.mjs`, vedi §4).
 
-- Aggiungere `Secure: true` esplicitamente nel set-cookie (HTTPS-only; Vercel lo applica
-  in produzione automaticamente).
-- Firma HMAC del payload di sessione per prevenire tampering lato client.
-- Scadenza cookie configurabile (default 7 giorni, con sliding expiry su attività).
-- Implementazione autenticazione email/password con hash bcrypt (cost factor 12+).
-- 2FA opzionale per utenti singoli (TOTP via `otplib`).
-- SSO SAML incluso nel piano Enterprise (Okta, Azure AD, Auth0).
+### 2.3 Data residency
 
-### 2.2 Trasporto
+- **EU only.** Database e backup primari in EU (Supabase Frankfurt — AWS `eu-central-1`; failover
+  Stockholm). Vercel servito da region EU.
+- Sub-processor US (Stripe, Resend, Anthropic, Sentry) trattano dati specifici e limitati sotto
+  DPA + SCC / DPF (§7).
 
-**Implementato:**
+### 2.4 Backup strategy
 
-- HTTPS enforced da Vercel (TLS 1.2 min, TLS 1.3 preferito). Certificato Let's Encrypt
-  auto-rinnovato.
-- HSTS configurato a livello Vercel Edge per il dominio `anlyra.it`.
-
-**Pianificato pre-launch:**
-
-- Aggiunta header `Strict-Transport-Security` in `next.config.mjs` con `max-age=31536000; includeSubDomains; preload`.
-- Submit a HSTS Preload List.
-
-### 2.3 HTTP Security Headers
-
-**Situazione attuale:**
-
-`next.config.mjs` non contiene ancora security headers espliciti. Vercel ne aggiunge alcuni
-di default (X-Content-Type-Options, X-Frame-Options) ma la copertura è incompleta.
-
-**Pianificato pre-launch** (da aggiungere in `next.config.mjs`):
-
-```js
-headers: async () => [
-  {
-    source: '/(.*)',
-    headers: [
-      { key: 'X-Content-Type-Options',     value: 'nosniff' },
-      { key: 'X-Frame-Options',            value: 'DENY' },
-      { key: 'X-XSS-Protection',           value: '1; mode=block' },
-      { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy',         value: 'camera=(), microphone=(), geolocation=()' },
-      { key: 'Strict-Transport-Security',  value: 'max-age=31536000; includeSubDomains; preload' },
-    ],
-  },
-]
-```
-
-CSP (Content Security Policy) verrà configurata in una fase successiva (complessa con
-Next.js per via degli inline scripts necessari al hydration).
-
-### 2.4 Validazione input e protezione injection
-
-**Implementato:**
-
-- Tutte le API route validano l'input con **Zod** prima di qualsiasi operazione.
-  Nessun dato non validato raggiunge il database.
-- Accesso al DB esclusivamente tramite **Prisma ORM** — zero query SQL raw
-  (`$queryRaw`, `$executeRaw`) nel codebase. Injection SQL strutturalmente impossibile.
-- Next.js App Router con React Server Components — nessun `dangerouslySetInnerHTML`
-  non controllato nel codice di produzione.
-
-### 2.5 Rate limiting e protezione brute force
-
-**Situazione attuale:** nessun rate limiting implementato.
-
-**Pianificato pre-launch:**
-
-- Rate limiting su endpoint sensibili (login, signup, API pubblica) tramite
-  **Upstash Redis** con `@upstash/ratelimit` (sliding window).
-- Threshold suggeriti: 10 req/min per login, 5 req/min per signup, 100 req/min per API
-  autenticata per IP.
-
-### 2.6 Gestione secrets
-
-**Implementato:**
-
-- Tutte le chiavi API (Stripe, Anthropic, Resend, Supabase) in variabili d'ambiente —
-  mai nel codice sorgente.
-- `.gitignore` include `.env*` — i file .env locali non vengono mai committati.
-- `.env.example` nel repo documenta le variabili necessarie senza valori reali.
-
-**Pianificato:**
-
-- Secret rotation periodica (trimestrale) per Stripe keys, API keys AI.
-- 1Password Business per condivisione sicura secrets nel team (no Slack, no email).
-- Audit trail degli accessi ai secrets in produzione (Vercel env logs).
-
-### 2.7 Dependency security
-
-**Implementato:**
-
-- Stack basato su librerie mature e ampiamente auditate (Next.js, Prisma, Radix UI,
-  Stripe SDK, Resend SDK).
-
-**Pianificato:**
-
-- `npm audit` settimanale via GitHub Actions.
-- Dependabot abilitato per PR automatiche su vulnerability fix.
-- `audit-ci` nel CI/CD pipeline per bloccare build con vulnerabilità critiche non fixate.
-
-### 2.8 Backup e disaster recovery
-
-- **Database Supabase:** backup giornalieri automatici (piano Free: 1 giorno retention;
-  piano Pro: 7 giorni point-in-time recovery).
-- **Backup custom:** script `pg_dump` su S3 EU con retention 30 giorni (da implementare
-  pre-launch, vedi `docs/DEPLOY.md` §2).
-- **RPO stimato:** 24h (Free) / 1h (Pro con PITR).
-- **RTO stimato:** 2–4 ore (restore + verifica + deploy).
+- **Supabase:** backup giornalieri automatici; point-in-time recovery sul piano Pro.
+- **Custom (pre-launch):** `pg_dump` schedulato su storage EU, **retention 30 giorni**.
+- **RPO** stimato: 1–24h (in base al piano). **RTO** stimato: 2–4h (restore + verifica + deploy).
+- Procedura di restore documentata in [`DEPLOY.md`](DEPLOY.md) e nel runbook di recovery.
 
 ---
 
-## 3. GDPR compliance
+## 3. Authentication & access
 
-### 3.1 Base giuridica del trattamento (Art. 6 GDPR)
+Aggiornato a **FASE D** (NextAuth v5 implementata; il precedente cookie custom `pro_session` e la
+demo mode sono stati rimossi).
+
+- **Framework:** NextAuth v5 (Auth.js), strategia sessione **JWT** (richiesta dal Credentials
+  provider). Config split edge-safe: `auth.config.ts` (no Node, usato dal middleware) vs `auth.ts`
+  (Node — Prisma + bcrypt).
+- **Metodi di login:** email/password, Google OAuth, Microsoft OAuth.
+- **Verifica email:** **obbligatoria** prima del primo login (token monouso a scadenza).
+- **Password policy:** minimo 12 caratteri, ≥1 maiuscola, ≥1 numero, ≥1 carattere speciale,
+  validata **server-side**. Hash **bcrypt** (cost factor ≥12).
+- **2FA:** TOTP opt-in (speakeasy + qrcode) con 10 backup code monouso; reminder all'utente.
+- **Session management:** cookie `HttpOnly`, `SameSite`, `Secure` in produzione; scadenza con
+  sliding expiry; logout via reload assoluto server-side.
+- **Multi-org & RBAC:** appartenenza via modello `Membership` (ruoli per organizzazione). Accesso
+  ai dati sempre scoping per org dell'utente; nessun cross-org leakage.
+- **Pianificato:** SSO SAML per piano Enterprise (Okta, Azure AD, Auth0).
+
+---
+
+## 4. Application security — OWASP Top 10
+
+| OWASP (2021) | Mitigazione Anlyra | Stato |
+|---|---|---|
+| A01 Broken Access Control | Scoping per org su ogni query; controllo ruolo `Membership`; nessun IDOR (id validati + ownership check) | Implementato |
+| A02 Cryptographic Failures | TLS in transit, AES-256 at rest, bcrypt password, token integrazioni cifrati | Implementato / target prod |
+| A03 Injection | Input validato con **Zod** su ogni API route; DB solo via **Prisma ORM**, zero SQL raw | Implementato |
+| A04 Insecure Design | Privacy/security by design; threat model rivisto per feature sensibili | Continuo |
+| A05 Security Misconfiguration | Security headers in `next.config.mjs` (§sotto); secrets in env, mai nel codice | Implementato / in hardening |
+| A06 Vulnerable Components | Dipendenze mature; `npm audit` + Dependabot pianificati in CI | Parziale |
+| A07 Auth Failures | NextAuth v5, password policy forte, 2FA TOTP, email verify, rate limit login (pianificato) | Implementato / hardening |
+| A08 Data Integrity Failures | Webhook firmati verificati (Stripe; provider integrazioni HMAC); lockfile dipendenze | Implementato |
+| A09 Logging/Monitoring | Sentry (pianificato), audit log accessi sensibili, breach register | Pianificato |
+| A10 SSRF | Nessuna fetch di URL forniti dall'utente; allowlist redirect OAuth | Implementato |
+
+**Security headers** (`next.config.mjs`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrittiva,
+`Strict-Transport-Security`. **CSP** in roadmap (complessa con gli inline script di hydration Next.js).
+
+**Rate limiting:** pianificato pre-launch su login/signup/API pubblica via **Upstash Redis**
+(`@upstash/ratelimit`, sliding window) — soglie indicative: 10 req/min login, 5 req/min signup.
+
+---
+
+## 5. AI security
+
+- **Prompt injection mitigation:** input utente trattato come dato, non come istruzione; prompt
+  template con separazione netta tra istruzioni di sistema e dati; campi testo sospetti sanitizzati.
+  L'AUP vieta esplicitamente prompt injection ([`legal/aup.md`](legal/aup.md) §2.3).
+- **Output validation:** output del modello validato con **Zod** prima dell'uso/persistenza; gli
+  insight mostrano sempre **confidence score** e dati sottostanti (no scatola nera).
+- **Data minimization verso Anthropic:** inviati solo i dati strettamente necessari a generare
+  l'insight; nessun invio massivo non necessario. Pattern dettagliati in [`ai/prompt-library.md`](ai/prompt-library.md).
+- **No training (DPA):** il DPA con Anthropic esclude contrattualmente l'uso dei prompt per il
+  training. Dati AI solo in-transit, no retention lato modello.
+
+---
+
+## 6. Infrastructure security
+
+- **Vercel:** hosting serverless, HTTPS-only, certificati gestiti, env vars cifrate, deploy
+  immutabili con rollback istantaneo.
+- **Supabase:** Postgres gestito EU, cifratura at rest, backup, RLS valutata per layer aggiuntivo.
+- **Secrets:** tutte le chiavi (Stripe, Anthropic, Resend, Supabase, AUTH_SECRET) in env vars; mai
+  nel codice. `.gitignore` esclude `.env*`; `.env.example` documenta le variabili senza valori reali.
+  Rotation periodica (trimestrale) e password manager business per la condivisione (pianificato).
+- **HTTPS-only + HSTS** su `anlyra.it`; redirect HTTP→HTTPS a livello edge.
+
+---
+
+## 7. GDPR compliance map
+
+### 7.1 Base giuridica (Art. 6)
 
 | Trattamento | Base giuridica | Note |
 |---|---|---|
-| Erogazione del servizio | **Contratto (Art. 6.1.b)** | Elaborazione dati necessaria all'esecuzione del contratto SaaS |
-| Fatturazione e pagamenti | **Obbligo legale (Art. 6.1.c)** | Conservazione 7 anni obbligo fiscale italiano |
-| Email transazionali | **Contratto (Art. 6.1.b)** | Notifiche strettamente legate al servizio |
-| Analytics anonimizzate | **Legittimo interesse (Art. 6.1.f)** | Miglioramento prodotto, dati aggregati non personali |
-| Marketing (future) | **Consenso (Art. 6.1.a)** | Solo con opt-in esplicito, mai pre-spuntato |
+| Erogazione del servizio | Contratto (Art. 6.1.b) | Necessario all'esecuzione del contratto SaaS |
+| Fatturazione e pagamenti | Obbligo legale (Art. 6.1.c) | Conservazione 7 anni (fiscale IT) |
+| Email transazionali | Contratto (Art. 6.1.b) | Strettamente legate al servizio |
+| Analytics anonimizzate | Legittimo interesse (Art. 6.1.f) | Dati aggregati non personali |
+| Marketing (future) | Consenso (Art. 6.1.a) | Solo opt-in esplicito, mai pre-spuntato |
 
-### 3.2 Mappa dei dati
+### 7.2 Diritti dell'interessato (Art. 15-22)
 
-| Categoria | Dato | Dove vive | Chi accede | Retention |
-|---|---|---|---|---|
-| Account | email, nome, ruolo | Supabase (EU) | App + Supabase | Vita account |
-| Organizzazione | nome azienda, piano | Supabase (EU) | App + Stripe | Vita account |
-| Dati finanziari | transazioni, cashflow, KPI | Supabase (EU) | Solo utente org | Vita account |
-| Pagamenti | importo, piano, date | Stripe (US) | App + Stripe | 7 anni (fiscale) |
-| Insights AI | prompt + risposta Claude | Anthropic API (US) | No-retain (DPA) | Solo in-transit |
-| Email inviate | contenuto, destinatario | Resend (US) | App + Resend | 90 giorni |
-| Errori applicativi | stack trace, user ID | Sentry (US) | Sentry + team dev | 90 giorni |
-| Sessione | cookie `pro_session` | Browser (httpOnly) | Server-side only | 7 giorni |
+- **Accesso (15)** — export completo dati in JSON da `/settings/privacy`.
+- **Rettifica (16)** — modifica dati account da `/settings/profile`.
+- **Cancellazione (17)** — cancellazione permanente da `/settings/privacy`, eseguita entro 30 giorni.
+- **Portabilità (20)** — export in formato JSON strutturato machine-readable.
+- **Opposizione (21)** — opt-out analytics/marketing in qualsiasi momento.
+- **Limitazione (18)** — sospensione temporanea su richiesta tramite DPO.
 
-### 3.3 Lista sub-processors
+Canale richieste: `privacy@anlyra.it` — risposta entro 30 giorni come da GDPR.
 
-Documentati pubblicamente in `/it/legal/privacy` (sezione sub-processors):
+### 7.3 Sub-processors
 
-- **Supabase Inc.** (database hosting, EU) — DPA disponibile
-- **Vercel Inc.** (hosting platform, EU region) — DPA disponibile
-- **Stripe Inc.** (payment processing, US with EU adequacy) — DPA + SCC
-- **Resend** (transactional email, US) — DPA + SCC
-- **Anthropic PBC** (AI insights generation, US) — DPA, prompts non usati per training
-- **Sentry** (error monitoring, US) — DPA + SCC, PII filtering
+Elenco pubblico e versionato in [`gdpr/subprocessor-list.md`](gdpr/subprocessor-list.md) e su
+`/it/legal/privacy`:
 
-### 3.4 Diritti dell'interessato (Art. 15-22 GDPR)
-
-Anlyra implementerà (pre-launch):
-
-- **Accesso (Art. 15)**: export completo dati utente in JSON, scaricabile da `/settings/privacy`
-- **Rettifica (Art. 16)**: modifica dati account da `/settings/profile`
-- **Cancellazione (Art. 17)**: cancellazione account permanente da `/settings/privacy`, esecuzione entro 30 giorni
-- **Portabilità (Art. 20)**: export dati in formato JSON strutturato
-- **Opposizione (Art. 21)**: opt-out da analytics/marketing in qualsiasi momento
-- **Limitazione (Art. 18)**: sospensione temporanea elaborazione su richiesta DPO
-
-**Canale richieste**: `privacy@anlyra.it` (da attivare pre-launch). Risposta entro 30 giorni come da GDPR.
-
-### 3.5 Data Protection Impact Assessment (DPIA)
-
-Anlyra non tratta categorie particolari di dati (Art. 9 GDPR — salute, biometrici, ecc.) né esegue profilazione automatizzata con effetti legali significativi. Pertanto **DPIA non obbligatoria**, ma sarà comunque eseguita pre-launch per due use case:
-
-- Trattamento dati finanziari aziendali (potrebbe rivelare informazioni commerciali sensibili)
-- Generazione insights AI tramite Anthropic Claude (LLM esterno, trasferimento internazionale)
-
-### 3.6 Data retention policy
-
-| Dato | Retention | Motivo |
-|---|---|---|
-| Account attivo | Indefinita (finché account esiste) | Servizio |
-| Account cancellato | 30 giorni (poi cancellazione completa) | Recovery accidentale |
-| Logs sicurezza server | 30 giorni | Indagine incident |
-| Email transazionali | 90 giorni | Audit + supporto |
-| Backup database | 7 giorni (Supabase) + 30 giorni (S3 custom) | Disaster recovery |
-| Stripe payment records | 7 anni | Obbligo fiscale italiano |
-
-### 3.7 Trasferimenti internazionali
-
-Tutti i sub-processors US (Stripe, Resend, Anthropic, Sentry) operano sotto:
-
-- EU-US Data Privacy Framework (adequacy decision EU Commission, dal luglio 2023)
-- Standard Contractual Clauses (SCC) come fallback
-- DPA (Data Processing Agreement) firmato con ciascuno
-
----
-
-## 4. Incident response
-
-### 4.1 Severity classification
-
-| Severity | Definizione | Esempio | SLA risposta |
+| Sub-processor | Uso | Sede | Garanzie |
 |---|---|---|---|
-| **P0 — Critical** | Breach dati confermato, sistema down | Database compromesso, leak credenziali | 15 minuti |
-| **P1 — High** | Vulnerabilità grave non sfruttata, downtime parziale | Bug security, API rate limit bypass | 1 ora |
-| **P2 — Medium** | Issue sicurezza minore | Header CSP mancante | 24 ore |
-| **P3 — Low** | Best practice non rispettata | Password policy weak | 1 settimana |
+| Supabase Inc. | Database hosting | EU (Frankfurt) | DPA |
+| Vercel Inc. | Hosting platform | EU region | DPA |
+| Stripe Inc. | Pagamenti | US (adeguatezza EU) | DPA + SCC |
+| Resend | Email transazionali | US | DPA + SCC |
+| Anthropic PBC | AI insight | US | DPA, no-training |
+| Sentry | Error monitoring | US | DPA + SCC, PII filtering |
 
-### 4.2 Procedura GDPR breach notification
+### 7.4 DPO
+
+DPO esterno (consulente). Punto di contatto unico per interessati e Garante; coinvolto nelle DPIA e
+nella gestione breach.
+
+### 7.5 Breach notification (72h)
 
 In caso di data breach con rischio per i diritti delle persone:
 
-1. **Entro 72 ore**: notifica al Garante Privacy italiano (https://www.garanteprivacy.it)
-2. **Senza indugio**: notifica agli utenti coinvolti (email + banner in-app)
-3. **Documentazione**: registro breach interno (tipo, data, utenti coinvolti, misure prese)
-4. **Post-mortem**: documento pubblico (anonimizzato) entro 30 giorni
+1. **Entro 72 ore** — notifica al Garante Privacy italiano.
+2. **Senza indugio** — notifica agli utenti coinvolti (email + banner in-app).
+3. **Documentazione** — registro breach interno (tipo, data, utenti, misure).
+4. **Post-mortem** — documento (anonimizzato) entro 30 giorni.
 
-### 4.3 Canali di segnalazione vulnerabilità
+Procedura operativa in [`incident-response-playbook.md`](incident-response-playbook.md).
 
-Security researchers o utenti che identificano vulnerabilità possono segnalare:
+### 7.6 DPIA per high-risk processing
 
-- Email: `security@anlyra.it` (da attivare pre-launch)
-- Bug bounty: non disponibile al lancio, valutato post-traction
-- Responsible disclosure: 90 giorni embargo standard
+DPIA eseguita pre-launch (template in [`privacy-dpia-template.md`](privacy-dpia-template.md)) per:
 
----
+- Trattamento dati finanziari aziendali (potenziali informazioni commerciali sensibili).
+- Generazione insight AI tramite LLM esterno (trasferimento internazionale).
 
-## 5. Security FAQ comuni (per prospect enterprise)
+### 7.7 Trasferimenti internazionali
 
-### Q: Dove vivono fisicamente i nostri dati?
-
-A: Server Supabase in Frankfurt (Amazon AWS EU-Central-1). Backup custom su S3 EU. Mai fuori EU.
-
-### Q: I nostri dati finanziari vengono usati per training AI?
-
-A: **No.** Anthropic Claude (il modello AI che genera insights) ha DPA che esclude esplicitamente i prompts dal training. I dati cliente non vengono mai usati per migliorare Claude o altri modelli AI di terze parti.
-
-### Q: In caso di acquisizione di Anlyra, cosa succede ai nostri dati?
-
-A: I dati cliente sono trattati come asset separato. In caso di acquisizione: notifica con 90 giorni di preavviso, possibilità di export completo dati e cancellazione account senza penali.
-
-### Q: Quali certificazioni avete?
-
-A: Al lancio: nessuna certificazione formale (ISO 27001, SOC 2 sono costose ed eseguibili dopo traction). Ci impegnamo ad allinearci con best practice del framework di riferimento. Roadmap: SOC 2 Type 1 entro 12 mesi dal lancio commerciale, ISO 27001 entro 24 mesi.
-
-### Q: Avete penetration test annuali?
-
-A: Pianificato pre-launch: pen test esterno tramite agenzia italiana certificata (Yarix o equivalente). Frequenza post-launch: annuale.
-
-### Q: Cosa succede se siete down?
-
-A: SLA Vercel + Supabase combinato ≥99.95% effettivo. Status page pubblica su `status.anlyra.it` (da implementare). Notifica via email per incident maggiori. SLA contrattuale per enterprise: 99.5% mensile con credito 5% per ogni 0.1% di downtime sotto soglia.
-
-### Q: Possiamo richiedere SSO SAML?
-
-A: Sì, incluso nel piano Enterprise. Provider supportati al lancio: Okta, Auth0, Azure AD. Setup: 1-2 giorni post-contratto.
-
-### Q: Come gestite le password dei vostri dipendenti?
-
-A: 1Password Business obbligatorio per tutti i dipendenti. 2FA obbligatorio su tutti i servizi business. Access review trimestrale.
+Sub-processor US sotto: EU-US Data Privacy Framework (adeguatezza, lug 2023), SCC come fallback,
+DPA firmato con ciascuno.
 
 ---
 
-## 6. Roadmap security (12 mesi post-launch)
+## 8. Compliance roadmap
 
-### Mese 1-3 post-launch
-
-- Audit periodici dependency (`npm audit` settimanale)
-- Rate limiting completo (Upstash Redis)
-- Audit log per accessi sensibili
-- Status page pubblica
-
-### Mese 3-6
-
-- Pen test esterno (Yarix o agenzia equivalente)
-- Bug bounty privato (HackerOne private program)
-- DPIA documenti finalizzati con DPO consulente
-
-### Mese 6-12
-
-- SOC 2 Type 1 audit (Vanta o Drata come compliance automation)
-- ISO 27001 gap analysis
-- BCP (Business Continuity Plan) formalizzato
+- **0–3 mesi post-launch:** `npm audit` settimanale, rate limiting completo, audit log, status page.
+- **3–6 mesi:** pen test esterno (agenzia certificata), bug bounty privato, DPIA finalizzate con DPO.
+- **Entro 12 mesi:** **SOC 2 Type 1** (compliance automation tipo Vanta/Drata).
+- **Entro 24 mesi:** **ISO 27001** (gap analysis → certificazione), BCP formalizzato.
 
 ---
 
-## 7. Contatti
+## 9. Responsible disclosure
 
-- **Security team**: `security@anlyra.it` (da attivare)
-- **Privacy / DPO**: `privacy@anlyra.it` (da attivare)
-- **General support**: `support@anlyra.it` (da attivare)
-- **CEO / Founder**: [il tuo nome] (riservato per enterprise contracts)
+- **Canale:** `security@anlyra.it`.
+- **Scope:** dominio `anlyra.it`, applicazione e API. Fuori scope: DoS/DDoS, social engineering,
+  attacchi fisici, sub-processor di terze parti.
+- **Safe harbor:** la ricerca in buona fede entro lo scope non comporta azioni legali; vietato
+  accedere/alterare dati di altri utenti.
+- **Bug bounty:** non disponibile al lancio; valutato post-traction (programma privato).
+- **Embargo:** responsible disclosure con 90 giorni standard prima della divulgazione pubblica.
 
 ---
 
-**Note finali:**
+## 10. Enterprise security FAQ
 
-- Questo documento è un **living document**: aggiornato ogni qualvolta una nuova feature security viene implementata.
-- Versioni precedenti archiviate in `docs/archive/`.
-- Per richieste di compliance documentation aggiuntiva (es. SOC 2 report quando disponibile), contattare `security@anlyra.it`.
+**Q: Dove vivono fisicamente i nostri dati?**
+A: Server EU (Supabase Frankfurt, AWS `eu-central-1`; failover Stockholm). Backup su storage EU. Mai fuori UE per i dati primari.
+
+**Q: I nostri dati finanziari vengono usati per il training AI?**
+A: No. Il DPA con Anthropic esclude i prompt dal training. I dati cliente non addestrano mai alcun modello AI.
+
+**Q: Che autenticazione usate?**
+A: NextAuth v5 con email/password (bcrypt), OAuth Google/Microsoft, verifica email obbligatoria, password policy forte e 2FA TOTP opt-in. SSO SAML su piano Enterprise (roadmap).
+
+**Q: Come isolate i dati tra organizzazioni diverse?**
+A: Ogni query è scoping per org via modello `Membership`; controlli di ownership e ruolo su ogni endpoint. Nessun accesso cross-org.
+
+**Q: In caso di acquisizione di Anlyra, cosa succede ai nostri dati?**
+A: Trattati come asset separato. Notifica con 90 giorni di preavviso, export completo e cancellazione senza penali.
+
+**Q: Quali certificazioni avete?**
+A: Al lancio nessuna formale. Roadmap: SOC 2 Type 1 entro 12 mesi, ISO 27001 entro 24 mesi. Allineamento alle best practice fin da subito.
+
+**Q: Fate penetration test?**
+A: Pianificato pre-launch tramite agenzia certificata; a regime con cadenza annuale.
+
+**Q: Cosa succede se siete down?**
+A: SLA combinato Vercel + Supabase elevato; status page pubblica (in arrivo). SLA contrattuale per Enterprise con credito al cliente sotto soglia.
+
+**Q: Possiamo richiedere SSO SAML?**
+A: Sì, incluso nel piano Enterprise (Okta, Auth0, Azure AD). Setup 1–2 giorni post-contratto.
+
+**Q: Come gestite le credenziali del vostro team?**
+A: Password manager business obbligatorio, 2FA su tutti i servizi, access review trimestrale.
+
+---
+
+## 11. Incident response
+
+Classificazione severity, procedure di escalation, runbook P0–P3 e gestione comunicazione sono
+documentati in [`incident-response-playbook.md`](incident-response-playbook.md). La procedura GDPR
+breach notification (72h) è in §7.5.
+
+---
+
+## 12. Contatti
+
+- **Security:** `security@anlyra.it`
+- **Privacy / DPO:** `privacy@anlyra.it`
+- **Support:** `support@anlyra.it`
+
+---
+
+**Status:** living document · versione 2.0. Aggiornato a ogni feature security implementata.
+**Last updated:** 2026-05-28.

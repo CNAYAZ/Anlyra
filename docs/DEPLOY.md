@@ -1,357 +1,254 @@
 # Guida al Deploy in Produzione — Anlyra
 
-**Stack:** Next.js 14 (App Router) · Prisma + Supabase Postgres · Resend · Stripe · Vercel
+**Stack:** Next.js 14.2 (App Router) · Prisma + Supabase Postgres · NextAuth v5 · Resend · Stripe · Vercel · Sentry
 **Dominio:** `anlyra.it`
 **Tempo stimato:** 3–4 ore la prima volta · ~30 min per i deploy successivi
-**Status:** documento di pianificazione — eseguire quando pronti per il launch
+**Status:** documento operativo — eseguire quando pronti per il launch.
+**Audience:** founder / dev responsabile del deploy.
 
-> Questo documento descrive il processo end-to-end. Per la migrazione DB da SQLite a
-> Postgres, vedere `docs/postgres-migration-plan.md`. Per la checklist SEO, vedere
-> `docs/seo-checklist.md`.
+> Processo end-to-end. Per la migrazione DB vedi [`postgres-migration-plan.md`](postgres-migration-plan.md);
+> per Stripe vedi [`stripe-setup.md`](stripe-setup.md); per la checklist di sicurezza pre-prod vedi
+> [`security-audit-checklist.md`](security-audit-checklist.md); per il recovery dell'ambiente vedi
+> [`codespace-recovery-procedure.md`](codespace-recovery-procedure.md).
 
 ---
 
-## Sezione 1 — Prerequisiti e account
+## 1. Deploy overview
 
-Servizi necessari (tutti hanno tier gratuito per iniziare):
+**Target architecture:**
+
+```
+  GoDaddy DNS (anlyra.it)
+        │
+        ▼
+   Vercel Edge ──────► Next.js 14 (App Router, serverless)
+                              │
+                              ├─► Supabase Postgres (EU, Frankfurt)
+                              ├─► Anthropic Claude (insight AI)
+                              ├─► Stripe (subscription + credit pack)
+                              ├─► Resend (email transazionali)
+                              └─► Sentry (error monitoring)
+```
+
+Principi: region EU per il DB, HTTPS-only, env vars cifrate su Vercel, rollback istantaneo via
+deploy immutabili.
+
+---
+
+## 2. Prerequisiti e account
 
 | Servizio | Uso | Account |
 |---|---|---|
 | **Vercel** | Hosting Next.js | [vercel.com](https://vercel.com) |
-| **Supabase** | Database Postgres | [supabase.com](https://supabase.com) |
-| **Resend** | Email transazionali | [resend.com](https://resend.com) |
+| **Supabase** | Database Postgres EU | [supabase.com](https://supabase.com) |
 | **Stripe** | Pagamenti e abbonamenti | [stripe.com](https://stripe.com) |
-| **Anthropic** | API Claude (insights AI) | [console.anthropic.com](https://console.anthropic.com) |
+| **Resend** | Email transazionali | [resend.com](https://resend.com) |
+| **Anthropic** | API Claude (insight AI) | [console.anthropic.com](https://console.anthropic.com) |
+| **Sentry** | Error monitoring | [sentry.io](https://sentry.io) |
 | **GoDaddy** | DNS dominio `anlyra.it` | già acquistato |
 
-Strumenti CLI utili in locale:
-- `node` ≥ 18.17, `npm`
-- `stripe` CLI (per testare i webhook localmente)
-- `git`
+CLI utili in locale: `node ≥ 22`, `npm`, `stripe` CLI (test webhook), `git`, `vercel` CLI (opzionale).
 
 ---
 
-## Sezione 2 — Setup Supabase
+## 3. Step 1 — Supabase Postgres setup
 
-1. Crea un nuovo progetto su Supabase, **region `eu-central-1` (Frankfurt)** per compliance GDPR.
+1. Crea un nuovo progetto Supabase, **region `eu-central-1` (Frankfurt)** per compliance GDPR.
 2. Scegli una password DB robusta e salvala nel password manager.
 3. In **Project Settings → Database → Connection string**, copia due URL:
    - **Connection pooling** (mode `Transaction`, porta **6543**) → `DATABASE_URL`
    - **Direct connection** (porta **5432**) → `DIRECT_URL`
-4. Assicurati che la password nell'URL sia **URL-encoded** (caratteri speciali come `@`, `#` vanno escapizzati).
-5. In **Database → Backups**, verifica che i backup giornalieri siano attivi (richiede piano Pro per point-in-time recovery).
-
-Aggiorna `prisma/schema.prisma` al provider Postgres (vedi `docs/postgres-migration-plan.md` §4) ed esegui le migration con `DIRECT_URL`:
+4. Assicurati che la password nell'URL sia **URL-encoded** (`@`, `#`, ecc. vanno escapati).
+5. In **Database → Backups**, verifica i backup giornalieri (point-in-time recovery sul piano Pro).
+6. **Migration SQLite → Postgres:** segui [`postgres-migration-plan.md`](postgres-migration-plan.md)
+   (aggiornamento provider `schema.prisma`, gestione dei modelli zombie, export/import dati demo).
 
 ```bash
-npx prisma migrate deploy   # usa DIRECT_URL per la connessione diretta
+# Migration: usa la connessione diretta (5432)
+npx prisma migrate deploy   # DIRECT_URL
 npx prisma generate
 ```
 
-> **Importante:** Prisma Client a runtime usa `DATABASE_URL` (pooler 6543). Le migration
-> usano `DIRECT_URL` (5432). Entrambe le variabili sono obbligatorie.
+> **Importante:** a runtime Prisma usa `DATABASE_URL` (pooler 6543); le migration usano `DIRECT_URL`
+> (5432). Entrambe obbligatorie.
 
 ---
 
-## Sezione 3 — Setup Vercel
+## 4. Step 2 — Environment variables
 
-1. **Import del repository:** da Vercel → Add New → Project → importa il repo GitHub.
+Configurale su **Vercel → Project → Settings → Environment Variables** (scope: Production +
+Preview). Mai committarle nel repo.
+
+| Variabile | Scopo |
+|---|---|
+| `AUTH_SECRET` | Segreto NextAuth (genera con `openssl rand -base64 32`) |
+| `AUTH_URL` | URL canonico (es. `https://anlyra.it`) |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | OAuth Google |
+| `AUTH_MICROSOFT_ID` / `AUTH_MICROSOFT_SECRET` | OAuth Microsoft |
+| `DATABASE_URL` | Postgres pooler (6543) |
+| `DIRECT_URL` | Postgres diretto (5432, migration) |
+| `STRIPE_SECRET_KEY` | Stripe API (live) |
+| `STRIPE_WEBHOOK_SECRET` | Verifica firma webhook Stripe |
+| `STRIPE_PRICE_PRO` / `STRIPE_PRICE_ADVANCED` / `STRIPE_PRICE_ENTERPRISE` | Price ID per piano |
+| `STRIPE_PRICE_CREDIT_PACK` | Price ID credit pack one-time |
+| `RESEND_API_KEY` | Resend API |
+| `RESEND_FROM_EMAIL` | Mittente verificato (es. `noreply@anlyra.it`) |
+| `ANTHROPIC_API_KEY` | API Claude |
+| `SENTRY_DSN` / `SENTRY_AUTH_TOKEN` | Error monitoring + source maps |
+| `CRON_SECRET` | Bearer per autenticare le cron route |
+| `PLAN_PRO_*` / `PLAN_ADVANCED_*` / `PLAN_ENTERPRISE_*` | Limiti di piano parametrizzati |
+| `NEXT_PUBLIC_APP_URL` | URL pubblico per link assoluti |
+
+> Genera `AUTH_SECRET` e `CRON_SECRET` con `openssl rand -base64 32`. Verifica che i redirect URI
+> OAuth (Google/Microsoft) puntino a `https://anlyra.it/api/auth/callback/...`.
+
+---
+
+## 5. Step 3 — Vercel deployment
+
+1. **Import repository:** Vercel → Add New → Project → importa il repo GitHub.
 2. **Framework preset:** Next.js (autorilevato).
-3. **Build command:** `npm run build` (default).
-4. **Output directory:** `.next` (default).
-5. **Environment variables:** vedi Sezione 4 — inserire prima del primo deploy.
-6. **Region:** imposta la function region su `fra1` (Frankfurt) per minimizzare la latenza verso Supabase EU.
-
-Dopo il primo deploy, Vercel assegna un URL `*.vercel.app`. Il dominio custom si configura nella Sezione 7.
-
----
-
-## Sezione 4 — Variabili ambiente
-
-Configurare in **Vercel → Settings → Environment Variables** (scope: Production).
-
-### Database
-```
-DATABASE_URL    = postgresql://...@...pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL      = postgresql://...@...pooler.supabase.com:5432/postgres
-```
-
-### Auth e sito
-```
-NEXTAUTH_URL          = https://anlyra.it
-NEXT_PUBLIC_SITE_URL  = https://anlyra.it
-```
-
-> L'app usa un cookie di sessione custom `pro_session`. `NEXT_PUBLIC_SITE_URL` è usato da
-> robots/sitemap/OG metadata.
-
-### AI
-```
-ANTHROPIC_API_KEY     = sk-ant-api03-...
-EXCHANGE_RATE_API_KEY = ...        # opzionale, conversione valute
-```
-
-### Email (Resend)
-```
-RESEND_API_KEY  = re_...
-RESEND_FROM     = "Anlyra <noreply@anlyra.it>"
-```
-
-### Stripe
-```
-STRIPE_SECRET_KEY              = sk_live_...
-STRIPE_WEBHOOK_SECRET          = whsec_...
-STRIPE_PRICE_PRO_MONTHLY       = price_...
-STRIPE_PRICE_PRO_YEARLY        = price_...
-STRIPE_PRICE_ADVANCED_MONTHLY  = price_...
-STRIPE_PRICE_ADVANCED_YEARLY   = price_...
-STRIPE_PRICE_ENTERPRISE_MONTHLY= price_...
-STRIPE_PRICE_ENTERPRISE_YEARLY = price_...
-STRIPE_PRICE_CREDITS_50        = price_...
-STRIPE_PRICE_CREDITS_200       = price_...
-STRIPE_PRICE_CREDITS_500       = price_...
-```
-
-### Flag demo (opzionali)
-```
-DEV_DEFAULT_PLAN       = pro       # solo per ambienti non-prod
-NEXT_PUBLIC_DEMO_PLAN  = pro       # solo per ambienti non-prod
-```
-
-> **Sicurezza:** non committare mai questi valori nel repo. `STRIPE_SECRET_KEY` deve essere
-> la chiave **live** (`sk_live_`) in produzione, non `sk_test_`.
+3. **Build command:** `npm run build` (default). **Install:** `npm ci`. **Output:** default Next.js.
+4. **Environment variables:** incolla quelle dello Step 2 (Production + Preview).
+5. **Region:** seleziona una region EU per le funzioni serverless (coerenza data residency).
+6. **Deploy:** lancia il primo deploy; verifica il build log (tsc + lint puliti, vedi
+   [`dev/deployment-runbook.md`](dev/deployment-runbook.md)).
 
 ---
 
-## Sezione 5 — Setup Stripe (produzione)
+## 6. Step 4 — Stripe production
 
-1. **Attiva l'account** (toggle da Test mode → Live mode dopo aver completato l'onboarding business).
-2. **Crea i prodotti** (Products → Add product) per ogni piano:
-   - Pro (mensile + annuale)
-   - Advanced (mensile + annuale)
-   - Enterprise (mensile + annuale)
-   - Pacchetti crediti (50 / 200 / 500)
-3. Per ogni prezzo, copia il `price_...` ID nelle corrispondenti env vars (Sezione 4).
-4. **Webhook:** Developers → Webhooks → Add endpoint:
-   - URL: `https://anlyra.it/api/webhooks/stripe`
-   - Eventi: almeno `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
-   - Copia il **Signing secret** (`whsec_...`) → `STRIPE_WEBHOOK_SECRET`
-5. **Tax (opzionale):** abilita Stripe Tax se servono IVA automatica per clienti UE.
+Procedura completa in [`stripe-setup.md`](stripe-setup.md). In sintesi:
 
-Test locale dei webhook:
-```bash
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-```
+1. Attiva l'account Stripe in modalità **live**.
+2. Crea i **Product** e i **Price** (Pro, Avanzato, Enterprise mensile/annuale + credit pack).
+   Copia i price ID nelle env (`STRIPE_PRICE_*`).
+3. Configura il **webhook endpoint**: `https://anlyra.it/api/stripe/webhook`. Eventi minimi:
+   `checkout.session.completed`, `customer.subscription.updated/deleted`, `invoice.payment_failed`.
+4. Copia il **signing secret** in `STRIPE_WEBHOOK_SECRET`.
+5. Configura **Stripe Tax** (IVA italiana) e il **Customer Portal** (gestione abbonamento self-service).
+6. Test con `stripe trigger checkout.session.completed` prima del go-live.
 
 ---
 
-## Sezione 6 — Setup Resend (verifica dominio)
+## 7. Step 5 — Resend domain verification
 
-1. Resend → Domains → Add Domain → `anlyra.it`.
-2. Resend genera record DNS da aggiungere su GoDaddy:
-   - **SPF** (TXT): `v=spf1 include:resend.com ~all`
-   - **DKIM** (CNAME, 3 record): forniti da Resend
-   - **DMARC** (TXT, raccomandato): `v=DMARC1; p=none; rua=mailto:dmarc@anlyra.it`
-3. Aggiungi i record su GoDaddy (vedi Sezione 7), poi clicca **Verify** su Resend.
-4. La verifica può richiedere fino a 48h per la propagazione DNS (di solito pochi minuti).
-5. `RESEND_FROM` deve usare un indirizzo sul dominio verificato (es. `noreply@anlyra.it`).
-
-> Verifica la deliverability con [mail-tester.com](https://www.mail-tester.com) prima del launch.
+1. In Resend → Domains, aggiungi `anlyra.it`.
+2. Inserisci nel DNS (GoDaddy) i record forniti:
+   - **SPF** (TXT) — autorizza Resend a inviare per il dominio.
+   - **DKIM** (CNAME/TXT) — firma le email.
+   - **DMARC** (TXT) — policy `p=quarantine` o `p=reject` (consigliato dopo verifica).
+3. Attendi la verifica (può richiedere fino a qualche ora per la propagazione DNS).
+4. Imposta `RESEND_FROM_EMAIL` su un mittente del dominio verificato.
 
 ---
 
-## Sezione 7 — DNS GoDaddy → Vercel
+## 8. Step 6 — DNS configuration (GoDaddy)
 
-In Vercel → Settings → Domains → aggiungi `anlyra.it` e `www.anlyra.it`. Vercel indica i record da configurare.
-
-Su **GoDaddy → DNS Management** per `anlyra.it`:
-
-| Tipo | Nome | Valore | Note |
+| Record | Host | Valore | Note |
 |---|---|---|---|
-| `A` | `@` | `76.76.21.21` | Apex → Vercel |
-| `CNAME` | `www` | `cname.vercel-dns.com` | Sottodominio www |
-| `TXT` | `@` | `v=spf1 include:resend.com ~all` | SPF email |
-| `CNAME` | (Resend DKIM ×3) | (valori Resend) | DKIM email |
-| `TXT` | `_dmarc` | `v=DMARC1; p=none; ...` | DMARC |
+| A | `@` | IP Vercel (`76.76.21.21`) | Apex → Vercel |
+| CNAME | `www` | `cname.vercel-dns.com` | www → Vercel |
+| TXT (SPF) | `@` | fornito da Resend | Email |
+| CNAME/TXT (DKIM) | fornito da Resend | fornito da Resend | Email |
+| TXT (DMARC) | `_dmarc` | `v=DMARC1; p=quarantine; rua=...` | Email policy |
 
-> I valori `A`/`CNAME` per Vercel possono variare — usa sempre quelli mostrati nel pannello
-> Vercel Domains, non valori hardcoded.
-
-Dopo la propagazione, Vercel emette automaticamente il certificato SSL (Let's Encrypt).
-
----
-
-## Sezione 8 — Smoke test
-
-Dopo il deploy in produzione, verifica:
-
-### URL e SEO
-- [ ] `https://anlyra.it` → landing IT carica
-- [ ] `https://anlyra.it/en` → landing EN carica
-- [ ] `https://anlyra.it/robots.txt` → output corretto
-- [ ] `https://anlyra.it/sitemap.xml` → 12 entries
-- [ ] `https://anlyra.it/opengraph-image.png` → immagine generata
-
-### Funzionale
-- [ ] Signup nuovo utente → cookie `pro_session` settato
-- [ ] Login / logout (logout via `/api/auth/logout`)
-- [ ] Dashboard overview carica dati reali da Postgres
-- [ ] Import dati (batch) funziona
-- [ ] Pagina pricing mostra prezzi corretti
-
-### API e integrazioni
-- [ ] Checkout Stripe → redirect e pagamento test
-- [ ] Webhook Stripe riceve `invoice.paid` (verifica nei log Stripe → 200)
-- [ ] Email di conferma pagamento arriva
-- [ ] Insight AI generato (verifica chiamata Anthropic)
-
-### Performance
-- [ ] Lighthouse / PageSpeed Insights su landing — Core Web Vitals verdi
-- [ ] Mobile-friendly test passa
+1. In Vercel → Project → Domains, aggiungi `anlyra.it` e `www.anlyra.it`.
+2. Vercel mostra i record DNS attesi; replicali in GoDaddy.
+3. Imposta il redirect `www` → apex (o viceversa) come canonico.
+4. Attendi la propagazione e il provisioning del certificato TLS (automatico).
 
 ---
 
-## Sezione 9 — Rollback
+## 9. Step 7 — Cron jobs
 
-### Rapido (<5 min) — problema nel deploy corrente
-Vercel → Deployments → seleziona il deploy precedente funzionante → **Promote to Production**.
-Nessuna modifica DB necessaria.
+In `vercel.json` definisci i cron (autenticati via `CRON_SECRET`):
 
-### Medio (<1 ora) — regressione applicativa
-1. `git revert <commit>` del cambiamento problematico
-2. Push → Vercel auto-deploy
-3. Verifica smoke test essenziali
+```json
+{
+  "crons": [
+    { "path": "/api/cron/trial-check", "schedule": "0 6 * * *" }
+  ]
+}
+```
 
-### Completo (<24 ore) — problema dati/schema
-Segui la procedura di rollback DB in `docs/postgres-migration-plan.md` §5 (export dati
-post-deploy, ripristino backup Supabase point-in-time, re-deploy).
+- **trial-check:** verifica i trial in scadenza, invia email (3 giorni / 1 giorno / scaduto) e
+  aggiorna lo stato dell'organizzazione. La route valida l'header `Authorization: Bearer $CRON_SECRET`.
+- Future cron (sync integrazioni QuickBooks/PSD2) seguiranno lo stesso pattern una volta implementate.
 
 ---
 
-## Sezione 10 — Monitoring
+## 10. Step 8 — Sentry integration
 
-| Strumento | Uso | Setup |
+1. Crea un progetto Sentry (piattaforma Next.js).
+2. Imposta `SENTRY_DSN` e `SENTRY_AUTH_TOKEN` nelle env.
+3. Configura l'upload delle **source maps** in build (per stack trace leggibili).
+4. Verifica il **PII filtering** (no dati sensibili negli eventi). Retention eventi: 90 giorni.
+
+---
+
+## 11. Step 9 — Post-deploy smoke test
+
+Verifica manuale dei flussi critici subito dopo il deploy:
+
+URL critici (10):
+
+1. `https://anlyra.it/it` — landing
+2. `https://anlyra.it/en` — landing EN
+3. `https://anlyra.it/it/pricing` — pricing
+4. `https://anlyra.it/it/legal/privacy` — privacy
+5. `https://anlyra.it/it/login`
+6. `https://anlyra.it/it/signup`
+7. `https://anlyra.it/it/overview` (redirect a login se non autenticato)
+8. `https://anlyra.it/robots.txt`
+9. `https://anlyra.it/sitemap.xml`
+10. `https://anlyra.it/api/health` (se presente)
+
+Auth flow E2E:
+
+- Signup con email/password → ricezione email di verifica → verifica → login.
+- Login OAuth Google/Microsoft.
+- Onboarding wizard (info org → settore → import skip → invite) → primo insight.
+- Checkout Stripe (test card in modalità live controllata) → conferma → stato piano aggiornato.
+
+Riferimento checklist sicurezza: [`security-audit-checklist.md`](security-audit-checklist.md).
+
+---
+
+## 12. Step 10 — Monitoring setup
+
+- **Uptime:** monitor esterno sui URL critici (es. UptimeRobot/BetterStack), alert su downtime.
+- **Errori:** alert Sentry su nuovi issue P0/P1.
+- **Stripe:** alert su `invoice.payment_failed` e webhook non recapitati.
+- **Status page:** pubblica su `status.anlyra.it` (contenuto in [`status-page-content.md`](status-page-content.md)).
+
+---
+
+## 13. Rollback procedure
+
+1. **Vercel:** Deployments → seleziona l'ultimo deploy stabile → **Promote to Production** (rollback istantaneo, immutabile).
+2. **Database:** se una migration ha causato il problema, valuta il restore PITR Supabase
+   (attenzione alla perdita dati nella finestra). Migration distruttive vanno evitate (vedi
+   [`postgres-migration-plan.md`](postgres-migration-plan.md)).
+3. **Env vars:** se la causa è una variabile errata, correggi e re-deploy.
+4. Comunica l'incident secondo [`incident-response-playbook.md`](incident-response-playbook.md).
+
+---
+
+## 14. Troubleshooting deploy
+
+| Sintomo | Causa probabile | Azione |
 |---|---|---|
-| **Vercel Analytics** | Web vitals, traffico | Abilita in Vercel → Analytics |
-| **Sentry** | Error tracking | `@sentry/nextjs`, DSN in env |
-| **Better Stack** | Uptime monitoring | Heartbeat su `https://anlyra.it` |
-| **Supabase Logs** | Query lente, errori DB | Dashboard Supabase → Logs |
-| **Stripe Dashboard** | Pagamenti, dispute, MRR | Notifiche email |
-| **Resend Logs** | Bounce, complaint, delivery | Dashboard Resend |
-
-Configura alert per: error rate > soglia (Sentry), downtime (Better Stack), pagamenti falliti (Stripe).
-
----
-
-## Sezione 11 — Checklist finale go-live
-
-### Tecnica
-- [ ] `npx tsc --noEmit` pulito in locale
-- [ ] `npm run build` pulito in locale
-- [ ] Migration Postgres applicate (`prisma migrate deploy`)
-- [ ] Tutte le env vars production settate in Vercel
-- [ ] SSL attivo su `anlyra.it` e `www.anlyra.it`
-- [ ] Webhook Stripe verificato (test event → 200)
-- [ ] Dominio email Resend verificato (SPF/DKIM/DMARC green)
-
-### Business
-- [ ] Prezzi Stripe live corrispondono al pricing pubblicato
-- [ ] Pagine legali aggiornate (privacy, terms, cookies)
-- [ ] Stripe Tax configurato (se applicabile)
-
-### Marketing
-- [ ] Google Search Console: proprietà verificata + sitemap submittata
-- [ ] OG preview testata (opengraph.xyz, Twitter validator, LinkedIn)
-- [ ] Favicon e apple-icon presenti
-
-### Post-launch
-- [ ] Monitoring attivo (Sentry, uptime, Vercel Analytics)
-- [ ] Backup DB verificato funzionante
-- [ ] Test transazione reale (piccolo importo, poi refund)
-- [ ] Piano di rollback rivisto col team
+| Build fallisce su tsc/lint | Errori type/lint non risolti | Esegui `npm run typecheck` e `npm run lint` in locale prima del push |
+| 500 sulle route | Env var mancante (`AUTH_SECRET`, `DATABASE_URL`) | Verifica le env su Vercel; controlla i function log |
+| OAuth redirect mismatch | Redirect URI non registrato | Allinea i redirect URI Google/Microsoft a `…/api/auth/callback/...` |
+| Webhook Stripe non arriva | Endpoint/secret errati | Verifica URL endpoint e `STRIPE_WEBHOOK_SECRET`; ricontrolla i log eventi Stripe |
+| Email non recapitate | DNS non propagato / dominio non verificato | Verifica SPF/DKIM/DMARC su Resend |
+| `prisma migrate` fallisce | URL/porta errati | Usa `DIRECT_URL` (5432) per le migration, password URL-encoded |
+| Cron non parte | `CRON_SECRET` mancante | Imposta la env e verifica l'header `Authorization` nella route |
 
 ---
 
-## Appendice A: Architettura
-
-```
-                       ┌─────────────────┐
-        Utente ───────▶│   Vercel Edge   │  (Next.js 14 App Router)
-                       │   region: fra1  │
-                       └────────┬────────┘
-                                │
-            ┌───────────────────┼───────────────────┐
-            ▼                   ▼                    ▼
-   ┌────────────────┐  ┌────────────────┐  ┌──────────────────┐
-   │ Supabase       │  │ Stripe         │  │ Anthropic API    │
-   │ Postgres (EU)  │  │ Payments +     │  │ Claude (insights)│
-   │ pooler :6543   │  │ Webhooks       │  └──────────────────┘
-   │ direct  :5432  │  └────────────────┘
-   └────────────────┘           │
-                                │ webhook → /api/webhooks/stripe
-                                ▼
-                       ┌────────────────┐
-                       │ Resend         │
-                       │ Email (EU)     │
-                       └────────────────┘
-
-   Auth: cookie custom `pro_session` (no NextAuth)
-   DNS:  GoDaddy → Vercel (A/CNAME) + Resend (SPF/DKIM/DMARC)
-```
-
----
-
-## Appendice B: Costi mensili stimati
-
-### Fase 0 (0-20 utenti, primo mese)
-- Vercel Free: €0
-- Supabase Free: €0
-- Resend Free (3K emails): €0
-- Stripe: 1.4% + €0.25 per transazione, no fee fissa
-- Dominio: €0 (già acquistato)
-- **TOTALE**: €0 + commissioni Stripe variabili
-
-### Fase 1 (20-100 utenti, post-traction)
-- Vercel Pro: $20/mo (~€19)
-- Supabase Pro: $25/mo (~€23) — backup point-in-time
-- Resend Pro $20/mo (~€19) — 50K emails
-- Sentry Team: $26/mo (~€24)
-- Better Stack Free: €0
-- **TOTALE**: ~€85/mese fisso + commissioni Stripe
-
-### Fase 2 (100-500 utenti)
-- Vercel Pro + bandwidth overage: ~€30
-- Supabase Pro + compute upgrade: ~€50
-- Resend: ~€50
-- Sentry Business: ~€80
-- **TOTALE**: ~€210/mese
-
----
-
-## Appendice C: Troubleshooting comuni
-
-### Deploy Vercel fallisce su build
-- Verifica `npx tsc --noEmit` pulito in locale
-- Verifica `npm run build` pulito in locale
-- Controlla log Vercel per modulo mancante
-
-### Database connection error in production
-- Verifica `DATABASE_URL` punta a pooler (6543), NON direct (5432)
-- Verifica password URL-encoded
-- Verifica region Supabase non-blocked da Vercel region
-
-### Stripe webhook 400
-- Verifica `STRIPE_WEBHOOK_SECRET` corrisponde a quello dell'endpoint specifico
-- Test localmente con `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
-
-### Email non arrivano
-- Verifica DKIM/SPF in spam check (mail-tester.com)
-- Verifica `RESEND_API_KEY` valido
-- Controlla Resend dashboard logs per errori bounce/complain
-
----
-
-**Documento creato**: 2026-05-24
-**Ultima revisione**: 2026-05-24
-**Autore**: Anlyra team + Claude
-**Status**: Ready for execution
+**Status:** documento operativo. Eseguire al go-live.
+**Cross-ref:** [`postgres-migration-plan.md`](postgres-migration-plan.md) · [`stripe-setup.md`](stripe-setup.md) · [`security-audit-checklist.md`](security-audit-checklist.md) · [`codespace-recovery-procedure.md`](codespace-recovery-procedure.md).
+**Last updated:** 2026-05-28.

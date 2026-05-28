@@ -1,63 +1,59 @@
 # Onboarding Flow — Blueprint FASE D
 
-**Versione:** 1.0
-**Data:** 2026-05-24
-**Status:** Blueprint pronto per implementazione FASE D — Living document
-**Stima sviluppo:** 3-4 settimane full-time (4 sprint)
+**Versione:** 2.0
+**Last updated:** 2026-05-28
+**Status:** FASE D **implementata** — questo documento è il blueprint di riferimento (specifica + stato).
+**Audience:** dev / product.
 
-> Questo documento descrive il flusso completo di onboarding utente Anlyra,
-> dalla prima visita al primo insight generato. Serve da specifica di riferimento
-> per il team di sviluppo durante la FASE D.
+> Descrive il flusso completo di onboarding Anlyra, dalla prima visita al primo insight AI. La FASE D
+> (NextAuth v5, signup reale, email verify, 2FA, onboarding wizard, multi-org, invite) è **già
+> implementata in codice**; questo documento resta la specifica di riferimento e traccia onestamente
+> ciò che è completo vs ciò che è da rifinire (§7).
+
+**Documenti correlati**: [`SECURITY.md`](SECURITY.md) (auth, password, 2FA), [`stripe-setup.md`](stripe-setup.md)
+(trial & eventi pagamento), [`email/onboarding-sequence.md`](email/onboarding-sequence.md),
+[`FAQ.md`](FAQ.md), [`i18n/translation-style-guide.md`](i18n/translation-style-guide.md) (copy).
 
 ---
 
 ## 1. Visione macro
 
 ### 1.1 Obiettivo
+
 Portare un nuovo utente da "mai sentito Anlyra" a "ho visto il mio primo insight AI" in
-**meno di 6 minuti** (TTV target). Ogni step deve essere così semplice che l'utente
-preferisce completarlo subito piuttosto che uscire.
+**meno di 6 minuti** (Time-To-Value target). Ogni step deve essere così semplice che l'utente
+preferisce completarlo subito piuttosto che abbandonare.
 
-### 1.2 Funnel overview
+### 1.2 Funnel
 
 ```
-Landing page
-    │
-    ▼
-/[locale]/signup          ← FASE D (da costruire)
-    │
-    ▼
-Email verify              ← FASE D
-    │
-    ▼
-/[locale]/welcome         ← FASE D
-    │
-    ▼
-/[locale]/onboarding/*    ← FASE D (5-step wizard)
-    │
-    ▼
-/[locale]/ai/insights     ← ✅ esiste, manca solo tour overlay
+   Landing page  (/[locale])
+        │   CTA "Inizia la prova gratuita"
+        ▼
+   Signup        (/[locale]/signup)          ✅ FASE D
+        │   email/password  oppure  Google / Microsoft
+        ▼
+   Verifica email (/[locale]/verify-email)   ✅ FASE D
+        │   click sul link nell'email (token monouso)
+        ▼
+   Welcome       (/[locale]/welcome)         ✅ FASE D
+        │   benvenuto + selezione goal (opzionale)
+        ▼
+   Org wizard    (/[locale]/onboarding/*)    ✅ FASE D (4 substep)
+        │   info azienda → settore/dimensione → import (skip) → invite team
+        ▼
+   First insight (/[locale]/ai/insights)     ✅ esiste · 🚧 tour overlay da rifinire
 ```
 
-### 1.3 Stato implementazione corrente
-- ✅ Dashboard completa (`/[locale]/ai/insights`, finance, market, ecc.)
-- ✅ Email infrastructure (Resend + 5 template: welcome, verify-email, password-reset, team-invite, payment-confirmed)
-- ✅ Auth via cookie custom `pro_session` (demo mode)
-- ❌ Signup/login reali (solo demo, nessun email/password)
-- ❌ Email verification flow
-- ❌ Onboarding wizard
-- ❌ Trial management
-- ❌ Team invite UI
-- ❌ Tour overlay
+### 1.3 KPI target del funnel
 
-### 1.4 KPI target onboarding
-
-| Metrica | Target | Note |
+| Tappa | Metrica | Target |
 |---|---|---|
-| Activation rate | ≥ 80% | Signup → email verified |
-| TTV mediana | ≤ 6 min | Signup → first insight |
-| Drop-off per step | ≤ 20% | Alert se sopra soglia |
-| Trial → paid | 8-15% | Benchmark B2B SaaS |
+| Landing → Signup start | CTR CTA | ≥ 8% |
+| Signup start → complete | Completion | ≥ 75% |
+| Signup → Email verified | Verify rate | ≥ 70% |
+| Verified → Wizard complete | Wizard completion | ≥ 60% |
+| Wizard → First insight | Activation (TTV < 6 min) | ≥ 50% |
 
 ---
 
@@ -65,506 +61,272 @@ Email verify              ← FASE D
 
 ### Step 1 — Signup
 
-**Pagina**: `/[locale]/signup`
-**Status**: ❌ da costruire (attualmente esiste solo demo login)
-
-#### Layout mockup
+Route: `/[locale]/signup`. Metodi: **email/password** o **OAuth Google / Microsoft**.
 
 ```
-┌─────────────────────────────────────────────┐
-│  [A] Anlyra          Hai già un account? Accedi│
-├─────────────────────────────────────────────┤
-│                                             │
-│   Inizia gratis                             │
-│   Nessuna carta richiesta. 7 giorni di prova│
-│                                             │
-│   [G] Continua con Google                  │
-│   [M] Continua con Microsoft               │
-│                                             │
-│   ─────────── oppure ───────────           │
-│                                             │
-│   Nome completo *                           │
-│   [__________________________]              │
-│                                             │
-│   Email aziendale *                         │
-│   [__________________________]              │
-│                                             │
-│   Password * (min 8 caratteri)              │
-│   [__________________________] [👁]          │
-│                                             │
-│   [  Crea account →  ]                      │
-│                                             │
-│   Registrandoti accetti i Termini e la      │
-│   Privacy Policy di Anlyra                  │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Anlyra                                        │
+│                                                │
+│  Crea il tuo account                           │
+│  Analytics e AI advisory per la tua impresa.   │
+│                                                │
+│  [  Continua con Google      ]                 │
+│  [  Continua con Microsoft   ]                 │
+│  ───────────  oppure  ───────────             │
+│  Email     [____________________]             │
+│  Password  [____________________]  👁          │
+│  • min 12 caratteri • 1 maiuscola              │
+│  • 1 numero • 1 carattere speciale             │
+│                                                │
+│  [        Crea account        ]                │
+│                                                │
+│  Hai già un account?  Accedi                   │
+└──────────────────────────────────────────────┘
 ```
 
-#### Validation rules
-- Nome: min 2 caratteri, max 60
-- Email: formato valido, dominio non blocklist (es. mailinator, tempmail)
-- Password: min 8 caratteri, almeno 1 numero o simbolo
-- hCaptcha invisibile su submit per anti-bot (dopo traction)
+Copy chiave (IT, registro "tu"): *"Crea il tuo account"*, *"Continua con Google"*, *"Crea account"*,
+*"Hai già un account? Accedi"*.
 
-#### Post-submit
-1. Crea User in DB (passwordHash con bcrypt cost 12)
-2. Genera `emailVerifyToken` (cuid)
-3. Invia email `verify-email` via Resend (template già esistente)
-4. Redirect a `/[locale]/check-email?email=xxx@yyy.com`
+Validazione password **server-side** (policy in [`SECURITY.md`](SECURITY.md) §3). Al submit:
+crea `User` (non verificato), invia email di verifica, reindirizza a **check-email**.
 
-#### Pagina `/check-email`
 ```
-┌─────────────────────────────────────────────┐
-│                                             │
-│          📧                                 │
-│   Controlla la tua email                    │
-│                                             │
-│   Abbiamo inviato un link di conferma a     │
-│   xxx@yyy.com                               │
-│                                             │
-│   Il link scade tra 24 ore.                 │
-│                                             │
-│   [Non hai ricevuto? Reinvia]               │
-│   [Cambia email]                            │
-│                                             │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Controlla la tua email                        │
+│                                                │
+│  Abbiamo inviato un link di conferma a         │
+│  mario@azienda.it                              │
+│  Clicca il link per attivare l'account.        │
+│                                                │
+│  Non hai ricevuto nulla?  Invia di nuovo (60s) │
+└──────────────────────────────────────────────┘
 ```
-
----
 
 ### Step 2 — Email verification
 
-**Pagina**: `/[locale]/verify-email?token=xxxx`
-**Status**: ❌ da costruire
+Route: `/[locale]/verify-email` + API `/api/auth/verify-email`. La verifica è **obbligatoria**
+prima del primo login. Token monouso con scadenza.
 
-#### Flow
-1. Utente clicca link email → `/[locale]/verify-email?token=xxxx`
-2. Server verifica token (esiste, non scaduto, non già usato)
-3. Marca `emailVerifiedAt = now()` sul User
-4. Invalida token
-5. Invia email `welcome` via Resend (template già esistente)
-6. Crea session cookie `pro_session`
-7. Redirect → `/[locale]/welcome`
+Stati:
 
-#### Error states
-- Token non trovato → "Link non valido. Richiedi un nuovo link."
-- Token scaduto (>24h) → "Link scaduto." + [Richiedi nuovo link]
-- Email già verificata → redirect a `/[locale]/overview` direttamente
-
----
-
-### Step 3 — Welcome screen
-
-**Pagina**: `/[locale]/welcome`
-**Status**: ❌ da costruire
-
-#### Layout mockup
+- **Successo** → "Email verificata. Ti portiamo dentro…" → redirect a `welcome`.
+- **Token scaduto** → "Il link è scaduto. Ne generiamo uno nuovo?" → CTA "Invia nuovo link".
+- **Già verificato** → "Questo account è già attivo." → CTA "Vai al login".
+- **Token non valido** → messaggio neutro (no enumeration) → CTA reinvio.
 
 ```
-┌─────────────────────────────────────────────┐
-│                                             │
-│          [A] Anlyra                         │
-│                                             │
-│   Benvenuto/a in Anlyra, [Nome] 👋           │
-│                                             │
-│   In 3 minuti ti aiutiamo a configurare     │
-│   la tua dashboard personale.               │
-│                                             │
-│   Cosa ti aspetti da Anlyra?                │
-│                                             │
-│   ┌──────────────────────────────────────┐  │
-│   │ 📊  Monitorare KPI e cashflow        │  │
-│   └──────────────────────────────────────┘  │
-│   ┌──────────────────────────────────────┐  │
-│   │ 🤖  Ricevere insights AI automatici  │  │
-│   └──────────────────────────────────────┘  │
-│   ┌──────────────────────────────────────┐  │
-│   │ 📈  Fare forecasting finanziario     │  │
-│   └──────────────────────────────────────┘  │
-│   ┌──────────────────────────────────────┐  │
-│   │ 👥  Collaborare con il mio team      │  │
-│   └──────────────────────────────────────┘  │
-│                                             │
-│   [  Inizia la configurazione →  ]          │
-│                                             │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  ⚠  Link scaduto                               │
+│  Il link di verifica non è più valido.         │
+│  [   Inviami un nuovo link   ]                 │
+└──────────────────────────────────────────────┘
 ```
 
-#### Funzione
-- Risposta salvata su Organization (campo futuro `primaryGoal`)
-- Non bloccante: anche senza risposta si procede
-- Serve per personalizzare home dashboard (future feature) e per analytics
+### Step 3 — Welcome
 
----
-
-### Step 4 — Org setup wizard
-
-**Pagina**: `/[locale]/onboarding/[step]`
-**Status**: ❌ da costruire
-**Steps**: 5 — navigazione laterale + progress indicator
-
-#### Step 4a — Info azienda
+Route: `/[locale]/welcome`. Primo contatto post-verifica: saluto + **goal selection opzionale**
+(serve a personalizzare il primo insight, skippabile).
 
 ```
-┌─────────────────────────────────────────────┐
-│  ① Info azienda  ② Piano  ③ Dati  ④ Team  ⑤│
-│  ●────────────────────────────────────────  │
-├─────────────────────────────────────────────┤
-│                                             │
-│   Raccontaci della tua azienda              │
-│                                             │
-│   Nome azienda *                            │
-│   [____________________________________]    │
-│                                             │
-│   Settore *                                 │
-│   [▼ Seleziona settore               ]      │
-│   (Retail, Manifatturiero, Servizi,         │
-│    Tecnologia, E-commerce, Altro...)        │
-│                                             │
-│   Dimensione team *                         │
-│   ● Solo io   ○ 2-5   ○ 6-15   ○ 16-50  ○ 50+│
-│                                             │
-│   P.IVA (opzionale)                         │
-│   [____________________________________]    │
-│                                             │
-│                [Avanti →]                   │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Benvenuto in Anlyra 👋                        │
+│  (nota: emoji solo in onboarding, non nella    │
+│   UI di prodotto — vedi style guide)           │
+│                                                │
+│  Cosa vuoi tenere d'occhio per primo?          │
+│  ( ) Flusso di cassa                           │
+│  ( ) Margini e redditività                     │
+│  ( ) Vendite e clienti                         │
+│  ( ) Non sono sicuro, mostrami tutto           │
+│                                                │
+│  [ Continua ]      Salta per ora               │
+└──────────────────────────────────────────────┘
 ```
 
-#### Step 4b — Scegli piano
+### Step 4 — Org setup wizard (4 substep)
+
+Route: `/[locale]/onboarding/*` + API `/api/onboarding`. Crea l'`Organization`, la `Membership`
+(con `isDefault`), avvia il **trial 7 giorni** (per organizzazione).
+
+**4.1 Info azienda**
 
 ```
-┌─────────────────────────────────────────────┐
-│  ① Info  ② Piano  ③ Dati  ④ Team  ⑤        │
-│  ●────●───────────────────────────────────  │
-├─────────────────────────────────────────────┤
-│                                             │
-│   Scegli il tuo piano                       │
-│   Prova gratuita 7 giorni · Nessuna carta   │
-│                                             │
-│   ┌──────────────┐  ┌──────────────────┐   │
-│   │  Pro          │  │ ★ Avanzato        │   │
-│   │  €49/mese     │  │  €149/mese        │   │
-│   │               │  │  Più popolare     │   │
-│   │  ✓ 200 crediti│  │  ✓ 700 crediti    │   │
-│   │  ✓ 5 utenti   │  │  ✓ 15 utenti      │   │
-│   │  ✓ 24 mesi    │  │  ✓ 36 mesi        │   │
-│   │               │  │  ✓ Benchmark      │   │
-│   │  [Scegli Pro] │  │  [Scegli Avanzato]│   │
-│   └──────────────┘  └──────────────────┘   │
-│                                             │
-│   Oppure: [Confronta tutti i piani →]       │
-│                                             │
-└─────────────────────────────────────────────┘
+Step 1 di 4 ──●───○───○───○
+Parlaci della tua azienda
+  Ragione sociale  [________________________]
+  P.IVA            [___________]  (opzionale ora)
+  [ Avanti ]
 ```
 
-Note: carta non richiesta in questo step. Trial attivato al submit. Redirect
-a Stripe Checkout solo se utente vuole pagare subito.
-
-#### Step 4c — Carica dati
+**4.2 Settore + dimensione**
 
 ```
-┌─────────────────────────────────────────────┐
-│  ① Info  ② Piano  ③ Dati  ④ Team  ⑤        │
-│  ●────●────●──────────────────────────────  │
-├─────────────────────────────────────────────┤
-│                                             │
-│   Porta i tuoi dati su Anlyra               │
-│                                             │
-│   ┌──────────────────────────────────────┐  │
-│   │  📂  Trascina un CSV qui             │  │
-│   │     oppure                           │  │
-│   │  [  Sfoglia file  ]                  │  │
-│   │                                      │  │
-│   │  Formati: CSV, Excel (.xlsx)         │  │
-│   │  Max: 10 MB per file                 │  │
-│   └──────────────────────────────────────┘  │
-│                                             │
-│   ─── oppure ───                            │
-│                                             │
-│   [🧪 Usa dati demo — Inizia subito]         │
-│                                             │
-│   Non hai dati ora? [Salta, configuro dopo] │
-│                                             │
-└─────────────────────────────────────────────┘
+Step 2 di 4 ──●───●───○───○
+  Settore     [ Seleziona ▾ ]  (commercio, servizi, manifattura, …)
+  Dipendenti  ( )1-9  ( )10-49  ( )50-249  ( )250+
+  Fatturato   ( )<1M  ( )1-10M  ( )10-50M  ( )>50M
+  [ Indietro ]   [ Avanti ]
 ```
 
-**Background task al submit**: il server avvia la generazione del primo insight
-(`generateInsight()`) in background. Tempo target < 5 secondi.
-
-#### Step 4d — Invita team
+**4.3 Import dati (skip)**
 
 ```
-┌─────────────────────────────────────────────┐
-│  ① Info  ② Piano  ③ Dati  ④ Team  ⑤        │
-│  ●────●────●────●─────────────────────────  │
-├─────────────────────────────────────────────┤
-│                                             │
-│   Aggiungi i tuoi colleghi                  │
-│                                             │
-│   Email collega      Ruolo                  │
-│   [________________] [▼ Editor  ] [+Aggiungi]│
-│                                             │
-│   (Lista degli invite in coda)              │
-│   mario@esempio.it — Editor        [✕]      │
-│                                             │
-│   [  Invia inviti  ]                        │
-│                                             │
-│   [Salta per ora — sono solo io]            │
-│                                             │
-└─────────────────────────────────────────────┘
+Step 3 di 4 ──●───●───●───○
+Porta i tuoi dati in Anlyra
+  [ Carica CSV ]   (drag & drop)
+  Integrazioni: QuickBooks · Fatture in Cloud · Banca (PSD2)
+  → "In arrivo" (pianificate — vedi docs/integrations/)
+  [ Indietro ]   [ Salta, lo farò dopo ]
 ```
 
-Ruoli disponibili: `admin`, `editor`, `viewer`.
-Al submit: crea record `Invite`, invia email `team-invite` per ogni destinatario.
+> Le integrazioni esterne sono **pianificate**, non attive (QuickBooks/Fatture in Cloud Q3 2026,
+> PSD2 Q4 2026). In questo step si può solo caricare CSV o saltare.
 
-#### Step 4e — Tutto pronto
+**4.4 Invita il team**
 
 ```
-┌─────────────────────────────────────────────┐
-│  ① Info  ② Piano  ③ Dati  ④ Team  ⑤        │
-│  ●────●────●────●────●──────────────────── │
-├─────────────────────────────────────────────┤
-│                                             │
-│          ✓                                  │
-│   Anlyra è pronto per te!                   │
-│                                             │
-│   Riepilogo:                                │
-│   ✓ Azienda: [Nome azienda]                 │
-│   ✓ Piano: Pro · Trial fino al [data]       │
-│   ✓ Dati: importati (o demo attivi)         │
-│   ✓ Team: 2 inviti inviati                  │
-│                                             │
-│   Stiamo generando il tuo primo insight...  │
-│   [████████░░] 80%                          │
-│                                             │
-│   (Auto-redirect tra 3 secondi)             │
-│                                             │
-└─────────────────────────────────────────────┘
+Step 4 di 4 ──●───●───●───●
+Invita i tuoi collaboratori (opzionale)
+  Email  [______________]  Ruolo [ Membro ▾ ]   [ + Aggiungi ]
+  [ Indietro ]   [ Concludi e vai alla dashboard ]
 ```
 
-Auto-redirect → `/[locale]/ai/insights` con query param `?highlight=first-insight`
-una volta che il background task è completato (o dopo timeout 5s con fallback).
+Genera `Invite` per email; il flow di accettazione collega il nuovo utente alla stessa org via
+`Membership`.
 
----
+### Step 5 — First insight + tour overlay
 
-### Step 5 — Primo insight (a-ha moment)
+Route: `/[locale]/ai/insights`. Mostra il **primo insight AI** generato dai dati (o un esempio se
+nessun dato è stato importato), con confidence score e dati sottostanti visibili. Un **tour overlay**
+evidenzia le aree chiave della dashboard.
 
-**Pagina**: `/[locale]/ai/insights` (con tour overlay per primo accesso)
-**Status**: ✅ pagina esistente, manca solo onboarding overlay
-
-#### Tour overlay (primo accesso)
-- Spotlight su primo Insight Card
-- Tooltip: "Ecco il tuo primo insight. Anlyra analizza i tuoi dati e ti dice cosa fare."
-- CTA: "Cliccalo per vedere i dettagli"
-- Steps successivi (skippable): mostra Alert (sidebar), Forecasting, Settings
-
-Software consigliato per tour: **driver.js** (gratis, lightweight, 5KB)
-- Install: `npm install driver.js`
-- Setup in Client Component condizionale (solo se `user.onboardingCompletedAt === null`)
-
----
-
-## 3. Email touch points
-
-Sequenza email durante onboarding:
-
-| Trigger | Template | Subject | Quando inviata |
-|---------|----------|---------|----------------|
-| Signup completato | `verify-email` | "Conferma il tuo indirizzo email · Anlyra" | Immediato post-form submit |
-| Email verificata | `welcome` | "Benvenuto in Anlyra, [Nome]" | Immediato post-verify |
-| Org setup completato | — (già loggato) | — | — |
-| Team invite inviato | `team-invite` | "[Nome] ti ha invitato a unirti ad Anlyra" | Subito (al destinatario) |
-| Trial 3 giorni residui | `trial-3days` ⚠️ | "3 giorni alla scadenza · Anlyra" | Trial day 4 |
-| Trial 1 giorno residuo | `trial-1day` ⚠️ | "Domani scade la prova · Anlyra" | Trial day 6 |
-| Trial scaduto | `trial-expired` ⚠️ | "Prova scaduta — riattiva il tuo account" | Trial day 8 |
-| Pagamento riuscito | `payment-confirmed` | "Pagamento confermato · Anlyra" | Webhook Stripe `invoice.paid` |
-| Cancellazione | `subscription-canceled` ⚠️ | "Account cancellato — torna quando vuoi" | Stripe webhook `subscription.deleted` |
-
-> ⚠️ = template **da creare** in FASE D. Gli altri 5 esistono già in
-> `src/lib/email/templates/`.
-
-Template da creare: `trial-3days`, `trial-1day`, `trial-expired`, `subscription-canceled`.
-
----
-
-## 4. Edge cases globali
-
-### 4.1 OAuth signup
-- Google/Microsoft restituiscono email + nome → form pre-compilato, password skip
-- Se email già esistente con password locale → "Account esistente. Vuoi collegare Google?"
-- Se cancella OAuth dialog → torna a signup form pulito
-
-### 4.2 Refresh durante onboarding
-- Step state persistito in cookie + DB (`onboardingStep` field su User)
-- Refresh = riprende dallo step corrente
-
-### 4.3 Abbandono onboarding
-- Cookie session valida 7 giorni (anche se non completato setup)
-- Login successivo → redirect automatico allo step incompleto
-- Email "Hai abbandonato il setup" dopo 24h (NUOVO template da creare)
-
-### 4.4 Tablet/mobile
-- Mobile-first design per signup form (max 1 colonna)
-- Org setup wizard: stack verticale su mobile
-- Tour overlay driver.js: responsive (auto-adapt)
-
-### 4.5 Accessibility
-- Form fields con label visibili (no placeholder-only)
-- Focus order tab logico
-- Screen reader: aria-label su icon buttons
-- Color contrast WCAG AA su tutti i CTA
-- No animazioni distraenti se `prefers-reduced-motion`
-
----
-
-## 5. Schema dati richieste per FASE D
-
-> ⚠️ Queste sono modifiche Prisma da applicare — NON ancora nel codice.
-> Seguire la procedura normale: edit schema → `prisma migrate dev` → deploy.
-
-### 5.1 User model — aggiungere
-
-Modello corrente ha: `id`, `email`, `name`, `image`, `locale`, `createdAt`, `memberships`.
-
-Campi da aggiungere:
-
-```prisma
-model User {
-  // ... campi esistenti (non toccare)
-  emailVerifiedAt        DateTime?
-  passwordHash           String?       // null se solo OAuth
-  onboardingStep         String?       // 'org-info' | 'plan' | 'data' | 'team' | 'completed'
-  onboardingCompletedAt  DateTime?
-  trialEndsAt            DateTime?
-  emailVerifyToken       String?       @unique
-  passwordResetToken     String?       @unique
-  passwordResetExpiresAt DateTime?
-  twoFactorSecret        String?
-  twoFactorEnabledAt     DateTime?
-}
 ```
-
-### 5.2 Organization model — verificare/aggiungere
-
-Modello corrente ha già: `industry String @default("Generale")`, `employees Int`.
-
-Campi da aggiungere o verificare:
-
-```prisma
-model Organization {
-  // ... campi esistenti (non toccare)
-  // industry: già presente come String — convertire in nullable? valutare
-  teamSize         String?       // '1' | '2-5' | '6-15' | '16-50' | '50+'
-  vatNumber        String?       // P.IVA opzionale
-  setupCompletedAt DateTime?
-}
-```
-
-> `industry` esiste già come `String @default("Generale")` — potrebbe essere
-> sufficiente. `employees` esiste già come `Int` — valutare se tenerlo o sostituire
-> con `teamSize String?` per compatibilità con le stringhe del wizard.
-
-### 5.3 Invite model — nuovo
-
-```prisma
-model Invite {
-  id              String    @id @default(cuid())
-  email           String
-  organizationId  String
-  invitedById     String
-  role            String    // 'admin' | 'editor' | 'viewer'
-  token           String    @unique
-  acceptedAt      DateTime?
-  expiresAt       DateTime
-  createdAt       DateTime  @default(now())
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  invitedBy       User         @relation(fields: [invitedById], references: [id])
-}
+┌──────────────────────────────────────────────┐
+│  Il tuo primo insight                          │
+│  "Il flusso di cassa di questo mese è in calo  │
+│   del 12% rispetto alla media trimestrale."    │
+│  Confidence: 0,82   ▸ Vedi i dati              │
+│                                                │
+│  ( tour overlay: Sidebar → Finance → AI )      │
+└──────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6. Metriche da tracciare
+## 3. Email touchpoints
 
-### 6.1 Funnel analytics
-Tracciare ogni step con event analytics (PostHog o Mixpanel):
+9 template transazionali (Resend). Copy in italiano, registro "tu", **nessuna emoji** nelle email
+transazionali (vedi [`i18n/translation-style-guide.md`](i18n/translation-style-guide.md)).
 
-- `signup_form_viewed`
-- `signup_form_submitted`
-- `email_verified`
-- `welcome_screen_viewed`
-- `org_setup_started`
-- `org_setup_step_completed` (con property `step: 'org-info' | 'plan' | 'data' | 'team'`)
-- `org_setup_completed`
-- `first_insight_viewed`
-- `onboarding_tour_started`
-- `onboarding_tour_skipped`
-- `onboarding_tour_completed`
+| # | Template | Trigger | Contenuto chiave |
+|---|---|---|---|
+| 1 | `welcome` | Email verificata | Benvenuto, link alla dashboard, primi passi |
+| 2 | `verify-email` | Signup | Link di verifica monouso (scadenza) |
+| 3 | `password-reset` | Richiesta reset | Link reset monouso |
+| 4 | `team-invite` | Invito dal wizard/settings | Link per unirsi all'org |
+| 5 | `payment-confirmed` | `checkout.session.completed` | Conferma pagamento, fattura |
+| 6 | `trial-3days` | Trial T-3 giorni | Avviso scadenza, CTA upgrade |
+| 7 | `trial-1day` | Trial T-1 giorno | Ultimo promemoria |
+| 8 | `trial-expired` | Trial scaduto | Account in sola lettura, CTA riattiva |
+| 9 | `subscription-canceled` | `customer.subscription.deleted` | Conferma cancellazione, export dati |
 
-### 6.2 KPI target
-
-- **Activation rate**: signup → email verified ≥ 80%
-- **TTV (time to value)**: signup → first insight ≤ 6 minuti mediana
-- **Drop-off rate per step**: max 20% per step (alert se sopra)
-- **Trial → paid conversion**: target 8-15% (industry benchmark B2B SaaS)
-
-### 6.3 Dashboards interne
-Creare dashboard PostHog/Mixpanel con:
-- Conversion funnel signup → first insight
-- Drop-off heatmap per step
-- TTV histogram
-- Cohort retention (D1, D7, D30)
+Eventi trial/pagamento generati da Stripe + cron `trial-check` (vedi [`stripe-setup.md`](stripe-setup.md)
+e [`DEPLOY.md`](DEPLOY.md) §9). Sequenza marketing complementare in
+[`email/onboarding-sequence.md`](email/onboarding-sequence.md).
 
 ---
 
-## 7. Implementation checklist FASE D
+## 4. Edge cases
 
-Sequenza implementativa raccomandata:
-
-### Sprint 1 (1 settimana) — Auth foundation
-- [ ] NextAuth v5 setup base
-- [ ] Provider: Email/password + Google + Microsoft
-- [ ] Schema Prisma aggiornato (campi User + Organization + Invite)
-- [ ] Migration applicata
-- [ ] Signup form `/[locale]/signup` (UI + validation)
-- [ ] Login form `/[locale]/login` (refactor su NextAuth)
-- [ ] Logout NextAuth (sostituire cookie demo `pro_session`)
-
-### Sprint 2 (1 settimana) — Onboarding wizard
-- [ ] Email verify flow (page `/[locale]/verify-email` + API + email send)
-- [ ] Password reset flow (request + reset pages + email send)
-- [ ] Welcome page `/[locale]/welcome`
-- [ ] Org setup wizard 5 steps `/[locale]/onboarding/[step]`
-- [ ] Demo data populate option (pulsante "Usa dati demo")
-
-### Sprint 3 (3-5 giorni) — Social features
-- [ ] Team invite flow (form + API + email + accept page)
-- [ ] First insight tour overlay (driver.js)
-- [ ] 2FA TOTP via `speakeasy` (opt-in da settings)
-
-### Sprint 4 (3-5 giorni) — Trial + polish
-- [ ] Trial email sequence (4 nuovi template Resend)
-- [ ] Trial expiry handling (gate in middleware/server actions)
-- [ ] Onboarding analytics events (PostHog)
-- [ ] Edge cases (refresh, abandon, OAuth conflicts)
-- [ ] Testing E2E con Playwright
-
-**Totale stima:** 3-4 settimane di sviluppo full-time.
+| Caso | Comportamento |
+|---|---|
+| **OAuth con email già esistente** (registrata via password) | Account linking: si associa il provider OAuth all'utente esistente dopo conferma; nessun account duplicato. |
+| **Refresh durante il wizard** | Lo stato è persistito server-side (step corrente in `Organization`/sessione); al refresh si riprende dallo step giusto. |
+| **Abbandono del wizard** | Al login successivo l'utente rientra nel wizard allo step non completato; org in stato "onboarding incompleto". |
+| **Doppio submit signup** | Idempotente: secondo submit non crea un secondo utente; reinvio email rate-limited. |
+| **Token verify scaduto/riusato** | Messaggio neutro (no enumeration) + CTA per nuovo link. |
+| **Mobile responsive** | Wizard a step singolo per schermata; touch target ≥ 44px; tastiera adeguata per email/numeri. |
+| **Accessibilità (WCAG 2.1 AA)** | Focus management tra step, label esplicite, contrasto ≥ 4.5:1, navigazione da tastiera, `aria-live` sugli errori. |
+| **2FA attivo** | Dopo login, challenge TOTP prima dell'accesso alla dashboard; backup code come fallback. |
 
 ---
 
-## 8. Riferimenti
+## 5. Schema dati (FASE D — già implementato)
 
-- NextAuth v5 docs: https://authjs.dev
-- driver.js (tour overlay): https://driverjs.com
-- hCaptcha invisibile: https://hcaptcha.com
-- PostHog (analytics): https://posthog.com
-- Email best practice B2B SaaS: https://reallygoodemails.com/welcome
+> Non usare i modelli zombie (`User_b4`, `Organization_b7`, `Alert_b7`, ecc.) in query nuove.
+
+- **User** — campi auth: `email` (unique), `passwordHash` (bcrypt, null se solo OAuth),
+  `emailVerified` (timestamp), `name`, relazioni OAuth account, campi 2FA (`totpSecret`,
+  `backupCodes`, `twoFactorEnabled`).
+- **Organization** — `name`, `slug`, `vatNumber` (P.IVA, opzionale), `sector`, `sizeBand`,
+  `revenueBand`, `plan`, stato trial (`trialEndsAt`), stato onboarding (`onboardingStep` / completed).
+- **Membership** — collega `User` ↔ `Organization` con `role` e **`isDefault`** (org predefinita
+  al login per utenti multi-org).
+- **Invite** — `email`, `organizationId`, `role`, `token`, `expiresAt`, stato (`pending`/`accepted`).
+
+Multi-org e subscription sono **per organizzazione**, non per utente (vedi CLAUDE.md decisioni FASE D).
 
 ---
 
-**Documento creato:** 2026-05-24
-**Ultima revisione:** 2026-05-24
-**Autore:** Anlyra team + Claude
-**Status:** Blueprint pronto per implementazione FASE D. Living document —
-aggiornare durante sviluppo con learnings reali.
+## 6. Metriche funnel (eventi tracking)
+
+11 eventi (product analytics — provider da decidere, PostHog vs Mixpanel):
+
+1. `signup_start` — apertura form signup
+2. `signup_complete` — utente creato
+3. `email_verified` — verifica completata
+4. `welcome_viewed` — schermata welcome
+5. `wizard_step_1` — info azienda
+6. `wizard_step_2` — settore/dimensione
+7. `wizard_step_3` — import (o skip)
+8. `wizard_step_4` — invite (o skip)
+9. `wizard_complete` — org creata, trial avviato
+10. `first_insight_viewed` — primo insight mostrato (**activation**)
+11. `tour_completed` — tour overlay concluso
+
+Ogni evento porta `organizationId`, `userId`, `locale` e `timestamp`. Da questi si calcolano i KPI
+di §1.3.
+
+---
+
+## 7. Implementation status (onesto)
+
+**✅ Implementato in FASE D:**
+
+- NextAuth v5 (email/password + Google + Microsoft), config split edge-safe.
+- Signup reale + verifica email obbligatoria (token monouso).
+- Password policy server-side + 2FA TOTP (backup code).
+- Onboarding wizard 4 substep + creazione `Organization`/`Membership`/trial.
+- Multi-org via `Membership` (`isDefault`).
+- Invite flow (generazione + accettazione).
+- Route presenti: `/[locale]/signup`, `/verify-email`, `/welcome`, `/onboarding`, API
+  `/api/auth/*`, `/api/onboarding`, `/api/auth/2fa/*`.
+- Demo mode (`/api/auth/login-demo`) **rimossa**.
+
+**🚧 Da rifinire / verificare:**
+
+- **Data import wizard (step 4.3):** upload CSV end-to-end e mapping campi da completare; le
+  integrazioni (QuickBooks/Fatture in Cloud/PSD2) restano **pianificate**.
+- **Tour overlay (step 5):** da rifinire (copy + targeting elementi).
+- **Verifica runtime end-to-end** dell'intero funnel (vedi
+  [`codespace-recovery-procedure.md`](codespace-recovery-procedure.md)).
+- **Account linking OAuth↔password:** confermare il comportamento in tutti i casi limite.
+- **Product analytics:** provider e instrumentazione eventi da finalizzare.
+
+---
+
+## 8. Riferimenti tecnici
+
+- **Auth, password policy, 2FA:** [`SECURITY.md`](SECURITY.md) §3.
+- **Trial & eventi pagamento, price ID, webhook:** [`stripe-setup.md`](stripe-setup.md);
+  cron `trial-check` in [`DEPLOY.md`](DEPLOY.md) §9.
+- **Copy & tono (registro "tu", no emoji nelle email):** [`i18n/translation-style-guide.md`](i18n/translation-style-guide.md).
+- **Sequenza email:** [`email/onboarding-sequence.md`](email/onboarding-sequence.md).
+- **FAQ pubbliche:** [`FAQ.md`](FAQ.md).
+- **File FASE D in codice:** `src/auth.ts`, `src/auth.config.ts`, `src/lib/auth/*`,
+  `src/app/[locale]/{signup,verify-email,welcome,onboarding}`, `src/app/api/{auth,onboarding}`.
+
+---
+
+**Status:** FASE D implementata · blueprint di riferimento (living document).
+**Last updated:** 2026-05-28.
