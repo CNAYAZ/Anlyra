@@ -9,9 +9,25 @@ const intlMiddleware = createMiddleware(routing);
 // Edge-safe NextAuth instance (authConfig has no Node-only imports).
 const { auth } = NextAuth(authConfig);
 
-// Bridge mode: the dashboard keeps its demo fallback, so we only hard-gate the
-// genuinely auth-only surfaces. Everything else flows through next-intl.
-const AUTH_ONLY_PATHS = ['/onboarding', '/settings/security'];
+// All dashboard and post-auth routes. Public routes (/login, /signup, /pricing,
+// /legal, /verify-email, /forgot-password, /reset-password, /invite, /share)
+// are not listed here and flow through next-intl without an auth gate.
+// The demo fallback in getCurrentContext remains in code but is unreachable
+// for any path listed here.
+const AUTH_ONLY_PATHS = [
+  '/overview',
+  '/finance',
+  '/market',
+  '/operations',
+  '/settings',
+  '/onboarding',
+  '/ai',
+  '/custom-dashboards',
+  '/data',
+  '/integrations',
+  '/reports',
+  '/welcome',
+];
 
 export default auth((req) => {
   const { nextUrl } = req;
