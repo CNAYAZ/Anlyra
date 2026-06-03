@@ -10,8 +10,11 @@ const intlMiddleware = createMiddleware(routing);
 const { auth } = NextAuth(authConfig);
 
 // All dashboard and post-auth routes. Public routes (/login, /signup, /pricing,
-// /legal, /verify-email, /forgot-password, /reset-password, /invite, /share)
-// are not listed here and flow through next-intl without an auth gate.
+// /legal, /verify-email, /welcome, /forgot-password, /reset-password, /invite,
+// /share) are not listed here and flow through next-intl without an auth gate.
+// /welcome is intentionally public: verify-email redirects there before a session
+// exists, and the page is session-optional (renders a generic greeting). The
+// sensitive next step, /onboarding, stays gated below.
 // The demo fallback in getCurrentContext remains in code but is unreachable
 // for any path listed here.
 const AUTH_ONLY_PATHS = [
@@ -26,7 +29,6 @@ const AUTH_ONLY_PATHS = [
   '/data',
   '/integrations',
   '/reports',
-  '/welcome',
 ];
 
 export default auth((req) => {
