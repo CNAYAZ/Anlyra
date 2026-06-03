@@ -1,10 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { buildDemoDataset } from '../src/lib/demo/data';
 
 const prisma = new PrismaClient();
 
 async function main() {
   const data = buildDemoDataset();
+  const demoPasswordHash = await bcrypt.hash('DemoAnlyra2026!', 12);
+  const now = new Date();
 
   const org = await prisma.organization.upsert({
     where: { slug: data.organization.slug },
@@ -20,8 +23,19 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: 'demo@pro.app' },
-    update: {},
-    create: { email: 'demo@pro.app', name: 'Demo User', locale: 'it' },
+    update: {
+      emailVerifiedAt: now,
+      emailVerified: now,
+      passwordHash: demoPasswordHash,
+    },
+    create: {
+      email: 'demo@pro.app',
+      name: 'Demo User',
+      locale: 'it',
+      emailVerifiedAt: now,
+      emailVerified: now,
+      passwordHash: demoPasswordHash,
+    },
   });
 
   await prisma.membership.upsert({
