@@ -165,29 +165,18 @@ export async function getOrgData(): Promise<DemoDataset> {
     }
   }
 
-  const insights: DemoInsight[] = [
-    {
-      id: 'ins_1',
-      title: 'Ricavi ricorrenti in crescita',
-      summary: 'Le subscription crescono mese su mese trainate dal piano Pro.',
-      impact: '+12,3k EUR di MRR netto vs. forecast',
-      tone: 'positive',
-    },
-    {
-      id: 'ins_2',
-      title: 'CAC in aumento',
-      summary: 'Il costo di acquisizione sale del 23% senza miglioramento della conversione.',
-      impact: 'Riallocare il 15% del paid ads a contenuti potrebbe risparmiare ~4,8k EUR/mese',
-      tone: 'negative',
-    },
-    {
-      id: 'ins_3',
-      title: 'Cash runway esteso',
-      summary: 'Migliorato il cash flow operativo dopo la rinegoziazione hosting.',
-      impact: 'Runway ora 18,2 mesi (era 14,1)',
-      tone: 'positive',
-    },
-  ];
+  const dbInsights = await prisma.insight.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: 'desc' },
+    take: 6,
+  });
+  const insights: DemoInsight[] = dbInsights.map((i) => ({
+    id: i.id,
+    title: i.title,
+    summary: i.summary,
+    impact: i.impact ?? '',
+    tone: (i.tone as DemoInsight['tone']) || 'neutral',
+  }));
 
   return {
     organization: {

@@ -5,22 +5,21 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-// Derive a priority label from the impact string stored in the Insight model.
 function impactToPriority(impact: string): string {
   const i = impact.toLowerCase();
-  if (i.includes('alt') || i.includes('hig') || i.includes('critic')) return 'HIGH';
-  if (i.includes('med')) return 'MEDIUM';
+  if (i.startsWith('+') || i.includes('high') || i.includes('alt') || i.includes('critic')) return 'HIGH';
+  if (i.includes('save') || i.includes('risparm') || i.includes('med')) return 'MEDIUM';
   return 'LOW';
 }
 
-// Derive a type label from the tone string stored in the Insight model.
 function toneToType(tone: string): string {
   switch (tone.toLowerCase()) {
-    case 'urgent':     return 'WARNING';
+    case 'urgent':
+    case 'negative':   return 'WARNING';
     case 'positive':   return 'OPPORTUNITY';
     case 'analytical': return 'STRATEGY';
     case 'action':     return 'ACTION';
-    default:           return 'INSIGHT';
+    default:           return 'STRATEGY';
   }
 }
 
@@ -36,18 +35,21 @@ export async function GET(req: NextRequest) {
     });
 
     const insights = rows
-      .map((r) => ({
-        id: r.id,
-        type: toneToType(r.tone ?? ''),
-        priority: impactToPriority(r.impact ?? ''),
-        status: 'NEW',
-        title: r.title,
-        summary: r.summary,
-        content: r.summary,
-        confidence: 0.8,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.createdAt.toISOString(),
-      }))
+      .map((r) => {
+        const row = r as typeof r & { type?: string | null; priority?: string | null; status?: string | null; content?: string | null };
+        return {
+          id: r.id,
+          type: row.type ?? toneToType(r.tone ?? ''),
+          priority: row.priority ?? impactToPriority(r.impact ?? ''),
+          status: row.status ?? 'NEW',
+          title: r.title,
+          summary: r.summary,
+          content: row.content ?? r.summary,
+          confidence: 0.8,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.createdAt.toISOString(),
+        };
+      })
       .sort(
         (a, b) =>
           (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
