@@ -35,18 +35,21 @@ export async function GET(req: NextRequest) {
     });
 
     const insights = rows
-      .map((r) => ({
-        id: r.id,
-        type: toneToType(r.tone ?? ''),
-        priority: impactToPriority(r.impact ?? ''),
-        status: 'NEW',
-        title: r.title,
-        summary: r.summary,
-        content: r.summary,
-        confidence: 0.8,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.createdAt.toISOString(),
-      }))
+      .map((r) => {
+        const row = r as typeof r & { type?: string | null; priority?: string | null; status?: string | null; content?: string | null };
+        return {
+          id: r.id,
+          type: row.type ?? toneToType(r.tone ?? ''),
+          priority: row.priority ?? impactToPriority(r.impact ?? ''),
+          status: row.status ?? 'NEW',
+          title: r.title,
+          summary: r.summary,
+          content: row.content ?? r.summary,
+          confidence: 0.8,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.createdAt.toISOString(),
+        };
+      })
       .sort(
         (a, b) =>
           (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
