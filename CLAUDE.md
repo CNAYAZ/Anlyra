@@ -1,11 +1,19 @@
 # CLAUDE.md — Guida operativa per sessioni di sviluppo Anlyra
 
-> Documento di contesto per Claude/Opus nelle sessioni future. Versione **v7**.
+> Documento di contesto per Claude nelle sessioni future. Versione **v4.0**.
 > Leggere **prima** di toccare codice. Contiene decisioni consolidate, vincoli ferrei e lessons learned.
 
 **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3`.
 **Stack**: Next.js 14 (App Router, `src/`), next-intl (IT primaria, EN secondaria), Prisma,
 NextAuth v5, Anthropic Claude per AI insights, Stripe, Resend, Supabase (prod) / SQLite (dev).
+
+**Working directory**: `/workspaces/Anlyra` (unica; non usare `/home/user/Anlyra`).
+**File DB**: `prisma/dev.db` (UNICO file attivo). Il file `dev.db` nella root è archiviato come
+`dev.db.FOSSILE-15maggio-NON-USARE` — non toccarlo mai.
+
+**Demo org**: "Acme Analytics" (id: `demo-org`).
+**Credenziali demo**: `demo@pro.app` / `DemoAnlyra2026!`
+**Utente test**: `test1@example.com` / `TestAnlyra2026!`
 
 ---
 
@@ -19,6 +27,10 @@ NextAuth v5, Anthropic Claude per AI insights, Stripe, Resend, Supabase (prod) /
 - **Token shadcn** (`--background`, `--foreground`, `--card`, ecc.): NON rinominare.
 - **Branch feature + merge `--no-ff`** sempre. Verifica finale con `git ls-remote`.
 - **Onestà**: distinguere sempre "implementato" da "pianificato" nei documenti.
+- **AUTH_URL / NEXTAUTH_URL**: MAI impostare in sviluppo (né in `.env` né in `.env.local`).
+  Causa self-proxy loop via X-Forwarded-Proto → 500 dopo 30s. Vedi `docs/dev-codespace-proxy-500.md`.
+- **Gestore server UNICO**: il terminale col loop di auto-riavvio. MAI `npm run dev` diretto.
+  Per riavviare: `pkill -f "next dev"` e attendere il riavvio automatico del loop.
 
 ---
 
@@ -88,14 +100,22 @@ decisioni in un decision log PRIMA di lanciare implementazioni grandi.
 
 ---
 
-## 4. Stato corrente progetto
+## 4. Stato corrente progetto (2026-06-10)
 
 - [x] Design system v2 completo (5/5 fasi).
 - [x] Sito pubblico funzionante (dopo Button fix).
 - [x] AI insights generation operativa.
-- [x] FASE D Auth implementata — **da verificare a runtime** (vedi recovery procedure).
+- [x] FASE D Auth — E2E PASSATO nel browser reale (2026-06-10).
 - [x] ~30+ documenti strategici in `docs/`.
+- [x] **BUG-CRITICAL-1 risolto** — root cause: MAI `AUTH_URL`/`NEXTAUTH_URL` nell'env di DEV
+  (vale per **entrambi** `.env` e `.env.local`). Vedi `docs/dev-codespace-proxy-500.md`.
+- [x] **ISSUE dati demo e Insights 500 risolti** — cause: (1) API insights derivava `type`/`priority`
+  da `tone`/`impact` ignorando le colonne reali; (2) PATCH insights era finta e non persisteva;
+  (3) `getOrgData` legge SOLO `financialRecord` e sintetizza il resto — `financialRecord` ora
+  popolata specchiando le transazioni; formato `description` "categoria/sottocategoria" OBBLIGATORIO.
 - [ ] Decision log credit pack pricing — **aperto** ([`docs/decisions/credit-pack-pricing.md`](docs/decisions/credit-pack-pricing.md)).
+- [ ] **Validazione pivot PRODUCT-001** — zero sviluppo nuove feature prima dell'esito delle
+  interviste ([`docs/decisions/product-direction.md`](docs/decisions/product-direction.md)).
 - [ ] Security audit 51 items — da eseguire.
 - [ ] OAuth/Stripe/Resend production — dopo security audit verde.
 - [ ] Deploy production — ultimo step.
@@ -118,8 +138,20 @@ Quando il Codespace torna online, seguire [`docs/codespace-recovery-procedure.md
 
 ---
 
-## 6. Mappa documenti strategici principali
+## 6. Guida modelli
 
+| Modello | Quando usarlo |
+|---|---|
+| **Fable 5** | Diagnosi profonde, root-cause analysis, bug complessi |
+| **Opus 4.8** | Codice critico: auth, schema Prisma, migration, sicurezza |
+| **Sonnet 4.6** | Sviluppo normale: componenti, API routes, refactor |
+| **Haiku 4.5** | Operazioni veloci nel Codespace: grep, cat, git status |
+
+---
+
+## 7. Mappa documenti strategici principali
+
+- **Product direction**: [`docs/decisions/product-direction.md`](docs/decisions/product-direction.md) (PRODUCT-001)
 - Pricing: [`docs/pricing-strategy-analysis.md`](docs/pricing-strategy-analysis.md), [`docs/decisions/credit-pack-pricing.md`](docs/decisions/credit-pack-pricing.md)
 - Customer research: [`docs/customer-interview-template.md`](docs/customer-interview-template.md)
 - AI: [`docs/ai/prompt-library.md`](docs/ai/prompt-library.md)
@@ -131,9 +163,43 @@ Quando il Codespace torna online, seguire [`docs/codespace-recovery-procedure.md
 - Hiring: [`docs/hiring/plan-and-jd.md`](docs/hiring/plan-and-jd.md)
 - Brand: [`docs/brand-guidelines.md`](docs/brand-guidelines.md)
 - Security/Compliance: [`docs/security-audit-checklist.md`](docs/security-audit-checklist.md), [`docs/gdpr/`](docs/gdpr/)
+- Proxy 500 root cause: [`docs/dev-codespace-proxy-500.md`](docs/dev-codespace-proxy-500.md)
 
 ---
 
-**Versione**: v7.  
-**Last updated**: 2026-05-27.  
-**Audience**: Claude/Opus nelle sessioni future di sviluppo Anlyra.
+## 8. LEZIONI OPERATIVE (giugno 2026)
+
+**L25 — Container ≠ Codespace**: le sessioni Claude Code esterne girano in container remoti
+(`CODESPACE_NAME` vuoto) — modifiche a DB e file gitignored NON arrivano nel Codespace, viaggia
+solo git. Dichiarare SEMPRE l'ambiente a inizio report.
+
+**L26 — Niente `!` nei one-liner bash**: il carattere `!` in bash interattivo trigghera la history
+expansion e rompe i comandi.
+
+**L27 — Comandi per il founder**: una riga, uno alla volta.
+
+**L28 — Gli env file sono due**: `.env` e `.env.local`, con priorità a `.env.local`. Entrambi
+vanno considerati quando si cerca la sorgente di una variabile.
+
+**L29 — `dev.db` è gitignored**: i fix al DB vanno fatti nell'ambiente che il server usa davvero.
+Un fix al DB in container non raggiunge il Codespace.
+
+**L30 — Prima di un fix dati, verificare QUALI colonne il codice legge davvero**: caso
+emblematico `tone`/`impact` — il codice leggeva colonne diverse da quelle che si credeva.
+
+**L31 — Il codice da sessioni cieche può contenere endpoint finti e mock hardcoded**: la prova
+di persistenza è SOLO una rilettura dal DB, mai l'UI ottimistica.
+
+**L32 — Ogni merge va PROVATO nel report con `git log`**, mai solo dichiarato.
+
+**L33 — UN SOLO gestore del server**: il terminale col loop di auto-riavvio. MAI lanciare
+`npm run dev` direttamente — solo `pkill -f "next dev"` e attendere il riavvio automatico.
+
+**L34 — I feature branch possono avere nomi diversi da quelli richiesti**: riportare sempre
+il nome REALE del branch pushato.
+
+---
+
+**Versione**: v4.0.
+**Last updated**: 2026-06-10.
+**Audience**: Claude nelle sessioni future di sviluppo Anlyra.
