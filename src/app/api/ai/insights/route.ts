@@ -5,22 +5,21 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-// Derive a priority label from the impact string stored in the Insight model.
 function impactToPriority(impact: string): string {
   const i = impact.toLowerCase();
-  if (i.includes('alt') || i.includes('hig') || i.includes('critic')) return 'HIGH';
-  if (i.includes('med')) return 'MEDIUM';
+  if (i.startsWith('+') || i.includes('high') || i.includes('alt') || i.includes('critic')) return 'HIGH';
+  if (i.includes('save') || i.includes('risparm') || i.includes('med')) return 'MEDIUM';
   return 'LOW';
 }
 
-// Derive a type label from the tone string stored in the Insight model.
 function toneToType(tone: string): string {
   switch (tone.toLowerCase()) {
-    case 'urgent':     return 'WARNING';
+    case 'urgent':
+    case 'negative':   return 'WARNING';
     case 'positive':   return 'OPPORTUNITY';
     case 'analytical': return 'STRATEGY';
     case 'action':     return 'ACTION';
-    default:           return 'INSIGHT';
+    default:           return 'STRATEGY';
   }
 }
 
@@ -38,8 +37,8 @@ export async function GET(req: NextRequest) {
     const insights = rows
       .map((r) => ({
         id: r.id,
-        type: toneToType(r.tone),
-        priority: impactToPriority(r.impact),
+        type: toneToType(r.tone ?? ''),
+        priority: impactToPriority(r.impact ?? ''),
         status: 'NEW',
         title: r.title,
         summary: r.summary,

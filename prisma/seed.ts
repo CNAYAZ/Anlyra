@@ -31,6 +31,7 @@ async function main() {
   });
 
   await prisma.transaction.deleteMany({ where: { organizationId: org.id } });
+  await prisma.financialRecord.deleteMany({ where: { organizationId: org.id } });
   await prisma.cashflowEntry.deleteMany({ where: { organizationId: org.id } });
   await prisma.budgetEntry.deleteMany({ where: { organizationId: org.id } });
   await prisma.customerStat.deleteMany({ where: { organizationId: org.id } });
@@ -46,6 +47,18 @@ async function main() {
       subcategory: t.subcategory,
       amount: t.amount,
       description: t.description,
+      source: t.source,
+    })),
+  });
+
+  await prisma.financialRecord.createMany({
+    data: data.transactions.map((t) => ({
+      organizationId: org.id,
+      type: t.kind,
+      amount: t.amount,
+      currency: 'EUR',
+      description: t.subcategory ? `${t.category}/${t.subcategory}` : t.category,
+      occurredAt: t.date,
       source: t.source,
     })),
   });
@@ -85,8 +98,10 @@ async function main() {
 
   console.log('Seed complete:', {
     transactions: data.transactions.length,
+    financialRecords: data.transactions.length,
     cashflow: data.cashflow.length,
     budget: data.budget.length,
+    insights: data.insights.length,
   });
 }
 

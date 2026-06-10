@@ -43,7 +43,7 @@ type Props = {
 export function InsightCard({ insight, onClick }: Props) {
   const t = useTranslations('insights');
   const locale = useLocale() as Locale;
-  const Icon = typeIcon[insight.type];
+  const Icon = typeIcon[insight.type] ?? Lightbulb;
 
   return (
     <button
@@ -51,11 +51,11 @@ export function InsightCard({ insight, onClick }: Props) {
       onClick={onClick}
       className={cn(
         'group flex w-full flex-col gap-3 rounded-lg border border-border border-l-4 bg-card p-5 text-left shadow-card transition-shadow hover:shadow-md',
-        priorityBorder[insight.priority]
+        priorityBorder[insight.priority] ?? 'border-l-primary-accent'
       )}
     >
       <div className="flex items-start gap-3">
-        <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-md', typeIconBg[insight.type])}>
+        <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-md', typeIconBg[insight.type] ?? 'bg-muted/10 text-muted-foreground')}>
           <Icon className="h-4.5 w-4.5" />
         </span>
         <div className="flex-1 space-y-1">
