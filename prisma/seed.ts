@@ -110,6 +110,36 @@ async function main() {
     data: data.insights.map((i) => ({ organizationId: org.id, ...i })),
   });
 
+  // ── Demo alert story ──────────────────────────────────────────────────────
+  // Uses relative dates so the triggers work regardless of when the seed runs.
+  // Target: exactly 2 alerts fire — cost_over_budget (MEDIUM) + churn_high (HIGH).
+
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-indexed
+
+  // a) Marketing spike: add baseline costs for months -3/-2/-1 and a +30% spike
+  //    for the current month. ruleCostOverBudget groups by description.split('/')[0]
+  //    so description 'marketing/ads' → category 'marketing'.
+  await prisma.financialRecord.createMany({
+    data: [
+      // baseline months (5 000 EUR each) — within the 3-month look-back window
+      { organizationId: org.id, type: 'COST', currency: 'EUR', amount: 5000, description: 'marketing/ads', occurredAt: new Date(y, m - 3, 15), source: 'manual' },
+      { organizationId: org.id, type: 'COST', currency: 'EUR', amount: 5000, description: 'marketing/ads', occurredAt: new Date(y, m - 2, 15), source: 'manual' },
+      { organizationId: org.id, type: 'COST', currency: 'EUR', amount: 5000, description: 'marketing/ads', occurredAt: new Date(y, m - 1, 15), source: 'manual' },
+      // current-month spike: 5 000 * 1.30 * 3 dominates → clearly > avgPrev * 1.10
+      { organizationId: org.id, type: 'COST', currency: 'EUR', amount: 7000, description: 'marketing/ads', occurredAt: new Date(y, m, 5), source: 'manual' },
+    ],
+  });
+
+  // b) High-churn customerStat for current month: churnedCustomers / (active + churned)
+  //    = 17 / 247 ≈ 6.9 % > 5 % threshold → ruleChurnHigh fires at severity HIGH.
+  const currentPeriod = `${y}-${String(m + 1).padStart(2, '0')}`;
+  await prisma.customerStat.upsert({
+    where: { organizationId_period: { organizationId: org.id, period: currentPeriod } },
+    update: { activeCustomers: 230, newCustomers: 8, churnedCustomers: 17 },
+    create: { organizationId: org.id, period: currentPeriod, activeCustomers: 230, newCustomers: 8, churnedCustomers: 17 },
+  });
+
   console.log('Seed complete:', {
     transactions: data.transactions.length,
     financialRecords: data.transactions.length,
