@@ -131,9 +131,22 @@ async function main() {
     ],
   });
 
-  // b) High-churn customerStat for current month: churnedCustomers / (active + churned)
-  //    = 17 / 247 ≈ 6.9 % > 5 % threshold → ruleChurnHigh fires at severity HIGH.
+  // b) High-churn customerStat — two months needed to keep rules coherent:
+  //    Previous month (240 active): provides a baseline so MoM change is only
+  //    -4% (240→230), well below the -20% threshold → ruleTopCustomerDecline
+  //    does NOT fire.
+  //    Current month (230 active, 17 churned): churnRate = 17/247 ≈ 6.9% > 5%
+  //    → ruleChurnHigh fires at severity HIGH. ✓
+  const prevMonth = m === 0 ? 11 : m - 1;
+  const prevYear  = m === 0 ? y - 1 : y;
+  const prevPeriod    = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
   const currentPeriod = `${y}-${String(m + 1).padStart(2, '0')}`;
+
+  await prisma.customerStat.upsert({
+    where: { organizationId_period: { organizationId: org.id, period: prevPeriod } },
+    update: { activeCustomers: 240, newCustomers: 12, churnedCustomers: 10 },
+    create: { organizationId: org.id, period: prevPeriod, activeCustomers: 240, newCustomers: 12, churnedCustomers: 10 },
+  });
   await prisma.customerStat.upsert({
     where: { organizationId_period: { organizationId: org.id, period: currentPeriod } },
     update: { activeCustomers: 230, newCustomers: 8, churnedCustomers: 17 },
