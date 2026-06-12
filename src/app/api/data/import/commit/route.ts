@@ -4,28 +4,20 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
+import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
+import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const bodySchema = z.object({
+  batchId: z.string().optional(),
   targetKey: z.string(),
   mapping: z.record(z.string(), z.union([z.string(), z.null()])),
   rows: z.array(z.record(z.string(), z.unknown())),
   fileName: z.string().default('upload'),
   fileSize: z.number().int().nonnegative().default(0),
 });
-
-type RowError = { row: number; field?: string; message: string };
-
-function applyMapping(row: Record<string, unknown>, mapping: Record<string, string | null>) {
-  const out: Record<string, unknown> = {};
-  for (const [sourceCol, targetField] of Object.entries(mapping)) {
-    if (!targetField || targetField === 'ignore') continue;
-    out[targetField] = row[sourceCol];
-  }
-  return out;
-}
 
 async function insertFinancialRecords(
   organizationId: string,
@@ -39,7 +31,7 @@ async function insertFinancialRecords(
     amount: r.amount as number,
     type: r.type as string,
     occurredAt: new Date(r.occurredAt as string),
-    description: (r.description as string | undefined) ?? null,
+    description: buildFinancialDescription(r),
     source: (r.source as string | undefined) ?? 'import',
   }));
   await prisma.financialRecord.createMany({ data });
@@ -137,41 +129,41 @@ export async function POST(req: NextRequest) {
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID_BODY', 400);
 
-    const { targetKey, mapping, rows, fileName, fileSize } = parsed.data;
+    const { batchId, targetKey, mapping, rows, fileName, fileSize } = parsed.data;
     const target = getImportTarget(targetKey);
     if (!target) return fail('INVALID_TARGET', 400);
 
-    const batch = await prisma.importBatch.create({
-      data: {
-        userId,
-        organizationId,
-        fileName,
-        fileSize,
-        source: 'file',
-        type: targetKey,
-        rowsTotal: rows.length,
-        status: 'PROCESSING',
-      },
-    });
+    // Resolve the PENDING batch created at preview time, or create one for
+    // direct API callers that skipped the preview step.
+    let batch;
+    if (batchId) {
+      batch = await prisma.importBatch.findFirst({
+        where: { id: batchId, organizationId },
+      });
+      if (!batch) return fail('BATCH_NOT_FOUND', 404);
+      if (batch.status !== 'PENDING') return fail('BATCH_NOT_PENDING', 409);
+      batch = await prisma.importBatch.update({
+        where: { id: batch.id },
+        data: { status: 'PROCESSING', rowsTotal: rows.length },
+      });
+    } else {
+      await ensureImportBatchFkRows(userId, organizationId);
+      batch = await prisma.importBatch.create({
+        data: {
+          userId,
+          organizationId,
+          fileName,
+          fileSize,
+          source: 'file',
+          type: targetKey,
+          rowsTotal: rows.length,
+          status: 'PROCESSING',
+        },
+      });
+    }
 
-    const errors: RowError[] = [];
-    const validRows: Record<string, unknown>[] = [];
-
-    rows.forEach((rawRow, idx) => {
-      const mapped = applyMapping(rawRow, mapping);
-      const result = target.schema.safeParse(mapped);
-      if (!result.success) {
-        for (const issue of result.error.issues) {
-          errors.push({
-            row: idx + 1,
-            field: issue.path.join('.'),
-            message: issue.message,
-          });
-        }
-        return;
-      }
-      validRows.push(result.data as Record<string, unknown>);
-    });
+    const { validRows, errors } = validateRows(target, mapping, rows);
+    const allErrors: RowError[] = [...errors];
 
     let imported = 0;
     try {
@@ -190,38 +182,47 @@ export async function POST(req: NextRequest) {
           break;
       }
     } catch (e) {
-      errors.push({ row: 0, message: (e as Error).message });
+      allErrors.push({ row: 0, message: (e as Error).message });
     }
 
-    const errorRate = rows.length === 0 ? 0 : errors.length / rows.length;
+    const errorRate = rows.length === 0 ? 0 : allErrors.length / rows.length;
     const finalStatus =
-      errors.length === 0
-        ? 'COMPLETED'
-        : errorRate < 0.1
-          ? 'COMPLETED_WITH_ERRORS'
-          : 'FAILED';
+      imported === 0 && rows.length > 0
+        ? 'FAILED'
+        : allErrors.length === 0
+          ? 'COMPLETED'
+          : errorRate < 0.1
+            ? 'COMPLETED_WITH_ERRORS'
+            : 'FAILED';
 
-    const updated = await prisma.importBatch.update({
+    await prisma.importBatch.update({
       where: { id: batch.id },
       data: {
         rowsImported: imported,
-        rowsErrors: errors.length,
+        rowsErrors: allErrors.length,
         status: finalStatus,
-        errors: JSON.stringify(errors.slice(0, 200)),
+        errors: JSON.stringify(allErrors.slice(0, 200)),
       },
     });
 
+    // Re-read from DB: the response reflects what was actually persisted.
+    const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id: batch.id } });
+    const persistedRecords = await prisma.financialRecord.count({
+      where: { importBatchId: batch.id },
+    });
+
     return ok({
-      id: updated.id,
-      fileName: updated.fileName,
-      fileSize: updated.fileSize,
-      type: updated.type,
-      status: updated.status,
-      rowsTotal: updated.rowsTotal,
-      rowsImported: updated.rowsImported,
-      rowsErrors: updated.rowsErrors,
-      errors,
-      createdAt: updated.createdAt,
+      id: persisted.id,
+      fileName: persisted.fileName,
+      fileSize: persisted.fileSize,
+      type: persisted.type,
+      status: persisted.status,
+      rowsTotal: persisted.rowsTotal,
+      rowsImported: persisted.rowsImported,
+      rowsErrors: persisted.rowsErrors,
+      persistedFinancialRecords: persistedRecords,
+      errors: allErrors,
+      createdAt: persisted.createdAt,
     });
   } catch (e) {
     return fail((e as Error).message, 500);

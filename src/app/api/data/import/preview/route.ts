@@ -1,42 +1,19 @@
 import { NextRequest } from 'next/server';
-import { randomUUID } from 'crypto';
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
 import { ok, fail } from '@/lib/api';
+import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { getImportTarget, suggestMapping } from '@/lib/import-targets';
+import { parseImportFile } from '@/lib/import/parse';
+import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-type Row = Record<string, unknown>;
-
-function parseCsv(buf: Buffer): { columns: string[]; rows: Row[] } {
-  const text = buf.toString('utf8');
-  const parsed = Papa.parse<Row>(text, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: (h) => h.trim(),
-  });
-  const rows = (parsed.data as Row[]).filter((r) => r && Object.keys(r).length > 0);
-  const columns = parsed.meta.fields ?? (rows[0] ? Object.keys(rows[0]) : []);
-  return { columns, rows };
-}
-
-function parseExcel(buf: Buffer): { columns: string[]; rows: Row[] } {
-  const wb = XLSX.read(buf, { type: 'buffer', cellDates: true });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  if (!sheet) return { columns: [], rows: [] };
-  const json = XLSX.utils.sheet_to_json<Row>(sheet, { defval: '', raw: false });
-  const columns = json[0] ? Object.keys(json[0]).map((c) => c.trim()) : [];
-  return { columns, rows: json };
-}
-
 export async function POST(req: NextRequest) {
   try {
-    await getCurrentContext();
+    const { userId, organizationId } = await getCurrentContext();
 
     const form = await req.formData();
     const file = form.get('file');
@@ -51,27 +28,34 @@ export async function POST(req: NextRequest) {
     if (file.size > MAX_FILE_SIZE) return fail('FILE_TOO_LARGE', 400);
 
     const fileName = (file as unknown as { name?: string }).name ?? 'upload';
-    const ext = fileName.toLowerCase().split('.').pop() ?? '';
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    let parsed: { columns: string[]; rows: Row[] };
-    if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
-      parsed = parseExcel(buffer);
-    } else if (ext === 'csv' || ext === 'tsv' || ext === 'txt') {
-      parsed = parseCsv(buffer);
-    } else {
-      // try CSV fallback by content
-      try {
-        parsed = parseCsv(buffer);
-        if (parsed.columns.length === 0) throw new Error('empty');
-      } catch {
-        return fail('UNSUPPORTED_FORMAT', 400);
-      }
+    let parsed;
+    try {
+      parsed = parseImportFile(buffer, fileName);
+    } catch {
+      return fail('UNSUPPORTED_FORMAT', 400);
     }
 
     if (parsed.columns.length === 0 || parsed.rows.length === 0) {
       return fail('EMPTY_FILE', 400);
     }
+
+    // Real PENDING batch: the preview is persisted as a pending import that the
+    // user can later commit or cancel (DELETE /api/data/import/batches/[id]).
+    await ensureImportBatchFkRows(userId, organizationId);
+    const batch = await prisma.importBatch.create({
+      data: {
+        userId,
+        organizationId,
+        fileName,
+        fileSize: file.size,
+        source: 'file',
+        type: targetKey,
+        rowsTotal: parsed.rows.length,
+        status: 'PENDING',
+      },
+    });
 
     const samples: Record<string, string[]> = {};
     for (const col of parsed.columns) samples[col] = [];
@@ -86,7 +70,7 @@ export async function POST(req: NextRequest) {
     const suggestedMapping = suggestMapping(parsed.columns, target);
 
     return ok({
-      batchId: randomUUID(),
+      batchId: batch.id,
       fileName,
       fileSize: file.size,
       totalRows: parsed.rows.length,
