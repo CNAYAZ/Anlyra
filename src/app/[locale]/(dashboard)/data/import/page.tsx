@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, ArrowRight, Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/section';
 import { ImportTargetSelector } from '@/components/data/import-target-selector';
 import { ImportUploader } from '@/components/data/import-uploader';
 import { ImportMapper, type ColumnInfo } from '@/components/data/import-mapper';
@@ -70,6 +71,7 @@ export default function DataImportPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          batchId: previewData.batchId,
           targetKey,
           mapping,
           rows: previewData.allRows,
@@ -92,6 +94,16 @@ export default function DataImportPage() {
     },
   });
 
+  // Cancel the PENDING batch server-side (status -> CANCELLED), then reset.
+  const cancelMutation = useMutation({
+    mutationFn: async (batchId: string) => {
+      const res = await fetch(`/api/data/import/batches/${batchId}`, { method: 'DELETE' });
+      const body = (await res.json()) as ApiResult<{ id: string; status: string }>;
+      if (!body.success) throw new Error(body.error);
+      return body.data;
+    },
+  });
+
   function reset() {
     setStep('target');
     setTargetKey(null);
@@ -100,6 +112,11 @@ export default function DataImportPage() {
     setSuggested({});
     setResult(null);
     setError(null);
+  }
+
+  function cancelImport() {
+    if (previewData?.batchId) cancelMutation.mutate(previewData.batchId);
+    reset();
   }
 
   function goBack() {
@@ -121,10 +138,7 @@ export default function DataImportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-semibold">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
-      </div>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Stepper current={step} />
 
@@ -164,7 +178,7 @@ export default function DataImportPage() {
       )}
 
       {step === 'preview' && previewData && target && (
-        <ImportPreview target={target} rows={previewData.previewRows} mapping={mapping} />
+        <ImportPreview target={target} rows={previewData.allRows} mapping={mapping} />
       )}
 
       {step === 'importing' && (
@@ -191,10 +205,11 @@ export default function DataImportPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={reset}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+              onClick={cancelImport}
+              disabled={cancelMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
             >
-              {t('cancel')}
+              {cancelMutation.isPending ? t('cancelling') : t('cancel')}
             </button>
             {step === 'mapping' && (
               <button
