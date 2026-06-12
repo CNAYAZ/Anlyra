@@ -53,24 +53,6 @@ const requiredInt = z.preprocess((v) => {
   return Number.isFinite(n) ? Math.round(n) : undefined;
 }, z.number().int());
 
-const dateLike = z.preprocess((v) => {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (v instanceof Date) return v.toISOString();
-  const s = String(v).trim();
-  // Try ISO first
-  let d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString();
-  // Try DD/MM/YYYY
-  const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
-  if (m) {
-    const [, dd, mm, yy] = m;
-    const yyyy = yy.length === 2 ? `20${yy}` : yy;
-    d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
-    if (!Number.isNaN(d.getTime())) return d.toISOString();
-  }
-  return undefined;
-}, z.string());
-
 const optionalString = z.preprocess(
   (v) => (v === null || v === undefined || v === '' ? undefined : String(v).trim()),
   z.string().optional(),
@@ -104,15 +86,18 @@ const requiredDate = z.preprocess((v) => {
   if (v === null || v === undefined || v === '') return undefined;
   if (v instanceof Date) return v.toISOString();
   const s = String(v).trim();
-  let d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString();
+  // GG/MM/AAAA PRIMA del parse generico: new Date('05/01/2026') in JS è
+  // MM/DD (US) e leggerebbe il 5 gennaio come 1 maggio. Convenzione italiana.
   const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
   if (m) {
     const [, dd, mm, yy] = m;
+    if (Number(dd) > 31 || Number(mm) > 12) return undefined;
     const yyyy = yy.length === 2 ? `20${yy}` : yy;
-    d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
-    if (!Number.isNaN(d.getTime())) return d.toISOString();
+    const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
   }
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d.toISOString();
   return undefined;
 }, z.string({ required_error: 'Data mancante o non valida (formati accettati: GG/MM/AAAA, AAAA-MM-GG)', invalid_type_error: 'Data mancante o non valida (formati accettati: GG/MM/AAAA, AAAA-MM-GG)' }));
 
