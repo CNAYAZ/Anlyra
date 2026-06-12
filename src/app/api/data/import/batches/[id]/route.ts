@@ -49,6 +49,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     });
     if (!batch) return fail('NOT_FOUND', 404);
     if (batch.status === 'ROLLED_BACK') return fail('ALREADY_ROLLED_BACK', 400);
+    if (batch.status === 'CANCELLED') return fail('ALREADY_CANCELLED', 400);
+
+    // PENDING batch (preview never committed): cancel, nothing to delete.
+    if (batch.status === 'PENDING') {
+      await prisma.importBatch.update({
+        where: { id },
+        data: { status: 'CANCELLED' },
+      });
+      const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id } });
+      return ok({ id: persisted.id, status: persisted.status });
+    }
 
     // Transactional rollback: delete all records linked to this batch, then mark batch
     await prisma.$transaction(async (tx) => {
@@ -62,7 +73,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       });
     });
 
-    return ok({ id, status: 'ROLLED_BACK' });
+    const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id } });
+    return ok({ id: persisted.id, status: persisted.status });
   } catch (e) {
     return fail((e as Error).message, 500);
   }

@@ -53,24 +53,6 @@ const requiredInt = z.preprocess((v) => {
   return Number.isFinite(n) ? Math.round(n) : undefined;
 }, z.number().int());
 
-const dateLike = z.preprocess((v) => {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (v instanceof Date) return v.toISOString();
-  const s = String(v).trim();
-  // Try ISO first
-  let d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString();
-  // Try DD/MM/YYYY
-  const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
-  if (m) {
-    const [, dd, mm, yy] = m;
-    const yyyy = yy.length === 2 ? `20${yy}` : yy;
-    d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
-    if (!Number.isNaN(d.getTime())) return d.toISOString();
-  }
-  return undefined;
-}, z.string());
-
 const optionalString = z.preprocess(
   (v) => (v === null || v === undefined || v === '' ? undefined : String(v).trim()),
   z.string().optional(),
@@ -84,9 +66,50 @@ const requiredString = z.preprocess(
 const typeEnum = z.preprocess((v) => {
   const s = String(v ?? '').trim().toLowerCase();
   if (['income', 'revenue', 'ricavo', 'ricavi', 'entrata', 'entrate', 'in'].includes(s)) return 'REVENUE';
-  if (['expense', 'cost', 'costo', 'costi', 'uscita', 'uscite', 'out'].includes(s)) return 'EXPENSE';
+  if (['expense', 'cost', 'costo', 'costi', 'uscita', 'uscite', 'out'].includes(s)) return 'COST';
   return s.toUpperCase();
-}, z.enum(['REVENUE', 'EXPENSE']));
+}, z.enum(['REVENUE', 'COST'], {
+  errorMap: () => ({ message: "Tipo non riconosciuto: usa 'ricavo'/'entrata' oppure 'costo'/'uscita'" }),
+}));
+
+// Positive monetary amount with Italian error messages (financial records only).
+const positiveAmount = z.preprocess((v) => {
+  if (v === null || v === undefined || v === '') return undefined;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim().replace(/[€$£\s]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}, z.number({ required_error: 'Importo mancante', invalid_type_error: 'Importo non numerico (es. valido: 1234,56)' })
+  .positive("L'importo deve essere un numero positivo"));
+
+const requiredDate = z.preprocess((v) => {
+  if (v === null || v === undefined || v === '') return undefined;
+  if (v instanceof Date) return v.toISOString();
+  const s = String(v).trim();
+  // GG/MM/AAAA PRIMA del parse generico: new Date('05/01/2026') in JS è
+  // MM/DD (US) e leggerebbe il 5 gennaio come 1 maggio. Convenzione italiana.
+  const m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
+  if (m) {
+    const [, dd, mm, yy] = m;
+    if (Number(dd) > 31 || Number(mm) > 12) return undefined;
+    const yyyy = yy.length === 2 ? `20${yy}` : yy;
+    const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d.toISOString();
+  return undefined;
+}, z.string({ required_error: 'Data mancante o non valida (formati accettati: GG/MM/AAAA, AAAA-MM-GG)', invalid_type_error: 'Data mancante o non valida (formati accettati: GG/MM/AAAA, AAAA-MM-GG)' }));
+
+const requiredCategory = z.preprocess(
+  (v) => (v === null || v === undefined ? undefined : String(v).trim().replace(/\//g, '-') || undefined),
+  z.string({ required_error: 'Categoria mancante' }).min(1, 'Categoria mancante'),
+);
+
+const optionalSubcategory = z.preprocess(
+  (v) => (v === null || v === undefined || v === '' ? undefined : String(v).trim().replace(/\//g, '-')),
+  z.string().optional(),
+);
 
 const FINANCIAL_RECORDS: ImportTarget = {
   key: 'financial_records',
@@ -96,14 +119,19 @@ const FINANCIAL_RECORDS: ImportTarget = {
     { key: 'amount', required: true, labelKey: 'fieldAmount', synonyms: ['amount', 'importo', 'valore', 'value', 'totale', 'total', 'somma', 'sum'] },
     { key: 'type', required: true, labelKey: 'fieldType', synonyms: ['type', 'tipo', 'kind', 'categoria_movimento'] },
     { key: 'occurredAt', required: true, labelKey: 'fieldOccurredAt', synonyms: ['date', 'data', 'occurredat', 'occurred_at', 'datamovimento', 'datadocumento', 'when'] },
-    { key: 'description', required: false, labelKey: 'fieldDescription', synonyms: ['description', 'descrizione', 'desc', 'note', 'notes', 'memo'] },
+    { key: 'category', required: true, labelKey: 'fieldCategory', synonyms: ['category', 'categoria', 'cat', 'voce', 'tipologia'] },
+    { key: 'subcategory', required: false, labelKey: 'fieldSubcategory', synonyms: ['subcategory', 'sottocategoria', 'sub', 'sottovoce', 'dettaglio'] },
     { key: 'source', required: false, labelKey: 'fieldSource', synonyms: ['source', 'fonte', 'origine', 'channel', 'canale'] },
   ],
+  // NOTE (DATA-001): la causale/descrizione libera del file NON viene importata.
+  // In financialRecord.description finisce SOLO 'categoria/sottocategoria':
+  // le pagine analytics ricavano le categorie splittando description su '/'.
   schema: z.object({
-    amount: numberLike,
+    amount: positiveAmount,
     type: typeEnum,
-    occurredAt: dateLike,
-    description: optionalString,
+    occurredAt: requiredDate,
+    category: requiredCategory,
+    subcategory: optionalSubcategory,
     source: optionalString,
   }),
 };

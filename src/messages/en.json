@@ -1028,7 +1028,7 @@
     "stepPreview": "Preview",
     "stepResult": "Result",
     "targetFinancial": "Financial records",
-    "targetFinancialDesc": "Revenue and costs with date, amount, type, and description.",
+    "targetFinancialDesc": "Revenue and costs with date, amount, type, category and subcategory.",
     "targetKpis": "Business KPIs",
     "targetKpisDesc": "Metrics with name, value, unit, and optional target.",
     "targetCompetitors": "Competitors",
@@ -1085,7 +1085,15 @@
     "fieldPeriod": "Period",
     "fieldActiveCustomers": "Active customers",
     "fieldNewCustomers": "New customers",
-    "fieldChurnedCustomers": "Churned customers"
+    "fieldChurnedCustomers": "Churned customers",
+    "fieldCategory": "Category",
+    "fieldSubcategory": "Subcategory",
+    "previewErrorsTitle": "Validation errors",
+    "previewErrorsDescription": "The following rows will not be imported. Fix the file or proceed: valid rows will still be saved.",
+    "previewErrorRow": "Row",
+    "previewTotalRows": "total rows",
+    "cancelledBatch": "Import cancelled. No data was saved.",
+    "cancelling": "Cancelling..."
   },
   "dataManual": {
     "title": "Manual Entry",

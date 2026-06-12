@@ -1028,7 +1028,7 @@
     "stepPreview": "Anteprima",
     "stepResult": "Risultato",
     "targetFinancial": "Movimenti finanziari",
-    "targetFinancialDesc": "Ricavi e costi con data, importo, tipologia e descrizione.",
+    "targetFinancialDesc": "Ricavi e costi con data, importo, tipologia, categoria e sottocategoria.",
     "targetKpis": "KPI aziendali",
     "targetKpisDesc": "Metriche con nome, valore, unità e target opzionale.",
     "targetCompetitors": "Competitor",
@@ -1085,7 +1085,15 @@
     "fieldPeriod": "Periodo",
     "fieldActiveCustomers": "Clienti attivi",
     "fieldNewCustomers": "Nuovi clienti",
-    "fieldChurnedCustomers": "Clienti persi"
+    "fieldChurnedCustomers": "Clienti persi",
+    "fieldCategory": "Categoria",
+    "fieldSubcategory": "Sottocategoria",
+    "previewErrorsTitle": "Errori di validazione",
+    "previewErrorsDescription": "Le righe seguenti non verranno importate. Correggi il file oppure procedi: le righe valide saranno comunque salvate.",
+    "previewErrorRow": "Riga",
+    "previewTotalRows": "righe totali",
+    "cancelledBatch": "Import annullato. Nessun dato è stato salvato.",
+    "cancelling": "Annullamento..."
   },
   "dataManual": {
     "title": "Inserimento Manuale",
