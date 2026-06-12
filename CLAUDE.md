@@ -113,6 +113,9 @@ decisioni in un decision log PRIMA di lanciare implementazioni grandi.
   da `tone`/`impact` ignorando le colonne reali; (2) PATCH insights era finta e non persisteva;
   (3) `getOrgData` legge SOLO `financialRecord` e sintetizza il resto — `financialRecord` ora
   popolata specchiando le transazioni; formato `description` "categoria/sottocategoria" OBBLIGATORIO.
+- [x] **2026-06-11: pagina AI Alerts completata** (motore a 6 regole unificato in
+  `src/lib/alerts/rules.ts`, demo story nel seed con 2 alert deterministici);
+  financialRecord attesi ~678 post-seed; in sviluppo: data/import (branch `claude/feature-data-import`).
 - [ ] Decision log credit pack pricing — **aperto** ([`docs/decisions/credit-pack-pricing.md`](docs/decisions/credit-pack-pricing.md)).
 - [ ] **Validazione pivot PRODUCT-001** — zero sviluppo nuove feature prima dell'esito delle
   interviste ([`docs/decisions/product-direction.md`](docs/decisions/product-direction.md)).
