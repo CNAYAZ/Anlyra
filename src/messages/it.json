@@ -1123,6 +1123,8 @@
     "fieldActiveCustomers": "Clienti attivi",
     "fieldNewCustomers": "Nuovi clienti",
     "fieldChurnedCustomers": "Clienti persi",
+    "fieldCategory": "Categoria",
+    "fieldSubcategory": "Sottocategoria",
     "typeIncome": "Ricavo",
     "typeExpense": "Costo",
     "save": "Salva",
