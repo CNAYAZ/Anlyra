@@ -21,7 +21,8 @@ const schema = z.object({
   ),
   type: z.enum(['REVENUE', 'EXPENSE']),
   occurredAt: z.string().min(1),
-  description: z.string().optional(),
+  category: z.string().min(1),
+  subcategory: z.string().optional(),
   source: z.string().optional(),
 });
 
@@ -79,14 +80,20 @@ export function ManualFormFinancial({ onSubmit, pending }: Props) {
         </div>
 
         <div className="space-y-1">
+          <Label htmlFor="fr-category">{t('fieldCategory')} *</Label>
+          <Input id="fr-category" {...register('category')} />
+          {errors.category && <p className="text-xs text-danger">{errors.category.message}</p>}
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="fr-subcategory">{t('fieldSubcategory')}</Label>
+          <Input id="fr-subcategory" {...register('subcategory')} />
+        </div>
+
+        <div className="space-y-1">
           <Label htmlFor="fr-source">{t('fieldSource')}</Label>
           <Input id="fr-source" {...register('source')} placeholder="manual" />
         </div>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="fr-desc">{t('fieldDescription')}</Label>
-        <Input id="fr-desc" {...register('description')} />
       </div>
 
       <button

@@ -1123,6 +1123,8 @@
     "fieldActiveCustomers": "Active customers",
     "fieldNewCustomers": "New customers",
     "fieldChurnedCustomers": "Churned customers",
+    "fieldCategory": "Category",
+    "fieldSubcategory": "Subcategory",
     "typeIncome": "Income",
     "typeExpense": "Expense",
     "save": "Save",

@@ -4,6 +4,8 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
+import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
+import { buildFinancialDescription } from '@/lib/import/validate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +46,10 @@ export async function POST(req: NextRequest) {
       return fail(JSON.stringify({ validationErrors: errors }), 422);
     }
 
+    // ImportBatch has a physical FK to User_b4/Organization_b4 (see batch-fk.ts);
+    // must run before the transaction since it's outside it.
+    await ensureImportBatchFkRows(userId, organizationId);
+
     // Transactional: create batch + all records atomically
     const batchId = await prisma.$transaction(async (tx) => {
       const batch = await tx.importBatch.create({
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
             amount: r.amount as number,
             type: r.type as string,
             occurredAt: new Date(r.occurredAt as string),
-            description: (r.description as string | undefined) ?? null,
+            description: buildFinancialDescription(r),
             source: 'manual',
           })),
         });
