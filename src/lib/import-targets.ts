@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseItalianAmount } from '@/lib/import/amount';
 
 export type ImportTargetKey =
   | 'financial_records'
@@ -25,21 +26,9 @@ export type ImportTarget = {
   schema: z.ZodTypeAny;
 };
 
-const numberLike = z.preprocess((v) => {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (typeof v === 'number') return v;
-  const s = String(v).trim().replace(/[€$£\s]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
-}, z.number());
+const numberLike = z.preprocess((v) => parseItalianAmount(v), z.number());
 
-const optionalNumber = z.preprocess((v) => {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (typeof v === 'number') return v;
-  const s = String(v).trim().replace(/[€$£\s]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
-}, z.number().optional());
+const optionalNumber = z.preprocess((v) => parseItalianAmount(v), z.number().optional());
 
 const optionalInt = z.preprocess((v) => {
   if (v === null || v === undefined || v === '') return undefined;
@@ -73,14 +62,11 @@ const typeEnum = z.preprocess((v) => {
 }));
 
 // Positive monetary amount with Italian error messages (financial records only).
-const positiveAmount = z.preprocess((v) => {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (typeof v === 'number') return v;
-  const s = String(v).trim().replace(/[€$£\s]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
-}, z.number({ required_error: 'Importo mancante', invalid_type_error: 'Importo non numerico (es. valido: 1234,56)' })
-  .positive("L'importo deve essere un numero positivo"));
+const positiveAmount = z.preprocess(
+  (v) => parseItalianAmount(v),
+  z.number({ required_error: 'Importo mancante', invalid_type_error: 'Importo non numerico (es. valido: 1234,56)' })
+    .positive("L'importo deve essere un numero positivo"),
+);
 
 const requiredDate = z.preprocess((v) => {
   if (v === null || v === undefined || v === '') return undefined;
@@ -119,7 +105,7 @@ const FINANCIAL_RECORDS: ImportTarget = {
     { key: 'amount', required: true, labelKey: 'fieldAmount', synonyms: ['amount', 'importo', 'valore', 'value', 'totale', 'total', 'somma', 'sum'] },
     { key: 'type', required: true, labelKey: 'fieldType', synonyms: ['type', 'tipo', 'kind', 'categoria_movimento'] },
     { key: 'occurredAt', required: true, labelKey: 'fieldOccurredAt', synonyms: ['date', 'data', 'occurredat', 'occurred_at', 'datamovimento', 'datadocumento', 'when'] },
-    { key: 'category', required: true, labelKey: 'fieldCategory', synonyms: ['category', 'categoria', 'cat', 'voce', 'tipologia'] },
+    { key: 'category', required: true, labelKey: 'fieldCategory', synonyms: ['category', 'categoria', 'cat', 'voce', 'tipologia', 'descrizione', 'causale'] },
     { key: 'subcategory', required: false, labelKey: 'fieldSubcategory', synonyms: ['subcategory', 'sottocategoria', 'sub', 'sottovoce', 'dettaglio'] },
     { key: 'source', required: false, labelKey: 'fieldSource', synonyms: ['source', 'fonte', 'origine', 'channel', 'canale'] },
   ],
