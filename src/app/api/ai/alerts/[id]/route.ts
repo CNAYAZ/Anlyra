@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
+import { parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
         description: updated.description,
         source: updated.source,
         recommendation: updated.recommendation,
+        aiAnalysis: parseStoredAnalysis(updated.aiAnalysis),
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       },

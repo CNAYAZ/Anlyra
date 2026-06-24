@@ -3,26 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
-import { analyzeAlert, type AlertAnalysis } from '@/lib/alerts/ai-analysis';
+import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Credits charged per AI alert analysis. Aligned with the insights pattern.
 const ANALYSIS_CREDIT_COST = 1;
-
-function parseStoredAnalysis(raw: string | null): AlertAnalysis | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<AlertAnalysis>;
-    if (parsed && typeof parsed.explanation === 'string' && Array.isArray(parsed.actions)) {
-      return { explanation: parsed.explanation, actions: parsed.actions.filter((a) => typeof a === 'string') };
-    }
-  } catch {
-    // corrupt/legacy value → treat as no cache
-  }
-  return null;
-}
 
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
   try {

@@ -116,6 +116,30 @@ export function parseAnalysisResponse(text: string): AlertAnalysis {
 }
 
 /**
+ * Parse the persisted Alert.aiAnalysis JSON column back into a structured
+ * analysis, or null if absent/corrupt. Shared by the API routes that
+ * serialize alerts and the analyze route's cache check.
+ */
+export function parseStoredAnalysis(raw: string | null | undefined): AlertAnalysis | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object') {
+      const obj = parsed as Record<string, unknown>;
+      if (typeof obj.explanation === 'string' && Array.isArray(obj.actions)) {
+        return {
+          explanation: obj.explanation,
+          actions: obj.actions.filter((a): a is string => typeof a === 'string'),
+        };
+      }
+    }
+  } catch {
+    // corrupt/legacy value → treat as no cache
+  }
+  return null;
+}
+
+/**
  * Generate an AI explanation + recommended actions for a financial alert.
  * Reuses chatComplete from the shared Anthropic client. Caller is responsible
  * for credit checks/decrement and for verifying isAnthropicConfigured().

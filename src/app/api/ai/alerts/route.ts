@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
+import { parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
         description: a.description,
         source: a.source,
         recommendation: a.recommendation,
+        aiAnalysis: parseStoredAnalysis(a.aiAnalysis),
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
       })),
