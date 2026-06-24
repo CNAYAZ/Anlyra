@@ -682,6 +682,7 @@ model Alert {
   description    String
   source         String // "rule:cashflow_negative" etc.
   recommendation String
+  aiAnalysis     String? // JSON { explanation, actions[] } generated on demand; null until analyzed
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

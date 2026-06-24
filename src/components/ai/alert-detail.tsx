@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Check, EyeOff, CheckCircle2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, EyeOff, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
-import type { AlertDTO, AlertSeverity, AlertStatus } from '@/types/ai';
+import { apiFetch } from '@/lib/api/fetcher';
+import { useCreditsStore } from '@/stores/credits-store';
+import type {
+  AlertDTO,
+  AlertSeverity,
+  AlertStatus,
+  AlertAnalysisDTO,
+  AnalyzeAlertResponse,
+} from '@/types/ai';
 import type { Locale } from '@/i18n/config';
 
 type Props = {
@@ -31,11 +41,48 @@ const severityVariant: Record<AlertSeverity, 'danger' | 'warning' | 'info'> = {
   LOW: 'info',
 };
 
+const ANALYSIS_CREDIT_COST = 1;
+
+/** Map the raw API error string to a user-facing i18n key. */
+function analyzeErrorKey(message: string): 'analyzeErrorCredits' | 'analyzeErrorConfig' | 'analyzeError' {
+  if (message.includes('INSUFFICIENT_CREDITS')) return 'analyzeErrorCredits';
+  if (message.includes('ANTHROPIC_API_KEY')) return 'analyzeErrorConfig';
+  return 'analyzeError';
+}
+
 export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending }: Props) {
   const t = useTranslations('alerts');
   const locale = useLocale() as Locale;
+  const qc = useQueryClient();
+  const credits = useCreditsStore((s) => s.credits);
+  const setCredits = useCreditsStore((s) => s.setCredits);
+
+  const [analysis, setAnalysis] = useState<AlertAnalysisDTO | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+
+  // Reset local view whenever a different alert is opened, seeding from any
+  // already-persisted analysis so it shows immediately without a new AI call.
+  useEffect(() => {
+    setAnalysis(alert?.aiAnalysis ?? null);
+    setErrorKey(null);
+  }, [alert?.id, alert?.aiAnalysis]);
+
+  const analyzeMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AnalyzeAlertResponse>(`/api/ai/alerts/${id}/analyze`, { method: 'POST' }),
+    onMutate: () => setErrorKey(null),
+    onSuccess: (res) => {
+      setAnalysis({ explanation: res.explanation, actions: res.actions });
+      if (typeof res.creditsRemaining === 'number') setCredits(res.creditsRemaining);
+      qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
+    onError: (err: Error) => setErrorKey(analyzeErrorKey(err.message)),
+  });
 
   if (!alert) return null;
+
+  const hasCredits = credits >= ANALYSIS_CREDIT_COST;
+  const isAnalyzing = analyzeMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,6 +110,64 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
               {t('recommendation')}
             </p>
             <p className="text-foreground">{alert.recommendation}</p>
+          </div>
+
+          {/* AI analysis section */}
+          <div className="rounded-md border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {t('aiSectionTitle')}
+              </p>
+              {!analysis && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={isAnalyzing || !hasCredits}
+                  onClick={() => analyzeMutation.mutate(alert.id)}
+                  title={!hasCredits ? t('analyzeErrorCredits') : undefined}
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {isAnalyzing ? t('analyzing') : t('analyzeButton')}
+                </Button>
+              )}
+            </div>
+
+            {isAnalyzing && !analysis && (
+              <p className="text-xs text-muted-foreground">{t('analyzing')}</p>
+            )}
+
+            {errorKey && (
+              <p className="text-xs text-danger">{t(errorKey)}</p>
+            )}
+
+            {!analysis && !isAnalyzing && !errorKey && (
+              <p className="text-xs text-muted-foreground">
+                {hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}
+              </p>
+            )}
+
+            {analysis && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-foreground">{t('aiExplanation')}</p>
+                  <p className="text-foreground">{analysis.explanation}</p>
+                </div>
+                {analysis.actions.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">{t('aiActions')}</p>
+                    <ul className="list-disc space-y-1 pl-5 text-foreground">
+                      {analysis.actions.map((action, i) => (
+                        <li key={i}>{action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-muted-foreground">

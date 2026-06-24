@@ -46,6 +46,11 @@ export type GenerateInsightsResponse = {
 export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type AlertStatus = 'NEW' | 'READ' | 'RESOLVED' | 'DISMISSED';
 
+export type AlertAnalysisDTO = {
+  explanation: string;
+  actions: string[];
+};
+
 export type AlertDTO = {
   id: string;
   severity: AlertSeverity;
@@ -54,6 +59,12 @@ export type AlertDTO = {
   description: string;
   source: string;
   recommendation: string;
+  aiAnalysis: AlertAnalysisDTO | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AnalyzeAlertResponse = AlertAnalysisDTO & {
+  cached: boolean;
+  creditsRemaining?: number;
 };
