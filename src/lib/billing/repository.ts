@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import type { PlanId } from "./plans";
 import type { BillingState } from "./context";
 
@@ -74,8 +75,11 @@ export async function recordInvoice(inv: Invoice): Promise<void> {
 }
 
 export async function getCreditBalance(orgId: string): Promise<number> {
-  const list = creditEntries.get(orgId) ?? [];
-  return list.reduce((acc, e) => acc + e.delta, 0);
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { aiCredits: true },
+  });
+  return org?.aiCredits ?? 0;
 }
 
 export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
