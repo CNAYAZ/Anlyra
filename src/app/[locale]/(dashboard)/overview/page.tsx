@@ -8,9 +8,11 @@ import {
   ArrowRight,
   BarChart3,
   Brain,
+  CreditCard,
   Globe,
   MessageSquare,
   PiggyBank,
+  Receipt,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -26,6 +28,8 @@ import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import type { CategoryBreakdown, KpiSummary, MonthlySeriesPoint } from '@/lib/analysis/financial';
+import type { ReceivableDTO, ReceivableTotals } from '@/types/receivable';
+import type { RecurringExpenseDTO, RecurringExpenseTotals } from '@/types/recurring-expense';
 
 type FinanceResponse = {
   kpis: KpiSummary;
@@ -33,6 +37,16 @@ type FinanceResponse = {
   revenueByCategory: CategoryBreakdown[];
   costsByCategory: CategoryBreakdown[];
   cumulativeCash: { period: string; inflow: number; outflow: number; net: number; cumulative: number }[];
+};
+
+type ReceivablesResponse = {
+  receivables: ReceivableDTO[];
+  totals: ReceivableTotals;
+};
+
+type RecurringExpensesResponse = {
+  expenses: RecurringExpenseDTO[];
+  totals: RecurringExpenseTotals;
 };
 
 function toDelta(
@@ -64,6 +78,30 @@ export default function OverviewPage() {
     queryKey: ['overview'],
     queryFn: () => apiFetch<FinanceResponse>('/api/analysis/financial?period=12m'),
   });
+
+  const {
+    data: receivablesData,
+    isLoading: receivablesLoading,
+    isError: receivablesError,
+    refetch: refetchReceivables,
+  } = useQuery({
+    queryKey: ['receivables'],
+    queryFn: () => apiFetch<ReceivablesResponse>('/api/receivables'),
+  });
+
+  const {
+    data: recurringData,
+    isLoading: recurringLoading,
+    isError: recurringError,
+    refetch: refetchRecurring,
+  } = useQuery({
+    queryKey: ['recurring-expenses'],
+    queryFn: () => apiFetch<RecurringExpensesResponse>('/api/recurring-expenses'),
+  });
+
+  const receivablesCurrency = receivablesData?.receivables.find((r) => r.status !== 'PAID')?.currency ?? 'EUR';
+  const expensesCurrency = recurringData?.expenses.find((e) => e.active)?.currency ?? 'EUR';
+  const cashFlowError = receivablesError || recurringError;
 
   const lastSeries = data?.series.slice(-1)[0];
   const aiSpotlight =
@@ -199,6 +237,43 @@ export default function OverviewPage() {
               icon={PiggyBank}
             />
           </>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-heading font-semibold text-base text-foreground">{t('cashFlow.title')}</h2>
+        {cashFlowError ? (
+          <ErrorState onRetry={() => { refetchReceivables(); refetchRecurring(); }} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {receivablesLoading || recurringLoading || !receivablesData || !recurringData ? (
+              <>
+                <KpiSkeleton />
+                <KpiSkeleton />
+              </>
+            ) : (
+              <>
+                <Link href="/scadenzario" className="block">
+                  <KpiCard
+                    label={t('kpi.receivablesOpen')}
+                    value={formatCurrency(receivablesData.totals.openAmount, locale, receivablesCurrency)}
+                    subtitle={t('kpi.receivablesOverdueSubtitle', {
+                      amount: formatCurrency(receivablesData.totals.overdueAmount, locale, receivablesCurrency),
+                    })}
+                    icon={Receipt}
+                  />
+                </Link>
+                <Link href="/spese-ricorrenti" className="block">
+                  <KpiCard
+                    label={t('kpi.recurringMonthly')}
+                    value={formatCurrency(recurringData.totals.totalMonthly, locale, expensesCurrency)}
+                    unit={{ suffix: t('kpi.perMonth') }}
+                    icon={CreditCard}
+                  />
+                </Link>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>

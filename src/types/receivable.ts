@@ -19,6 +19,14 @@ export type ReceivableDTO = {
   createdAt: string;
 };
 
+export type ReceivableTotals = {
+  open: number;
+  overdue: number;
+  /** Sum of `amount` across OPEN / OVERDUE rows, mixed currencies summed as-is. */
+  openAmount: number;
+  overdueAmount: number;
+};
+
 export type ReminderVariantDTO = {
   tone: ReminderTone;
   subject: string;
