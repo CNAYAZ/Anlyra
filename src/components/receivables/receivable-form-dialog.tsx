@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 
 export type ReceivableFormValues = {
   customerName: string;
+  customerEmail?: string;
   amount: number;
   currency: string;
   invoiceNumber?: string;
@@ -32,10 +33,11 @@ type Props = {
   pending: boolean;
 };
 
-type Errors = Partial<Record<'customerName' | 'amount' | 'dueDate', string>>;
+type Errors = Partial<Record<'customerName' | 'customerEmail' | 'amount' | 'dueDate', string>>;
 
 const EMPTY = {
   customerName: '',
+  customerEmail: '',
   amount: '',
   currency: 'EUR',
   invoiceNumber: '',
@@ -43,6 +45,9 @@ const EMPTY = {
   dueDate: '',
   notes: '',
 };
+
+// Light client-side check; the server is the source of truth (zod .email()).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: Props) {
   const t = useTranslations('scadenzario');
@@ -64,7 +69,9 @@ export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: 
     e.preventDefault();
     const next: Errors = {};
     const amountNum = Number(form.amount);
+    const email = form.customerEmail.trim();
     if (!form.customerName.trim()) next.customerName = t('form.errorCustomerName');
+    if (email && !EMAIL_RE.test(email)) next.customerEmail = t('form.errorEmail');
     if (!form.amount || !Number.isFinite(amountNum) || amountNum <= 0) next.amount = t('form.errorAmount');
     if (!form.dueDate) next.dueDate = t('form.errorDueDate');
     setErrors(next);
@@ -72,6 +79,7 @@ export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: 
 
     onSubmit({
       customerName: form.customerName.trim(),
+      customerEmail: email || undefined,
       amount: amountNum,
       currency: form.currency.trim() || 'EUR',
       invoiceNumber: form.invoiceNumber.trim() || undefined,
@@ -91,6 +99,20 @@ export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: 
           <DialogBody className="space-y-4">
             <Field id="customerName" label={t('form.customerName')} required error={errors.customerName}>
               <Input value={form.customerName} onChange={set('customerName')} autoFocus />
+            </Field>
+
+            <Field
+              id="customerEmail"
+              label={`${t('form.customerEmail')} (${t('form.optional')})`}
+              error={errors.customerEmail}
+            >
+              <Input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={form.customerEmail}
+                onChange={set('customerEmail')}
+              />
             </Field>
 
             <div className="grid grid-cols-2 gap-4">

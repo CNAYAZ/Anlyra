@@ -652,6 +652,7 @@ model Receivable {
   id             String    @id @default(cuid())
   organizationId String
   customerName   String
+  customerEmail  String? // optional; enables the "send reminder via mailto" action
   amount         Float
   currency       String    @default("EUR")
   invoiceNumber  String?

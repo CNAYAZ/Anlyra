@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const CreateSchema = z.object({
   customerName: z.string().trim().min(1).max(200),
+  customerEmail: z.string().trim().email().max(320).optional(),
   amount: z.number().positive(),
   currency: z.string().trim().min(1).max(8).optional(),
   invoiceNumber: z.string().trim().max(100).optional(),
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
       data: {
         organizationId,
         customerName: p.customerName,
+        customerEmail: p.customerEmail ?? null,
         amount: p.amount,
         currency: (p.currency ?? 'EUR').toUpperCase(),
         invoiceNumber: p.invoiceNumber ?? null,

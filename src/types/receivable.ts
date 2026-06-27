@@ -6,6 +6,7 @@ export type ReminderTone = 'cortese' | 'neutro' | 'fermo' | 'sollecito_finale';
 export type ReceivableDTO = {
   id: string;
   customerName: string;
+  customerEmail: string | null;
   amount: number;
   currency: string;
   invoiceNumber: string | null;

@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 const PatchSchema = z.object({
   status: z.enum(['OPEN', 'PAID', 'OVERDUE']).optional(),
   customerName: z.string().trim().min(1).max(200).optional(),
+  customerEmail: z.string().trim().email().max(320).nullable().optional(),
   amount: z.number().positive().optional(),
   currency: z.string().trim().min(1).max(8).optional(),
   invoiceNumber: z.string().trim().max(100).nullable().optional(),
@@ -36,6 +37,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
 
     const data: Prisma.ReceivableUpdateInput = {};
     if (p.customerName !== undefined) data.customerName = p.customerName;
+    if (p.customerEmail !== undefined) data.customerEmail = p.customerEmail;
     if (p.amount !== undefined) data.amount = p.amount;
     if (p.currency !== undefined) data.currency = p.currency.toUpperCase();
     if (p.invoiceNumber !== undefined) data.invoiceNumber = p.invoiceNumber;
