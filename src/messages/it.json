@@ -35,6 +35,7 @@
     "dataImport": "Import",
     "dataManual": "Manuale",
     "dataHistory": "Storico",
+    "scadenzario": "Scadenzario",
     "integrations": "Integrazioni",
     "settings": "Impostazioni",
     "settingsProfile": "Profilo",
@@ -943,6 +944,70 @@
       "READ": "Letto",
       "RESOLVED": "Risolto",
       "DISMISSED": "Ignorato"
+    }
+  },
+  "scadenzario": {
+    "title": "Scadenzario Incassi",
+    "subtitle": "{count, plural, =0 {Nessun credito da incassare} one {# credito da incassare} other {# crediti da incassare}}",
+    "addButton": "Aggiungi credito",
+    "empty": "Nessun credito registrato. Aggiungine uno per iniziare a tracciare gli incassi.",
+    "error": "Errore nel caricamento dei crediti.",
+    "retry": "Riprova",
+    "filterStatus": "Stato",
+    "all": "Tutti",
+    "openCount": "{count} aperti",
+    "overdueCount": "{count} scaduti",
+    "status": {
+      "OPEN": "Aperto",
+      "OVERDUE": "Scaduto",
+      "PAID": "Pagato"
+    },
+    "table": {
+      "customer": "Cliente",
+      "invoice": "N. fattura",
+      "amount": "Importo",
+      "issued": "Emissione",
+      "due": "Scadenza",
+      "status": "Stato",
+      "actions": "Azioni"
+    },
+    "actions": {
+      "generateReminder": "Genera sollecito",
+      "markPaid": "Segna pagato",
+      "delete": "Elimina"
+    },
+    "confirmDelete": "Eliminare questo credito? L'operazione non è reversibile.",
+    "form": {
+      "title": "Nuovo credito",
+      "customerName": "Cliente",
+      "amount": "Importo",
+      "currency": "Valuta",
+      "invoiceNumber": "Numero fattura",
+      "issuedDate": "Data emissione",
+      "dueDate": "Data scadenza",
+      "notes": "Note",
+      "optional": "facoltativo",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "errorCustomerName": "Il nome del cliente è obbligatorio.",
+      "errorAmount": "Inserisci un importo maggiore di zero.",
+      "errorDueDate": "La data di scadenza è obbligatoria."
+    },
+    "reminder": {
+      "title": "Testo del sollecito",
+      "subject": "Oggetto",
+      "body": "Corpo",
+      "copy": "Copia",
+      "copied": "Copiato",
+      "error": "Impossibile generare il sollecito. Riprova.",
+      "generating": "Generazione in corso..."
+    },
+    "toast": {
+      "created": "Credito aggiunto.",
+      "createError": "Impossibile salvare il credito.",
+      "paid": "Credito segnato come pagato.",
+      "deleted": "Credito eliminato.",
+      "error": "Operazione non riuscita. Riprova."
     }
   },
   "forecasting": {

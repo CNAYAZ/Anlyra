@@ -34,17 +34,19 @@ export async function GET(req: Request) {
     });
 
     const now = new Date();
-    let items = rows.map((r) => toReceivableDTO(r, now));
+    const all = rows.map((r) => toReceivableDTO(r, now));
+
+    // Totals reflect the full dataset, independent of the active filter.
+    const totals = {
+      open: all.filter((i) => i.status === 'OPEN').length,
+      overdue: all.filter((i) => i.status === 'OVERDUE').length,
+    };
 
     const validFilters: ReceivableStatus[] = ['OPEN', 'PAID', 'OVERDUE'];
-    if (statusFilter && validFilters.includes(statusFilter as ReceivableStatus)) {
-      items = items.filter((i) => i.status === statusFilter);
-    }
-
-    const totals = {
-      open: items.filter((i) => i.status === 'OPEN').length,
-      overdue: items.filter((i) => i.status === 'OVERDUE').length,
-    };
+    const items =
+      statusFilter && validFilters.includes(statusFilter as ReceivableStatus)
+        ? all.filter((i) => i.status === statusFilter)
+        : all;
 
     return ok({ receivables: items, totals });
   } catch (e) {

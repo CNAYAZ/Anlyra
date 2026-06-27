@@ -120,6 +120,12 @@ export const mainNav: NavItemConfig[] = [
     ],
   },
   {
+    key: 'scadenzario',
+    labelKey: 'nav.scadenzario',
+    href: '/scadenzario',
+    icon: Wallet,
+  },
+  {
     key: 'integrations',
     labelKey: 'nav.integrations',
     href: '/integrations',
