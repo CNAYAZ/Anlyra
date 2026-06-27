@@ -36,6 +36,7 @@
     "dataManual": "Manual",
     "dataHistory": "History",
     "scadenzario": "Receivables",
+    "speseRicorrenti": "Recurring Expenses",
     "integrations": "Integrations",
     "settings": "Settings",
     "settingsProfile": "Profile",
@@ -1011,6 +1012,67 @@
       "createError": "Could not save the receivable.",
       "paid": "Receivable marked as paid.",
       "deleted": "Receivable deleted.",
+      "error": "Operation failed. Please try again."
+    }
+  },
+  "speseRicorrenti": {
+    "title": "Recurring Expenses",
+    "subtitle": "Track subscriptions and fixed costs, with monthly and yearly totals.",
+    "addButton": "Add expense",
+    "empty": "No recurring expenses yet. Add one to start tracking your fixed costs.",
+    "error": "Error loading expenses.",
+    "retry": "Retry",
+    "totalMonthly": "Monthly total",
+    "totalYearly": "Yearly total",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "frequency": {
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
+    "status": {
+      "active": "Active",
+      "cancelled": "Cancelled"
+    },
+    "table": {
+      "vendor": "Vendor",
+      "amount": "Amount",
+      "frequency": "Frequency",
+      "category": "Category",
+      "nextRenewal": "Next renewal",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "reactivate": "Reactivate",
+      "delete": "Delete"
+    },
+    "confirmDelete": "Delete this recurring expense? This cannot be undone.",
+    "form": {
+      "title": "New recurring expense",
+      "editTitle": "Edit recurring expense",
+      "vendorName": "Vendor",
+      "amount": "Amount",
+      "currency": "Currency",
+      "frequency": "Frequency",
+      "category": "Category",
+      "nextRenewal": "Next renewal",
+      "notes": "Notes",
+      "optional": "optional",
+      "save": "Save",
+      "cancel": "Cancel",
+      "errorVendor": "Vendor name is required.",
+      "errorAmount": "Enter an amount greater than zero."
+    },
+    "toast": {
+      "created": "Expense added.",
+      "createError": "Could not save the expense.",
+      "updated": "Expense updated.",
+      "cancelled": "Expense cancelled.",
+      "reactivated": "Expense reactivated.",
+      "deleted": "Expense deleted.",
       "error": "Operation failed. Please try again."
     }
   },

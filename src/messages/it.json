@@ -36,6 +36,7 @@
     "dataManual": "Manuale",
     "dataHistory": "Storico",
     "scadenzario": "Scadenzario",
+    "speseRicorrenti": "Spese Ricorrenti",
     "integrations": "Integrazioni",
     "settings": "Impostazioni",
     "settingsProfile": "Profilo",
@@ -1011,6 +1012,67 @@
       "createError": "Impossibile salvare il credito.",
       "paid": "Credito segnato come pagato.",
       "deleted": "Credito eliminato.",
+      "error": "Operazione non riuscita. Riprova."
+    }
+  },
+  "speseRicorrenti": {
+    "title": "Spese Ricorrenti",
+    "subtitle": "Tieni traccia di abbonamenti e costi fissi, con il totale mensile e annuale.",
+    "addButton": "Aggiungi spesa",
+    "empty": "Nessuna spesa ricorrente. Aggiungine una per iniziare a monitorare i costi fissi.",
+    "error": "Errore nel caricamento delle spese.",
+    "retry": "Riprova",
+    "totalMonthly": "Totale mensile",
+    "totalYearly": "Totale annuale",
+    "perMonth": "/mese",
+    "perYear": "/anno",
+    "frequency": {
+      "MONTHLY": "Mensile",
+      "YEARLY": "Annuale"
+    },
+    "status": {
+      "active": "Attiva",
+      "cancelled": "Disdetta"
+    },
+    "table": {
+      "vendor": "Fornitore",
+      "amount": "Importo",
+      "frequency": "Frequenza",
+      "category": "Categoria",
+      "nextRenewal": "Prossimo rinnovo",
+      "status": "Stato",
+      "actions": "Azioni"
+    },
+    "actions": {
+      "edit": "Modifica",
+      "cancel": "Disdici",
+      "reactivate": "Riattiva",
+      "delete": "Elimina"
+    },
+    "confirmDelete": "Eliminare questa spesa ricorrente? L'operazione non è reversibile.",
+    "form": {
+      "title": "Nuova spesa ricorrente",
+      "editTitle": "Modifica spesa ricorrente",
+      "vendorName": "Fornitore",
+      "amount": "Importo",
+      "currency": "Valuta",
+      "frequency": "Frequenza",
+      "category": "Categoria",
+      "nextRenewal": "Prossimo rinnovo",
+      "notes": "Note",
+      "optional": "facoltativo",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "errorVendor": "Il nome del fornitore è obbligatorio.",
+      "errorAmount": "Inserisci un importo maggiore di zero."
+    },
+    "toast": {
+      "created": "Spesa aggiunta.",
+      "createError": "Impossibile salvare la spesa.",
+      "updated": "Spesa aggiornata.",
+      "cancelled": "Spesa disdetta.",
+      "reactivated": "Spesa riattivata.",
+      "deleted": "Spesa eliminata.",
       "error": "Operazione non riuscita. Riprova."
     }
   },
