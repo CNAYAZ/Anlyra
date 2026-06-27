@@ -35,6 +35,7 @@
     "dataImport": "Import",
     "dataManual": "Manual",
     "dataHistory": "History",
+    "scadenzario": "Receivables",
     "integrations": "Integrations",
     "settings": "Settings",
     "settingsProfile": "Profile",
@@ -943,6 +944,70 @@
       "READ": "Read",
       "RESOLVED": "Resolved",
       "DISMISSED": "Dismissed"
+    }
+  },
+  "scadenzario": {
+    "title": "Receivables",
+    "subtitle": "{count, plural, =0 {No receivables to collect} one {# receivable to collect} other {# receivables to collect}}",
+    "addButton": "Add receivable",
+    "empty": "No receivables yet. Add one to start tracking what you're owed.",
+    "error": "Error loading receivables.",
+    "retry": "Retry",
+    "filterStatus": "Status",
+    "all": "All",
+    "openCount": "{count} open",
+    "overdueCount": "{count} overdue",
+    "status": {
+      "OPEN": "Open",
+      "OVERDUE": "Overdue",
+      "PAID": "Paid"
+    },
+    "table": {
+      "customer": "Customer",
+      "invoice": "Invoice no.",
+      "amount": "Amount",
+      "issued": "Issued",
+      "due": "Due",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "generateReminder": "Generate reminder",
+      "markPaid": "Mark paid",
+      "delete": "Delete"
+    },
+    "confirmDelete": "Delete this receivable? This cannot be undone.",
+    "form": {
+      "title": "New receivable",
+      "customerName": "Customer",
+      "amount": "Amount",
+      "currency": "Currency",
+      "invoiceNumber": "Invoice number",
+      "issuedDate": "Issue date",
+      "dueDate": "Due date",
+      "notes": "Notes",
+      "optional": "optional",
+      "save": "Save",
+      "cancel": "Cancel",
+      "errorCustomerName": "Customer name is required.",
+      "errorAmount": "Enter an amount greater than zero.",
+      "errorDueDate": "Due date is required."
+    },
+    "reminder": {
+      "title": "Reminder text",
+      "subject": "Subject",
+      "body": "Body",
+      "copy": "Copy",
+      "copied": "Copied",
+      "error": "Could not generate the reminder. Please try again.",
+      "generating": "Generating..."
+    },
+    "toast": {
+      "created": "Receivable added.",
+      "createError": "Could not save the receivable.",
+      "paid": "Receivable marked as paid.",
+      "deleted": "Receivable deleted.",
+      "error": "Operation failed. Please try again."
     }
   },
   "forecasting": {

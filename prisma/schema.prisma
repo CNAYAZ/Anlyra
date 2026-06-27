@@ -644,6 +644,28 @@ model FinancialRecord {
   @@index([importBatchId])
 }
 
+// Scadenzario Incassi — manual accounts-receivable tracking.
+// Mirrors FinancialRecord's multi-tenant pattern: plain organizationId String
+// with indexes, NO explicit FK relation to Organization (matching the rest of
+// the data models in this schema).
+model Receivable {
+  id             String    @id @default(cuid())
+  organizationId String
+  customerName   String
+  amount         Float
+  currency       String    @default("EUR")
+  invoiceNumber  String?
+  issuedDate     DateTime?
+  dueDate        DateTime
+  status         String    @default("OPEN") // OPEN | PAID | OVERDUE (OVERDUE derived at runtime, persisted only when explicitly marked)
+  notes          String?
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId, dueDate])
+  @@index([organizationId, status])
+}
+
 model AiAlert {
   id             String   @id @default(cuid())
   organizationId String
