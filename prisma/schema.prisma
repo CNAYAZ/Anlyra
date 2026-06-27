@@ -667,6 +667,26 @@ model Receivable {
   @@index([organizationId, status])
 }
 
+// Hub Spese Ricorrenti — manual recurring-expense tracking.
+// Same multi-tenant pattern as Receivable/FinancialRecord: plain organizationId
+// String with indexes, NO explicit FK relation to Organization.
+model RecurringExpense {
+  id             String    @id @default(cuid())
+  organizationId String
+  vendorName     String
+  amount         Float
+  currency       String    @default("EUR")
+  frequency      String    @default("MONTHLY") // MONTHLY | YEARLY
+  category       String?
+  nextRenewal    DateTime?
+  active         Boolean   @default(true)
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId, active])
+  @@index([organizationId, category])
+}
+
 model AiAlert {
   id             String   @id @default(cuid())
   organizationId String
