@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Check, Copy, Loader2 } from 'lucide-react';
+import { Check, Copy, Loader2, Mail } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,23 @@ type Props = {
   loading: boolean;
   error: boolean;
   variants: ReminderVariantDTO[] | null;
+  /** Recipient for the mailto link; when null the email button is disabled. */
+  customerEmail: string | null;
 };
 
-export function ReminderDialog({ open, onOpenChange, loading, error, variants }: Props) {
+/**
+ * Build a mailto: URL that opens the user's mail client pre-filled. Subject and
+ * body are encodeURIComponent-escaped so spaces, Italian accents (à, è) and the
+ * euro sign (€) survive; newlines are normalised to CRLF so they encode as
+ * %0D%0A, the line break mailto clients expect.
+ */
+function buildMailto(email: string, subject: string, body: string): string {
+  const bodyCRLF = body.replace(/\r?\n/g, '\r\n');
+  const params = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyCRLF)}`;
+  return `mailto:${encodeURIComponent(email)}?${params}`;
+}
+
+export function ReminderDialog({ open, onOpenChange, loading, error, variants, customerEmail }: Props) {
   const t = useTranslations('scadenzario');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
@@ -34,6 +48,11 @@ export function ReminderDialog({ open, onOpenChange, loading, error, variants }:
     } catch {
       // Clipboard unavailable (e.g. insecure context) — silently ignore.
     }
+  };
+
+  const sendEmail = (subject: string, body: string) => {
+    if (!customerEmail) return;
+    window.location.href = buildMailto(customerEmail, subject, body);
   };
 
   return (
@@ -68,12 +87,27 @@ export function ReminderDialog({ open, onOpenChange, loading, error, variants }:
                 </p>
                 <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">{v.body}</pre>
               </div>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button size="sm" variant="secondary" onClick={() => copy(i, v.subject, v.body)}>
                   {copiedIndex === i ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   {copiedIndex === i ? t('reminder.copied') : t('reminder.copy')}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={!customerEmail}
+                  onClick={() => sendEmail(v.subject, v.body)}
+                  title={customerEmail ? undefined : t('reminder.emailMissingHint')}
+                >
+                  <Mail className="h-4 w-4" />
+                  {t('reminder.sendByEmail')}
+                </Button>
               </div>
+              {!customerEmail && (
+                <p className="text-right text-xs text-muted-foreground">
+                  {t('reminder.emailMissingHint')}
+                </p>
+              )}
             </div>
           ))}
         </DialogBody>

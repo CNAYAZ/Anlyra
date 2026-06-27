@@ -980,6 +980,7 @@
     "form": {
       "title": "Nuovo credito",
       "customerName": "Cliente",
+      "customerEmail": "Email cliente",
       "amount": "Importo",
       "currency": "Valuta",
       "invoiceNumber": "Numero fattura",
@@ -990,6 +991,7 @@
       "save": "Salva",
       "cancel": "Annulla",
       "errorCustomerName": "Il nome del cliente è obbligatorio.",
+      "errorEmail": "Inserisci un indirizzo email valido.",
       "errorAmount": "Inserisci un importo maggiore di zero.",
       "errorDueDate": "La data di scadenza è obbligatoria."
     },
@@ -999,6 +1001,8 @@
       "body": "Corpo",
       "copy": "Copia",
       "copied": "Copiato",
+      "sendByEmail": "Invia per email",
+      "emailMissingHint": "Aggiungi l'email del cliente per inviare il sollecito.",
       "error": "Impossibile generare il sollecito. Riprova.",
       "generating": "Generazione in corso..."
     },

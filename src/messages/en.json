@@ -980,6 +980,7 @@
     "form": {
       "title": "New receivable",
       "customerName": "Customer",
+      "customerEmail": "Customer email",
       "amount": "Amount",
       "currency": "Currency",
       "invoiceNumber": "Invoice number",
@@ -990,6 +991,7 @@
       "save": "Save",
       "cancel": "Cancel",
       "errorCustomerName": "Customer name is required.",
+      "errorEmail": "Enter a valid email address.",
       "errorAmount": "Enter an amount greater than zero.",
       "errorDueDate": "Due date is required."
     },
@@ -999,6 +1001,8 @@
       "body": "Body",
       "copy": "Copy",
       "copied": "Copied",
+      "sendByEmail": "Send by email",
+      "emailMissingHint": "Add the customer's email to send the reminder.",
       "error": "Could not generate the reminder. Please try again.",
       "generating": "Generating..."
     },

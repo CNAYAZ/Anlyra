@@ -48,6 +48,7 @@ export default function ScadenzarioPage() {
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [formOpen, setFormOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderEmail, setReminderEmail] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const toast = (msg: string) => {
@@ -108,10 +109,11 @@ export default function ScadenzarioPage() {
       }),
   });
 
-  const handleGenerateReminder = (id: string) => {
+  const handleGenerateReminder = (r: ReceivableDTO) => {
     reminderMutation.reset();
+    setReminderEmail(r.customerEmail);
     setReminderOpen(true);
-    reminderMutation.mutate(id);
+    reminderMutation.mutate(r.id);
   };
 
   const handleDelete = (id: string) => {
@@ -199,7 +201,7 @@ export default function ScadenzarioPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleGenerateReminder(r.id)}
+                            onClick={() => handleGenerateReminder(r)}
                             title={t('actions.generateReminder')}
                           >
                             <Send className="h-4 w-4" />
@@ -249,6 +251,7 @@ export default function ScadenzarioPage() {
         loading={reminderMutation.isPending}
         error={reminderMutation.isError}
         variants={reminderMutation.data?.variants ?? null}
+        customerEmail={reminderEmail}
       />
     </div>
   );

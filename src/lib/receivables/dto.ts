@@ -25,6 +25,7 @@ export function toReceivableDTO(row: Receivable, now: Date = new Date()): Receiv
   return {
     id: row.id,
     customerName: row.customerName,
+    customerEmail: row.customerEmail,
     amount: row.amount,
     currency: row.currency,
     invoiceNumber: row.invoiceNumber,
