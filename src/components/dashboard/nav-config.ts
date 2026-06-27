@@ -21,6 +21,7 @@ import {
   PieChart,
   PiggyBank,
   Plug,
+  Repeat,
   Settings,
   Sparkles,
   Target,
@@ -124,6 +125,12 @@ export const mainNav: NavItemConfig[] = [
     labelKey: 'nav.scadenzario',
     href: '/scadenzario',
     icon: Wallet,
+  },
+  {
+    key: 'speseRicorrenti',
+    labelKey: 'nav.speseRicorrenti',
+    href: '/spese-ricorrenti',
+    icon: Repeat,
   },
   {
     key: 'integrations',
