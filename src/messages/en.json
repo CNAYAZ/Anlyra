@@ -362,12 +362,19 @@
       "costs12m": "Costs 12m",
       "cashAvailable": "Available cash",
       "activeCustomers": "Active customers",
-      "runwayLabel": "Runway"
+      "runwayLabel": "Runway",
+      "receivablesOpen": "Receivables",
+      "receivablesOverdueSubtitle": "of which overdue: {amount}",
+      "recurringMonthly": "Recurring expenses",
+      "perMonth": "/month"
     },
     "chart": {
       "revenueVsCosts": "Revenue vs Costs — last 12 months",
       "revenue": "Revenue",
       "costs": "Costs"
+    },
+    "cashFlow": {
+      "title": "Cash Flow"
     },
     "aiSpotlight": "AI Spotlight",
     "quickActions": {
