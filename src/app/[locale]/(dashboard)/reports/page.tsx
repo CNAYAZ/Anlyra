@@ -117,6 +117,8 @@ export default function ReportsPage() {
                 )}
               </div>
 
+              {/* Messo a riposo il 2026-06-30 — azione non ancora implementata (vedi .vscode/STATO-REALE-E-VALUTAZIONE.md) */}
+              {/*
               <button
                 type="button"
                 onClick={() => runMutation.mutate(r.id)}
@@ -125,6 +127,7 @@ export default function ReportsPage() {
               >
                 <Play className="h-3 w-3" /> {t('runNow')}
               </button>
+              */}
             </div>
           ))}
         </div>

@@ -94,9 +94,11 @@ export default function InsightsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Messo a riposo il 2026-06-30 — azione non ancora implementata (vedi .vscode/STATO-REALE-E-VALUTAZIONE.md) */}
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
+        /*
         actions={
           <Button
             variant="primary"
@@ -109,6 +111,7 @@ export default function InsightsPage() {
             {t('generateButton')}
           </Button>
         }
+        */
       />
 
       {toastMsg && (
