@@ -6,6 +6,7 @@
   },
   "nav": {
     "overview": "Overview",
+    "situazione": "Status",
     "finance": "Finance",
     "financeRevenue": "Revenue",
     "financeCosts": "Costs",
@@ -953,6 +954,11 @@
       "RESOLVED": "Resolved",
       "DISMISSED": "Dismissed"
     }
+  },
+  "situazione": {
+    "title": "Status",
+    "subtitle": "What to keep an eye on in your numbers",
+    "empty": "No issues to report right now — your numbers look clean."
   },
   "scadenzario": {
     "title": "Receivables",

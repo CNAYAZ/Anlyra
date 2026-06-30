@@ -6,6 +6,7 @@
   },
   "nav": {
     "overview": "Overview",
+    "situazione": "Situazione",
     "finance": "Finanza",
     "financeRevenue": "Ricavi",
     "financeCosts": "Costi",
@@ -953,6 +954,11 @@
       "RESOLVED": "Risolto",
       "DISMISSED": "Ignorato"
     }
+  },
+  "situazione": {
+    "title": "Situazione",
+    "subtitle": "Cosa tenere d'occhio nei tuoi numeri",
+    "empty": "Nessuna segnalazione al momento — i tuoi numeri non mostrano criticità."
   },
   "scadenzario": {
     "title": "Scadenzario Incassi",
