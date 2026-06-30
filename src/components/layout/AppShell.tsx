@@ -24,7 +24,8 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { href: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
   { href: '/finance', labelKey: 'nav.finance', icon: Wallet },
-  { href: '/market', labelKey: 'nav.market', icon: Globe },
+  // MERCATO messo a riposo il 2026-06-30 — pagine e API restano nel repo, solo nascosto dal menu. Vedi .vscode/STATO-REALE-E-VALUTAZIONE.md
+  // { href: '/market', labelKey: 'nav.market', icon: Globe },
   { href: '/operations', labelKey: 'nav.operations', icon: Activity },
 ];
 

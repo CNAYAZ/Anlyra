@@ -61,6 +61,8 @@ export const mainNav: NavItemConfig[] = [
       { key: 'financeBudget', labelKey: 'nav.financeBudget', href: '/finance/budget', icon: PiggyBank },
     ],
   },
+  // MERCATO messo a riposo il 2026-06-30 — pagine e API restano nel repo, solo nascosto dal menu. Vedi .vscode/STATO-REALE-E-VALUTAZIONE.md
+  /*
   {
     key: 'market',
     labelKey: 'nav.market',
@@ -72,6 +74,7 @@ export const mainNav: NavItemConfig[] = [
       { key: 'marketPositioning', labelKey: 'nav.marketPositioning', href: '/market/positioning', icon: Target },
     ],
   },
+  */
   {
     key: 'operations',
     labelKey: 'nav.operations',
