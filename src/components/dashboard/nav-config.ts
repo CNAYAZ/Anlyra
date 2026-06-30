@@ -75,6 +75,8 @@ export const mainNav: NavItemConfig[] = [
     ],
   },
   */
+  // OPERATIONS messo a riposo il 2026-06-30 — pagine e API restano nel repo, solo nascosto dal menu. Vedi .vscode/STATO-REALE-E-VALUTAZIONE.md
+  /*
   {
     key: 'operations',
     labelKey: 'nav.operations',
@@ -86,6 +88,7 @@ export const mainNav: NavItemConfig[] = [
       { key: 'operationsEfficiency', labelKey: 'nav.operationsEfficiency', href: '/operations/efficiency', icon: BarChart3 },
     ],
   },
+  */
   {
     key: 'ai',
     labelKey: 'nav.ai',
