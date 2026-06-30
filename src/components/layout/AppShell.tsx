@@ -26,7 +26,8 @@ const PRIMARY_NAV: NavItem[] = [
   { href: '/finance', labelKey: 'nav.finance', icon: Wallet },
   // MERCATO messo a riposo il 2026-06-30 — pagine e API restano nel repo, solo nascosto dal menu. Vedi .vscode/STATO-REALE-E-VALUTAZIONE.md
   // { href: '/market', labelKey: 'nav.market', icon: Globe },
-  { href: '/operations', labelKey: 'nav.operations', icon: Activity },
+  // OPERATIONS messo a riposo il 2026-06-30 — pagine e API restano nel repo, solo nascosto dal menu. Vedi .vscode/STATO-REALE-E-VALUTAZIONE.md
+  // { href: '/operations', labelKey: 'nav.operations', icon: Activity },
 ];
 
 const OPS_NAV: NavItem[] = [
