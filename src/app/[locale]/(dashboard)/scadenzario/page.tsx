@@ -23,12 +23,12 @@ import { ReceivableFormDialog, type ReceivableFormValues } from '@/components/re
 import { ReminderDialog } from '@/components/receivables/reminder-dialog';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { ReceivableDTO, ReceivableStatus, ReminderResponse } from '@/types/receivable';
+import type { ReceivableDTO, ReceivableStatus, ReceivableTotals, ReminderResponse } from '@/types/receivable';
 import type { Locale } from '@/i18n/config';
 
 type ListResponse = {
   receivables: ReceivableDTO[];
-  totals: { open: number; overdue: number };
+  totals: ReceivableTotals;
 };
 
 type StatusFilter = 'ALL' | ReceivableStatus;
@@ -121,7 +121,7 @@ export default function ScadenzarioPage() {
   };
 
   const receivables = data?.receivables ?? [];
-  const totals = data?.totals ?? { open: 0, overdue: 0 };
+  const totals = data?.totals ?? { open: 0, overdue: 0, openAmount: 0, overdueAmount: 0 };
   const rowPending = markPaidMutation.isPending || deleteMutation.isPending;
 
   return (

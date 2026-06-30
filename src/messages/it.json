@@ -362,12 +362,19 @@
       "costs12m": "Costi 12m",
       "cashAvailable": "Cash disponibile",
       "activeCustomers": "Clienti attivi",
-      "runwayLabel": "Runway"
+      "runwayLabel": "Runway",
+      "receivablesOpen": "Crediti da incassare",
+      "receivablesOverdueSubtitle": "di cui scaduti: {amount}",
+      "recurringMonthly": "Spese ricorrenti",
+      "perMonth": "/mese"
     },
     "chart": {
       "revenueVsCosts": "Ricavi vs Costi — ultimi 12 mesi",
       "revenue": "Ricavi",
       "costs": "Costi"
+    },
+    "cashFlow": {
+      "title": "Cash Flow"
     },
     "aiSpotlight": "AI Spotlight",
     "quickActions": {
