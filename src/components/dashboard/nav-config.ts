@@ -14,6 +14,7 @@ import {
   Globe,
   Home,
   Layout,
+  Lightbulb,
   LineChart,
   Lock,
   MessageSquare,
@@ -48,6 +49,12 @@ export const mainNav: NavItemConfig[] = [
     labelKey: 'nav.overview',
     href: '/overview',
     icon: Home,
+  },
+  {
+    key: 'situazione',
+    labelKey: 'nav.situazione',
+    href: '/situazione',
+    icon: Lightbulb,
   },
   {
     key: 'finance',
