@@ -1,3 +1,4 @@
+ps aux | grep "next dev" | grep -v grep
 # Anlyra — Stato reale del progetto e valutazione
 
 > **Cos'è questo file.** Non è un handoff e non è una lista di cose da fare. È una
@@ -9,7 +10,8 @@
 >
 > **Data**: 2026-06-30. **Basato su**: branch `claude/merge-repos-nextjs-rOZU3`,
 > ultimo commit letto `d18bc2d`.
-
+>
+> **Aggiornato il 2026-06-30 (sera)**: vedi §8 in fondo — costruito il primo pezzo di prodotto vero (motore dei fatti + pagina Situazione) e spente altre scenografie.
 ---
 
 ## 0. Regole d'oro (leggere prima di tutto)
@@ -249,6 +251,49 @@ Non urgenti oggi, ma vanno scritte perché si dimenticano e fanno danni:
 - **Prima di un fix sui dati, verificare quali colonne il codice legge davvero** (L30).
 
 ---
+---
 
+## 8. Aggiornamento 2026-06-30 (sera) — primo pezzo di prodotto vero
+
+Sessione di lavoro che ha trasformato lo stato fotografato sopra. Tutto ciò che segue è
+**verificato nel browser sui dati demo reali**, non solo dichiarato.
+
+**Costruito e collaudato (il cuore vero che prima mancava):**
+- **Motore dei fatti** (`src/lib/facts/financial-facts.ts` + API `src/app/api/analysis/facts/route.ts`):
+  mergiato. Legge i dati reali (FinancialRecord/Receivable/RecurringExpense) e produce osservazioni
+  SPECIFICHE ancorate ai numeri — niente AI, niente dati finti. Provato sui dati demo: produce fatti
+  veri (crediti scaduti con importo e clienti, quota scaduta, trend spese). Le regole si auto-zittiscono
+  se i dati non bastano, invece di inventare. **Promosso col collaudo reale.**
+- **Pagina "Situazione"** (`/situazione`, voce di menu in cima sotto la home, icona lampadina):
+  mergiata. Mostra i fatti come card con icona e colore per gravità (critico/avviso/info), ordinate per
+  gravità, con stati loading/vuoto/errore coerenti col resto. **Verificata nel browser: mostra i fatti
+  veri e si RICALCOLA quando cambiano i dati** (confermato cambiando i crediti demo).
+- **Seed crediti demo** (`prisma/seed-receivables.ts`, idempotente): 7 crediti realistici da contesto
+  ristorazione (3 scaduti, 2 nei termini, 2 pagati, ~€14.500). Eseguito nel Codespace. Ha sostituito il
+  vecchio credito-segnaposto da €999. Per rieseguirlo: `npx tsx prisma/seed-receivables.ts`.
+
+**Scenografie messe a riposo (nascoste dal menu/UI, codice conservato, reversibili):**
+- **Mercato** e **Operations**: tolte dal menu (motori finti con formule fisse/seno-coseno, richiedono dati
+  che il cliente non ha o vanno rifatti sui dati veri). Codice intatto nel repo.
+- **Bottoni "Genera insight" e "Esegui ora" (report)**: nascosti — promettevano azioni non implementate
+  (lo stub 503 e il "run now" che non genera PDF). Codice e API conservati.
+- **Risultato**: ad oggi ogni funzione visibile nel menu e ogni bottone visibile fanno una cosa VERA.
+  Niente più gusci sotto gli occhi dell'utente.
+
+**Stato del prodotto adesso (sintesi onesta):** esiste uno scheletro di prodotto VERO e onesto —
+dati reali → motore che li legge → pagina che dice all'imprenditore cosa guardare. È la prima forma
+concreta del "consulente AI ancorato ai dati reali". Piccolo, ma vero e collaudato.
+
+**Prossimi passi (in ordine di valore, per la sessione futura):**
+1. **Collegare l'AI** (quando ci sarà credito sulla API key Anthropic): i fatti deterministici diventano
+   il carburante di un consiglio scritto dall'AI. È il salto da "elenco di fatti" a "consiglio del quasi-CEO".
+2. **Riparare il cambio password** scollegato in `settings/security` (è sicurezza, non cosmetica).
+3. **Verificare la condivisione report** (`share/[token]`) — probabilmente non funziona da altri dispositivi.
+4. **A mente fresca**: chirurgia dei branch e di `main` divergente; pulizia doppioni Prisma (Kpi/KPI,
+   FinancialData/FinancialRecord); residuo `runMutation` non più usato in `reports/page.tsx`.
+
+**Nota di metodo confermata:** in questa sessione Claude Code (Sonnet) ha più volte corretto descrizioni
+imprecise contenute nei prompt leggendo il codice vero — esattamente la regola d'oro n.2. Funziona: i prompt
+vanno dati, ma chi esegue deve sempre verificare sulla fonte.
 *Documento di valutazione, non un ordine. Aggiornare quando lo stato reale cambia —
 rileggendo il codice, non i vecchi `.md`. La rotta la tiene il fondatore.*
