@@ -7,27 +7,65 @@ import { useTranslations } from 'next-intl';
 import { CheckCircle2, ShieldCheck, KeyRound, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/lib/api/fetcher';
+import { validatePassword } from '@/lib/auth/config';
 import TwoFactorPanel from './TwoFactorPanel';
+
+// Maps a server error code (thrown by apiFetch as Error.message) to an i18n key,
+// so the user understands exactly what went wrong.
+const ERROR_KEY: Record<string, string> = {
+  CURRENT_PASSWORD_INVALID: 'securityCurrentPasswordInvalid',
+  SAME_PASSWORD: 'securitySamePassword',
+  WEAK_PASSWORD: 'securityPasswordWeak',
+  NO_PASSWORD_SET: 'securityNoPasswordSet',
+  MISSING_FIELDS: 'securityPasswordError',
+  UNAUTHORIZED: 'securityUnauthorized',
+};
 
 export default function SettingsSecurityPage() {
   const t = useTranslations('settings');
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
-  const [toast, setToast] = useState<'ok' | 'err' | null>(null);
+  const [toast, setToast] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+  const [pending, setPending] = useState(false);
 
-  function changePassword(e: React.FormEvent) {
+  function showToast(type: 'ok' | 'err', msg: string) {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function changePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPwd.length < 8 || newPwd !== confirmPwd) {
-      setToast('err');
-      setTimeout(() => setToast(null), 4000);
+    if (pending) return;
+
+    // Client-side checks mirror the server (same 12-char policy via validatePassword).
+    if (newPwd !== confirmPwd) {
+      showToast('err', t('securityPasswordMismatch'));
       return;
     }
-    setOldPwd('');
-    setNewPwd('');
-    setConfirmPwd('');
-    setToast('ok');
-    setTimeout(() => setToast(null), 4000);
+    if (!validatePassword(newPwd)) {
+      showToast('err', t('securityPasswordWeak'));
+      return;
+    }
+
+    setPending(true);
+    try {
+      await apiFetch('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: oldPwd, newPassword: newPwd }),
+      });
+      setOldPwd('');
+      setNewPwd('');
+      setConfirmPwd('');
+      showToast('ok', t('securityPasswordChanged'));
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      const key = ERROR_KEY[code] ?? 'securityUpdateFailed';
+      showToast('err', t(key));
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -37,14 +75,14 @@ export default function SettingsSecurityPage() {
         <p className="text-sm text-muted-foreground">{t('securitySubtitle')}</p>
       </div>
 
-      {toast === 'ok' && (
+      {toast?.type === 'ok' && (
         <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-sm text-success">
-          <CheckCircle2 className="h-4 w-4" /> {t('securityPasswordChanged')}
+          <CheckCircle2 className="h-4 w-4" /> {toast.msg}
         </div>
       )}
-      {toast === 'err' && (
+      {toast?.type === 'err' && (
         <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
-          <X className="h-4 w-4" /> {t('securityPasswordError')}
+          <X className="h-4 w-4" /> {toast.msg}
         </div>
       )}
 
@@ -70,7 +108,8 @@ export default function SettingsSecurityPage() {
         <p className="text-xs text-muted-foreground">{t('securityPasswordHint')}</p>
         <button
           type="submit"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
         >
           {t('securityUpdatePassword')}
         </button>
