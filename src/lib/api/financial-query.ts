@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { endOfMonth, startOfMonth } from 'date-fns';
+import { endOfMonth } from 'date-fns';
 import type {
   DemoBudget,
   DemoCashflow,
@@ -150,30 +150,16 @@ export async function getOrgData(): Promise<DemoDataset> {
     churnedCustomers: s.churnedCustomers,
   }));
 
-  // Subscriptions: still synthesized from monthly revenue (unchanged — real
-  // Subscription reads are step 2 of this refactor).
-  const subscriptions: DemoSubscription[] = [];
-  for (const period of sortedMonths) {
-    const m = monthlyMap.get(period)!;
-    const newC = Math.max(8, Math.round(m.revenue / 5_500));
-    const [yyyy, mm] = period.split('-').map(Number);
-    const monthStart = startOfMonth(new Date(yyyy, mm - 1, 1));
-    const plans = [
-      { plan: 'starter', mrr: 29 },
-      { plan: 'pro', mrr: 79 },
-      { plan: 'enterprise', mrr: 199 },
-    ];
-    for (let j = 0; j < newC; j += 1) {
-      const p = plans[j % plans.length];
-      subscriptions.push({
-        customer: `cust_${period}_${j}`,
-        plan: p.plan,
-        mrr: p.mrr,
-        startedAt: monthStart,
-        cancelledAt: null,
-      });
-    }
-  }
+  // Subscriptions: real rows from Subscription (written by the seed). Empty table →
+  // empty list (MRR = 0), no more subscriptions invented from revenue.
+  const subRows = await prisma.subscription.findMany({ where: { organizationId } });
+  const subscriptions: DemoSubscription[] = subRows.map((s) => ({
+    customer: s.customer,
+    plan: s.plan,
+    mrr: s.mrr,
+    startedAt: s.startedAt,
+    cancelledAt: s.cancelledAt,
+  }));
 
   const dbInsights = await prisma.insight.findMany({
     where: { organizationId },
