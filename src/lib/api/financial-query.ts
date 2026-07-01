@@ -80,37 +80,50 @@ export async function getOrgData(): Promise<DemoDataset> {
   }
   const sortedMonths = Array.from(monthlyMap.keys()).sort();
 
-  const cashflow: DemoCashflow[] = [];
-  for (const period of sortedMonths) {
-    const m = monthlyMap.get(period)!;
-    const [yyyy, mm] = period.split('-').map(Number);
-    const monthEnd = endOfMonth(new Date(yyyy, mm - 1, 1));
-    cashflow.push(
-      {
-        id: `cf_in_op_${period}`,
-        date: monthEnd,
-        direction: 'INFLOW',
-        category: 'operating',
-        amount: Math.round(m.revenue * 0.92),
-        description: 'Operating inflow',
-      },
-      {
-        id: `cf_out_op_${period}`,
-        date: monthEnd,
-        direction: 'OUTFLOW',
-        category: 'operating',
-        amount: Math.round(m.cost * 0.94),
-        description: 'Operating outflow',
-      },
-      {
-        id: `cf_out_inv_${period}`,
-        date: monthEnd,
-        direction: 'OUTFLOW',
-        category: 'investing',
-        amount: Math.round(m.cost * 0.06),
-        description: 'Capex / tooling',
-      },
-    );
+  // Cashflow: real rows from CashflowEntry (written by the seed). Empty table →
+  // honest 1:1 derivation from the monthly transaction totals: INFLOW = revenue,
+  // OUTFLOW = costs, no arbitrary multipliers and no invented 'investing' rows.
+  const cfRows = await prisma.cashflowEntry.findMany({
+    where: { organizationId },
+    orderBy: { date: 'asc' },
+  });
+  let cashflow: DemoCashflow[];
+  if (cfRows.length > 0) {
+    cashflow = cfRows.map((c) => ({
+      id: c.id,
+      date: c.date,
+      direction: (c.direction === 'INFLOW' ? 'INFLOW' : 'OUTFLOW') as DemoCashflow['direction'],
+      category: c.category,
+      amount: c.amount,
+      description: c.description ?? '',
+    }));
+  } else {
+    cashflow = [];
+    for (const period of sortedMonths) {
+      const m = monthlyMap.get(period)!;
+      const [yyyy, mm] = period.split('-').map(Number);
+      const monthEnd = endOfMonth(new Date(yyyy, mm - 1, 1));
+      if (m.revenue > 0) {
+        cashflow.push({
+          id: `cf_in_${period}`,
+          date: monthEnd,
+          direction: 'INFLOW',
+          category: 'operating',
+          amount: Math.round(m.revenue),
+          description: 'Derivato dalle transazioni',
+        });
+      }
+      if (m.cost > 0) {
+        cashflow.push({
+          id: `cf_out_${period}`,
+          date: monthEnd,
+          direction: 'OUTFLOW',
+          category: 'operating',
+          amount: Math.round(m.cost),
+          description: 'Derivato dalle transazioni',
+        });
+      }
+    }
   }
 
   const budget: DemoBudget[] = [];
