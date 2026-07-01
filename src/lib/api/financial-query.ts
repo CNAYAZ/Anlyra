@@ -137,15 +137,25 @@ export async function getOrgData(): Promise<DemoDataset> {
     }
   }
 
-  const customers: DemoCustomerStat[] = [];
+  // Customers: real rows from CustomerStat (written by seed + data import, and already
+  // read by the alerts engine and benchmarks). Empty table → empty list, no invented numbers.
+  const statRows = await prisma.customerStat.findMany({
+    where: { organizationId },
+    orderBy: { period: 'asc' },
+  });
+  const customers: DemoCustomerStat[] = statRows.map((s) => ({
+    period: s.period,
+    activeCustomers: s.activeCustomers,
+    newCustomers: s.newCustomers,
+    churnedCustomers: s.churnedCustomers,
+  }));
+
+  // Subscriptions: still synthesized from monthly revenue (unchanged — real
+  // Subscription reads are step 2 of this refactor).
   const subscriptions: DemoSubscription[] = [];
-  let active = 220;
   for (const period of sortedMonths) {
     const m = monthlyMap.get(period)!;
     const newC = Math.max(8, Math.round(m.revenue / 5_500));
-    const churnedC = Math.max(2, Math.round(active * 0.04));
-    active = active + newC - churnedC;
-    customers.push({ period, activeCustomers: active, newCustomers: newC, churnedCustomers: churnedC });
     const [yyyy, mm] = period.split('-').map(Number);
     const monthStart = startOfMonth(new Date(yyyy, mm - 1, 1));
     const plans = [
