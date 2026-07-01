@@ -12,6 +12,8 @@ ps aux | grep "next dev" | grep -v grep
 > ultimo commit letto `d18bc2d`.
 >
 > **Aggiornato il 2026-06-30 (sera)**: vedi §8 in fondo — costruito il primo pezzo di prodotto vero (motore dei fatti + pagina Situazione) e spente altre scenografie.
+>
+> **Aggiornato il 2026-07-01**: vedi §9 in fondo — cambio password reale, bonifica branch (da 64 a 2), fix font, refactor getOrgData 3/4. ⚠️ PASSWORD DEMO CAMBIATA: ora `NuovaDemo2026!`.
 ---
 
 ## 0. Regole d'oro (leggere prima di tutto)
@@ -295,5 +297,66 @@ concreta del "consulente AI ancorato ai dati reali". Piccolo, ma vero e collauda
 **Nota di metodo confermata:** in questa sessione Claude Code (Sonnet) ha più volte corretto descrizioni
 imprecise contenute nei prompt leggendo il codice vero — esattamente la regola d'oro n.2. Funziona: i prompt
 vanno dati, ma chi esegue deve sempre verificare sulla fonte.
+---
+
+## 9. Aggiornamento 2026-07-01 — sicurezza, bonifica repo, performance, dati veri
+
+Sessione lunga e produttiva. Tutto verificato (browser o confronto dashboard-contro-DB), non solo dichiarato.
+
+### ⚠️ CREDENZIALE CAMBIATA — LEGGERE
+La password dell'utente demo NON è più `DemoAnlyra2026!`. Ora è **`NuovaDemo2026!`**
+(cambiata collaudando il cambio-password reale). Login demo: `demo@pro.app` / `NuovaDemo2026!`.
+
+### Cambio password reale (sicurezza)
+Il form di cambio password in `settings/security` era finto (non salvava nulla). Ora è vero:
+nuova route `POST /api/auth/change-password` (modellata sul reset-password), che verifica la vecchia
+password, impone la policy (12 caratteri), e salva l'hash. Vincolo di sicurezza rispettato: usa `auth()`
+reale, MAI il fallback demo di `getCurrentContext`. **Collaudato end-to-end nel browser**: vecchia password
+sbagliata → rifiutata; cambio → ok; logout → la vecchia non entra più, la nuova sì.
+
+### Bonifica repository (da 64 branch a 2)
+Diagnosi di Fable 5: l'allarme "main è una linea divergente pericolosa" era ESAGERATO — main è solo il
+tronco vecchio (fermo al 3 maggio), senza contenuto unico, ma è il DEFAULT BRANCH (trappola: cloni/deploy
+vanno sul codice vecchio). Eseguito: backup totale (66 tag `archive/*` su GitHub + bundle offline
+`anlyra-backup-2026-07-01.bundle`), poi cancellati 60 branch già mergiati + 3 superstiti superati.
+Restano solo `claude/merge-repos-nextjs-rOZU3` (tronco vivo) e `main`.
+**IN SOSPESO — decisione su main**: renderlo il default giusto. Due strade (Fable le ha analizzate):
+(A2) riconciliazione senza force-push [merge -s ours + push], oppure (B) cambiare il default branch su
+GitHub con un click. Nessuna eseguita: scelta del founder. Vale la regola: MAI merge di main nel tronco,
+MAI squash-merge tronco→main.
+
+### Performance — self-hosting font (sito ~24× più veloce)
+Causa di lentezza e di parte dei "blocchi server": Next scaricava i font (Inter + JetBrains Mono) da
+Google Fonts a ogni compilazione, ma la rete verso fonts.gstatic.com non è affidabile → timeout ripetuti.
+Fix: font self-hostati nel repo (`src/app/fonts/`, licenza SIL OFL). Misurato: GET /it da ~9,4s a ~0,4s.
+Nessuna richiesta di rete ai font residua.
+
+### Refactor getOrgData — 3 fonti su 4 rese REALI (era la causa storica di ISSUE-1)
+`src/lib/api/financial-query.ts → getOrgData()` leggeva solo financialRecord e SINTETIZZAVA il resto con
+formule inventate (causava anche numeri clienti diversi tra pagine). Refactor incrementale con Fable 5,
+un passo per volta, ognuno verificato confrontando la dashboard col DB:
+- **customers** ← CustomerStat reale. Verificato: dashboard=DB=230 clienti attivi. (Era: parte da 220 + formule.)
+- **subscriptions** ← Subscription reale. Verificato: MRR ~27-28k, da dati veri (con cancellazioni). (Era: generati dai ricavi.)
+- **cashflow** ← CashflowEntry reale. Verificato: cashAvailable dashboard=DB=435.635 (identico). (Era: coefficienti 0.92/0.94/0.06.)
+Contratto d'uscita invariato a ogni passo (nessuna pagina toccata). Fallback onesti per org senza dati
+(liste vuote o derivazione 1:1, mai più formule inventate).
+**IN SOSPESO — PASSO 4/4: budget** ← BudgetEntry (oggi mostra un finto -5% fisso). Piano pronto (fallback:
+lista vuota, il planned non si inventa). Prossimo passo del refactor.
+
+### Debiti tecnici emersi/confermati (per quando ci sarà calma)
+- Decisione su `main` (sopra).
+- Formula `netProfit = operatingProfit × 0.88` in `analysis/financial.ts`: altra invenzione, fuori dallo
+  scope del refactor getOrgData — task separato.
+- `GET /favicon.ico 404`: manca l'icona, cosmetico.
+- Per org NON-demo: budget/subscription/cashflow restano vuoti finché non esiste un flusso di import dedicato
+  (i fallback definiscono il comportamento onesto nel frattempo).
+- Doppioni Prisma (Kpi/KPI, FinancialData/FinancialRecord, AiAlert/AiAlertConfig) ancora da bonificare.
+
+### Nota su Fable 5
+Usato in questa sessione per diagnosi profonde (topologia branch, causa lentezza font) E per sviluppo
+delicato (refactor getOrgData su codice vivo). Ha più volte corretto imprecisioni dei prompt leggendo il
+codice/lo schema reale invece di assumere. È il modello giusto per i problemi difficili; per il lavoro di
+routine (pagine, CRUD) resta più efficiente Sonnet.
 *Documento di valutazione, non un ordine. Aggiornare quando lo stato reale cambia —
-rileggendo il codice, non i vecchi `.md`. La rotta la tiene il fondatore.*
+rileggendo il codice, non i vecchi `.md`. La rotta la tiene il fondatore.
+
