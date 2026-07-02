@@ -353,7 +353,7 @@
     "subtitle": "Riepilogo finanziario dell'organizzazione",
     "kpi": {
       "revenue": "Ricavi Totali",
-      "netMargin": "Margine Netto",
+      "netMargin": "Margine Operativo",
       "runway": "Cash Runway",
       "mrr": "MRR",
       "customers": "Clienti Attivi",
@@ -390,11 +390,11 @@
       "aiChat": "Chat con l'AI"
     },
     "aiSpotlightBadge": "Insight automatico",
-    "aiSpotlightSummary": "Margine netto al {margin} negli ultimi 12 mesi. Burn rate {burnRate}/mese, runway {runway} mesi.",
+    "aiSpotlightSummary": "Margine operativo al {margin} negli ultimi 12 mesi. Burn rate {burnRate}/mese, runway {runway} mesi.",
     "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
     "lastMonthRevenue": "Ultimo mese — Ricavi",
     "lastMonthCosts": "Ultimo mese — Costi",
-    "lastMonthNetProfit": "Ultimo mese — Profitto netto",
+    "lastMonthNetProfit": "Ultimo mese — Profitto operativo",
     "goToFinance": "Vai alla dashboard finanza completa"
   },
   "finance": {
@@ -405,7 +405,7 @@
       "costs": "Costi",
       "grossMargin": "Margine Lordo",
       "operatingMargin": "Margine Operativo",
-      "netMargin": "Margine Netto"
+      "netMargin": "Margine Operativo"
     },
     "chart": {
       "trend": "Trend mensile ricavi e costi",

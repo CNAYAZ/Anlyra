@@ -353,7 +353,7 @@
     "subtitle": "Organization financial summary",
     "kpi": {
       "revenue": "Total Revenue",
-      "netMargin": "Net Margin",
+      "netMargin": "Operating Margin",
       "runway": "Cash Runway",
       "mrr": "MRR",
       "customers": "Active Customers",
@@ -390,11 +390,11 @@
       "aiChat": "Chat with AI"
     },
     "aiSpotlightBadge": "Automated insight",
-    "aiSpotlightSummary": "Net margin at {margin} over the last 12 months. Burn rate {burnRate}/month, runway {runway} months.",
+    "aiSpotlightSummary": "Operating margin at {margin} over the last 12 months. Burn rate {burnRate}/month, runway {runway} months.",
     "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
     "lastMonthRevenue": "Last month — Revenue",
     "lastMonthCosts": "Last month — Costs",
-    "lastMonthNetProfit": "Last month — Net profit",
+    "lastMonthNetProfit": "Last month — Operating profit",
     "goToFinance": "Go to full finance dashboard"
   },
   "finance": {
@@ -405,7 +405,7 @@
       "costs": "Costs",
       "grossMargin": "Gross Margin",
       "operatingMargin": "Operating Margin",
-      "netMargin": "Net Margin"
+      "netMargin": "Operating Margin"
     },
     "chart": {
       "trend": "Monthly revenue and costs",

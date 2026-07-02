@@ -2,7 +2,6 @@ import { format } from 'date-fns';
 import type { DemoCashflow, DemoCustomerStat, DemoSubscription, DemoTransaction } from '@/lib/demo/data';
 
 const COGS_CATEGORIES = new Set(['cogs']);
-const OPEX_CATEGORIES = new Set(['payroll', 'marketing', 'software', 'office', 'travel', 'legal', 'other']);
 const MARKETING_CATEGORIES = new Set(['marketing']);
 
 export type MonthlySeriesPoint = {
@@ -50,7 +49,9 @@ function groupByMonth(transactions: DemoTransaction[]): MonthlySeriesPoint[] {
     const b = buckets.get(period)!;
     if (t.kind === 'REVENUE') b.revenue += t.amount;
     else if (COGS_CATEGORIES.has(t.category)) b.cogs += t.amount;
-    else if (OPEX_CATEGORIES.has(t.category)) b.opex += t.amount;
+    // Any non-COGS cost counts as opex, whatever its category: user-imported
+    // categories must never silently disappear from totals.
+    else b.opex += t.amount;
   }
   return Array.from(buckets.entries())
     .sort(([a], [b]) => a.localeCompare(b))
@@ -58,7 +59,10 @@ function groupByMonth(transactions: DemoTransaction[]): MonthlySeriesPoint[] {
       const costs = cogs + opex;
       const grossProfit = revenue - cogs;
       const operatingProfit = revenue - cogs - opex;
-      const netProfit = operatingProfit * 0.88;
+      // With the current transactional data the net result is not distinguishable
+      // from the operating one: there is no taxes/interest category in the model.
+      // When a dedicated fiscal category exists, subtract it here.
+      const netProfit = operatingProfit;
       return { period, revenue, costs, grossProfit, operatingProfit, netProfit };
     });
 }
