@@ -126,29 +126,20 @@ export async function getOrgData(): Promise<DemoDataset> {
     }
   }
 
-  const budget: DemoBudget[] = [];
-  for (const period of sortedMonths) {
-    const m = monthlyMap.get(period)!;
-    budget.push({
-      id: `b_rev_${period}`,
-      period,
-      category: 'revenue',
-      planned: Math.round(m.revenue * 1.05),
-      actual: Math.round(m.revenue),
-    });
-    const weights: Record<string, number> = {
-      payroll: 0.42,
-      cogs: 0.18,
-      marketing: 0.14,
-      software: 0.1,
-      office: 0.07,
-    };
-    for (const [cat, w] of Object.entries(weights)) {
-      const planned = Math.round(m.cost * w * 1.05);
-      const actual = Math.round(m.cost * w);
-      budget.push({ id: `b_${cat}_${period}`, period, category: cat, planned, actual });
-    }
-  }
+  // Budget: real rows from BudgetEntry (written by the seed). Empty table → empty
+  // list: a planned budget is information only the user has, deriving it would be
+  // invention. No more planned = actual × 1.05 and no fixed category weights.
+  const budgetRows = await prisma.budgetEntry.findMany({
+    where: { organizationId },
+    orderBy: { period: 'asc' },
+  });
+  const budget: DemoBudget[] = budgetRows.map((b) => ({
+    id: b.id,
+    period: b.period,
+    category: b.category,
+    planned: b.planned,
+    actual: b.actual,
+  }));
 
   // Customers: real rows from CustomerStat (written by seed + data import, and already
   // read by the alerts engine and benchmarks). Empty table → empty list, no invented numbers.
