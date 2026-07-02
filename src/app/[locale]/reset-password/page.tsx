@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ const COPY = {
   },
 } as const;
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageInner() {
   const params = useParams();
   const search = useSearchParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
@@ -135,5 +135,29 @@ export default function ResetPasswordPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function ResetPasswordPageFallback() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background px-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="py-10">
+          <div className="animate-pulse space-y-3">
+            <div className="mx-auto h-8 w-32 rounded-md bg-muted" />
+            <div className="h-9 w-full rounded-md bg-muted" />
+            <div className="h-9 w-full rounded-md bg-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordPageFallback />}>
+      <ResetPasswordPageInner />
+    </Suspense>
   );
 }
