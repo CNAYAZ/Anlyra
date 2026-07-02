@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@/i18n/routing';
@@ -27,7 +27,7 @@ const COPY = {
   },
 } as const;
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageInner() {
   const params = useParams();
   const search = useSearchParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
@@ -81,5 +81,29 @@ export default function VerifyEmailPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function VerifyEmailPageFallback() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background px-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="py-10">
+          <div className="animate-pulse space-y-3">
+            <div className="mx-auto h-8 w-32 rounded-md bg-muted" />
+            <div className="mx-auto h-12 w-12 rounded-full bg-muted" />
+            <div className="h-4 w-full rounded-md bg-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyEmailPageFallback />}>
+      <VerifyEmailPageInner />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,7 +57,7 @@ const COPY = {
   },
 } as const;
 
-export default function LoginPage() {
+function LoginPageInner() {
   const params = useParams();
   const search = useSearchParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
@@ -238,5 +238,29 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-10">
+      <Card className="w-full max-w-md">
+        <CardContent className="py-10">
+          <div className="animate-pulse space-y-3">
+            <div className="mx-auto h-8 w-32 rounded-md bg-muted" />
+            <div className="h-9 w-full rounded-md bg-muted" />
+            <div className="h-9 w-full rounded-md bg-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }
