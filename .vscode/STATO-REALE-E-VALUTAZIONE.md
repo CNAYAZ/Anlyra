@@ -340,7 +340,12 @@ un passo per volta, ognuno verificato confrontando la dashboard col DB:
 - **cashflow** ← CashflowEntry reale. Verificato: cashAvailable dashboard=DB=435.635 (identico). (Era: coefficienti 0.92/0.94/0.06.)
 Contratto d'uscita invariato a ogni passo (nessuna pagina toccata). Fallback onesti per org senza dati
 (liste vuote o derivazione 1:1, mai più formule inventate).
-**IN SOSPESO — PASSO 4/4: budget** ← BudgetEntry (oggi mostra un finto -5% fisso). Piano pronto (fallback:
+- **budget** ← BudgetEntry reale. Verificato: 72 righe, planned/actual con scostamenti realistici
+  (non più il finto -5% fisso). ✅ **getOrgData COMPLETO 4/4** — non contiene più dati sintetici, tranne
+  UN fallback dichiarato e onesto: il cashflow per org senza CashflowEntry deriva 1:1 dalle transazioni
+  (nessun coefficiente inventato). La causa storica di ISSUE-1 è chiusa.
+- **RESTA un'invenzione FUORI da getOrgData**: `netProfit = operatingProfit × 0.88` in
+  `src/lib/analysis/financial.ts` (groupByMonth) — task separato, non ancora affrontato.← BudgetEntry (oggi mostra un finto -5% fisso). Piano pronto (fallback:
 lista vuota, il planned non si inventa). Prossimo passo del refactor.
 
 ### Debiti tecnici emersi/confermati (per quando ci sarà calma)
