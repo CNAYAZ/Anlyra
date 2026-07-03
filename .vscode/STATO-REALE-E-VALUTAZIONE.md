@@ -14,6 +14,8 @@ ps aux | grep "next dev" | grep -v grep
 > **Aggiornato il 2026-06-30 (sera)**: vedi §8 in fondo — costruito il primo pezzo di prodotto vero (motore dei fatti + pagina Situazione) e spente altre scenografie.
 >
 > **Aggiornato il 2026-07-01**: vedi §9 in fondo — cambio password reale, bonifica branch (da 64 a 2), fix font, refactor getOrgData 3/4. ⚠️ PASSWORD DEMO CAMBIATA: ora `NuovaDemo2026!`.
+>
+> **Aggiornato il 2026-07-03**: vedi §10 — Anlyra è ONLINE su Vercel (anlyra.vercel.app), migrato a PostgreSQL/Supabase. DB dev ora è Postgres (non più SQLite).
 ---
 
 ## 0. Regole d'oro (leggere prima di tutto)
@@ -365,3 +367,62 @@ routine (pagine, CRUD) resta più efficiente Sonnet.
 *Documento di valutazione, non un ordine. Aggiornare quando lo stato reale cambia —
 rileggendo il codice, non i vecchi `.md`. La rotta la tiene il fondatore.
 
+---
+
+## 10. Aggiornamento 2026-07-03 — PRODUZIONE: online su Vercel + PostgreSQL
+
+Sessione di deploy. Da qui in poi Anlyra ha un ambiente di PRODUZIONE reale. Cambia tutto: leggere con attenzione.
+
+### ⚠️ REGOLA D'ORO NUOVA — LA PIÙ IMPORTANTE
+Il database Supabase è **PRODUZIONE**. Appena ci saranno dati di clienti veri:
+**MAI** lanciare seed, reset, `migrate reset`, `deleteMany`, o esperimenti su di esso.
+Gli esperimenti si fanno SOLO su un DB di sviluppo separato. Sui dati dei clienti non c'è undo.
+
+### Il sito è ONLINE
+- **URL pubblico**: https://anlyra.vercel.app (hosting: Vercel, piano Hobby/free).
+- Collegato al repo GitHub, branch `claude/merge-repos-nextjs-rOZU3`. Ogni `git push` → Vercel
+  fa un deploy automatico. Il branch di produzione è quello.
+- Login demo verificato online: demo@pro.app / DemoAnlyra2026!
+
+### Database migrato: da SQLite a PostgreSQL (Supabase)
+- Il progetto NON usa più SQLite. Provider Prisma = `postgresql`. Database su Supabase (region eu-west-1).
+- Le vecchie migration SQLite sono archiviate in `prisma/migrations-sqlite-backup/`. La history nuova
+  Postgres parte da `20260702225830_init_postgres`.
+- Schema Prisma: aggiunto `directUrl = env("DIRECT_URL")` al datasource (serve per le migration via pooler).
+
+### Configurazione connessioni (CRITICA — se sbagliata → 500)
+- **DATABASE_URL** (usata dal sito a runtime): pooler porta **6543**, e DEVE finire con
+  `?pgbouncer=true&connection_limit=1`. Senza questi parametri → errore 500
+  `prepared statement "s1" already exists` (conflitto Prisma + pgBouncer). Questo è stato il bug del primo deploy.
+- **DIRECT_URL** (usata solo per le migration): connessione diretta porta **5432**, senza pgbouncer.
+- Per il SEED su Postgres (una tantum, in allestimento): va lanciato forzando la porta 5432, es.
+  `DATABASE_URL="...5432/postgres" npx prisma db seed` — col pooler 6543 il seed fallisce con prepared statement.
+
+### Variabili d'ambiente su Vercel (Settings → Environment Variables)
+Impostate: DATABASE_URL (6543 + pgbouncer), DIRECT_URL (5432), AUTH_SECRET, NEXTAUTH_SECRET,
+AUTH_TRUST_HOST=true, CRON_SECRET. NON impostare AUTH_URL/NEXTAUTH_URL (bug 500 storico).
+Ancora DA impostare quando serviranno: STRIPE_*, RESEND_*, ANTHROPIC_API_KEY, NEXT_PUBLIC_SITE_URL.
+
+### Modifiche al build per Vercel (package.json)
+- `postinstall: prisma generate` (Vercel rigenera il client dopo l'install).
+- `build: prisma migrate deploy && next build` (applica le migration a ogni deploy).
+- Fix Suspense: login/reset-password/verify-email avvolte in `<Suspense>` (useSearchParams richiede
+  Suspense nel build di produzione, altrimenti "prerender-error" e build fallito).
+
+### Come ripartire (Codespace dopo un reset)
+Il DB ora vive su Supabase (non si perde col Codespace). In un Codespace nuovo: `npm install`, ricreare `.env`
+(DATABASE_URL 6543+pgbouncer, DIRECT_URL 5432, AUTH_SECRET, NEXTAUTH_SECRET, AUTH_TRUST_HOST=true, CRON_SECRET),
+`npx prisma generate`, `npm run dev`.
+
+### Sicurezza — DA FARE prima del lancio pubblico vero
+- **Cambiare la password del database Supabase**: quella attuale è stata digitata in chat, va rigenerata
+  (Supabase → Settings → Database → reset password) e aggiornata in DATABASE_URL/DIRECT_URL su Vercel e nel .env.
+- Audit sicurezza (51 punti) ancora da fare.
+- 12 vulnerabilità npm segnalate (NON risolte con audit fix --force: rischio rotture — da valutare a mano).
+
+### Debiti già noti che ora contano di più (verso il pubblico)
+- Bug integrazioni: `Organization_b12` vuota → integrazioni si romperebbero per org nuove (da fixare prima di Stripe).
+- Bug crediti: in Overview "scaduti (6030€) > totale da incassare (3050€)" — incoerenza logica visibile.
+- Spese ricorrenti: card a 0€/mese in Overview (da verificare).
+- Dati demo troppo ottimisti (ricavi +187%, margine 75%) — poco credibili da mostrare a un cliente.
+- Pulizia doppioni Prisma (diagnosi Fable pronta, LOTTO 1 = 9 modelli, richiede backup DB prima).
