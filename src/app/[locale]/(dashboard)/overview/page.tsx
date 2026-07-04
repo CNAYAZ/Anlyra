@@ -256,7 +256,7 @@ export default function OverviewPage() {
                 <Link href="/scadenzario" className="block">
                   <KpiCard
                     label={t('kpi.receivablesOpen')}
-                    value={formatCurrency(receivablesData.totals.openAmount, locale, receivablesCurrency)}
+                    value={formatCurrency(receivablesData.totals.outstandingAmount, locale, receivablesCurrency)}
                     subtitle={t('kpi.receivablesOverdueSubtitle', {
                       amount: formatCurrency(receivablesData.totals.overdueAmount, locale, receivablesCurrency),
                     })}
