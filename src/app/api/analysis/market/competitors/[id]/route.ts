@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getCurrentOrgId } from "@/lib/auth";
+import { getAuthContext } from "@/lib/session";
 import { ok, fail } from "@/lib/api";
 
 const updateSchema = z.object({
@@ -20,7 +20,9 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   try {
-    const orgId = await getCurrentOrgId();
+    const ctx = await getAuthContext();
+    if (!ctx) return fail("Unauthorized", 401);
+    const orgId = ctx.organizationId;
     const body = updateSchema.parse(await req.json());
     const competitor = await prisma.competitor.findFirst({
       where: { id: params.id, organizationId: orgId },
@@ -47,7 +49,9 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
-    const orgId = await getCurrentOrgId();
+    const ctx = await getAuthContext();
+    if (!ctx) return fail("Unauthorized", 401);
+    const orgId = ctx.organizationId;
     const competitor = await prisma.competitor.findFirst({
       where: { id: params.id, organizationId: orgId },
     });

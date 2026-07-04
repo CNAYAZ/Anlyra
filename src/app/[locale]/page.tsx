@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
+import { auth } from '@/auth';
 import {
   LandingPage,
   type FeatureItem,
@@ -23,23 +23,11 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Auth gate: check for the pro_session cookie directly.
-  // getSession() always falls back to DEMO_SESSION, so we must inspect the cookie.
-  // If a valid cookie is present the user is authenticated → go to dashboard overview.
-  // If missing or unparseable → show the public landing page.
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('pro_session')?.value;
-  let isAuthenticated = false;
-  if (sessionCookie) {
-    try {
-      const parsed = JSON.parse(sessionCookie);
-      isAuthenticated = Boolean(parsed?.userId);
-    } catch {
-      // malformed cookie → treat as unauthenticated
-    }
-  }
-
-  if (isAuthenticated) {
+  // Auth gate: derive authentication from the REAL NextAuth session, never from
+  // an application cookie. A signed-in user is sent to the dashboard; everyone
+  // else sees the public landing page.
+  const session = await auth();
+  if (session?.user?.id) {
     redirect('/overview');
   }
 

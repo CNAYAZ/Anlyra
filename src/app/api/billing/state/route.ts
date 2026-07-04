@@ -1,5 +1,5 @@
 import { ok, fail } from "@/lib/api/response";
-import { requireUser } from "@/lib/auth/session";
+import { getAuthContext } from "@/lib/session";
 import {
   getBillingState,
   getMonthlyUsage,
@@ -8,18 +8,14 @@ import {
 } from "@/lib/billing/repository";
 
 export async function GET() {
-  let user;
-  try {
-    user = await requireUser();
-  } catch {
-    return fail("Unauthenticated", 401);
-  }
+  const ctx = await getAuthContext();
+  if (!ctx) return fail("Unauthenticated", 401);
 
   const [state, usage, invoices, creditHistory] = await Promise.all([
-    getBillingState(user.orgId),
-    getMonthlyUsage(user.orgId),
-    listInvoices(user.orgId),
-    listCreditEntries(user.orgId),
+    getBillingState(ctx.organizationId),
+    getMonthlyUsage(ctx.organizationId),
+    listInvoices(ctx.organizationId),
+    listCreditEntries(ctx.organizationId),
   ]);
 
   return ok({ state, usage, invoices, creditHistory });
