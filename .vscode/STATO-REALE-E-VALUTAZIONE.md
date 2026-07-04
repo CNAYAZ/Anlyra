@@ -426,3 +426,35 @@ Il DB ora vive su Supabase (non si perde col Codespace). In un Codespace nuovo: 
 - Spese ricorrenti: card a 0€/mese in Overview (da verificare).
 - Dati demo troppo ottimisti (ricavi +187%, margine 75%) — poco credibili da mostrare a un cliente.
 - Pulizia doppioni Prisma (diagnosi Fable pronta, LOTTO 1 = 9 modelli, richiede backup DB prima).
+
+---
+
+## 11. Aggiornamento 2026-07-04 — sicurezza critica chiusa + credenziali riallineate
+
+### ⚠️ CREDENZIALI — STATO ATTUALE (leggere)
+- **Password DATABASE Supabase**: RICAMBIATA (quella vecchia digitata in chat è stata sostituita). Salvata in
+  Proton Pass. È allineata in 3 posti: Codespace `.env`, Vercel (DATABASE_URL + DIRECT_URL), Supabase.
+  Solo lettere+numeri (i simboli rompevano la stringa di connessione).
+- **Password LOGIN utente demo** (sul DB di PRODUZIONE): `DemoAnlyra2026!` (reimpostata via script sul DB prod;
+  era diversa da quella locale). Login online verificato: demo@pro.app / DemoAnlyra2026!
+
+### Fix di sicurezza CRITICI C1 + C2 — FATTO, MERGIATO, ONLINE, TESTATO
+Dall'audit di sicurezza pre-lancio (§ audit Fable: 2 critici, 4 alti, 3 medi). Risolti i due CRITICI:
+- **C1**: eliminata la sessione falsificabile via cookie `pro_session` (era usata dalle route billing → un utente
+  poteva impersonare qualsiasi org sul flusso pagamenti). Ora tutto passa da `getAuthContext()` in `src/lib/session.ts`,
+  che deriva identità dalla sessione NextAuth reale + verifica Membership. No login → 401.
+- **C2**: eliminato `getCurrentOrgId()` che ritornava sempre la prima org del DB. Ora l'org è quella reale dell'utente.
+- Eliminati i file insicuri: `src/lib/auth/session.ts` e `src/lib/auth.ts`. Demo-vetrina in sola lettura preservata.
+- Fatto da Opus 4.8 (Fable 5 bloccato dai safeguards sui termini di cybersecurity → switch automatico a Opus, normale).
+- **Testato in locale (4 test) E in produzione**: login demo ok; senza login → redirect al login su pagine protette. ✅
+- Commit mergiato, online su Vercel.
+
+### Sicurezza — cosa RESTA dall'audit (per il lancio pubblico completo)
+- **ALTI da fare**: A1 fallback demo su route di scrittura → 401; A2 SSRF in /api/market/scrape; A3 rate limiting
+  su login/register/reset; A4 cron fail-closed. (Piani non ancora fatti.)
+- **REGOLA D'ORO**: il DB Supabase è PRODUZIONE. Lo script per la password demo di oggi era lecito (allestimento),
+  ma appena ci saranno dati di clienti veri: niente più seed/reset/update diretti sul DB prod.
+
+### Idea parcheggiata per la v2 (dopo il lancio)
+- **Modalità "Orchestra"**: dare personalità al prodotto — l'AI che "dirige" tutti i dati come un direttore
+  d'orchestra. Possibile nome/identità della sezione avanzata (alternativa a "CRM"). Da definire coi clienti veri.
