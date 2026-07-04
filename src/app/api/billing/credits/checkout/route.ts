@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, fail } from "@/lib/api/response";
-import { requireUser } from "@/lib/auth/session";
+import { getAuthContext } from "@/lib/session";
 import { getStripe } from "@/lib/stripe/client";
 import { getCreditPackPriceId } from "@/lib/stripe/prices";
 import { CREDIT_PACKS } from "@/lib/billing/plans";
@@ -12,12 +12,8 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  let user;
-  try {
-    user = await requireUser();
-  } catch {
-    return fail("Unauthenticated", 401);
-  }
+  const ctx = await getAuthContext();
+  if (!ctx) return fail("Unauthenticated", 401);
 
   let parsed;
   try {
@@ -33,13 +29,13 @@ export async function POST(req: NextRequest) {
   if (!priceId) return fail("Credit pack price not configured", 500);
 
   const stripe = getStripe();
-  const sub = await getSubscription(user.orgId);
+  const sub = await getSubscription(ctx.organizationId);
 
   let customerId = sub.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { orgId: user.orgId, userId: user.id },
+      email: ctx.email ?? undefined,
+      metadata: { orgId: ctx.organizationId, userId: ctx.userId },
     });
     customerId = customer.id;
     await setSubscription({ ...sub, stripeCustomerId: customerId });
@@ -54,7 +50,7 @@ export async function POST(req: NextRequest) {
     success_url: `${origin}/settings/billing?credits=1`,
     cancel_url: `${origin}/settings/billing?canceled=1`,
     metadata: {
-      orgId: user.orgId,
+      orgId: ctx.organizationId,
       kind: "credits",
       packId: pack.id,
       credits: String(pack.credits),

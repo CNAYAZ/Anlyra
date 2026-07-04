@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, fail } from "@/lib/api/response";
-import { requireUser } from "@/lib/auth/session";
+import { getAuthContext } from "@/lib/session";
 import { getStripe } from "@/lib/stripe/client";
 import { getStripePriceId } from "@/lib/stripe/prices";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
@@ -12,12 +12,8 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  let user;
-  try {
-    user = await requireUser();
-  } catch {
-    return fail("Unauthenticated", 401);
-  }
+  const ctx = await getAuthContext();
+  if (!ctx) return fail("Unauthenticated", 401);
 
   let parsed;
   try {
@@ -30,13 +26,13 @@ export async function POST(req: NextRequest) {
   if (!priceId) return fail("Price not configured for plan/cycle", 500);
 
   const stripe = getStripe();
-  const sub = await getSubscription(user.orgId);
+  const sub = await getSubscription(ctx.organizationId);
 
   let customerId = sub.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { orgId: user.orgId, userId: user.id },
+      email: ctx.email ?? undefined,
+      metadata: { orgId: ctx.organizationId, userId: ctx.userId },
     });
     customerId = customer.id;
     await setSubscription({ ...sub, stripeCustomerId: customerId });
@@ -52,13 +48,13 @@ export async function POST(req: NextRequest) {
     cancel_url: `${origin}/settings/billing?canceled=1`,
     allow_promotion_codes: true,
     metadata: {
-      orgId: user.orgId,
+      orgId: ctx.organizationId,
       plan: parsed.plan,
       cycle: parsed.cycle,
       kind: "subscription",
     },
     subscription_data: {
-      metadata: { orgId: user.orgId, plan: parsed.plan, cycle: parsed.cycle },
+      metadata: { orgId: ctx.organizationId, plan: parsed.plan, cycle: parsed.cycle },
     },
   });
 

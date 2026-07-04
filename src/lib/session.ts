@@ -94,6 +94,82 @@ export async function getCurrentContext() {
   return getDemoContext();
 }
 
+export type AuthContext = {
+  userId: string;
+  organizationId: string;
+  role: string;
+  email: string | null;
+};
+
+/**
+ * STRICT server-side auth context for protected mutations and billing.
+ *
+ * Unlike getCurrentContext (which falls back to the read-only demo org so the
+ * public showcase renders), this NEVER falls back and NEVER trusts application
+ * cookies: identity comes only from the real NextAuth session (auth()) and the
+ * active organization must be backed by a Membership row linking it to the user.
+ *
+ * Returns null when there is no valid signed-in user with an organization, so
+ * the caller can respond 401. Use this for anything that reads/writes real
+ * business data on behalf of a specific user (billing, cross-tenant mutations).
+ */
+export async function getAuthContext(): Promise<AuthContext | null> {
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    return null;
+  }
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  // The org must be one this user actually belongs to (Membership). Resolution
+  // order mirrors resolveSessionContext: selected-org cookie → session default
+  // → user's default membership → any membership. Every branch is validated
+  // against Membership, so a forged/foreign org id can never be accepted.
+  const cookieStore = await cookies();
+  const cookieOrgId = cookieStore.get(ORG_COOKIE)?.value;
+
+  const membership =
+    (cookieOrgId
+      ? await prisma.membership.findFirst({
+          where: { userId, organizationId: cookieOrgId },
+          select: { organizationId: true, role: true },
+        })
+      : null) ??
+    (session?.currentOrgId
+      ? await prisma.membership.findFirst({
+          where: { userId, organizationId: session.currentOrgId },
+          select: { organizationId: true, role: true },
+        })
+      : null) ??
+    (await prisma.membership.findFirst({
+      where: { userId, isDefault: true },
+      select: { organizationId: true, role: true },
+    })) ??
+    (await prisma.membership.findFirst({
+      where: { userId },
+      select: { organizationId: true, role: true },
+    }));
+
+  if (!membership) return null; // signed in but no org yet (pre-onboarding)
+
+  // Email is read from the DB (single source of truth) for the Stripe customer,
+  // falling back to the session claim only if the lookup yields nothing.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const email = dbUser?.email ?? session?.user?.email ?? null;
+
+  return {
+    userId,
+    organizationId: membership.organizationId,
+    role: membership.role,
+    email,
+  };
+}
+
 export async function getCurrentOrganization() {
   const { organizationId } = await getCurrentContext();
   const org = await prisma.organization.findUnique({
