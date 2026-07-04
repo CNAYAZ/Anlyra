@@ -25,6 +25,12 @@ export type ReceivableTotals = {
   /** Sum of `amount` across OPEN / OVERDUE rows, mixed currencies summed as-is. */
   openAmount: number;
   overdueAmount: number;
+  /**
+   * Total still to be collected = every unpaid receivable (OPEN + OVERDUE).
+   * openAmount alone excludes overdue rows (statuses are mutually exclusive), so
+   * this is the figure to show as "total outstanding"; overdueAmount ≤ this always.
+   */
+  outstandingAmount: number;
 };
 
 export type ReminderVariantDTO = {

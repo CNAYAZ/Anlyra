@@ -40,11 +40,16 @@ export async function GET(req: Request) {
     // Totals reflect the full dataset, independent of the active filter.
     // openAmount/overdueAmount sum `amount` as-is across rows regardless of
     // currency (same simplification already used for recurring-expenses totals).
+    const openAmount = all.filter((i) => i.status === 'OPEN').reduce((sum, i) => sum + i.amount, 0);
+    const overdueAmount = all.filter((i) => i.status === 'OVERDUE').reduce((sum, i) => sum + i.amount, 0);
     const totals: ReceivableTotals = {
       open: all.filter((i) => i.status === 'OPEN').length,
       overdue: all.filter((i) => i.status === 'OVERDUE').length,
-      openAmount: all.filter((i) => i.status === 'OPEN').reduce((sum, i) => sum + i.amount, 0),
-      overdueAmount: all.filter((i) => i.status === 'OVERDUE').reduce((sum, i) => sum + i.amount, 0),
+      openAmount,
+      overdueAmount,
+      // Everything still unpaid (not-yet-due + overdue), so the card's total is
+      // always ≥ the overdue subtotal shown beneath it.
+      outstandingAmount: openAmount + overdueAmount,
     };
 
     const validFilters: ReceivableStatus[] = ['OPEN', 'PAID', 'OVERDUE'];
