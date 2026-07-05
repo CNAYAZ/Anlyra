@@ -1,6 +1,6 @@
 import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { getCurrentContext } from "@/lib/session";
+import { getAuthContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 import { runSync } from "@/lib/sync/manager";
 
@@ -11,7 +11,9 @@ export async function POST(
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 
-  const { organizationId } = await getCurrentContext();
+  const authCtx = await getAuthContext();
+  if (!authCtx) return fail("Unauthorized", 401);
+  const { organizationId } = authCtx;
   const org = { id: organizationId, plan: 'PRO' as const };
   const integration = await prisma.integration.findUnique({
     where: {

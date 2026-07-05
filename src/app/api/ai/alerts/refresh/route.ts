@@ -1,13 +1,15 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { runAllRules } from '@/lib/alerts/rules';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const triggered = await runAllRules(organizationId);
 
     const upserted: string[] = [];

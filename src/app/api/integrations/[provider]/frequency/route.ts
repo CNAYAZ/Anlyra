@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { getCurrentContext } from "@/lib/session";
+import { getAuthContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 
 const Body = z.object({ frequency: z.enum(["H6", "H12", "H24"]) });
@@ -16,7 +16,9 @@ export async function POST(
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return fail("Invalid frequency", 400);
 
-  const { organizationId } = await getCurrentContext();
+  const authCtx = await getAuthContext();
+  if (!authCtx) return fail("Unauthorized", 401);
+  const { organizationId } = authCtx;
   const org = { id: organizationId, plan: 'PRO' as const };
   const integration = await prisma.integration.update({
     where: {

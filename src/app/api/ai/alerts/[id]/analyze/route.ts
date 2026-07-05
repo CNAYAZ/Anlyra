@@ -1,6 +1,6 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
@@ -13,7 +13,9 @@ const ANALYSIS_CREDIT_COST = 1;
 
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
 
     // 1. Ownership: alert must exist and belong to the current org.
     const alert = await prisma.alert.findFirst({

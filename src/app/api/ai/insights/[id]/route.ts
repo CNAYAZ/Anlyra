@@ -1,6 +1,6 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,9 @@ function toneToType(tone: string): string {
 
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
 
     const body = await req.json().catch(() => null);
     if (!body || !VALID_STATUSES.includes(body.status)) {

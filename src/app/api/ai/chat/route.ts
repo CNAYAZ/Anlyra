@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import {
@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     return fail(MISSING_KEY_MESSAGE, 503);
   }
 
-  const ctx = await getCurrentContext();
+  const ctx = await getAuthContext();
+  if (!ctx) return fail('Unauthorized', 401);
   const { userId, organizationId } = ctx;
 
   const json = await req.json().catch(() => null);

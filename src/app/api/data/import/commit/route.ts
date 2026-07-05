@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
@@ -124,7 +124,9 @@ async function insertCustomerStats(
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { userId, organizationId } = authCtx;
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID_BODY', 400);
