@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,9 @@ const PatchSchema = z.object({
 
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const json = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);

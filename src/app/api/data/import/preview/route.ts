@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { getImportTarget, suggestMapping } from '@/lib/import-targets';
 import { parseImportFile } from '@/lib/import/parse';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
@@ -13,7 +13,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { userId, organizationId } = authCtx;
 
     const form = await req.formData();
     const file = form.get('file');

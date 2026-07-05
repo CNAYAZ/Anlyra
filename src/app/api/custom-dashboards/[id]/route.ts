@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const d = await prisma.customDashboard_b8.findFirst({
       where: { id: params.id, organizationId },
     });

@@ -1,6 +1,6 @@
 import { ok, fail } from '@/lib/api';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,9 @@ export async function POST() {
   // intentionally disabled in demo mode. We just check current state and
   // surface a clear message to the UI without consuming any credits.
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const org = await prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
       select: { aiCredits: true },

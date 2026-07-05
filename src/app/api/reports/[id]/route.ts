@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const r = await prisma.report_b8.findFirst({ where: { id: params.id, organizationId } });
     if (!r) return fail('NOT_FOUND', 404);
     await prisma.report_b8.delete({ where: { id: params.id } });
@@ -21,7 +23,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   // Mark report as run (on-demand generation - simulated)
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const r = await prisma.report_b8.findFirst({ where: { id: params.id, organizationId } });
     if (!r) return fail('NOT_FOUND', 404);
     const updated = await prisma.report_b8.update({
