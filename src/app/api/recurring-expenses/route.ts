@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { toRecurringExpenseDTO, computeTotals } from '@/lib/recurring-expenses/dto';
 
 export const runtime = 'nodejs';
@@ -41,7 +41,9 @@ export async function GET() {
 // session only, never from the payload.
 export async function POST(req: Request) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const json = await req.json().catch(() => null);
     const parsed = CreateSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);

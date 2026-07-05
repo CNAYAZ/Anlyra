@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 
 export const runtime = 'nodejs';
@@ -24,7 +24,9 @@ const PatchSchema = z.object({
 // which also stamps paidAt). Ownership is verified against the session org.
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const json = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);
@@ -66,7 +68,9 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
 // DELETE /api/receivables/[id] — remove a receivable. Ownership verified.
 export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const existing = await prisma.receivable.findFirst({
       where: { id: ctx.params.id, organizationId },
     });
