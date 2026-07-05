@@ -458,3 +458,46 @@ Dall'audit di sicurezza pre-lancio (§ audit Fable: 2 critici, 4 alti, 3 medi). 
 ### Idea parcheggiata per la v2 (dopo il lancio)
 - **Modalità "Orchestra"**: dare personalità al prodotto — l'AI che "dirige" tutti i dati come un direttore
   d'orchestra. Possibile nome/identità della sezione avanzata (alternativa a "CRM"). Da definire coi clienti veri.
+---
+
+## 12. Aggiornamento 2026-07-05 — bug crediti + sicurezza A1 completa
+
+### Bug visibili in Overview
+- **Crediti "scaduti > totale" RISOLTO**: la card "Crediti da incassare" mostrava solo i non-scaduti (openAmount)
+  come totale, con "di cui scaduti" (overdueAmount) più grande — impossibile. Fix: nuovo campo outstandingAmount
+  = open + overdue; la card ora mostra il totale non-pagato (~9080), scaduti ~6030 (≤ totale). Solo presentazione,
+  nessun cambiamento dati. Mergiato e online.
+- **Spese ricorrenti "0€"**: NON è un bug. La tabella è vuota per la demo-org, ed è corretto che un cliente nuovo
+  veda 0 finché non inserisce le sue. La demo è solo vetrina illustrativa. Lasciato com'è (deciso dal founder).
+
+### DECISIONE PRODOTTO — natura della demo (importante per la sicurezza)
+- La modalità demo è uno strumento ILLUSTRATIVO, accessibile SOLO da utente LOGGATO (dopo il login/acquisto),
+  per far vedere come appare il sito pieno di dati. Un utente loggato può interagirci ("parco giochi").
+- Un utente REALE vede il suo sito VUOTO (pagine azzerate) da riempire coi suoi dati; NON passa dalla demo.
+- Conseguenza sicurezza: "no login → 401" NON rompe la demo, perché chi usa la demo è comunque loggato.
+
+### Sicurezza A1 — COMPLETA (scritture protette)
+Dall'audit (dopo C1+C2 già fatti). A1 = "no sessione → demo" era sbagliato sulle scritture: un anonimo poteva
+scrivere sulla demo-org. Fix: tutte le route di SCRITTURA di business convertite da getCurrentContext (fallback
+demo) a getAuthContext (strict → 401 se non loggato). 28 route totali in 2 lotti:
+- Lotto 1: receivables, recurring-expenses (POST/PATCH/DELETE). Testato: 401 senza login, loggato/demo funziona.
+- Lotto 2 (resto): ai/alerts, ai/chat, ai/insights, custom-dashboards, data/import, data/manual, integrations
+  (connect/disconnect/sync/frequency), reports, settings (profile/organization/notifications). Testato: custom-
+  dashboards → 401 senza login; nessuna route dà 200 senza login.
+- ESCLUSE di proposito (corrette così): letture vetrina demo (GET), cron trial-check, webhook Stripe (protezione
+  a secret/signature), onboarding (l'utente sta creando la sua org, non è ancora membro → non applicabile).
+- Tutto mergiato e online su Vercel.
+
+### Sicurezza — cosa RESTA dall'audit
+- **2 route AMBIGUE segnalate da Opus, DA VALUTARE** (toccano registrazione/verifica email, zona delicata):
+  auth/email-status e auth/precheck (o simili) — Opus le ha lasciate com'erano per non rischiare di rompere il
+  flusso di registrazione. Da guardare con attenzione prima di decidere.
+- **A2** SSRF in /api/market/scrape (autenticare + bloccare IP interni/metadata).
+- **A3** Rate limiting su login/register/reset (anti brute-force) — importante prima di aprire registrazioni pubbliche.
+- **A4** Cron fail-closed (CRON_SECRET obbligatorio in prod).
+- MEDI: header di sicurezza (CSP/HSTS), endpoint mock (onboarding random id, reports/generate sample).
+
+### Nota infrastruttura
+- Codespace attuale: `congenial-waddle-...` (ricreato). Il proxy 404 sul browser del Codespace resta capriccioso;
+  workaround: testare le API via curl da terminale (funziona sempre) e la verifica visiva su Vercel (stabile).
+  Il DB di prod (Supabase) NON dipende dal Codespace.
