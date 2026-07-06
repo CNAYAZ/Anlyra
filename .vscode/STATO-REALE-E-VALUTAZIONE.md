@@ -501,3 +501,41 @@ demo) a getAuthContext (strict → 401 se non loggato). 28 route totali in 2 lot
 - Codespace attuale: `congenial-waddle-...` (ricreato). Il proxy 404 sul browser del Codespace resta capriccioso;
   workaround: testare le API via curl da terminale (funziona sempre) e la verifica visiva su Vercel (stabile).
   Il DB di prod (Supabase) NON dipende dal Codespace.
+  ---
+
+## 13. Aggiornamento 2026-07-06 — A3 rate limiting COMPLETO (step 1) + scoperta trappola Production Branch
+
+### A3 — Rate limiting su login: FATTO e FUNZIONANTE in produzione
+- Scelta: Upstash Redis (gratis) + @upstash/ratelimit. Store condiviso, adatto a Vercel serverless.
+- Account Upstash creato: DB Redis "anlyra-ratelimit". Env: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+  (in .env.local locale e su Vercel Production). @upstash/ratelimit installato.
+- Helper nuovo: src/lib/rate-limit.ts (client Redis lazy, sliding window, checkRateLimit(action,identifier),
+  getClientIp, fail-OPEN: se Upstash è irraggiungibile → consente + warn, non blocca i login).
+- Applicato a /api/auth/precheck (login): 10/IP/10min E 5/email/15min. Testato in locale E in produzione:
+  primi 5 tentativi 200, dal 6° → 429 (scatta il limite per-email). ✅
+- Le soglie delle ALTRE route auth (register, forgot, reset, email-status, 2fa) sono già definite in rate-limit.ts
+  ma NON ancora applicate: è lo STEP 2 di A3 (da fare — ripetere il pattern sulle altre route).
+
+### ⚠️ SCOPERTA CRITICA — la "trappola del Production Branch" (causa di misteri da giorni)
+- Vercel aveva il Production Branch impostato su `main`, MA noi lavoriamo/pushiamo su
+  `claude/merge-repos-nextjs-rOZU3`. Risultato: da GIORNI Vercel serviva in produzione una versione VECCHIA
+  (ferma al fix Suspense), e TUTTI i push nuovi finivano in deploy "Preview" invisibili.
+- CONSEGUENZA: il fix crediti, C1, C2, A1, A4 erano nel codice/GitHub ma NON in produzione. Spiega perché
+  "la cifra crediti non si aggiornava" e perché i fix sembravano non fare effetto online.
+- FIX APPLICATO: Vercel → Settings → Environments → Production → Branch Tracking cambiato da `main` a
+  `claude/merge-repos-nextjs-rOZU3`. Ora ogni push va in produzione. TUTTO il lavoro arretrato è andato online insieme.
+- TODO futuro (quando il limite settimanale lo permette): valutare di allineare `main` al branch di lavoro
+  (mergiare) e rimettere `main` come Production Branch, per pulizia/standard. Per ora si resta così.
+- LEZIONE: quando si pusha, verificare che il deploy Vercel sia "Production" (non "Preview") e col commit giusto.
+
+### LEZIONE — env su Vercel: solo il VALORE, mai il blocco intero
+- Il pulsante "copia" di Upstash copia l'INTERO blocco .env (NOME="valore" per entrambe le variabili).
+- Incollato tutto in un solo campo Value → token invalido ("invalid header value" / "whitespace"). 
+- CORRETTO: nel campo Key va solo il nome; nel campo Value va SOLO il valore NUDO, senza virgolette e senza spazi.
+  (Verifica tokenLength: col contorno era 89/152, pulito è ~62.)
+
+### Stato sicurezza (tutto ora ONLINE in produzione)
+- ✅ C1, C2 (critici), ✅ A1 (scritture protette), ✅ A4 (cron fail-closed), ✅ A3 step1 (rate limit login).
+- RESTA: A3 step2 (rate limit sulle altre route auth), A2 (SSRF /api/market/scrape), 2 route ambigue
+  (auth/email-status, precheck — da valutare), MEDI (header sicurezza CSP/HSTS, endpoint mock).
+- Endpoint diagnostico temporaneo /api/debug/ratelimit-check: creato per diagnosi, poi RIMOSSO (404 confermato).
