@@ -4,10 +4,21 @@ import { prisma } from '@/lib/prisma';
 import { validatePassword, PASSWORD_POLICY } from '@/lib/auth/config';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, verifyEmailTemplate } from '@/lib/email';
+import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
 
 const VERIFY_EXPIRY_HOURS = 24;
 
+function tooManyRequests(reset: number) {
+  return NextResponse.json(
+    { error: 'TOO_MANY_REQUESTS' },
+    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
+  );
+}
+
 export async function POST(req: Request) {
+  const ipLimit = await checkRateLimit('register-ip', getClientIp(req));
+  if (!ipLimit.success) return tooManyRequests(ipLimit.reset);
+
   let body: { name?: string; email?: string; password?: string; locale?: string };
   try {
     body = await req.json();

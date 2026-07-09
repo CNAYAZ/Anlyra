@@ -3,8 +3,19 @@ import speakeasy from 'speakeasy';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { generateBackupCodes } from '@/lib/auth/tokens';
+import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+
+function tooManyRequests(reset: number) {
+  return NextResponse.json(
+    { error: 'TOO_MANY_REQUESTS' },
+    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
+  );
+}
 
 export async function POST(req: Request) {
+  const ipLimit = await checkRateLimit('2fa-ip', getClientIp(req));
+  if (!ipLimit.success) return tooManyRequests(ipLimit.reset);
+
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
