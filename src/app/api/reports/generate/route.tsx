@@ -3,11 +3,23 @@ import { renderToStream } from '@react-pdf/renderer';
 import { reportConfigSchema } from '@/lib/reports/types';
 import { buildSamplePayload } from '@/lib/reports/sample-data';
 import { ReportDocument } from '@/lib/reports/pdf/ReportDocument';
+import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  // Public endpoint (used by the token-share page and the builder preview), so it
+  // stays unauthenticated — but PDF generation is CPU-heavy, so rate-limit per IP
+  // to blunt a DoS. No real org data is exposed (sample payload).
+  const rl = await checkRateLimit('report-generate-ip', getClientIp(req));
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'TOO_MANY_REQUESTS' },
+      { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(rl.reset)) } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

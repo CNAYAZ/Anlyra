@@ -27,6 +27,8 @@ const WINDOWS = {
   'email-status-ip': [20, '10 m'],
   // second factor code brute force
   '2fa-ip': [5, '10 m'],
+  // public, unauthenticated PDF generation (CPU-heavy) — DoS guard, per IP
+  'report-generate-ip': [10, '10 m'],
 } as const;
 
 export type RateLimitAction = keyof typeof WINDOWS;
