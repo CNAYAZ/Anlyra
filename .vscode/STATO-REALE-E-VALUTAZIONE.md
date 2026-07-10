@@ -539,3 +539,14 @@ demo) a getAuthContext (strict → 401 se non loggato). 28 route totali in 2 lot
 - RESTA: A3 step2 (rate limit sulle altre route auth), A2 (SSRF /api/market/scrape), 2 route ambigue
   (auth/email-status, precheck — da valutare), MEDI (header sicurezza CSP/HSTS, endpoint mock).
 - Endpoint diagnostico temporaneo /api/debug/ratelimit-check: creato per diagnosi, poi RIMOSSO (404 confermato).
+---
+## 14. Aggiornamento 2026-07-09 — SICUREZZA AUDIT COMPLETA
+- A3 step2: rate limit su register/forgot/reset/email-status/2fa. Fatto, online.
+- A2: endpoint SSRF /api/market/scrape disattivato (410) + scraper.ts eliminato. Era codice morto.
+- Header sicurezza L1 (HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy) in next.config. NIENTE CSP (rimandata, rischio rottura Stripe).
+- rate limit su reports/generate (anti-DoS PDF, no auth per la share pubblica).
+- Rimossi 2 endpoint mock orfani: /api/onboarding (mock) e /api/upload. NB: /api/onboarding/organization (reale) resta.
+- Login core (src/auth.ts): rate limit per-email in authorize() → chiude il bypass brute-force di precheck (stesso contatore login-email). Testato: login demo entra OK, blocco dopo 5 tentativi.
+- getClientIp: preferisce x-real-ip (anti-spoofing XFF).
+- STATO: C1,C2,A1,A2,A3,A4 + medi = CHIUSI e online. RRIMANDATI post-lancio: CSP piena (report-only prima), normalizzazione email-status (già rate-limited), origin fisso billing (B2), riattivare ignoreBuildErrors.
+- PROSSIMO: Stripe/pagamenti (serve prima fixare bug integrazioni Organization_b12 vuota). Poi chiavi AI.
