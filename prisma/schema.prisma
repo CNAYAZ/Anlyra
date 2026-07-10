@@ -773,3 +773,54 @@ model NotificationPref_b8 {
 
   @@unique([userId, organizationId, channel, category])
 }
+
+// ─── Billing persistence (Stripe) ───────────────────────────────────────────
+// organizationId holds a REAL Organization.id (from the session/auth), never an
+// Organization_b12 id. Following the same multi-tenant convention as Receivable/
+// RecurringExpense/FinancialRecord: plain organizationId column + index, no
+// physical @relation FK to Organization (a relation would require touching the
+// Organization model). Field names mirror the billing repository stub interfaces
+// so the STEP 2 rewrite keeps identical function signatures.
+
+model BillingSubscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique // one current subscription per org
+  plan                 String    @default("PRO") // "PRO" | "ADVANCED" | "ENTERPRISE"
+  status               String    @default("active") // active | trialing | past_due | canceled
+  cycle                String    @default("monthly") // monthly | yearly
+  stripeCustomerId     String?
+  stripeSubscriptionId String?   @unique
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now()) @updatedAt
+
+  @@index([organizationId])
+  @@index([stripeCustomerId])
+}
+
+model BillingInvoice {
+  id              String   @id @default(cuid())
+  organizationId  String
+  stripeInvoiceId String   @unique // idempotency on Stripe webhook replays
+  number          String?
+  amountCents     Int      @default(0)
+  currency        String   @default("EUR")
+  status          String // paid | open | void | uncollectible
+  periodEnd       DateTime?
+  hostedUrl       String?
+  pdfUrl          String?
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model CreditEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  delta          Int // +grant/purchase/refund, -consumption
+  reason         String // monthly_grant | purchase | ai_call | refund
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}
