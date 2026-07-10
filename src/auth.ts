@@ -6,6 +6,7 @@ import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Build the providers list, including OAuth only when credentials are present
 // so the app boots cleanly in environments without OAuth configured.
@@ -22,6 +23,14 @@ const providers = [
       const twoFactorCode = credentials?.twoFactorCode as string | undefined;
 
       if (!email || !password) return null;
+
+      // Rate-limit brute force that bypasses /api/auth/precheck by calling the
+      // credentials provider directly. Keyed by email into the SAME 'login-email'
+      // bucket as precheck, so the two paths share one budget. Over the limit →
+      // deny like invalid credentials (return null). checkRateLimit fails OPEN on
+      // any limiter error, so an Upstash outage never blocks a legitimate login.
+      const emailLimit = await checkRateLimit('login-email', email.trim().toLowerCase());
+      if (!emailLimit.success) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user || !user.passwordHash) return null;
