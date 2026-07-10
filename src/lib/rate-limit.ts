@@ -100,14 +100,22 @@ export function retryAfterSeconds(reset: number): number {
 }
 
 /**
- * Best-effort client IP for rate-limit keys. On Vercel the client IP is the
- * left-most entry of x-forwarded-for; x-real-ip is the fallback.
+ * Client IP for rate-limit keys.
+ *
+ * Prefer x-real-ip: on Vercel it is set by the platform to the true client IP
+ * and cannot be forged via a client-supplied x-forwarded-for. The left-most
+ * x-forwarded-for entry is only a fallback (other hosts / local dev), because a
+ * client can inject arbitrary XFF values to rotate the key and evade per-IP
+ * limits. 'unknown' is the last resort so the limiter still has a stable key.
  */
 export function getClientIp(req: Request): string {
+  const realIp = req.headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+
   const xff = req.headers.get('x-forwarded-for');
   if (xff) {
     const first = xff.split(',')[0]?.trim();
     if (first) return first;
   }
-  return req.headers.get('x-real-ip')?.trim() || 'unknown';
+  return 'unknown';
 }
