@@ -1740,6 +1740,8 @@
         "tagline": "Per aziende con esigenze su misura",
         "taglineSub": "Prezzo variabile in base a utenti, volumi e requisiti specifici",
         "priceLabel": "Custom",
+        "priceMonthly": "Custom",
+        "priceAnnual": "Custom",
         "featuresPrefix": "Tutto del piano Avanzato, più:",
         "features": [
           "Utenti illimitati",
