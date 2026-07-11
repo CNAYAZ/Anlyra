@@ -20,6 +20,32 @@ export default function SettingsBillingPage() {
   const plan = usePlan();
   const currentPlanId = plan.plan;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
+  const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
+
+  // Same flow as components/billing/UpgradeButton: POST the checkout, redirect to
+  // the returned Stripe URL, surface the error otherwise.
+  async function startCheckout(planId: PlanId) {
+    setBusyPlan(planId);
+    setCheckoutError(null);
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId, cycle }),
+      });
+      const json = (await res.json()) as { success: boolean; data?: { url: string }; error?: string };
+      if (json.success && json.data?.url) {
+        window.location.href = json.data.url;
+      } else {
+        setCheckoutError({ plan: planId, message: json.error ?? 'Checkout failed' });
+        setBusyPlan(null);
+      }
+    } catch (e) {
+      setCheckoutError({ plan: planId, message: (e as Error).message });
+      setBusyPlan(null);
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -174,9 +200,12 @@ export default function SettingsBillingPage() {
                 {/* CTA */}
                 <button
                   type="button"
-                  disabled={isCurrent}
+                  disabled={isCurrent || busyPlan === planId}
+                  onClick={
+                    !isCurrent && !p.contact ? () => startCheckout(planId) : undefined
+                  }
                   className={cn(
-                    'mt-auto w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'mt-auto w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-70',
                     isCurrent
                       ? 'cursor-not-allowed bg-muted text-fg-3'
                       : p.contact
@@ -188,10 +217,17 @@ export default function SettingsBillingPage() {
                 >
                   {isCurrent
                     ? t('billingCurrent')
-                    : p.contact
-                      ? tPricing('plans.enterprise.cta')
-                      : tPricing(`plans.${pricingKey}.cta` as 'plans.pro.cta')}
+                    : busyPlan === planId
+                      ? '…'
+                      : p.contact
+                        ? tPricing('plans.enterprise.cta')
+                        : tPricing(`plans.${pricingKey}.cta` as 'plans.pro.cta')}
                 </button>
+
+                {/* Checkout error (per-plan) */}
+                {checkoutError?.plan === planId && (
+                  <p className="text-center text-[11px] text-danger">{checkoutError.message}</p>
+                )}
 
                 {/* Footer note */}
                 {!isCurrent && (

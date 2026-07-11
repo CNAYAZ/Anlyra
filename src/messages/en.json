@@ -1740,6 +1740,8 @@
         "tagline": "For companies with custom requirements",
         "taglineSub": "Pricing varies by users, data volume, and specific requirements",
         "priceLabel": "Custom",
+        "priceMonthly": "Custom",
+        "priceAnnual": "Custom",
         "featuresPrefix": "Everything in Advanced, plus:",
         "features": [
           "Unlimited users",
