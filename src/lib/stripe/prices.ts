@@ -5,8 +5,10 @@ export type BillingCycle = "monthly" | "yearly";
 export function getStripePriceId(plan: PlanId, cycle: BillingCycle): string | null {
   const map: Record<PlanId, Record<BillingCycle, string | undefined>> = {
     PRO: {
-      monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
-      yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+      // STRIPE_PRICE_PRO is the flat single-price env used for the test-mode PRO
+      // checkout; the per-cycle vars take precedence when configured later.
+      monthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? process.env.STRIPE_PRICE_PRO,
+      yearly: process.env.STRIPE_PRICE_PRO_YEARLY ?? process.env.STRIPE_PRICE_PRO,
     },
     ADVANCED: {
       monthly: process.env.STRIPE_PRICE_ADVANCED_MONTHLY,
