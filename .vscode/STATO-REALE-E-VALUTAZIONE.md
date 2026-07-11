@@ -550,3 +550,12 @@ demo) a getAuthContext (strict → 401 se non loggato). 28 route totali in 2 lot
 - getClientIp: preferisce x-real-ip (anti-spoofing XFF).
 - STATO: C1,C2,A1,A2,A3,A4 + medi = CHIUSI e online. RRIMANDATI post-lancio: CSP piena (report-only prima), normalizzazione email-status (già rate-limited), origin fisso billing (B2), riattivare ignoreBuildErrors.
 - PROSSIMO: Stripe/pagamenti (serve prima fixare bug integrazioni Organization_b12 vuota). Poi chiavi AI.
+---
+## 15. Aggiornamento 2026-07-11 — persistenza billing (pre-Stripe)
+- Bug scoperto: repository billing era in-memory (Map RAM) → su Vercel i dati svanivano. Un pagamento Stripe non si sarebbe mai salvato.
+- STEP 1: 3 tabelle Prisma create (BillingSubscription, BillingInvoice, CreditEntry). Già nel DB prod (applicate) + schema. FK gestite a livello app (no vincolo → nessun rischio doppione _b12).
+- STEP 2: repository.ts riscritto su Prisma (stesse firme → webhook/route billing non toccati). Testato: dato persiste nel DB e si rilegge. Organization.aiCredits = saldo; CreditEntry = storico.
+- Backup DB fatto (pg_dump, ~/anlyra-backup-20260710). Solo nel Codespace (effimero).
+- PROSSIMO: Stripe vero (checkout+webhook+chiavi). Serve: 1) decidere piani/prezzi (schema prevede PRO/ADVANCED/ENTERPRISE, mensile/annuale); 2) account Stripe + chiavi.
+- Bug integrazioni Organization_b12: ANCORA da fixare (indipendente dal billing). 
+- Serata networking 10/07: 15 contatti, lead caldi Alberto (artigiano, vuole gestione stock/automazione — non pronto in Anlyra) e Martina (nuova attività, vuole marketing/promozione dai dati → chatbot AI, priorità 1). Chatbot serve chiavi API Anthropic (non ancora prese).
