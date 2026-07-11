@@ -559,3 +559,23 @@ demo) a getAuthContext (strict → 401 se non loggato). 28 route totali in 2 lot
 - PROSSIMO: Stripe vero (checkout+webhook+chiavi). Serve: 1) decidere piani/prezzi (schema prevede PRO/ADVANCED/ENTERPRISE, mensile/annuale); 2) account Stripe + chiavi.
 - Bug integrazioni Organization_b12: ANCORA da fixare (indipendente dal billing). 
 - Serata networking 10/07: 15 contatti, lead caldi Alberto (artigiano, vuole gestione stock/automazione — non pronto in Anlyra) e Martina (nuova attività, vuole marketing/promozione dai dati → chatbot AI, priorità 1). Chatbot serve chiavi API Anthropic (non ancora prese).
+---
+## 16. Aggiornamento 2026-07-12 — STRIPE CHECKOUT FUNZIONANTE (test mode)
+Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
+- Account Stripe creato (TEST mode). Libreria stripe installata, client condiviso.
+- Env (in .env.local + Vercel): STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PRO (49€ test), STRIPE_PRICE_ADVANCED_MONTHLY (99€ test).
+- Webhook Stripe configurato su https://anlyra.vercel.app/api/webhooks/stripe (4 eventi: checkout.session.completed, customer.subscription.updated/deleted, invoice.paid).
+- Checkout end-to-end TESTATO e FUNZIONANTE: bottone → Stripe Checkout → pagamento carta test 4242 → webhook → DB salva subscription (ADVANCED active, stripeCustomerId/stripeSubscriptionId popolati).
+- Fix UI: bottoni CTA pagina billing attiva ((dashboard)/settings/billing/page.tsx) erano decorativi (no onClick) → collegati al checkout.
+- Fix piano: BillingProvider non era mai montato → UI mostrava sempre "PRO" default. Ora legge il piano REALE dal DB via getAuthContext+repository nel layout dashboard. Verificato: mostra ADVANCED.
+- Convenzione env prezzi (src/lib/stripe/prices.ts): STRIPE_PRICE_<PLAN>_MONTHLY / _YEARLY. PRO ha fallback su STRIPE_PRICE_PRO.
+
+### DA FARE prima del 14/07 (lancio)
+- Testare portale cliente (billing/portal — cancellazione/gestione abbonamento).
+- currentPeriodEnd resta null dopo checkout → data rinnovo non popolata (da fixare, minore).
+- Testare anche il flusso PRO (finora testato ADVANCED).
+- Decidere PREZZI VERI (ora test 49/99) + eventuali piani yearly + ENTERPRISE (contact).
+- Traduzioni mancanti: pricing.plans.enterprise.priceMonthly/priceAnnual (it) — MISSING_MESSAGE in console.
+- Passare Stripe da TEST a LIVE (nuove chiavi live, nuovo webhook, dati aziendali/IBAN per incassare) — richiede struttura fiscale.
+- Bug integrazioni Organization_b12 (indipendente, ancora aperto).
+- Chiavi API Anthropic per chatbot (lead Martina) — non ancora prese.
