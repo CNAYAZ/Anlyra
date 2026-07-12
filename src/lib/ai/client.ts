@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-export const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 export const ANTHROPIC_TEMPERATURE = 0.4;
 export const ANTHROPIC_MAX_TOKENS = 2048;
 
