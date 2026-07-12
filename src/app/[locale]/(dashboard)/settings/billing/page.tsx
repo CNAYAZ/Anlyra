@@ -22,6 +22,31 @@ export default function SettingsBillingPage() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+
+  // Same flow as components/billing/CurrentPlanCard.openPortal: POST the portal
+  // session, redirect to the returned Stripe URL. The org's stripeCustomerId is
+  // not exposed client-side, so we always render the button and translate the
+  // route's 400 ("No Stripe customer") into a clean "no active subscription"
+  // message instead of hiding it.
+  async function openPortal() {
+    setPortalBusy(true);
+    setPortalError(null);
+    try {
+      const res = await fetch('/api/billing/portal', { method: 'POST' });
+      const json = (await res.json()) as { success: boolean; data?: { url: string }; error?: string };
+      if (json.success && json.data?.url) {
+        window.location.href = json.data.url;
+        return;
+      }
+      setPortalError(res.status === 400 ? tBilling('managePortalNoSub') : tBilling('managePortalError'));
+    } catch {
+      setPortalError(tBilling('managePortalError'));
+    } finally {
+      setPortalBusy(false);
+    }
+  }
 
   // Same flow as components/billing/UpgradeButton: POST the checkout, redirect to
   // the returned Stripe URL, surface the error otherwise.
@@ -78,6 +103,16 @@ export default function SettingsBillingPage() {
           <p className="text-[11px] font-medium uppercase tracking-wider text-fg-3">{t('billingCredits')}</p>
           <p className="font-heading text-xl font-semibold tabular-nums text-foreground">{aiCredits}</p>
         </div>
+        {/* Manage subscription → Stripe Customer Portal */}
+        <button
+          type="button"
+          onClick={openPortal}
+          disabled={portalBusy}
+          className="shrink-0 rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-sage-700 transition-colors hover:bg-muted hover:border-sage-500 disabled:opacity-70 dark:text-sage-300"
+        >
+          {portalBusy ? '…' : tBilling('currentPlanCard.manageBtn')}
+        </button>
+        {portalError && <p className="w-full text-[11px] text-danger">{portalError}</p>}
       </div>
 
       {/* ── Plans ── */}

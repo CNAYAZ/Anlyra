@@ -1678,7 +1678,9 @@
     },
     "trial": {
       "info": "7-day trial · Card required · Cancel in 1 click"
-    }
+    },
+    "managePortalNoSub": "No active subscription to manage.",
+    "managePortalError": "Could not open the billing portal. Please try again."
   },
   "pricing": {
     "hero": {
