@@ -68,6 +68,7 @@ model Organization {
   subscriptions   Subscription[]
   insights        Insight[]
   invites         Invite[]
+  integrations    Integration[]
 }
 
 model Membership {
@@ -586,18 +587,10 @@ model AIMessage {
   @@index([conversationId, createdAt])
 }
 
-model Organization_b12 {
-  id           String        @id @default(cuid())
-  name         String
-  plan         String        @default("FREEMIUM")
-  createdAt    DateTime      @default(now())
-  integrations Integration[]
-}
-
 model Integration {
   id             String           @id @default(cuid())
   organizationId String
-  organization   Organization_b12 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   provider       String
   status         String           @default("DISCONNECTED")
   apiKey         String?
