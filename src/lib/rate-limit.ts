@@ -29,6 +29,8 @@ const WINDOWS = {
   '2fa-ip': [5, '10 m'],
   // public, unauthenticated PDF generation (CPU-heavy) — DoS guard, per IP
   'report-generate-ip': [10, '10 m'],
+  // AI analysis (expensive Anthropic calls) — per IP+org, abuse guard
+  'ai-analyze': [20, '10 m'],
 } as const;
 
 export type RateLimitAction = keyof typeof WINDOWS;
