@@ -16,6 +16,7 @@ import {
 export interface BillingState {
   plan: PlanId;
   status: "active" | "trialing" | "past_due" | "canceled";
+  cycle: "monthly" | "yearly";
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
 }
@@ -53,6 +54,7 @@ const DEFAULT_BILLING: BillingContextValue = {
   state: {
     plan: "PRO" as PlanId,
     status: "active",
+    cycle: "monthly",
     periodEnd: null,
     cancelAtPeriodEnd: false,
   },
@@ -74,6 +76,7 @@ export function usePlan() {
   return {
     plan: state.plan,
     status: state.status,
+    cycle: state.cycle,
     periodEnd: state.periodEnd,
     cancelAtPeriodEnd: state.cancelAtPeriodEnd,
     limits,

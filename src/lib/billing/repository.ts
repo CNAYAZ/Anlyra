@@ -163,6 +163,7 @@ export async function getBillingState(orgId: string): Promise<BillingState> {
   return {
     plan: sub.plan,
     status: sub.status,
+    cycle: sub.cycle,
     periodEnd: sub.currentPeriodEnd ? sub.currentPeriodEnd.toISOString() : null,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
   };
