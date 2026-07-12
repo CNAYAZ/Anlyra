@@ -594,3 +594,16 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 - Bug integrazioni Organization_b12 (indipendente, ancora aperto).
 - Passaggio Stripe TEST→LIVE: chiavi live, webhook live, dati fiscali/IBAN per incassare. Test previsto con carta usa-e-getta poi rimborso.
 - Chiavi API Anthropic per chatbot marketing (lead Martina).
+---
+## 18. Aggiornamento 2026-07-12 (notte) — bug integrazioni chiuso + email/dominio in corso
+- Bug Organization_b12 RISOLTO: Integration FK ora punta a Organization vera, doppione Organization_b12 eliminato (era vuoto). Verificato sul DB: Organization_b12 non esiste più, FK Integration→Organization. Le integrazioni ora funzionano per le org reali (prima davano P2003). Backup DB fresco fatto prima (anlyra-backup-pre-integrations-*).
+- EMAIL (Resend): scoperto che le mail di verifica NON partivano → manca RESEND_API_KEY (sistema email era disattivato). Codice email OK (usa Resend, src/lib/email/). Chiave presa, messa in .env.local. Test invio RIMANDATO (serviva email personale → founder giustamente non l'ha fornita per OpSec). Scelto dominio vero (B) per il mittente.
+- DOMINIO: anlyra.it da comprare/configurare. Founder valuta provider (GoDaddy/Hostinger/Vercel/Cloudflare) con calma. Serve per: mittente email noreply@anlyra.it (DNS su Resend) + sito. RIMANDATO.
+- P.IVA: founder la sta aprendo con Fiscozen (consulenza fissata). Serve per Stripe LIVE (incassare). Descrizione attività per ATECO: SaaS consulenza/analisi finanziaria AI per PMI, abbonamento ricorrente.
+
+### DA FARE prima del lancio (14/07 o quando pronti)
+- EMAIL: comprare/configurare dominio anlyra.it → verificarlo su Resend (DNS) → RESEND_FROM=noreply@anlyra.it → testare registrazione end-to-end. BLOCCANTE per registrazioni clienti.
+- Stripe TEST→LIVE (dopo P.IVA): chiavi live, prodotti/prezzi live, webhook live, dati fiscali/IBAN.
+- Ritorno automatico dal portale Stripe (cosmetico).
+- Messaggi WhatsApp follow-up lead Martina (chatbot marketing, priorità 1) e Alberto (automazione stock, priorità 2).
+- Chatbot marketing per Martina: serve chiave API Anthropic (non ancora presa).
