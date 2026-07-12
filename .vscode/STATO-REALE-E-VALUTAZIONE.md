@@ -579,3 +579,18 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 - Passare Stripe da TEST a LIVE (nuove chiavi live, nuovo webhook, dati aziendali/IBAN per incassare) — richiede struttura fiscale.
 - Bug integrazioni Organization_b12 (indipendente, ancora aperto).
 - Chiavi API Anthropic per chatbot (lead Martina) — non ancora prese.
+---
+## 17. Aggiornamento 2026-07-12 (sera) — billing rifinito, quasi pronto al lancio
+- Portale cliente Stripe: bottone "Gestisci Abbonamento" aggiunto alla pagina billing attiva → apre Customer Portal (attivato su Stripe). Testato: disdetta funziona (cancelAtPeriodEnd via webhook).
+- currentPeriodEnd: fix webhook (recupera la data dalla subscription Stripe). Testato: si popola (es. 2026-08-12). UI mostra "Rinnova il...".
+- PREZZI VERI allineati (erano definitivi da sessione vecchia): PRO 49/mese 490/anno, ADVANCED 149/mese 1490/anno, ENTERPRISE custom. Creati su Stripe 2 prodotti separati (Anlyra PRO, Anlyra ADVANCED) con prezzi mensile+annuale. Vecchi price id di test eliminati (pulizia). 4 variabili STRIPE_PRICE_<PLAN>_<MONTHLY|YEARLY> in .env.local + Vercel.
+- Fix UI badge "Corrente": ora considera piano E ciclo (prima ADVANCED annuale risultava "corrente" anche per chi aveva il mensile). cycle propagato nel billing context. Verificato: DB salva cycle giusto (monthly), era solo problema UI.
+- Testato: checkout PRO e ADVANCED, mensile e annuale, prezzi giusti sul checkout Stripe. Cambio piano non lascia doppioni (vecchia sub disattivata).
+- STRATEGIA COMMERCIALE founder: puntare su abbonamenti lunghi (annuali / min 3 mesi) perché l'AI dà valore col tempo; focus su retention post-vendita.
+
+### DA FARE prima del lancio
+- Traduzioni enterprise mancanti (pricing.plans.enterprise.priceMonthly/priceAnnual) — MISSING_MESSAGE console.
+- Ritorno automatico dal portale Stripe (cosmetico).
+- Bug integrazioni Organization_b12 (indipendente, ancora aperto).
+- Passaggio Stripe TEST→LIVE: chiavi live, webhook live, dati fiscali/IBAN per incassare. Test previsto con carta usa-e-getta poi rimborso.
+- Chiavi API Anthropic per chatbot marketing (lead Martina).
