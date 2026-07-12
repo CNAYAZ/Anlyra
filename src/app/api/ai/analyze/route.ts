@@ -12,15 +12,21 @@ import {
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
+import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
+import { buildCompetitorAnalysisPrompt } from '@/lib/ai/prompts/competitor';
+import { buildChatPrompt } from '@/lib/ai/prompts/chat';
 
 export const dynamic = 'force-dynamic';
 
-// Specialized system-prompt builder per analysis mode. Only the modes present
-// here are live; any other type falls through to a clean 501 (not implemented).
+// Specialized system-prompt builder per analysis mode. Every enum type is wired;
+// a type outside the map (should not happen past Zod) falls through to a 501.
 type PromptBuilder = (ctx: AIBusinessContext) => string;
 const PROMPT_BUILDERS: Partial<Record<AnalyzeType, PromptBuilder>> = {
   financial: buildFinancialAnalysisPrompt,
   marketing: buildMarketingAnalysisPrompt,
+  kpi: buildKpiAnalysisPrompt,
+  competitor: buildCompetitorAnalysisPrompt,
+  chat: buildChatPrompt,
 };
 
 const HistoryTurn = z.object({
@@ -29,8 +35,7 @@ const HistoryTurn = z.object({
 });
 
 const AnalyzeSchema = z.object({
-  // Multi-mode by design; financial + marketing are live (see PROMPT_BUILDERS),
-  // the rest return 501 until wired.
+  // All five modes are live (see PROMPT_BUILDERS).
   type: z.enum(['financial', 'marketing', 'kpi', 'competitor', 'chat']),
   question: z.string().min(1).max(4000).optional(),
   history: z.array(HistoryTurn).max(20).optional(),
