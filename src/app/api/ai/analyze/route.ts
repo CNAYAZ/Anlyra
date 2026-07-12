@@ -9,10 +9,19 @@ import {
   MISSING_KEY_MESSAGE,
   type ChatTurn,
 } from '@/lib/ai/client';
-import { loadBusinessContext } from '@/lib/ai-context';
+import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
+import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 
 export const dynamic = 'force-dynamic';
+
+// Specialized system-prompt builder per analysis mode. Only the modes present
+// here are live; any other type falls through to a clean 501 (not implemented).
+type PromptBuilder = (ctx: AIBusinessContext) => string;
+const PROMPT_BUILDERS: Partial<Record<AnalyzeType, PromptBuilder>> = {
+  financial: buildFinancialAnalysisPrompt,
+  marketing: buildMarketingAnalysisPrompt,
+};
 
 const HistoryTurn = z.object({
   role: z.enum(['user', 'assistant']),
@@ -20,11 +29,14 @@ const HistoryTurn = z.object({
 });
 
 const AnalyzeSchema = z.object({
-  // Multi-mode by design; only "financial" is implemented in this pilot.
+  // Multi-mode by design; financial + marketing are live (see PROMPT_BUILDERS),
+  // the rest return 501 until wired.
   type: z.enum(['financial', 'marketing', 'kpi', 'competitor', 'chat']),
   question: z.string().min(1).max(4000).optional(),
   history: z.array(HistoryTurn).max(20).optional(),
 });
+
+type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
 
 function tooManyRequests(reset: number) {
   return NextResponse.json(
@@ -49,18 +61,20 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return fail('INVALID_INPUT', 400);
   const { type, question, history } = parsed.data;
 
-  // Pilot scope: only the financial analyst is live; other modes come later.
-  if (type !== 'financial') {
+  // Select the specialized prompt builder for this mode. Modes not yet wired
+  // (kpi/competitor/chat) return a clean 501.
+  const buildPrompt = PROMPT_BUILDERS[type];
+  if (!buildPrompt) {
     return fail(`Analysis type "${type}" is not implemented yet`, 501);
   }
 
   if (!isAnthropicConfigured()) return fail(MISSING_KEY_MESSAGE, 503);
 
-  // Real org data → specialized financial system prompt (never invents numbers).
+  // Real org data → specialized system prompt (never invents numbers).
   let systemPrompt: string;
   try {
     const businessCtx = await loadBusinessContext(organizationId);
-    systemPrompt = buildFinancialAnalysisPrompt(businessCtx);
+    systemPrompt = buildPrompt(businessCtx);
   } catch (err) {
     console.error('[ai/analyze] failed to load business context:', err);
     return fail('Failed to load business data', 500);
@@ -74,9 +88,11 @@ export async function POST(req: NextRequest) {
   }
   messages.push({
     role: 'user',
+    // No question → full-analysis request. Kept domain-agnostic on purpose: the
+    // system prompt already fixes the domain (financial/marketing/…).
     content: question?.trim()
       ? question.trim()
-      : 'Genera un\'analisi finanziaria completa della mia situazione.',
+      : 'Genera un\'analisi completa della mia situazione.',
   });
 
   try {

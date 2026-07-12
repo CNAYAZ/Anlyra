@@ -2,7 +2,9 @@ import Anthropic from '@anthropic-ai/sdk';
 
 export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 export const ANTHROPIC_TEMPERATURE = 0.4;
-export const ANTHROPIC_MAX_TOKENS = 2048;
+export const ANTHROPIC_MAX_TOKENS = process.env.ANTHROPIC_MAX_TOKENS
+  ? parseInt(process.env.ANTHROPIC_MAX_TOKENS, 10)
+  : 4096;
 
 export const MISSING_KEY_MESSAGE =
   'Per usare la chat AI, aggiungi ANTHROPIC_API_KEY nel file .env.local';
