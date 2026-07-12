@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-export const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 export const ANTHROPIC_TEMPERATURE = 0.4;
 export const ANTHROPIC_MAX_TOKENS = 2048;
 
@@ -32,7 +32,8 @@ export async function chatComplete(
   const c = getAnthropicClient();
   const res = await c.messages.create({
     model: ANTHROPIC_MODEL,
-    temperature: ANTHROPIC_TEMPERATURE,
+    // temperature is deprecated/rejected by claude-sonnet-5 (400
+    // invalid_request_error), so it is intentionally not passed.
     max_tokens: ANTHROPIC_MAX_TOKENS,
     system: systemPrompt,
     messages,
