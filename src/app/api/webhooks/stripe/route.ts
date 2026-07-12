@@ -47,6 +47,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null;
 
   const existing = await getSubscription(orgId);
+
+  // checkout.session.completed does NOT carry the subscription's billing period,
+  // so currentPeriodEnd would stay whatever the row had (often null). Retrieve
+  // the subscription to populate it. Best-effort: a Stripe error must not fail
+  // the webhook — on failure we keep the existing value.
+  let currentPeriodEnd = existing.currentPeriodEnd;
+  if (subscriptionId) {
+    try {
+      const fresh = await getStripe().subscriptions.retrieve(subscriptionId);
+      if (fresh.current_period_end) {
+        currentPeriodEnd = new Date(fresh.current_period_end * 1000);
+      }
+    } catch (e) {
+      console.error("[stripe-webhook] subscription retrieve for period end failed", e);
+    }
+  }
+
   await setSubscription({
     ...existing,
     plan,
@@ -54,6 +71,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     status: "active",
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
+    currentPeriodEnd,
   });
 }
 
@@ -78,7 +96,9 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
               ? "canceled"
               : existing.status,
     stripeSubscriptionId: sub.id,
-    currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+    // Populate from the subscription's UNIX timestamp (seconds → ms). Never wipe
+    // a previously-good date to null if the field is momentarily absent.
+    currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : existing.currentPeriodEnd,
     cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
   });
 }
