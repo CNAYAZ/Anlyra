@@ -32,7 +32,8 @@ export async function chatComplete(
   const c = getAnthropicClient();
   const res = await c.messages.create({
     model: ANTHROPIC_MODEL,
-    temperature: ANTHROPIC_TEMPERATURE,
+    // temperature is deprecated/rejected by claude-sonnet-5 (400
+    // invalid_request_error), so it is intentionally not passed.
     max_tokens: ANTHROPIC_MAX_TOKENS,
     system: systemPrompt,
     messages,
