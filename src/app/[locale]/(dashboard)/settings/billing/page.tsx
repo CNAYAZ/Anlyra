@@ -19,6 +19,7 @@ export default function SettingsBillingPage() {
   const aiCredits = useCreditsStore((s) => s.credits);
   const plan = usePlan();
   const currentPlanId = plan.plan;
+  const currentCycle = plan.cycle;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
@@ -155,7 +156,11 @@ export default function SettingsBillingPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {VISIBLE_PLANS.map((planId) => {
             const p = PLANS[planId];
-            const isCurrent = planId === currentPlanId;
+            // "Current" only when the plan AND the selected billing cycle match
+            // the user's real subscription. ENTERPRISE is a contact plan with no
+            // cycle, so it stays current on plan match alone. This lets a monthly
+            // subscriber switch to the same plan's yearly price (and vice versa).
+            const isCurrent = planId === currentPlanId && (p.contact || cycle === currentCycle);
             const pricingKey = planId === 'ADVANCED' ? 'advanced' : planId.toLowerCase() as 'pro' | 'enterprise';
             const priceMonthly = tPricing(`plans.${pricingKey}.priceMonthly` as 'plans.pro.priceMonthly');
             const priceAnnual = tPricing(`plans.${pricingKey}.priceAnnual` as 'plans.pro.priceAnnual');
