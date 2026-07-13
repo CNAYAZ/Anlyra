@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { locales } from '@/i18n/config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://anlyra.it';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://anlyra.com';
 
 interface PageDef {
   path: string;

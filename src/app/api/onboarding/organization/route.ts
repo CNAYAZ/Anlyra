@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       subject: `${inviter?.name || 'Un collega'} ti ha invitato su Anlyra`,
       html: teamInviteTemplate({
         inviterName: inviter?.name || inviter?.email || 'Un collega',
-        inviterEmail: inviter?.email || 'noreply@anlyra.it',
+        inviterEmail: inviter?.email || 'noreply@anlyra.com',
         orgName: org.name,
         userEmail: inv.email,
         inviteUrl: `${siteUrl()}/it/invite/${token}`,

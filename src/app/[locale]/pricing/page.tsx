@@ -2,7 +2,7 @@ import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { PricingPage, type FaqItem } from '@/components/pricing/pricing-page';
 import { productSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.it';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

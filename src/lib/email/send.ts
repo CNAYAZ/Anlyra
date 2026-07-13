@@ -14,7 +14,7 @@ interface SendEmailResult {
   error?: string;
 }
 
-const DEFAULT_FROM = process.env.RESEND_FROM || 'Anlyra <noreply@anlyra.it>';
+const DEFAULT_FROM = process.env.RESEND_FROM || 'Anlyra <noreply@anlyra.com>';
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   if (!isEmailEnabled() || !resend) {
