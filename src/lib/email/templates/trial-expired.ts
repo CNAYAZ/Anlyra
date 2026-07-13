@@ -74,7 +74,7 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
     ` : ''}
 
     <p style="margin:0;font-size:13px;color:#6B6760;text-align:center;">
-      Hai domande? Scrivici a <a href="mailto:hello@anlyra.it" style="color:#5B6F4E;">hello@anlyra.it</a>.
+      Hai domande? Scrivici a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.
       La porta è sempre aperta.
     </p>
   `;

@@ -70,7 +70,7 @@ export function welcomeTemplate(params: WelcomeParams): string {
     </table>
 
     <p style="margin:24px 0 0;font-size:14px;color:#6B6760;">
-      Hai domande? Rispondi a questa email o scrivici a <a href="mailto:hello@anlyra.it" style="color:#5B6F4E;">hello@anlyra.it</a>.
+      Hai domande? Rispondi a questa email o scrivici a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.
     </p>
   `;
 

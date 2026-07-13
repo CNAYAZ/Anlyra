@@ -4,7 +4,7 @@
  * dentro Server Components.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.it';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com';
 
 // ─── ORGANIZATION ───────────────────────────────────────
 export function organizationSchema() {
@@ -39,7 +39,7 @@ export function organizationSchema() {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'support@anlyra.it', // da attivare
+      email: 'contact@anlyra.com',
       availableLanguage: ['Italian', 'English'],
       areaServed: 'EU',
     },
