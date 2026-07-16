@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
 
   // Prefer a fixed, trusted base URL over the client-supplied Origin header for
   // the Stripe redirect targets (avoids relying on an attacker-controllable header).
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ?? req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const origin = (
+    process.env.NEXT_PUBLIC_SITE_URL ?? req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  ).trim();
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
