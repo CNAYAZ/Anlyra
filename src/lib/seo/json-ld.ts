@@ -4,7 +4,7 @@
  * dentro Server Components.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com';
+const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com').trim();
 
 // ─── ORGANIZATION ───────────────────────────────────────
 export function organizationSchema() {

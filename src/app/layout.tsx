@@ -27,7 +27,7 @@ const jetbrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://anlyra.com'),
+  metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? 'https://anlyra.com').trim()),
   title: {
     default: 'Anlyra · Analytics AI per PMI italiane',
     template: '%s · Anlyra',

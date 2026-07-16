@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     await setSubscription({ ...sub, stripeCustomerId: customerId });
   }
 
-  const origin = req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const origin = (req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
