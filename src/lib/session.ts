@@ -11,15 +11,39 @@ const DEMO_EMAIL = 'demo@pro.app';
 const DEMO_ORG_ID = 'demo-org';
 const ORG_COOKIE = 'current_org_id';
 
-async function resolveSessionContext(): Promise<{ userId: string; organizationId: string } | null> {
+/**
+ * Three distinct session states, so callers can tell "anonymous visitor" apart
+ * from "signed-in user who has no organization yet". Collapsing these two into a
+ * single null (as before) let a signed-in-but-org-less user fall through to the
+ * demo org — a cross-tenant leak. See getCurrentContext / NoOrganizationError.
+ */
+export type SessionState =
+  | { status: 'anonymous' }
+  | { status: 'no-org'; userId: string }
+  | { status: 'ok'; userId: string; organizationId: string };
+
+/**
+ * Thrown by getCurrentContext when a signed-in user has no organization. It must
+ * NEVER be answered with the demo context (that would leak another tenant's
+ * data); the dashboard layout intercepts this state earlier and redirects such a
+ * user to onboarding.
+ */
+export class NoOrganizationError extends Error {
+  constructor() {
+    super('Signed-in user has no organization');
+    this.name = 'NoOrganizationError';
+  }
+}
+
+async function resolveSessionContext(): Promise<SessionState> {
   let session;
   try {
     session = await auth();
   } catch {
-    return null;
+    return { status: 'anonymous' };
   }
   const userId = session?.user?.id;
-  if (!userId) return null;
+  if (!userId) return { status: 'anonymous' };
 
   // Selected org: cookie override → session default → any membership.
   const cookieStore = await cookies();
@@ -47,8 +71,16 @@ async function resolveSessionContext(): Promise<{ userId: string; organizationId
     organizationId = membership?.organizationId;
   }
 
-  if (!organizationId) return null; // signed in but no org yet (pre-onboarding)
-  return { userId, organizationId };
+  if (!organizationId) return { status: 'no-org', userId }; // signed in, pre-onboarding
+  return { status: 'ok', userId, organizationId };
+}
+
+/**
+ * Exposes the raw three-way session state so callers (e.g. the dashboard layout)
+ * can route a signed-in-but-org-less user to onboarding instead of the demo org.
+ */
+export async function getSessionState(): Promise<SessionState> {
+  return resolveSessionContext();
 }
 
 async function getDemoContext(): Promise<{ userId: string; organizationId: string }> {
@@ -89,8 +121,17 @@ async function getDemoContext(): Promise<{ userId: string; organizationId: strin
 }
 
 export async function getCurrentContext() {
-  const real = await resolveSessionContext();
-  if (real) return real;
+  const state = await resolveSessionContext();
+  if (state.status === 'ok') {
+    return { userId: state.userId, organizationId: state.organizationId };
+  }
+  // Signed in but no org: do NOT fall back to demo (cross-tenant leak). The
+  // dashboard layout redirects this user to onboarding before reaching here;
+  // any other caller (e.g. an API hit directly) gets a hard error, never demo.
+  if (state.status === 'no-org') {
+    throw new NoOrganizationError();
+  }
+  // Anonymous visitor → read-only demo showcase (public preview), as before.
   return getDemoContext();
 }
 
