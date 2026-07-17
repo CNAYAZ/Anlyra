@@ -1,8 +1,9 @@
 import { setRequestLocale } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { CreditsHydrator } from '@/components/dashboard/CreditsHydrator';
-import { getCurrentOrganization } from '@/lib/session';
+import { getCurrentOrganization, getSessionState } from '@/lib/session';
 import { getCreditBalance, getBillingState } from '@/lib/billing/repository';
 import { BillingProvider } from '@/lib/billing/context';
 import { PLANS } from '@/lib/billing/plans';
@@ -24,10 +25,17 @@ export default async function DashboardLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Read-only showcase surface: getCurrentOrganization uses the real signed-in
-  // org, and falls back to the demo org (read-only) when there is no session,
-  // so the public dashboard preview still renders. The plan now comes from the
-  // real Organization record, never from a client cookie.
+  // A signed-in user without an organization must go through onboarding — never
+  // fall through to the demo org (that leaked another tenant's data). Onboarding
+  // lives outside this (dashboard) segment, so the redirect cannot loop.
+  const state = await getSessionState();
+  if (state.status === 'no-org') {
+    redirect(`/${locale}/onboarding`);
+  }
+
+  // 'ok' → the real signed-in org; 'anonymous' → the read-only demo showcase
+  // (public preview). getCurrentOrganization resolves both; the plan comes from
+  // the real Organization record, never from a client cookie.
   const { id: orgId } = await getCurrentOrganization();
 
   // Real subscription state from the DB (BillingSubscription via repository).
