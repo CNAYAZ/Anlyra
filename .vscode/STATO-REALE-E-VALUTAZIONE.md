@@ -607,3 +607,48 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 - Ritorno automatico dal portale Stripe (cosmetico).
 - Messaggi WhatsApp follow-up lead Martina (chatbot marketing, priorità 1) e Alberto (automazione stock, priorità 2).
 - Chatbot marketing per Martina: serve chiave API Anthropic (non ancora presa).
+---
+## 19. Aggiornamento 2026-07-16/17 — AI live, dominio .com, email funzionanti, falla multi-tenant chiusa
+
+### AI (agente business completo)
+- ANTHROPIC_API_KEY presa (account API a consumo, 5€ caricati) — in .env.local + Vercel.
+- Modello: claude-sonnet-5 (il vecchio claude-sonnet-4-20250514 era obsoleto). ANTHROPIC_MODEL override via env. ATTENZIONE: Sonnet 5 RIFIUTA `temperature` (400) → rimosso da chatComplete. ANTHROPIC_MAX_TOKENS 2048→4096 (le analisi si troncavano).
+- Route unica POST /api/ai/analyze con mappa type→builder: financial, marketing, kpi, competitor, chat. getAuthContext strict + rate limit 'ai-analyze' (20/10min IP+org). Prompt specializzati in src/lib/ai/prompts/*.ts (profondità adattiva se pochi dati, paletti business-only, no consulenza fiscale/legale, no disclaimer nel testo).
+- Testati via script tsx: output di alta qualità su 3 domini (finanziario/marketing/KPI). Costo ~1 cent/analisi.
+- LA ROUTE analyze È ORFANA: nessuna UI la chiama (la chat del sito usa ancora la vecchia /api/ai/chat). DA COLLEGARE.
+
+### Dominio + email
+- Comprato **anlyra.com** su Hostinger (16€ primo anno, ~21€ rinnovo). NIENTE .it per ora. Codice allineato .it→.com (mittente noreply@anlyra.com, contatti contact@anlyra.com, URL fallback https://anlyra.com).
+- Casella **contact@anlyra.com** (Hostinger, presa 1 mese, da rinnovare).
+- DNS su Hostinger: record A @ → 216.198.79.1 (Vercel), rimosso il vecchio A 2.57.91.91. NON toccare MX/SPF/DKIM hostinger (servono per contact@).
+- Resend: dominio anlyra.com VERIFICATO (3 record: DKIM resend._domainkey, TXT send, MX send). RESEND_FROM="Anlyra <noreply@anlyra.com>" in .env.local + Vercel. Test invio → arrivata su contact@. FUNZIONA.
+- NEXT_PUBLIC_SITE_URL=https://anlyra.com su Vercel (mancava → i link di verifica puntavano a localhost:3000). Fix in siteUrl(): .trim() su tutti gli env URL (uno spazio nel valore generava anlyra.com%20 → DNS error).
+
+### FALLA SICUREZZA MULTI-TENANT CHIUSA (era grave)
+- Un utente nuovo loggato senza organizzazione riceveva il contesto DEMO (userId demo + demo-org): vedeva e poteva scrivere nel tenant demo.
+- Causa: getCurrentContext() non distingueva "anonimo" da "loggato senza org" → entrambi → getDemoContext().
+- Fix: resolveSessionContext tipizzato a 3 stati (anonymous | no-org | ok). Demo SOLO per anonimo (vetrina). no-org → throw NoOrganizationError. Layout (dashboard) → redirect a /onboarding. getAuthContext NON toccata (era già corretta). ~25 caller di getCurrentContext invariati.
+
+### Onboarding (era un guscio vuoto)
+- Il form NON creava nulla: handleFinish faceva solo completeOnboarding() (store client mock) + router.push('/dashboard') → 404 ('(dashboard)' è un route group, l'URL reale è /overview).
+- Fix: chiama POST /api/onboarding/organization con {name, industry, teamSize}, busy anti-doppio-click, errore gestito, redirect /overview. Bottone "skip" RIMOSSO (senza org = loop).
+- VERIFICATO IN PROD: utente nuovo → org propria + Membership admin → /overview con dati vuoti. Flusso registrazione COMPLETO end-to-end.
+
+### P.IVA / vendita
+- Fiscozen: 59€/mese, gestiscono tutto (commercialista + app fatturazione). Seconda call da fissare.
+- **VINCOLO: la Camera di Commercio richiede 14-20 giorni per il via ufficiale** → non si può incassare prima.
+- [DECISION founder] Niente trial a pagamento nel frattempo: accesso gratuito manuale ai primi utenti (tester), pagamenti attivati quando arriva il via. Zero rischi legali.
+
+### DEBITI NOTI (follow-up)
+- Route /api/onboarding/organization NON idempotente: un secondo POST crea una SECONDA org (mitigato lato UI con busy, ma va sistemato).
+- Onboarding: country/currency compilati dall'utente ma NON salvati (la route non li accetta); website/logoUrl non esistono proprio nello schema.
+- Loggato-senza-org che colpisce direttamente un'API → 500 (non è un leak, ma dovrebbe essere 401).
+- La route analyze non scala i crediti utente (lo fa solo la chat legacy).
+- Vecchi utenti di test nel DB (temp-mail) + org "Demo User"/"Michl" da ripulire prima del lancio.
+
+### PROSSIMI PASSI
+1. Collegare le 5 modalità AI a un'interfaccia (oggi orfane).
+2. Streaming risposte + stati ("sta analizzando..."), interfaccia chat migliore, disclaimer "Anlyra è un'AI, può commettere errori, verifica le risposte" (requisito founder).
+3. Messaggi WhatsApp Martina (candele, Nocte Candle Lab — chatbot marketing) e Alberto.
+4. Stripe TEST→LIVE quando arriva il via della Camera di Commercio.
+5. Cambiare password DB Supabase prima del lancio.
