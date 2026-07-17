@@ -40,7 +40,6 @@ const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF'];
 
 export function OnboardingFlow() {
   const t = useTranslations('onboarding');
-  const tc = useTranslations('common');
   const router = useRouter();
   const completeOnboarding = useSession((s) => s.completeOnboarding);
 
@@ -48,13 +47,50 @@ export function OnboardingFlow() {
   const [company, setCompany] = useState<CompanyValues | null>(null);
   const [importMode, setImportMode] = useState<ImportMode | null>(null);
   const [template, setTemplate] = useState<Template | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 1));
 
-  const handleFinish = () => {
-    completeOnboarding();
-    router.push('/dashboard');
+  // Persist the organization to the DB (the source of truth) via the onboarding
+  // API, then land on a REAL dashboard route. The route is NOT idempotent, so the
+  // button is disabled while the request is in flight to avoid creating two orgs.
+  const handleFinish = async () => {
+    if (busy) return;
+    // The company step can be navigated past, but the API requires a name.
+    if (!company?.name?.trim()) {
+      setError(t('errors.companyRequired'));
+      setStep(2);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/onboarding/organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Only the fields the route accepts are sent. country/currency/website/
+        // logoUrl are collected by the form but not persisted by the route (see
+        // report): they are intentionally omitted, not silently dropped by a typo.
+        body: JSON.stringify({
+          name: company.name,
+          industry: company.industry,
+          teamSize: company.size,
+        }),
+      });
+      if (!res.ok) {
+        setError(t('errors.createFailed'));
+        setBusy(false);
+        return;
+      }
+      // Keep the client onboarding flag coherent, then go to a real route.
+      completeOnboarding();
+      router.push('/overview');
+    } catch {
+      setError(t('errors.createFailed'));
+      setBusy(false);
+    }
   };
 
   return (
@@ -110,6 +146,8 @@ export function OnboardingFlow() {
                 company={company}
                 importMode={importMode}
                 template={template}
+                busy={busy}
+                error={error}
                 onBack={back}
                 onFinish={handleFinish}
               />
@@ -117,11 +155,11 @@ export function OnboardingFlow() {
           )}
         </AnimatePresence>
 
+        {/* No "skip": an account without an organization cannot use the app
+            (the dashboard layout redirects back here), so skipping would be a
+            dead-end loop. The only way forward is to create the organization. */}
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          {t('progress', { current: step, total: TOTAL_STEPS })} ·{' '}
-          <button onClick={() => router.push('/dashboard')} className="hover:underline">
-            {tc('skip')}
-          </button>
+          {t('progress', { current: step, total: TOTAL_STEPS })}
         </p>
       </div>
     </div>
@@ -420,12 +458,16 @@ function Step5({
   company,
   importMode,
   template,
+  busy,
+  error,
   onBack,
   onFinish
 }: {
   company: CompanyValues | null;
   importMode: ImportMode | null;
   template: Template | null;
+  busy: boolean;
+  error: string | null;
   onBack: () => void;
   onFinish: () => void;
 }) {
@@ -467,15 +509,17 @@ function Step5({
       </dl>
 
       <div className="mt-8 flex flex-col items-center justify-between gap-3 sm:flex-row">
-        <Button type="button" variant="ghost" onClick={onBack}>
+        <Button type="button" variant="ghost" onClick={onBack} disabled={busy}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           {tc('back')}
         </Button>
-        <Button size="lg" onClick={onFinish}>
-          {t('cta')}
-          <ArrowRight className="ml-2 h-4 w-4" />
+        <Button size="lg" onClick={onFinish} disabled={busy}>
+          {busy ? '…' : t('cta')}
+          {!busy && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
       </div>
+
+      {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
     </div>
   );
 }
