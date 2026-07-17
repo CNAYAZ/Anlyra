@@ -2222,6 +2222,10 @@
         "import": "Import mode"
       },
       "cta": "Go to Dashboard"
+    },
+    "errors": {
+      "companyRequired": "Please enter your company details to continue.",
+      "createFailed": "We couldn't create your organization. Please try again."
     }
   },
   "legal": {
