@@ -1170,7 +1170,28 @@
     "scheduledActions": "Azioni pianificate",
     "executedActions": "Azioni eseguite",
     "noScheduled": "Nessuna azione pianificata. Disponibile dal piano Enterprise.",
-    "noExecuted": "Nessuna azione eseguita finora."
+    "noExecuted": "Nessuna azione eseguita finora.",
+    "modes": {
+      "financial": "Finanziaria",
+      "marketing": "Marketing",
+      "kpi": "KPI",
+      "competitor": "Competitor",
+      "chat": "Chat"
+    },
+    "generate": "Genera analisi",
+    "orAsk": "oppure fai una domanda specifica",
+    "questionPlaceholder": "Fai una domanda sui tuoi dati…",
+    "chatPlaceholder": "Scrivi un messaggio…",
+    "send": "Invia",
+    "analyzing": "Sto analizzando…",
+    "thinking": "Sto pensando…",
+    "empty": "Seleziona una modalità e genera un’analisi, oppure fai una domanda.",
+    "disclaimer": "Anlyra è un’AI e può commettere errori. Verifica sempre le informazioni importanti.",
+    "errors": {
+      "rateLimit": "Troppe richieste. Riprova tra poco.",
+      "notConfigured": "AI non configurata. Contatta il supporto.",
+      "generic": "Si è verificato un errore. Riprova."
+    }
   },
   "dataImport": {
     "title": "Import Dati",
