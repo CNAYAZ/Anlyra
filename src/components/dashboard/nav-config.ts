@@ -107,8 +107,14 @@ export const mainNav: NavItemConfig[] = [
       { key: 'aiForecasting', labelKey: 'nav.aiForecasting', href: '/ai/forecasting', icon: LineChart },
       { key: 'aiBenchmarks', labelKey: 'nav.aiBenchmarks', href: '/ai/benchmarks', icon: BarChart3 },
       { key: 'aiAlerts', labelKey: 'nav.aiAlerts', href: '/ai/alerts', icon: AlertTriangle },
-      { key: 'aiAgent', labelKey: 'nav.aiAgent', href: '/ai/agent', icon: Bot },
     ],
+  },
+  {
+    // Promoted from a child of 'ai' to a top-level item (href unchanged).
+    key: 'aiAgent',
+    labelKey: 'nav.aiAgent',
+    href: '/ai/agent',
+    icon: Bot,
   },
   {
     key: 'customDashboards',
