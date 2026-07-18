@@ -33,19 +33,34 @@ export interface CreditEntry {
   createdAt: Date;
 }
 
-// Default returned for an org with no BillingSubscription row yet — same shape
-// the in-memory stub used to synthesize, so callers (server-gate, billing/state,
-// webhook) see identical behaviour. NOT persisted: an org only gets a row once a
-// real subscription/checkout writes one via setSubscription.
-function defaultSubscription(orgId: string): Subscription {
+// Derived (NOT persisted) billing state for an org that has no BillingSubscription
+// row yet. The old placeholder faked an "active PRO" for 30 days (driven by the
+// leftover DEV_DEFAULT_PLAN), which granted PRO to every org forever. Instead we
+// read the org's REAL trial window from the DB:
+//   • trial still running  → PRO on "trialing", ending at the real trialEndsAt
+//   • trial expired/absent → "canceled" (no active subscription)
+// The plan stays "PRO" even when expired because it must be a valid PlanId (PLANS
+// lookups in server-gate/context would crash on an unknown id like the schema's
+// "STARTER" default); it is the lowest tier. It is the STATUS that marks the org
+// inactive, never a fabricated active plan. NOTE (see report): feature gating is
+// currently plan-only, so status "canceled" alone does not yet lock features —
+// hard-blocking expired trials needs a separate, agreed change.
+async function defaultSubscription(orgId: string): Promise<Subscription> {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { trialEndsAt: true },
+  });
+  const trialEndsAt = org?.trialEndsAt ?? null;
+  const trialActive = trialEndsAt !== null && trialEndsAt.getTime() > Date.now();
+
   return {
     orgId,
-    plan: (process.env.DEV_DEFAULT_PLAN as PlanId) ?? "PRO",
-    status: "active",
+    plan: "PRO",
+    status: trialActive ? "trialing" : "canceled",
     cycle: "monthly",
     stripeSubscriptionId: null,
     stripeCustomerId: null,
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    currentPeriodEnd: trialEndsAt, // real trial end (future=trialing, past=expired), or null
     cancelAtPeriodEnd: false,
   };
 }
