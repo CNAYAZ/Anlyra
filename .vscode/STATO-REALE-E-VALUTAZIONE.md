@@ -652,3 +652,28 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 3. Messaggi WhatsApp Martina (candele, Nocte Candle Lab — chatbot marketing) e Alberto.
 4. Stripe TEST→LIVE quando arriva il via della Camera di Commercio.
 5. Cambiare password DB Supabase prima del lancio.
+---
+## 20. Aggiornamento 2026-07-18 — billing trial onesto + strategia lancio "lista d'attesa"
+
+### Fix: niente più PRO fasullo
+- defaultSubscription() non regala più "PRO active +30gg" alle org senza subscription. Ora deriva dallo stato reale: trial attivo (trialEndsAt futuro) → status "trialing" + scadenza vera dal DB; trial scaduto/assente → status "canceled" + data reale. Rimosso DEV_DEFAULT_PLAN. Chi ha una BillingSubscription reale: invariato.
+- LIMITE NOTO (Opus si è fermato, serve decisione): il gating è PLAN-only, ignora lo status → un trial SCADUTO mostra "canceled" ma ha ancora le feature PRO (non bloccate). Da chiudere quando si attiveranno i pagamenti. Opzione consigliata: blocco lato server sugli endpoint sensibili quando status ∉ {active, trialing} (opzione C di Opus). NON urgente ora (nessun trial scade prima del via Camera di Commercio).
+- STARTER (Organization.plan default nello schema) non è un piano vendibile: defaultSubscription non lo usa mai come piano attivo (restituisce sempre un PlanId valido). Riconciliato senza migration.
+
+### [DECISION founder] Strategia lancio: LISTA D'ATTESA (non far entrare ancora nessuno)
+- Finché la Camera di Commercio non dà il via (14-20 gg) NON si può incassare. Invece di dare accesso gratuito e bruciare giorni di trial, si raccolgono gli interessati e si dice "siamo in fase burocratica, ti avvisiamo appena apriamo".
+- Nei messaggi a Martina/Alberto: NON promettere accesso immediato; dire che apriremo a breve e li avviseremo. Zero giorni gratis regalati, pagamenti già live quando apriamo.
+- Quindi: NIENTE modifica a TRIAL_DAYS ora, niente accesso anticipato da gestire. Trial resta 7gg (default route onboarding).
+
+### Registrazione end-to-end VERIFICATA in prod (incognito)
+- registrazione → email verifica da noreply@anlyra.com → click link (https://anlyra.com, no più localhost) → login → onboarding (5 step) → crea org propria + Membership admin + trial 7gg → /overview con dati vuoti (NON demo). Isolamento tenant OK.
+- Verifica email FUNZIONA (utente kopahe8267 risulta emailVerified). 
+
+### DEBITI NOTI aggiornati
+- Gating status-aware (blocco feature a trial scaduto) — da fare con pagamenti live.
+- Route onboarding NON idempotente (2° POST = 2ª org). country/currency compilati ma non salvati; website/logoUrl non nello schema.
+- getMonthlyUsage() ritorna placeholder a zero (usage non reale).
+- Loggato-senza-org su API diretta → 500 invece di 401.
+- Route AI analyze orfana (nessuna UI) + non scala crediti.
+- DB da ripulire: utenti temp-mail di test + org "Michl"/"Demo User".
+- Cambiare password DB Supabase prima del lancio.
