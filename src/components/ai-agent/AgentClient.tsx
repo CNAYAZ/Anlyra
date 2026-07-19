@@ -2,7 +2,20 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Bot, Sparkles, Send, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Bot,
+  Sparkles,
+  Send,
+  Loader2,
+  AlertCircle,
+  Info,
+  TrendingUp,
+  Megaphone,
+  Gauge,
+  Swords,
+  MessageSquare,
+  type LucideIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -10,6 +23,16 @@ import { AnalysisMarkdown } from './AnalysisMarkdown';
 
 type AgentMode = 'financial' | 'marketing' | 'kpi' | 'competitor' | 'chat';
 const MODES: AgentMode[] = ['financial', 'marketing', 'kpi', 'competitor', 'chat'];
+
+// One icon per mode, from lucide-react (the app's icon set, used across the nav)
+// so the agent's tabs read the same visual language as the rest of the app.
+const MODE_ICON: Record<AgentMode, LucideIcon> = {
+  financial: TrendingUp,
+  marketing: Megaphone,
+  kpi: Gauge,
+  competitor: Swords,
+  chat: MessageSquare,
+};
 
 // Per-tab in-session memory: each mode keeps its own question/result/error/loading
 // so switching tabs never discards a generated analysis (they cost ~3 cents each).
@@ -101,12 +124,19 @@ export function AgentClient() {
     }
   }
 
+  const ActiveIcon = MODE_ICON[mode];
+
   return (
     <div className="space-y-5">
-      {/* ── Mode tabs ── */}
-      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label={t('subtitle')}>
+      {/* ── Mode tabs (segmented control) ── */}
+      <div
+        role="tablist"
+        aria-label={t('subtitle')}
+        className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-border bg-card p-1 shadow-elev-1"
+      >
         {MODES.map((m) => {
           const active = m === mode;
+          const Icon = MODE_ICON[m];
           return (
             <button
               key={m}
@@ -115,16 +145,18 @@ export function AgentClient() {
               aria-selected={active}
               onClick={() => selectMode(m)}
               className={cn(
-                'rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-60',
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-1',
                 active
-                  ? 'bg-sage-500 text-white'
-                  : 'border border-border-strong bg-card text-fg-2 hover:bg-muted hover:text-foreground',
+                  ? 'bg-sage-500 text-white shadow-sm'
+                  : 'text-fg-2 hover:bg-muted hover:text-foreground',
               )}
             >
+              <Icon className="h-4 w-4" aria-hidden />
               {t(`modes.${m}` as 'modes.financial')}
               {/* A subtle spinner marks a tab still analysing in the background. */}
               {states[m].loading && !active && (
-                <Loader2 className="ml-1.5 inline h-3 w-3 animate-spin align-[-2px]" aria-hidden />
+                <Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" aria-hidden />
               )}
             </button>
           );
@@ -132,7 +164,12 @@ export function AgentClient() {
       </div>
 
       {/* ── Action area ── */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-elev-1 space-y-3">
+      <div className="rounded-card border border-border bg-card p-5 shadow-card space-y-4">
+        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-fg-3">
+          <ActiveIcon className="h-3.5 w-3.5" aria-hidden />
+          {t(`modes.${mode}` as 'modes.financial')}
+        </div>
+
         {!isChat && (
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => run(false)} loading={current.loading} disabled={current.loading}>
@@ -172,45 +209,71 @@ export function AgentClient() {
         </div>
       </div>
 
-      {/* ── Result ── */}
-      <div className="rounded-lg border border-border bg-card p-5 shadow-elev-1 min-h-[160px]">
-        {current.loading && !current.result ? (
-          // Waiting for the first token.
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin text-sage-500" />
-            {isChat ? t('thinking') : t('analyzing')}
-          </div>
-        ) : current.result ? (
-          // Streaming or finished: render the markdown so far (react-markdown is
-          // resilient to partial markdown; GFM tables settle once complete).
-          <div>
-            <AnalysisMarkdown text={current.result} />
-            {current.loading && (
-              <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-sage-500 align-[-2px]" aria-hidden />
-            )}
-            {current.error && (
-              <p className="mt-3 flex items-center gap-2 text-sm text-danger-700">
-                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
-                {current.error}
-              </p>
-            )}
-          </div>
-        ) : current.error ? (
-          // Pre-stream error (no text arrived).
-          <div className="flex items-start gap-3 rounded-md border border-danger-500/30 bg-danger-500/5 p-4 text-sm text-danger-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            <span>{current.error}</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-sm text-muted-foreground">
-            <Bot className="h-8 w-8 opacity-40" />
-            {t('empty')}
-          </div>
-        )}
+      {/* ── Result (presented as a report card) ── */}
+      <div className="overflow-hidden rounded-card border border-border bg-card shadow-card">
+        {/* Report header: mode icon + name, with a live "typing" badge while streaming */}
+        <div className="flex items-center gap-2.5 border-b border-border px-5 py-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sage-50 text-sage-600 dark:bg-sage-700/30 dark:text-sage-300">
+            <ActiveIcon className="h-4 w-4" aria-hidden />
+          </span>
+          <p className="font-heading text-sm font-semibold leading-none text-foreground">
+            {t(`modes.${mode}` as 'modes.financial')}
+          </p>
+          {current.loading && (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-sage-600 dark:text-sage-300">
+              <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+              {isChat ? t('thinking') : t('analyzing')}
+            </span>
+          )}
+        </div>
+
+        <div className="min-h-[180px] p-5 sm:p-6">
+          {current.loading && !current.result ? (
+            // Waiting for the first token.
+            <div className="flex flex-col items-center justify-center gap-2 py-14 text-sm text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin text-sage-500 motion-reduce:animate-none" aria-hidden />
+              {isChat ? t('thinking') : t('analyzing')}
+            </div>
+          ) : current.result ? (
+            // Streaming or finished: render the markdown so far (react-markdown is
+            // resilient to partial markdown; GFM tables settle once complete).
+            <div>
+              <AnalysisMarkdown text={current.result} />
+              {current.loading && (
+                <span
+                  className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-sage-500 align-[-2px] motion-reduce:animate-none"
+                  aria-hidden
+                />
+              )}
+              {current.error && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-danger-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+                  {current.error}
+                </p>
+              )}
+            </div>
+          ) : current.error ? (
+            // Pre-stream error (no text arrived).
+            <div className="flex items-start gap-3 rounded-md border border-danger-500/30 bg-danger-500/5 p-4 text-sm text-danger-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <span>{current.error}</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-14 text-center text-sm text-muted-foreground">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-sage-50 text-sage-600 dark:bg-sage-700/30 dark:text-sage-300">
+                <Bot className="h-6 w-6" aria-hidden />
+              </span>
+              <span className="max-w-sm">{t('empty')}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Disclaimer (always visible) ── */}
-      <p className="text-center text-xs text-fg-3">{t('disclaimer')}</p>
+      <p className="flex items-center justify-center gap-1.5 text-center text-xs text-fg-3">
+        <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {t('disclaimer')}
+      </p>
     </div>
   );
 }
