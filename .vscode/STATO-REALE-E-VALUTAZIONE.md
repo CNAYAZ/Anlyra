@@ -730,3 +730,17 @@ Il prodotto è LANCIABILE appena arriva il via della Camera di Commercio. Flusso
 - Stripe TEST→LIVE quando arriva il via Camera di Commercio.
 - Pulizia DB (utenti temp-mail di test, org Michl/Demo User) + cambio password DB Supabase.
 - Rispondere a Martina quando risponde.
+---
+## 23. Aggiornamento 2026-07-19 (sera) — memoria tab + streaming AI + TestSprite
+
+### Agente AI — due migliorie
+- MEMORIA PER-TAB (AgentClient.tsx): ogni modalità ricorda result/question/error/loading durante la sessione. Cambiando tab non si perde più il risultato (niente rigenerazione = niente spreco ~3 cent). Loading per-tab: puoi lanciare un'analisi, cambiare tab, e trovarla pronta al ritorno (spinner inline sul tab in background). Solo in-sessione: si azzera al reload (voluto). Cronologia persistente nel DB = cantiere futuro (segnata, non fatta).
+- STREAMING (client.ts + route analyze + AgentClient.tsx): le risposte appaiono progressivamente (token per token) con cursore pulsante. Implementato SENZA rompere nulla: chatComplete invariata; aggiunta chatStream (async generator); la route streamma solo con flag opt-in `stream:true` nel body, altrimenti risponde JSON come prima (script e altri chiamanti non rotti). Errori 401/429/400/503/500 decisi PRIMA di aprire lo stream (restano JSON con status giusto). Tabelle markdown: react-markdown regge il parziale, si assestano a fine stream. SDK @anthropic-ai/sdk 0.32.1, client.messages.stream(). Testato in browser: fluido.
+
+### TestSprite (tool di test esterno)
+- Provato TestSprite (1 mese gratis) sul sito pubblico anlyra.com/vercel: 9 test UI (home, pricing, navigazione, login demo) tutti PASS. Sono test di SUPERFICIE (landing + login demo), NON coprono registrazione/onboarding/isolamento tenant/AI. Utili come sanity check, non come audit vero.
+- Esiste opzione MCP per far analizzare il CODICE (claude mcp add TestSprite). NON collegato: valutare più avanti se serve (rischio: molte segnalazioni/falsi positivi mentre il codice cambia). Se collegato: accesso repo sola-lettura, MAI .env/Vercel, filtrare i risultati insieme prima di agire.
+- ATTENZIONE per test futuri su produzione: un tool che clicca "Genera analisi" sull'agent brucia crediti Anthropic reali (~3 cent/click); il rate limit 20/10min protegge in parte. E crea dati di test nel DB prod (da ripulire).
+
+### Stato prodotto
+Agente AI completo e rifinito: 4 corsie distinte + chat, memoria per-tab, streaming. Cuore del prodotto solido. Resta: design pagina agent (non piace al founder), pulizia DB pre-lancio, cambio password Supabase, gating trial scaduto (a pagamenti live). Nessuno bloccante — lancio dipende da Camera di Commercio.
