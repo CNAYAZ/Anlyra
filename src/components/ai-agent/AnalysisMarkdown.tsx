@@ -11,7 +11,7 @@ const components: Components = {
     <h1 className="font-heading text-xl font-semibold text-foreground mt-6 mb-3 first:mt-0">{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="font-heading text-lg font-semibold text-foreground mt-6 mb-2 first:mt-0">{children}</h2>
+    <h2 className="font-heading text-lg font-semibold text-foreground mt-6 mb-3 first:mt-0 border-b border-border pb-1.5">{children}</h2>
   ),
   h3: ({ children }) => (
     <h3 className="font-heading text-base font-semibold text-foreground mt-4 mb-2 first:mt-0">{children}</h3>
