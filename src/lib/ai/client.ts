@@ -48,3 +48,30 @@ export async function chatComplete(
     tokensOut: res.usage?.output_tokens,
   };
 }
+
+/**
+ * Streaming counterpart of chatComplete: yields text deltas as they arrive, so
+ * the caller (the analyze route) can pipe them straight into an HTTP stream.
+ * Implemented as an async generator of plain strings — the cleanest shape for a
+ * Next.js App Router ReadableStream and it keeps every SDK detail inside this
+ * file. Same model/max_tokens as chatComplete and, like it, NEVER passes
+ * temperature (claude-sonnet-5 rejects it with a 400). chatComplete is left
+ * untouched (still used by scripts and as the non-streaming path).
+ */
+export async function* chatStream(
+  systemPrompt: string,
+  messages: ChatTurn[],
+): AsyncGenerator<string> {
+  const c = getAnthropicClient();
+  const stream = c.messages.stream({
+    model: ANTHROPIC_MODEL,
+    max_tokens: ANTHROPIC_MAX_TOKENS,
+    system: systemPrompt,
+    messages,
+  });
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      yield event.delta.text;
+    }
+  }
+}
