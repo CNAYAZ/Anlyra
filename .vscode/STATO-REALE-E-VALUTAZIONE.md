@@ -705,3 +705,28 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 - UI agent funziona ma "non piace" al founder → design da rifare.
 - Streaming risposte AI: ancora da fare (era nei piani, rimandato dopo la UI base).
 - Prompt financial/kpi/competitor da rifare con le corsie nette.
+---
+## 22. Aggiornamento 2026-07-19 — "corsie nette" complete su tutte le modalità di analisi
+
+Rifatti e validati (test tsx su demo-org) tutti e 4 i prompt di analisi, ognuno con corsia distinta per non sovrapporsi. Chat resta libera.
+
+- FINANCIAL (src/lib/ai/prompts/financial.ts): 4 aree — salute finanziaria (margini/redditività), cashflow & liquidità (runway approssimato, onesto sul fatto che è aggregato non bancario), taglio costi/sprechi (ragiona sugli aggregati se non disaggregati), proiezioni (per estrapolazione trend, dichiarata). Taglio mix analitico+pratico. Competitor rimossi dal data object per rinforzare la corsia.
+- MARKETING (marketing.ts): 4 aree — campagne ads (targeting/messaggi/creatività), canali & budget, contenuti & promozioni, posizionamento. Onesto: vede spesa ads ma non performance campagne → dà idee non numeri inventati.
+- KPI (kpi.ts): tabella metrica/valore/target/stato come cuore (semaforo 🟢🟡🔴 che RISPETTA il verso della metrica — churn/CAC bassi=meglio), focus critiche + perché, azioni prioritizzate, legami tra metriche (churn→LTV, conversion→CAC).
+- COMPETITOR (competitor.ts): 4 aree — quadro concorrenti, come sei messo tu vs loro, minacce & opportunità, come differenziarti. Usa la conoscenza di settore per arricchire MA marca sempre le ipotesi ("in generale…", "da verificare") distinguendole dai dati inseriti; NON inventa prezzi/funzioni dei competitor reali.
+
+Distinzione fine competitor vs marketing: competitor = analisi strategica dei concorrenti; marketing = posizionamento come messaggio/campagna. Dichiarata nei paletti di entrambi.
+
+Costo per analisi completa: ~2-3 cent. Tutte testate su demo-org con output di alta qualità.
+
+### Stato prodotto
+Il prodotto è LANCIABILE appena arriva il via della Camera di Commercio. Flusso registrazione→onboarding→dashboard isolata funziona end-to-end. Agente AI usabile in-app con 4 corsie distinte + chat. Email e dominio funzionanti. Pagamenti pronti (test).
+
+### PROSSIMI PASSI (nessuno bloccante)
+- Streaming risposte AI (parola per parola + stati "sta analizzando").
+- Design/UI pagina agent (funziona ma non piace al founder).
+- Analisi che si perdono cambiando tab → cache in-memory per tab.
+- Gating status-aware (bloccare feature a trial scaduto) — quando pagamenti live.
+- Stripe TEST→LIVE quando arriva il via Camera di Commercio.
+- Pulizia DB (utenti temp-mail di test, org Michl/Demo User) + cambio password DB Supabase.
+- Rispondere a Martina quando risponde.
