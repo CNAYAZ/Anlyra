@@ -5,6 +5,7 @@ import { getAuthContext } from '@/lib/session';
 import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
 import {
   chatComplete,
+  chatStream,
   isAnthropicConfigured,
   MISSING_KEY_MESSAGE,
   type ChatTurn,
@@ -39,6 +40,9 @@ const AnalyzeSchema = z.object({
   type: z.enum(['financial', 'marketing', 'kpi', 'competitor', 'chat']),
   question: z.string().min(1).max(4000).optional(),
   history: z.array(HistoryTurn).max(20).optional(),
+  // Opt-in: when true the response is a text stream of deltas; omitted/false
+  // keeps the original JSON envelope, so existing/other consumers are untouched.
+  stream: z.boolean().optional(),
 });
 
 type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
@@ -100,6 +104,37 @@ export async function POST(req: NextRequest) {
       : 'Genera un\'analisi completa della mia situazione.',
   });
 
+  // Streaming path (opt-in). All auth/rate-limit/validation/config errors above
+  // already returned JSON with the right status BEFORE we get here, so the stream
+  // only ever opens on a 200. An error raised AFTER the first byte cannot change
+  // the status: we log it and close the stream cleanly, leaving the client with
+  // whatever text already arrived (it surfaces a notice — see AgentClient).
+  if (parsed.data.stream) {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const chunk of chatStream(systemPrompt, messages)) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+        } catch (err) {
+          console.error('[ai/analyze] stream error:', err);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        // Disable proxy buffering so deltas reach the browser as they are produced.
+        'X-Accel-Buffering': 'no',
+      },
+    });
+  }
+
+  // Non-streaming path (unchanged): single JSON envelope.
   try {
     const result = await chatComplete(systemPrompt, messages);
     return ok({
