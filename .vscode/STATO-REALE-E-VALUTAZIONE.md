@@ -677,3 +677,31 @@ Scadenza rilanciata: lancio pubblico + pagamenti entro 14/07.
 - Route AI analyze orfana (nessuna UI) + non scala crediti.
 - DB da ripulire: utenti temp-mail di test + org "Michl"/"Demo User".
 - Cambiare password DB Supabase prima del lancio.
+---
+## 21. Aggiornamento 2026-07-18 (sera) — Agente AI usabile in-app + marketing operativo
+
+### Interfaccia agente AI (le 5 modalità ora sono USABILI, non più orfane)
+- Pagina /ai/agent ricostruita (era guscio decorativo): src/components/ai-agent/AgentClient.tsx + AnalysisMarkdown.tsx. 5 tab (Finanziaria/Marketing/KPI/Competitor/Chat), bottone "Genera analisi" + campo domanda libera, chiama POST /api/ai/analyze. Rendering markdown con react-markdown + remark-gfm (tabelle GFM rese bene). Disclaimer sempre visibile ("Anlyra è un'AI, può commettere errori, verifica"). Stati loading/errore per status (429/503/generico), anti doppio-invio. Chat = solo campo domanda (no "genera analisi").
+- FeatureGate ai_agent RIMOSSO dalla pagina (fase test: accessibile a ogni utente loggato). Protezione resta lato server (getAuthContext + rate limit). Da rimettere quando si definiscono i piani.
+- Testato in prod: funziona, analisi formattata, costo ~3 cent/analisi completa.
+- Nav: "Agent" promosso a voce top-level della sidebar (era sotto-voce di AI). AI conserva chat/insights/forecasting/benchmarks/alerts.
+- Dipendenze nuove: react-markdown ^10, remark-gfm ^4.
+
+### Prompt: "corsie nette" per non sovrapporsi
+- Problema rilevato usando l'app: le modalità dicevano cose simili in modo diverso (stessi dati, prompt simili).
+- Soluzione: corsie distinte. financial=soldi (no clienti/marketing); kpi=metriche vs target (no strategia); marketing=crescita operativa; competitor=concorrenti; chat=libera.
+- MARKETING RIFATTO (validato in test): ora produce 4 aree concrete — 1) Campagne Ads (targeting/messaggi/creatività), 2) Canali & Budget (ripartizione), 3) Contenuti & Promozioni, 4) Posizionamento vs competitor. Onesto sui dati mancanti (vede spesa ads dai pagamenti ma NON performance campagne → dà idee, non numeri inventati). Non scivola più nell'analisi commerciale generica.
+- DA FARE: applicare le "corsie nette" anche a financial, kpi, competitor (una per una, come il marketing). Chat resta libera.
+
+### Idea futura (segnalata, NON ora)
+- Integrazione Google Ads / Meta Ads (API) per avere le performance reali delle campagne. Cantiere serio (OAuth, mantenimento). Rimandato: nessun cliente l'ha chiesto, i primi lead (Martina candele, Alberto artigiano) probabilmente non hanno campagne strutturate. Va nella sezione Integrazioni quando servirà.
+
+### Messaggio Martina INVIATO
+- WhatsApp mandato: riaggancio + "siamo in fase burocratica, ti avviso appena apriamo" (lista d'attesa, no accesso immediato). In attesa di risposta.
+- Alberto: hobbista (braccialetti/collane a mano) → lead debole, Anlyra sovradimensionata. Deciso di NON forzare, concentrarsi su Martina.
+
+### DEBITI/FOLLOW-UP aggiornati
+- Analisi generate si perdono cambiando tab (voluto, ma scomodo): valutare cache in-memory dei risultati per tab.
+- UI agent funziona ma "non piace" al founder → design da rifare.
+- Streaming risposte AI: ancora da fare (era nei piani, rimandato dopo la UI base).
+- Prompt financial/kpi/competitor da rifare con le corsie nette.
