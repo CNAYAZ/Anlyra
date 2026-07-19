@@ -744,3 +744,8 @@ Il prodotto è LANCIABILE appena arriva il via della Camera di Commercio. Flusso
 
 ### Stato prodotto
 Agente AI completo e rifinito: 4 corsie distinte + chat, memoria per-tab, streaming. Cuore del prodotto solido. Resta: design pagina agent (non piace al founder), pulizia DB pre-lancio, cambio password Supabase, gating trial scaduto (a pagamenti live). Nessuno bloccante — lancio dipende da Camera di Commercio.
+### Pulizia DB pre-lancio FATTA (19/07)
+Rimossi 11 utenti temp-mail di test + 4 org spazzatura (Demo User x2, Michl, Test 1). Rimasti: demo-org (Acme Analytics) + demo@pro.app + 2 Gmail reali (merthakkitakak@, mikailipek225@) da tenere. DB pulito per i clienti veri. Script cleanup usato e non committato.
+
+### UI agent — refresh estetico FATTO
+Pagina agent ridisegnata coerente con lo stile dell'app (tile-icona sage, segmented control per le 5 tab con icone, risultato come "report", stati curati). Logica intatta. Approvato dal founder.
