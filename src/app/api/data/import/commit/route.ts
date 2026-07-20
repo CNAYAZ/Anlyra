@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
@@ -127,6 +128,10 @@ export async function POST(req: NextRequest) {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
     const { userId, organizationId } = authCtx;
+
+    // Expired trial (or past_due) is read-only: block committing an import.
+    const access = await requireActiveAccess(organizationId);
+    if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID_BODY', 400);

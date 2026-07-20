@@ -11,6 +11,7 @@ import {
   type ChatTurn,
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
@@ -59,6 +60,12 @@ export async function POST(req: NextRequest) {
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
   const { organizationId } = ctx;
+
+  // Trial/subscription gate: an expired trial (or past_due) is read-only and may
+  // not run the AI. Blocked BEFORE the rate limit and any AI call, so no credits
+  // are spent. active/trialing pass straight through, unchanged.
+  const access = await requireActiveAccess(organizationId);
+  if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
   // Rate limit per IP+org — AI calls are expensive, so guard against abuse.
   // Fails open if the limiter is not configured (see rate-limit.ts).

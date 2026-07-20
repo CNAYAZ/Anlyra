@@ -1190,7 +1190,8 @@
     "errors": {
       "rateLimit": "Too many requests. Please try again shortly.",
       "notConfigured": "AI is not configured. Please contact support.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "trialExpired": "Your trial has ended. Subscribe to keep using this feature."
     }
   },
   "dataImport": {

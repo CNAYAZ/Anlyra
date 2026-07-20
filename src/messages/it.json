@@ -1190,7 +1190,8 @@
     "errors": {
       "rateLimit": "Troppe richieste. Riprova tra poco.",
       "notConfigured": "AI non configurata. Contatta il supporto.",
-      "generic": "Si è verificato un errore. Riprova."
+      "generic": "Si è verificato un errore. Riprova.",
+      "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione."
     }
   },
   "dataImport": {
