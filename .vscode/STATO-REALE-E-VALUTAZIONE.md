@@ -764,3 +764,13 @@ Chiuso il limite noto (gating era plan-only, ignorava lo status → trial scadut
 - P.IVA: pagata oggi, oggi parte il processo Camera di Commercio (14-20 gg per il via → poi Stripe LIVE).
 - Martina: non ha (ancora) risposto al WhatsApp. Non insistere; riagganciare quando si apre davvero (notizia concreta).
 EOF
+cat >> .vscode/STATO-REALE-E-VALUTAZIONE.md << 'EOF'
+
+## 25. Aggiornamento 2026-07-20 — UI trial scaduto (banner + messaggio import)
+- TrialExpiredBanner (src/components/billing/TrialExpiredBanner.tsx): striscia in alto nella dashboard (sotto Topbar), appare SOLO se status non in {active,trialing}. Testo + bottone "Abbonati" → /settings/billing (locale-aware). Non copre i dati (border-b che spinge il contenuto giù, non overlay). Legge useBilling().state.status.
+- Pagina import: il 402 TRIAL_EXPIRED ora mostra messaggio dedicato invece del codice grezzo.
+- Verificato: demo (active) NON mostra il banner e non è bloccata. Logica confermata: org senza subscription = canceled = banner+blocco.
+- Nota terminale: bash espande '!!' come history (→ inserisce l'ultimo comando negli script inline). Evitare '!' nei comandi inline; usare Boolean() non '!!', e preferire script su file dentro il progetto.
+
+### Gating trial scaduto: COMPLETO end-to-end
+Server (402 su AI+scritture) + UI (banner dashboard + messaggio import). Il "buco" del PRO regalato a vita è chiuso in ogni aspetto. Follow-up minori possibili (bloccare anche endpoint di scrittura secondari: receivables/recurring PATCH-DELETE, custom-dashboards, reports) ma non critici.
