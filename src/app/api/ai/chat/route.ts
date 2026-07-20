@@ -4,6 +4,7 @@ import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import {
   chatComplete,
   isAnthropicConfigured,
@@ -60,6 +61,11 @@ export async function POST(req: NextRequest) {
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
   const { userId, organizationId } = ctx;
+
+  // Trial/subscription gate: an expired trial is read-only — block the chat AI
+  // before consuming any credits or calling the model. active/trialing pass through.
+  const access = await requireActiveAccess(organizationId);
+  if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
   const json = await req.json().catch(() => null);
   const parsed = SendSchema.safeParse(json);

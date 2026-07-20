@@ -4,6 +4,7 @@ import { getAuthContext } from '@/lib/session';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,12 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     if (cached) {
       return ok({ ...cached, cached: true });
     }
+
+    // Trial/subscription gate: block a NEW (credit-charging) AI analysis for an
+    // expired trial. Placed AFTER the cache check so an already-generated analysis
+    // stays readable (read-only access), but no new AI call is ever made.
+    const access = await requireActiveAccess(organizationId);
+    if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
     // 3. Credit guard BEFORE any AI call. Cheaper failure path.
     const org = await prisma.organization.findUniqueOrThrow({
