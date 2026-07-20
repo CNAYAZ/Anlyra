@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { CreditsHydrator } from '@/components/dashboard/CreditsHydrator';
+import { TrialExpiredBanner } from '@/components/billing/TrialExpiredBanner';
 import { getCurrentOrganization, getSessionState } from '@/lib/session';
 import { getCreditBalance, getBillingState } from '@/lib/billing/repository';
 import { BillingProvider } from '@/lib/billing/context';
@@ -55,6 +56,9 @@ export default async function DashboardLayout({
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar />
+          {/* Read-only strip for expired trials (renders null for active/trialing).
+              A strip that pushes content down, never an overlay — data stays visible. */}
+          <TrialExpiredBanner />
           <main className="flex-1 p-6">
             <div className="mx-auto w-full max-w-[1440px]">{children}</div>
           </main>

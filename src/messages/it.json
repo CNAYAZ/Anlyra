@@ -1702,7 +1702,12 @@
       "info": "7 giorni di prova · Carta richiesta · Cancella in 1 click"
     },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
-    "managePortalError": "Impossibile aprire il portale. Riprova."
+    "managePortalError": "Impossibile aprire il portale. Riprova.",
+    "trialExpiredBanner": {
+      "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
+      "cta": "Abbonati"
+    },
+    "trialExpiredImport": "Il periodo di prova è terminato. Abbonati per continuare."
   },
   "pricing": {
     "hero": {
