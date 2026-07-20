@@ -749,3 +749,18 @@ Rimossi 11 utenti temp-mail di test + 4 org spazzatura (Demo User x2, Michl, Tes
 
 ### UI agent — refresh estetico FATTO
 Pagina agent ridisegnata coerente con lo stile dell'app (tile-icona sage, segmented control per le 5 tab con icone, risultato come "report", stati curati). Logica intatta. Approvato dal founder.
+cat >> .vscode/STATO-REALE-E-VALUTAZIONE.md << 'EOF'
+
+## 24. Aggiornamento 2026-07-20 — gating trial scaduto FATTO
+
+Chiuso il limite noto (gating era plan-only, ignorava lo status → trial scaduto aveva ancora feature PRO).
+- Nuova helper requireActiveAccess(orgId) in src/lib/billing/server-gate.ts: allowed = status ∈ {active,trialing}.
+- Blocco server-side (402 TRIAL_EXPIRED) PRIMA di chiamare l'AI/scrivere, su: ai/analyze, ai/chat, ai/alerts/[id]/analyze (tutte le vie AI che consumano crediti) + data/manual, data/import/commit, receivables POST, recurring-expenses POST (scritture).
+- Ricognizione utile: la maggior parte degli "endpoint AI" del menu NON chiama l'AI (insights/generate è stub; benchmarks/forecasting/insights sono GET; alerts/check|refresh sono a regole; reports/generate è PDF su sample). Bloccati solo i 3 che consumano crediti davvero.
+- A trial scaduto: dashboard e dati VISIBILI in sola lettura, niente si cancella; AI e scrittura bloccate con messaggio "abbonati per continuare" (UI agent). active/trialing INVARIATI (verificato: demo-org ADVANCED = active, org senza sub = canceled).
+- Follow-up NON urgente: messaggio dedicato TRIAL_EXPIRED nella UI import (ora generico) + banner dashboard "prova scaduta". Il blocco server funziona già; è solo cosmetica.
+
+### Contesto esterno (20/07)
+- P.IVA: pagata oggi, oggi parte il processo Camera di Commercio (14-20 gg per il via → poi Stripe LIVE).
+- Martina: non ha (ancora) risposto al WhatsApp. Non insistere; riagganciare quando si apre davvero (notizia concreta).
+EOF
