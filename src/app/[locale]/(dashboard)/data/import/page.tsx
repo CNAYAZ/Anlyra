@@ -34,6 +34,7 @@ const STEPS: Step[] = ['target', 'upload', 'mapping', 'preview', 'result'];
 
 export default function DataImportPage() {
   const t = useTranslations('dataImport');
+  const tBilling = useTranslations('billing');
   const [step, setStep] = useState<Step>('target');
   const [targetKey, setTargetKey] = useState<ImportTargetKey | null>(null);
   const [previewData, setPreviewData] = useState<PreviewResponse | null>(null);
@@ -145,7 +146,9 @@ export default function DataImportPage() {
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
           <X className="h-4 w-4" />
-          <span>{error}</span>
+          {/* The commit endpoint returns 'TRIAL_EXPIRED' (402) when the trial has
+              ended — surface the dedicated upsell message instead of the raw code. */}
+          <span>{error === 'TRIAL_EXPIRED' ? tBilling('trialExpiredImport') : error}</span>
         </div>
       )}
 

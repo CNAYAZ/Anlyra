@@ -1702,7 +1702,12 @@
       "info": "7-day trial · Card required · Cancel in 1 click"
     },
     "managePortalNoSub": "No active subscription to manage.",
-    "managePortalError": "Could not open the billing portal. Please try again."
+    "managePortalError": "Could not open the billing portal. Please try again.",
+    "trialExpiredBanner": {
+      "message": "Your trial has ended. Subscribe to keep using all features.",
+      "cta": "Subscribe"
+    },
+    "trialExpiredImport": "Your trial has ended. Subscribe to continue."
   },
   "pricing": {
     "hero": {
