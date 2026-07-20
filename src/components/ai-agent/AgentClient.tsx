@@ -96,11 +96,13 @@ export function AgentClient() {
       if (!res.ok || !res.body) {
         patch(m, {
           error:
-            res.status === 429
-              ? t('errors.rateLimit')
-              : res.status === 503
-                ? t('errors.notConfigured')
-                : t('errors.generic'),
+            res.status === 402
+              ? t('errors.trialExpired')
+              : res.status === 429
+                ? t('errors.rateLimit')
+                : res.status === 503
+                  ? t('errors.notConfigured')
+                  : t('errors.generic'),
           loading: false,
         });
         return;

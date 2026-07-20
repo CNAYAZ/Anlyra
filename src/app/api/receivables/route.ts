@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 import type { ReceivableStatus, ReceivableTotals } from '@/types/receivable';
 
@@ -71,6 +72,10 @@ export async function POST(req: Request) {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
     const { organizationId } = authCtx;
+
+    // Expired trial (or past_due) is read-only: block creating a receivable.
+    const access = await requireActiveAccess(organizationId);
+    if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
     const json = await req.json().catch(() => null);
     const parsed = CreateSchema.safeParse(json);
     if (!parsed.success) return fail('INVALID_INPUT', 400);
