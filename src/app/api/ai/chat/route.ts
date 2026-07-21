@@ -4,6 +4,7 @@ import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import { AI_CREDIT_COST } from '@/lib/ai/credit-cost';
 import {
   chatComplete,
   isAnthropicConfigured,
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   let creditsRemaining: number;
   try {
-    creditsRemaining = await consumeCredits(organizationId, 1);
+    creditsRemaining = await consumeCredits(organizationId, AI_CREDIT_COST.chat);
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);

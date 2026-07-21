@@ -12,6 +12,8 @@ import {
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
+import { getCredits, consumeCredits } from '@/lib/credits';
+import { AI_CREDIT_COST } from '@/lib/ai/credit-cost';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
@@ -111,6 +113,15 @@ export async function POST(req: NextRequest) {
       : 'Genera un\'analisi completa della mia situazione.',
   });
 
+  // Credits: check sufficiency BEFORE calling the AI (don't generate for free /
+  // don't spend on a broke org), then actually DECREMENT only AFTER a successful
+  // generation (so a failed AI call is never charged). This is what makes the DB
+  // balance drop and stay dropped — the previous code never consumed here.
+  const cost = AI_CREDIT_COST.analyze;
+  if ((await getCredits(organizationId)) < cost) {
+    return fail('INSUFFICIENT_CREDITS', 402);
+  }
+
   // Streaming path (opt-in). All auth/rate-limit/validation/config errors above
   // already returned JSON with the right status BEFORE we get here, so the stream
   // only ever opens on a 200. An error raised AFTER the first byte cannot change
@@ -124,6 +135,12 @@ export async function POST(req: NextRequest) {
           for await (const chunk of chatStream(systemPrompt, messages)) {
             controller.enqueue(encoder.encode(chunk));
           }
+          // Charge only after a fully successful generation. Best-effort: a rare
+          // race (concurrent last-credit spend) throws InsufficientCreditsError,
+          // which we swallow rather than corrupt the already-delivered response.
+          await consumeCredits(organizationId, cost).catch((e) => {
+            console.error('[ai/analyze] consumeCredits failed post-stream:', e);
+          });
         } catch (err) {
           console.error('[ai/analyze] stream error:', err);
         } finally {
@@ -141,9 +158,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Non-streaming path (unchanged): single JSON envelope.
+  // Non-streaming path: single JSON envelope. Charge after a successful generation.
   try {
     const result = await chatComplete(systemPrompt, messages);
+    await consumeCredits(organizationId, cost).catch((e) => {
+      console.error('[ai/analyze] consumeCredits failed:', e);
+    });
     return ok({
       text: result.text,
       tokensIn: result.tokensIn,

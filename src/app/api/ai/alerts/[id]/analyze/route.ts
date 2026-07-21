@@ -4,12 +4,13 @@ import { getAuthContext } from '@/lib/session';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
+import { AI_CREDIT_COST } from '@/lib/ai/credit-cost';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Credits charged per AI alert analysis. Aligned with the insights pattern.
-const ANALYSIS_CREDIT_COST = 1;
+// Credits charged per AI alert analysis, from the central cost source.
+const ANALYSIS_CREDIT_COST = AI_CREDIT_COST.alertAnalyze;
 
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
   try {

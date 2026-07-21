@@ -1191,7 +1191,8 @@
       "rateLimit": "Troppe richieste. Riprova tra poco.",
       "notConfigured": "AI non configurata. Contatta il supporto.",
       "generic": "Si è verificato un errore. Riprova.",
-      "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione."
+      "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione.",
+      "insufficientCredits": "Crediti AI insufficienti. Acquista altri crediti o passa a un piano superiore per continuare."
     }
   },
   "dataImport": {

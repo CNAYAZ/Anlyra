@@ -94,10 +94,18 @@ export function AgentClient() {
       });
 
       if (!res.ok || !res.body) {
+        // 402 covers two distinct reasons — read the body to tell an expired
+        // trial from an out-of-credits balance and show the right message.
+        let code: string | undefined;
+        if (res.status === 402) {
+          code = ((await res.json().catch(() => null)) as { error?: string } | null)?.error;
+        }
         patch(m, {
           error:
             res.status === 402
-              ? t('errors.trialExpired')
+              ? code === 'INSUFFICIENT_CREDITS'
+                ? t('errors.insufficientCredits')
+                : t('errors.trialExpired')
               : res.status === 429
                 ? t('errors.rateLimit')
                 : res.status === 503

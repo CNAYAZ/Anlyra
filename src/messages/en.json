@@ -1191,7 +1191,8 @@
       "rateLimit": "Too many requests. Please try again shortly.",
       "notConfigured": "AI is not configured. Please contact support.",
       "generic": "Something went wrong. Please try again.",
-      "trialExpired": "Your trial has ended. Subscribe to keep using this feature."
+      "trialExpired": "Your trial has ended. Subscribe to keep using this feature.",
+      "insufficientCredits": "Not enough AI credits. Buy more credits or upgrade your plan to continue."
     }
   },
   "dataImport": {
