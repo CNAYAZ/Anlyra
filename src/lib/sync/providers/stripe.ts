@@ -1,46 +1,12 @@
-import { prisma } from "@/lib/prisma";
-import type { SyncProvider, SyncResult } from "@/lib/sync/types";
-import type { Integration } from "@prisma/client";
+import { makeStubProvider } from "@/lib/sync/providers/stub";
 
-const SAMPLE_DESCRIPTIONS = [
-  "Subscription payment",
-  "One-time charge",
-  "Refund",
-  "Invoice payment",
-  "Plan upgrade",
-];
-
-function randomBetween(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]!;
-}
-
-export const stripeProvider: SyncProvider = {
-  id: "stripe",
-  async sync(integration: Integration): Promise<SyncResult> {
-    const count = Math.floor(randomBetween(8, 20));
-    const now = Date.now();
-    const records = Array.from({ length: count }, (_, i) => {
-      const occurredAt = new Date(now - i * 1000 * 60 * 60 * randomBetween(1, 8));
-      const amount = Number(randomBetween(15, 1200).toFixed(2));
-      const isRefund = Math.random() < 0.1;
-      return {
-        organizationId: integration.organizationId,
-        source: "stripe",
-        type: isRefund ? "refund" : "payment",
-        amount: isRefund ? -amount : amount,
-        currency: "EUR",
-        description: pick(SAMPLE_DESCRIPTIONS),
-        externalId: `pi_sim_${integration.id.slice(0, 6)}_${now}_${i}`,
-        occurredAt,
-      };
-    });
-
-    await prisma.financialRecord.createMany({ data: records });
-
-    return { recordsCount: records.length };
-  },
-};
+// The Stripe sync provider is NOT implemented yet. It previously fabricated
+// random FinancialRecord rows (Math.random amounts/dates) and wrote them to the
+// database, which polluted real financial data while pretending a sync happened.
+// Until a real Stripe API integration exists, this behaves like every other
+// unimplemented provider: it writes nothing and fails honestly, so the sync
+// manager records the failure in SyncLog.
+//
+// NOTE: this is the DATA-SYNC integration, unrelated to the real Stripe billing
+// under /api/billing/*, /api/webhooks/stripe and src/lib/billing/* — do not merge.
+export const stripeProvider = makeStubProvider("stripe");
