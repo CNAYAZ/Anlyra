@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
-import { ConnectionWizard } from "@/components/integrations/ConnectionWizard";
 import { IntegrationManager } from "@/components/integrations/IntegrationManager";
 import {
   SyncLogTable,
@@ -92,10 +91,14 @@ export default async function ProviderPage({ params }: Props) {
           lastSyncAt={integration.lastSyncAt?.toISOString() ?? null}
         />
       ) : (
-        <ConnectionWizard
-          providerId={definition.id}
-          providerName={definition.name}
-        />
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-2 font-heading text-lg font-semibold text-foreground">
+            {t("comingSoon")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("comingSoonHint")}
+          </p>
+        </div>
       )}
 
       <section className="mt-10">

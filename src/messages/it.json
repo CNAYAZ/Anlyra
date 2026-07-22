@@ -1981,6 +1981,8 @@
     "upgrade": "Aggiorna piano",
     "lastSync": "Ultima sincronizzazione",
     "neverSynced": "Mai sincronizzato",
+    "comingSoon": "In arrivo",
+    "comingSoonHint": "Le integrazioni non sono ancora disponibili. Questo provider è nella roadmap: presto potrai collegarlo per sincronizzare i dati.",
     "frequency": {
       "label": "Frequenza sync",
       "H6": "Ogni 6 ore",
