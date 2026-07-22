@@ -1,14 +1,19 @@
-import { z } from "zod";
-import { fail, ok } from "@/lib/api/response";
-import { prisma } from "@/lib/prisma";
+import { fail } from "@/lib/api/response";
 import { getAuthContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
-import { planMeets } from "@/lib/plan/feature-gate";
 
-const Body = z.object({ apiKey: z.string().min(4) });
-
+// Data-sync integrations are NOT available yet. This endpoint previously faked a
+// connection: it accepted ANY string >= 4 chars as an "API key", stored it in
+// CLEARTEXT, marked the integration CONNECTED and forced the org plan to 'PRO'
+// to bypass the feature gate — while none of the 6 providers actually connect.
+// Until a real provider integration exists it connects NOTHING: no credential is
+// stored, the CONNECTED status is never set, and the organization plan is never
+// touched. It fails honestly, like every other unimplemented provider.
+//
+// NOTE: this is the DATA-SYNC integration, unrelated to the real Stripe BILLING
+// under /api/billing/*, /api/webhooks/stripe and src/lib/billing/* — do not merge.
 export async function POST(
-  req: Request,
+  _req: Request,
   { params }: { params: { provider: string } },
 ) {
   const definition = getIntegration(params.provider);
@@ -16,34 +21,6 @@ export async function POST(
 
   const authCtx = await getAuthContext();
   if (!authCtx) return fail("Unauthorized", 401);
-  const { organizationId } = authCtx;
-  const org = { id: organizationId, plan: 'PRO' as const };
-  if (!planMeets(org.plan, definition.requiredPlan)) {
-    return fail(`Requires plan ${definition.requiredPlan}`, 403);
-  }
 
-  const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return fail("Invalid request body", 400);
-
-  const integration = await prisma.integration.upsert({
-    where: {
-      organizationId_provider: {
-        organizationId: org.id,
-        provider: definition.id,
-      },
-    },
-    create: {
-      organizationId: org.id,
-      provider: definition.id,
-      status: "CONNECTED",
-      apiKey: parsed.data.apiKey,
-    },
-    update: {
-      status: "CONNECTED",
-      apiKey: parsed.data.apiKey,
-    },
-    select: { id: true, status: true, provider: true },
-  });
-
-  return ok(integration);
+  return fail("Integration not available yet", 503);
 }
