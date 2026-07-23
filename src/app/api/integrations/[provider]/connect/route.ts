@@ -1,5 +1,6 @@
 import { fail } from "@/lib/api/response";
 import { getAuthContext } from "@/lib/session";
+import { requireManagerRole } from "@/lib/auth/require-role";
 import { getIntegration } from "@/lib/integrations/registry";
 
 // Data-sync integrations are NOT available yet. This endpoint previously faked a
@@ -21,6 +22,8 @@ export async function POST(
 
   const authCtx = await getAuthContext();
   if (!authCtx) return fail("Unauthorized", 401);
+  const denied = requireManagerRole(authCtx);
+  if (denied) return denied;
 
   return fail("Integration not available yet", 503);
 }

@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireManagerRole } from '@/lib/auth/require-role';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 
 export const runtime = 'nodejs';
@@ -70,6 +71,8 @@ export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    const denied = requireManagerRole(authCtx);
+    if (denied) return denied;
     const { organizationId } = authCtx;
     const existing = await prisma.receivable.findFirst({
       where: { id: ctx.params.id, organizationId },
