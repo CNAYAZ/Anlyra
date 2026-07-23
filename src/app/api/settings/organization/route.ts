@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireManagerRole } from '@/lib/auth/require-role';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,8 @@ export async function PATCH(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    const denied = requireManagerRole(authCtx);
+    if (denied) return denied;
     const { organizationId } = authCtx;
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);

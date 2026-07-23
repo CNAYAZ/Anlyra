@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { requireManagerRole } from "@/lib/auth/require-role";
 import { ok, fail } from "@/lib/api";
 
 const updateSchema = z.object({
@@ -51,6 +52,8 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext();
     if (!ctx) return fail("Unauthorized", 401);
+    const denied = requireManagerRole(ctx);
+    if (denied) return denied;
     const orgId = ctx.organizationId;
     const competitor = await prisma.competitor.findFirst({
       where: { id: params.id, organizationId: orgId },
