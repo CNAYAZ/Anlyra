@@ -65,15 +65,24 @@ function trendLast3VsPrev3(sorted: [string, number][]): Trend | null {
   };
 }
 
+/**
+ * Whole days a receivable has been overdue as of `now`; 0 if not yet due.
+ * Single source of truth for this calculation — reused wherever a day-count is
+ * needed (this rule, and the AI context) instead of being recomputed ad hoc.
+ */
+export function daysOverdueOf(dueDate: Date, now: Date): number {
+  const today = startOfToday(now);
+  return Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86_400_000));
+}
+
 // Rule 1 — overdue receivables: real total + distinct customers + how overdue, in days.
 function ruleOverdueReceivables(receivables: Receivable[], now: Date): FinancialFact | null {
-  const today = startOfToday(now);
   const overdue = receivables.filter((r) => effectiveStatus(r, now) === 'OVERDUE');
   if (overdue.length === 0) return null;
 
   const total = overdue.reduce((s, r) => s + r.amount, 0);
   const distinctCustomers = new Set(overdue.map((r) => r.customerName)).size;
-  const daysOverdue = overdue.map((r) => Math.floor((today.getTime() - r.dueDate.getTime()) / 86_400_000));
+  const daysOverdue = overdue.map((r) => daysOverdueOf(r.dueDate, now));
   const minDaysOverdue = Math.min(...daysOverdue);
   const maxDaysOverdue = Math.max(...daysOverdue);
   const customerWord = distinctCustomers === 1 ? 'cliente' : 'clienti';

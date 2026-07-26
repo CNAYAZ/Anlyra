@@ -41,7 +41,7 @@ export function buildChatPrompt(ctx: AIBusinessContext): string {
 
     // ── DATI REALI ──
     `DATI DELL'AZIENDA (JSON): ${JSON.stringify(data)}.`,
-    `Note di lettura: "finanze_ultimi_mesi" ha revenue/costs/margin per mese; "segnalazioni" sono fatti già calcolati (titolo + descrizione + valori) su crediti scaduti, spese vs entrate e trend; "scadenzario" e "spese_ricorrenti", quando presenti, riportano i totali reali e le prime righe — se una sezione è assente, l'azienda non ha ancora registrato quel tipo di dato: dillo, non presumere un valore. ${dataDepthNote}`,
+    `Note di lettura: "finanze_ultimi_mesi" ha revenue/costs/margin per mese; "segnalazioni" sono fatti già calcolati (titolo + descrizione + valori) su crediti scaduti, spese vs entrate e trend; "scadenzario" e "spese_ricorrenti", quando presenti, riportano i totali reali e le prime righe — se una sezione è assente, l'azienda non ha ancora registrato quel tipo di dato: dillo, non presumere un valore. Nello scadenzario, ogni credito scaduto ha già un campo "daysOverdue" con i giorni di ritardo calcolati correttamente: usa SEMPRE quel valore, non calcolare MAI tu la differenza tra "dueDate" e la data di oggi (puoi sbagliare il conteggio). ${dataDepthNote}`,
 
     // ── PALETTI (restare sul tema) ──
     "Resta sempre sul business, sulla gestione e sui dati dell'azienda. Se l'utente chiede qualcosa fuori tema (es. meteo, poesie, argomenti non attinenti), riporta con garbo la conversazione al tuo scopo, senza essere sgradevole: chiarisci che sei l'assistente business di Anlyra e proponi in che modo puoi essere utile.",

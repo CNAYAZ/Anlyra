@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { getFinancialFacts } from './facts/financial-facts';
+import { getFinancialFacts, daysOverdueOf } from './facts/financial-facts';
 import { effectiveStatus } from './receivables/dto';
 import { computeTotals } from './recurring-expenses/dto';
 import type { Receivable, RecurringExpense } from '@prisma/client';
@@ -18,7 +18,15 @@ export type AIBusinessContext = {
     totalOverdue: number;
     overdueCount: number;
     openCount: number;
-    items: { customerName: string; amount: number; dueDate: string; status: 'OPEN' | 'OVERDUE' }[];
+    /** dueDate is a plain YYYY-MM-DD calendar date (UTC-extracted, no time/offset) — it matches the DB value exactly, independent of any viewer timezone. */
+    items: {
+      customerName: string;
+      amount: number;
+      dueDate: string;
+      status: 'OPEN' | 'OVERDUE';
+      /** Precomputed whole days overdue (same formula as the facts engine) — absent for OPEN items. Never recompute this from dueDate. */
+      daysOverdue?: number;
+    }[];
   };
   /** Omitted entirely when the org has no RecurringExpense rows at all. */
   recurringExpensesSummary?: {
@@ -93,6 +101,7 @@ export async function loadBusinessContext(organizationId: string): Promise<AIBus
         amount: r.amount,
         dueDate: r.dueDate.toISOString().slice(0, 10),
         status: r.effStatus as 'OPEN' | 'OVERDUE',
+        daysOverdue: r.effStatus === 'OVERDUE' ? daysOverdueOf(r.dueDate, now) : undefined,
       })),
     };
   }
@@ -144,6 +153,7 @@ export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 
     `Sei un analista business esperto. Stai analizzando i dati REALI di ${ctx.company}, azienda ${ctx.industry} con ${ctx.employees} dipendenti.`,
     `Ecco i dati disponibili (JSON): ${JSON.stringify(data)}.`,
     'Usa SOLO i numeri contenuti in questi dati: non inventarli e non stimarli. Se un dato che ti servirebbe non è presente (es. una sezione assente perché non ci sono ancora dati per quella categoria), dillo esplicitamente invece di supporre un valore.',
+    'Per il scadenzario: ogni credito scaduto ha già un campo "daysOverdue" con i giorni di ritardo calcolati correttamente. Usa SEMPRE quel valore così com\'è: non calcolare MAI tu stesso la differenza tra la dueDate e la data di oggi, anche se ti sembra di poterlo fare — puoi sbagliare il conteggio.',
     `Rispondi in ${lang}, sii specifico, usa i numeri reali, dai suggerimenti concreti.`,
   ].join(' ');
 }
