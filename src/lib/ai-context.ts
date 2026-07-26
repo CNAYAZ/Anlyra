@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { getFinancialFacts, daysOverdueOf } from './facts/financial-facts';
 import { effectiveStatus } from './receivables/dto';
 import { computeTotals } from './recurring-expenses/dto';
+import { toAppDateString } from './timezone';
 import type { Receivable, RecurringExpense } from '@prisma/client';
 
 export type AIBusinessContext = {
@@ -18,7 +19,7 @@ export type AIBusinessContext = {
     totalOverdue: number;
     overdueCount: number;
     openCount: number;
-    /** dueDate is a plain YYYY-MM-DD calendar date (UTC-extracted, no time/offset) — it matches the DB value exactly, independent of any viewer timezone. */
+    /** dueDate is a plain YYYY-MM-DD calendar date in the Europe/Rome timezone — matches exactly what the user sees in the Scadenzario page. */
     items: {
       customerName: string;
       amount: number;
@@ -37,7 +38,7 @@ export type AIBusinessContext = {
 };
 
 function monthKey(d: Date): string {
-  return d.toISOString().slice(0, 7);
+  return toAppDateString(d).slice(0, 7);
 }
 
 export async function loadBusinessContext(organizationId: string): Promise<AIBusinessContext> {
@@ -99,7 +100,7 @@ export async function loadBusinessContext(organizationId: string): Promise<AIBus
       items: prioritized.slice(0, 10).map((r: WithStatus) => ({
         customerName: r.customerName,
         amount: r.amount,
-        dueDate: r.dueDate.toISOString().slice(0, 10),
+        dueDate: toAppDateString(r.dueDate),
         status: r.effStatus as 'OPEN' | 'OVERDUE',
         daysOverdue: r.effStatus === 'OVERDUE' ? daysOverdueOf(r.dueDate, now) : undefined,
       })),
