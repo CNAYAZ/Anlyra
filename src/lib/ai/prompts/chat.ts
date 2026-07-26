@@ -16,14 +16,18 @@ export function buildChatPrompt(ctx: AIBusinessContext): string {
     settore: ctx.industry,
     dipendenti: ctx.employees,
     finanze_ultimi_mesi: ctx.financials, // [{ month, revenue, costs, margin }]
-    kpi: ctx.kpis,
-    competitor: ctx.competitors,
+    segnalazioni: ctx.facts, // fatti reali calcolati da regole (cashflow, scadenze, trend) — MAI inventati
+    scadenzario: ctx.receivablesSummary, // assente se l'org non ha ancora crediti registrati
+    spese_ricorrenti: ctx.recurringExpensesSummary, // assente se l'org non ha ancora spese ricorrenti registrate
   };
 
   // Honesty about data depth: with little data the assistant must say so rather
   // than answer with invented figures.
   const hasData =
-    ctx.financials.length > 0 || ctx.kpis.length > 0 || ctx.competitors.length > 0;
+    ctx.financials.length > 0 ||
+    ctx.facts.length > 0 ||
+    !!ctx.receivablesSummary ||
+    !!ctx.recurringExpensesSummary;
   const dataDepthNote = hasData
     ? 'Usa i dati reali forniti per rispondere in modo concreto e specifico.'
     : "ATTENZIONE: al momento risultano pochi o nessun dato aziendale. Non inventare numeri: dillo apertamente, rispondi con indicazioni generali utili e suggerisci quali dati l'imprenditore dovrebbe iniziare a raccogliere per ottenere risposte più precise.";
@@ -33,11 +37,11 @@ export function buildChatPrompt(ctx: AIBusinessContext): string {
     "Sei l'assistente business di Anlyra, un consulente AI per piccole e medie imprese che aiuta l'imprenditore a capire i propri dati e a prendere decisioni. Sei concreto, pratico e chiaro, con un tono professionale (default, non caricato).",
 
     // ── COMPITO ──
-    `Il tuo compito è rispondere alle domande dell'imprenditore sul business di "${ctx.company}" (settore ${ctx.industry}, ${ctx.employees} dipendenti), usando i dati reali dell'azienda (finanze, KPI, competitor). Sei il tuttofare del business: più generale delle analisi tematiche (finanziaria, marketing, KPI, competitiva), ma con lo stesso rigore. Quando una richiesta è chiaramente specialistica, puoi comunque rispondere e, se utile, segnalare che esiste un'analisi dedicata.`,
+    `Il tuo compito è rispondere alle domande dell'imprenditore sul business di "${ctx.company}" (settore ${ctx.industry}, ${ctx.employees} dipendenti), usando i dati reali dell'azienda (finanze, segnalazioni, scadenzario, spese ricorrenti). Sei il tuttofare del business: più generale delle analisi tematiche (finanziaria, marketing, KPI, competitiva), ma con lo stesso rigore. Quando una richiesta è chiaramente specialistica, puoi comunque rispondere e, se utile, segnalare che esiste un'analisi dedicata.`,
 
     // ── DATI REALI ──
     `DATI DELL'AZIENDA (JSON): ${JSON.stringify(data)}.`,
-    `Note di lettura: "finanze_ultimi_mesi" ha revenue/costs/margin per mese; "kpi" le metriche registrate; "competitor" i concorrenti noti. ${dataDepthNote}`,
+    `Note di lettura: "finanze_ultimi_mesi" ha revenue/costs/margin per mese; "segnalazioni" sono fatti già calcolati (titolo + descrizione + valori) su crediti scaduti, spese vs entrate e trend; "scadenzario" e "spese_ricorrenti", quando presenti, riportano i totali reali e le prime righe — se una sezione è assente, l'azienda non ha ancora registrato quel tipo di dato: dillo, non presumere un valore. ${dataDepthNote}`,
 
     // ── PALETTI (restare sul tema) ──
     "Resta sempre sul business, sulla gestione e sui dati dell'azienda. Se l'utente chiede qualcosa fuori tema (es. meteo, poesie, argomenti non attinenti), riporta con garbo la conversazione al tuo scopo, senza essere sgradevole: chiarisci che sei l'assistente business di Anlyra e proponi in che modo puoi essere utile.",

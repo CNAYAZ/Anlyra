@@ -4,8 +4,7 @@ import type { Locale } from '@/i18n/config';
 export function mockChatResponse(message: string, ctx: AIBusinessContext, locale: Locale): string {
   const it = locale === 'it';
   const lastFin = ctx.financials[0];
-  const churn = ctx.kpis.find((k) => k.name.toLowerCase().includes('churn'));
-  const cac = ctx.kpis.find((k) => k.name.toLowerCase().includes('cac'));
+  const firstFact = ctx.facts[0];
 
   if (it) {
     const lines = [
@@ -13,9 +12,8 @@ export function mockChatResponse(message: string, ctx: AIBusinessContext, locale
       lastFin
         ? `Nell'ultimo mese (${lastFin.month}) hai generato ricavi per €${lastFin.revenue.toLocaleString('it-IT')} con un margine del ${lastFin.margin.toFixed(1)}%.`
         : 'Non ho ancora dati finanziari recenti.',
-      churn ? `Il churn rate è al ${churn.value}% (target ${churn.target ?? 'n/d'}%).` : '',
-      cac ? `Il CAC è di €${cac.value} contro un target di €${cac.target ?? 'n/d'}.` : '',
-      `\nIn relazione alla tua domanda — "${message.slice(0, 120)}${message.length > 120 ? '…' : ''}" — il mio suggerimento è di concentrarti su tre azioni: 1) ridurre il churn con un programma di customer success dedicato, 2) ottimizzare il mix canali per abbassare il CAC, 3) reinvestire parte del margine generato in acquisition di alta qualità.`,
+      firstFact ? firstFact.description : '',
+      `\nIn relazione alla tua domanda — "${message.slice(0, 120)}${message.length > 120 ? '…' : ''}" — ti consiglio di partire dai dati reali disponibili: margini, cashflow e crediti scaduti, prima di valutare nuovi investimenti.`,
       `\n(Nota: questa è una risposta simulata in assenza di ANTHROPIC_API_KEY.)`,
     ];
     return lines.filter(Boolean).join('\n');
@@ -25,9 +23,8 @@ export function mockChatResponse(message: string, ctx: AIBusinessContext, locale
     lastFin
       ? `Last month (${lastFin.month}) you generated $${lastFin.revenue.toLocaleString('en-US')} in revenue with a ${lastFin.margin.toFixed(1)}% margin.`
       : 'No recent financial data yet.',
-    churn ? `Churn rate is ${churn.value}% (target ${churn.target ?? 'n/a'}%).` : '',
-    cac ? `CAC is $${cac.value} vs a target of $${cac.target ?? 'n/a'}.` : '',
-    `\nRegarding your question — "${message.slice(0, 120)}${message.length > 120 ? '…' : ''}" — my suggestion is to focus on three actions: 1) reduce churn with a dedicated customer success program, 2) optimize channel mix to lower CAC, 3) reinvest part of generated margin into high-quality acquisition.`,
+    firstFact ? firstFact.description : '',
+    `\nRegarding your question — "${message.slice(0, 120)}${message.length > 120 ? '…' : ''}" — I'd start from the real data available: margins, cashflow and overdue receivables, before considering new investments.`,
     `\n(Note: this is a mock response in absence of ANTHROPIC_API_KEY.)`,
   ];
   return lines.filter(Boolean).join('\n');
