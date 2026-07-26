@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/format';
-import { effectiveStatus, startOfToday } from '@/lib/receivables/dto';
+import { effectiveStatus } from '@/lib/receivables/dto';
 import { computeTotals } from '@/lib/recurring-expenses/dto';
+import { appDateStartUTC } from '@/lib/timezone';
 import type { Locale } from '@/i18n/config';
 import type { Receivable, RecurringExpense, FinancialRecord } from '@prisma/client';
 
@@ -65,15 +66,29 @@ function trendLast3VsPrev3(sorted: [string, number][]): Trend | null {
   };
 }
 
+/**
+ * Whole days a receivable has been overdue as of `now`, counted on the Italian
+ * calendar day (dueDate is stored as an Europe/Rome midnight instant) — 0 if not
+ * yet due. Single source of truth for this calculation — reused wherever a
+ * day-count is needed (this rule, and the AI context) instead of being
+ * recomputed ad hoc. Deliberately independent from `startOfToday`/
+ * `effectiveStatus` (server-local midnight), which drive the OPEN/OVERDUE
+ * status shown on the Scadenzario page and must not change.
+ */
+export function daysOverdueOf(dueDate: Date, now: Date): number {
+  const today = appDateStartUTC(now);
+  const due = appDateStartUTC(dueDate);
+  return Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86_400_000));
+}
+
 // Rule 1 — overdue receivables: real total + distinct customers + how overdue, in days.
 function ruleOverdueReceivables(receivables: Receivable[], now: Date): FinancialFact | null {
-  const today = startOfToday(now);
   const overdue = receivables.filter((r) => effectiveStatus(r, now) === 'OVERDUE');
   if (overdue.length === 0) return null;
 
   const total = overdue.reduce((s, r) => s + r.amount, 0);
   const distinctCustomers = new Set(overdue.map((r) => r.customerName)).size;
-  const daysOverdue = overdue.map((r) => Math.floor((today.getTime() - r.dueDate.getTime()) / 86_400_000));
+  const daysOverdue = overdue.map((r) => daysOverdueOf(r.dueDate, now));
   const minDaysOverdue = Math.min(...daysOverdue);
   const maxDaysOverdue = Math.max(...daysOverdue);
   const customerWord = distinctCustomers === 1 ? 'cliente' : 'clienti';
