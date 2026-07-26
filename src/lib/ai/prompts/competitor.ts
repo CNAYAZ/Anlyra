@@ -18,16 +18,14 @@ export function buildCompetitorAnalysisPrompt(ctx: AIBusinessContext): string {
     azienda: ctx.company,
     settore: ctx.industry,
     dipendenti: ctx.employees,
-    competitor: ctx.competitors, // [{ name, marketShare, notes }] — dati inseriti dall'utente
   };
 
-  // Honesty about data depth: without competitors the analysis is generic and
-  // must be clearly flagged as such (never invent the user's real rivals).
-  const competitorCount = ctx.competitors.length;
+  // Honesty about data depth: Anlyra does not have a real competitor-tracking
+  // source yet (the previous one was hardcoded/seeded demo data, now removed) —
+  // the analysis is always generic and must be clearly flagged as such (never
+  // invent the user's real rivals).
   const dataDepthNote =
-    competitorCount === 0
-      ? "ATTENZIONE: l'utente non ha inserito alcun competitor. Dillo apertamente: senza concorrenti inseriti l'analisi è GENERICA. Invita a inserirli (nome, quota, note) e intanto offri un ragionamento di settore CHIARAMENTE marcato come generale/ipotesi, senza inventare i concorrenti reali dell'utente."
-      : `Sono stati inseriti ${competitorCount} competitor: usa nome, quota di mercato (dove presente) e note come base FATTUALE dell'analisi.`;
+    "ATTENZIONE: l'utente non ha inserito alcun competitor. Dillo apertamente: senza concorrenti inseriti l'analisi è GENERICA. Invita a inserirli (nome, quota, note) e intanto offri un ragionamento di settore CHIARAMENTE marcato come generale/ipotesi, senza inventare i concorrenti reali dell'utente.";
 
   return [
     // ── IDENTITÀ ──
@@ -38,7 +36,7 @@ export function buildCompetitorAnalysisPrompt(ctx: AIBusinessContext): string {
 
     // ── DATI REALI ──
     `DATI DELL'AZIENDA (JSON): ${JSON.stringify(data)}.`,
-    `Note di lettura: "competitor" contiene i concorrenti INSERITI dall'utente (name, marketShare se nota, notes): questa è la base fattuale. "azienda/settore/dipendenti" contestualizzano chi è l'utente. ${dataDepthNote}`,
+    `Note di lettura: "azienda/settore/dipendenti" contestualizzano chi è l'utente. ${dataDepthNote}`,
 
     // ── STRUTTURA OUTPUT (guida, non gabbia rigida) — le 4 aree ──
     "Se ti viene chiesta un'analisi completa, struttura la risposta così: " +

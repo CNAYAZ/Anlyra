@@ -18,19 +18,14 @@ export function buildKpiAnalysisPrompt(ctx: AIBusinessContext): string {
     azienda: ctx.company,
     settore: ctx.industry,
     dipendenti: ctx.employees,
-    kpi: ctx.kpis, // [{ name, value, unit, target }] — il cuore di questa modalità
     finanze_ultimi_mesi: ctx.financials, // solo contesto, citabile per spiegare un legame
   };
 
-  // Honesty about data depth: without KPIs the model must not invent metrics.
-  const kpiCount = ctx.kpis.length;
-  const withTarget = ctx.kpis.filter((k) => k.target != null).length;
+  // Honesty about data depth: Anlyra does not have a generic KPI-tracking source
+  // yet (the previous one was hardcoded/seeded demo data, now removed) — the
+  // model must never invent metrics or targets for this mode.
   const dataDepthNote =
-    kpiCount === 0
-      ? "ATTENZIONE: non risultano KPI registrati. Dillo apertamente e NON inventarli: suggerisci invece QUALI metriche l'azienda dovrebbe iniziare a tracciare per il suo settore/attività (es. churn, conversion, CAC, LTV, NPS, clienti attivi) e perché."
-      : withTarget === 0
-        ? `Sono disponibili ${kpiCount} KPI ma NESSUNO ha un target impostato: nella tabella indica il target come "—", analizza i valori attuali, evidenzia che senza target lo scostamento non è calcolabile e proponi target sensati per il settore.`
-        : `Sono disponibili ${kpiCount} KPI (${withTarget} con target): confronta valore vs target e ragiona sugli scostamenti.`;
+    "ATTENZIONE: non risulta un tracciamento KPI configurato per questa azienda. Dillo apertamente e NON inventare metriche, valori o target: suggerisci invece QUALI metriche l'azienda dovrebbe iniziare a tracciare per il suo settore/attività (es. churn, conversion, CAC, LTV, NPS, clienti attivi) e perché.";
 
   return [
     // ── IDENTITÀ ──

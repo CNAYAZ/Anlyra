@@ -17,32 +17,25 @@ export function buildMarketingAnalysisPrompt(ctx: AIBusinessContext): string {
     azienda: ctx.company,
     settore: ctx.industry,
     dipendenti: ctx.employees,
-    kpi_commerciali: ctx.kpis, // es. CAC, conversion, churn, NPS, clienti attivi
-    competitor: ctx.competitors, // [{ name, marketShare, notes }]
     finanze_ultimi_mesi: ctx.financials, // scala + eventuale SPESA ads tra i costi
   };
 
-  // Honesty about data depth: a business that just started often has few or no
-  // commercial KPIs / competitors — the model must not fabricate metrics.
-  const kpiCount = ctx.kpis.length;
-  const competitorCount = ctx.competitors.length;
+  // Honesty about data depth: Anlyra does not have a commercial-KPI or
+  // competitor-tracking source yet (the previous one was hardcoded/seeded demo
+  // data, now removed) — the model must not fabricate metrics.
   const dataDepthNote =
-    kpiCount === 0 && competitorCount === 0
-      ? "ATTENZIONE: non risultano KPI commerciali né competitor. Dillo apertamente e NON inventare metriche: dai consigli di IMPOSTAZIONE per chi parte (primi 1-2 canali su cui concentrarsi, come farsi conoscere, un budget iniziale sensato e sostenibile per la dimensione dell'attività, cosa iniziare a misurare)."
-      : kpiCount === 0
-        ? "ATTENZIONE: non risultano KPI commerciali (CAC, conversion, churn, ecc.). Non inventarli: appoggiati al settore e ai competitor, e indica quali metriche l'azienda dovrebbe iniziare a tracciare per guidare le decisioni di spesa."
-        : `Sono disponibili ${kpiCount} KPI commerciali${competitorCount ? ` e ${competitorCount} competitor` : ''}: usali per fondare targeting, budget e posizionamento.`;
+    "ATTENZIONE: non risultano KPI commerciali né competitor registrati. Dillo apertamente e NON inventare metriche: dai consigli di IMPOSTAZIONE per chi parte (primi 1-2 canali su cui concentrarsi, come farsi conoscere, un budget iniziale sensato e sostenibile per la dimensione dell'attività, cosa iniziare a misurare).";
 
   return [
     // ── IDENTITÀ ──
     "Sei l'esperto di marketing e crescita di Anlyra, assistente AI specializzato nel marketing operativo di piccole e medie imprese. Sei concreto e pratico, con un tono professionale (default, non caricato): dai idee e piani eseguibili, non teoria generica.",
 
     // ── COMPITO ──
-    `Il tuo compito è aiutare l'attività "${ctx.company}" (settore ${ctx.industry}, ${ctx.employees} dipendenti) a CRESCERE con azioni di marketing concrete e azionabili. Il tuo output riguarda campagne ads, canali e budget, contenuti/promozioni e posizionamento. Usa i dati reali come INPUT (spesa ads se presente nei costi, CAC/conversion/churn/clienti dai KPI, competitor), ma NON produrre un'analisi finanziaria (margini/cashflow) né una tabella KPI-vs-target: quelle sono altre modalità.`,
+    `Il tuo compito è aiutare l'attività "${ctx.company}" (settore ${ctx.industry}, ${ctx.employees} dipendenti) a CRESCERE con azioni di marketing concrete e azionabili. Il tuo output riguarda campagne ads, canali e budget, contenuti/promozioni e posizionamento. Usa i dati reali come INPUT (spesa ads se presente nei costi), ma NON produrre un'analisi finanziaria (margini/cashflow) né una tabella KPI-vs-target: quelle sono altre modalità.`,
 
     // ── DATI REALI ──
     `DATI DELL'AZIENDA (JSON): ${JSON.stringify(data)}.`,
-    `Note di lettura: "kpi_commerciali" può includere CAC, conversion, churn, NPS o clienti attivi; "competitor" elenca i concorrenti noti (nome, quota, note); "finanze_ultimi_mesi" serve a inquadrare la scala e può contenere la SPESA in advertising tra i costi. IMPORTANTE: Anlyra vede la spesa ads e i KPI commerciali, ma NON le performance interne delle campagne (impression, click, CPC, conversioni per campagna): dove queste mancano, dai idee e strategie sensate per il tipo di attività, senza inventare numeri di campagne inesistenti. ${dataDepthNote}`,
+    `Note di lettura: "finanze_ultimi_mesi" serve a inquadrare la scala e può contenere la SPESA in advertising tra i costi. IMPORTANTE: Anlyra vede al più la spesa ads aggregata nei costi, ma NON le performance interne delle campagne (impression, click, CPC, conversioni per campagna) né metriche commerciali dedicate: dove queste mancano, dai idee e strategie sensate per il tipo di attività, senza inventare numeri di campagne inesistenti. ${dataDepthNote}`,
 
     // ── STRUTTURA OUTPUT (guida, non gabbia rigida) — le 4 aree ──
     "Se ti viene chiesta un'analisi completa, struttura la risposta in queste sezioni, tutte concrete e azionabili: " +
