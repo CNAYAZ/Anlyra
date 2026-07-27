@@ -12,6 +12,7 @@ import {
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
+import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
@@ -48,6 +49,10 @@ const AnalyzeSchema = z.object({
 
 type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
 
+// Credits charged per analysis, streaming or not. Same price as one chat turn
+// (/api/ai/chat) and one alert analysis: a request is a request.
+const ANALYSIS_CREDIT_COST = 1;
+
 function tooManyRequests(reset: number) {
   return NextResponse.json(
     { success: false, error: 'RATE_LIMITED' },
@@ -77,8 +82,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return fail('INVALID_INPUT', 400);
   const { type, question, history } = parsed.data;
 
-  // Select the specialized prompt builder for this mode. Modes not yet wired
-  // (kpi/competitor/chat) return a clean 501.
+  // Select the specialized prompt builder for this mode. All five modes are
+  // wired today, so this 501 is a defensive guard for a future mode added to the
+  // Zod enum but not to PROMPT_BUILDERS. It returns BEFORE any credit is
+  // charged: a mode that never calls the model must never cost a credit.
   const buildPrompt = PROMPT_BUILDERS[type];
   if (!buildPrompt) {
     return fail(`Analysis type "${type}" is not implemented yet`, 501);
@@ -111,11 +118,30 @@ export async function POST(req: NextRequest) {
       : 'Genera un\'analisi completa della mia situazione.',
   });
 
-  // Streaming path (opt-in). All auth/rate-limit/validation/config errors above
-  // already returned JSON with the right status BEFORE we get here, so the stream
-  // only ever opens on a 200. An error raised AFTER the first byte cannot change
-  // the status: we log it and close the stream cleanly, leaving the client with
-  // whatever text already arrived (it surfaces a notice — see AgentClient).
+  // Credits: charged HERE, the last gate before the first Anthropic call, on both
+  // the streaming and the non-streaming path. Same pattern as /api/ai/chat —
+  // consumeCredits decrements conditionally in a single UPDATE (…WHERE aiCredits
+  // >= cost), so concurrent requests can never drive the balance negative, and an
+  // empty balance raises InsufficientCreditsError → 402 'INSUFFICIENT_CREDITS'
+  // WITHOUT calling the model. Placed after the 501/503 guards and after the
+  // prompt build so a request that never reaches Anthropic is never billed;
+  // being before the branch below, the stream can only open once paid.
+  // As in chat, a model failure after this point does NOT refund the credit.
+  let creditsRemaining: number;
+  try {
+    creditsRemaining = await consumeCredits(organizationId, ANALYSIS_CREDIT_COST);
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return fail('INSUFFICIENT_CREDITS', 402);
+    }
+    throw err;
+  }
+
+  // Streaming path (opt-in). All auth/rate-limit/validation/config/credit errors
+  // above already returned JSON with the right status BEFORE we get here, so the
+  // stream only ever opens on a 200. An error raised AFTER the first byte cannot
+  // change the status: we log it and close the stream cleanly, leaving the client
+  // with whatever text already arrived (it surfaces a notice — see AgentClient).
   if (parsed.data.stream) {
     const encoder = new TextEncoder();
     const body = new ReadableStream<Uint8Array>({
@@ -137,6 +163,9 @@ export async function POST(req: NextRequest) {
         'Cache-Control': 'no-store',
         // Disable proxy buffering so deltas reach the browser as they are produced.
         'X-Accel-Buffering': 'no',
+        // The body is a raw text stream, so the balance travels as a header —
+        // the streaming counterpart of chat's `creditsRemaining` field.
+        'X-Credits-Remaining': String(creditsRemaining),
       },
     });
   }
@@ -148,6 +177,7 @@ export async function POST(req: NextRequest) {
       text: result.text,
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
+      creditsRemaining,
     });
   } catch (err) {
     console.error('[ai/analyze] Anthropic API error:', err);
