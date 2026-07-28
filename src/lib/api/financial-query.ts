@@ -46,8 +46,14 @@ function monthKey(d: Date): string {
   return `${y}-${m}`;
 }
 
-export async function getOrgData(): Promise<DemoDataset> {
-  const { organizationId } = await getCurrentContext();
+/**
+ * @param organizationIdArg explicit organization to read. Omit it to keep the
+ * historical behaviour (resolve from the current session, demo fallback
+ * included) — every existing caller does. Callers that must NOT depend on the
+ * session, such as the public share route, pass the id explicitly.
+ */
+export async function getOrgData(organizationIdArg?: string): Promise<DemoDataset> {
+  const organizationId = organizationIdArg ?? (await getCurrentContext()).organizationId;
   const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
 
   const records = await prisma.financialRecord.findMany({

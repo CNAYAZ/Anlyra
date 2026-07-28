@@ -1559,8 +1559,24 @@
       "publicLinkDesc": "Chiunque abbia il link puo visualizzare il report",
       "copy": "Copia link",
       "copied": "Copiato!",
-      "proOnly": "Disponibile sui piani PRO ed Enterprise"
-    }
+      "proOnly": "Disponibile sui piani PRO ed Enterprise",
+      "createLink": "Crea link pubblico",
+      "creating": "Creazione…",
+      "revokeLink": "Revoca link",
+      "revoking": "Revoca…",
+      "expiresOn": "Scade il {date}",
+      "managerOnly": "Solo titolare o amministratore può creare un link pubblico.",
+      "linkWarning": "Chiunque abbia questo link vede i conti dell'azienda, senza accedere. Il link scade dopo 30 giorni.",
+      "shareFailed": "Operazione non riuscita. Riprova."
+    },
+    "runNow": "Genera ora",
+    "running": "Generazione…",
+    "runFailed": "Generazione non riuscita.",
+    "runNoData": "Non ci sono dati sufficienti per generare questo report.",
+    "notRenderable": "Le sezioni scelte non sono ancora disponibili in PDF.",
+    "loadFailed": "Report non trovato.",
+    "lastRun": "Ultima generazione",
+    "sectionsTitle": "Sezioni incluse"
   },
   "customDashboards": {
     "title": "Dashboard Custom",
@@ -2831,7 +2847,26 @@
   "share": {
     "appName": "Anlyra",
     "linkUnavailableTitle": "Link non disponibile",
-    "linkUnavailableDesc": "Il link non è valido o è stato disabilitato."
+    "linkUnavailableDesc": "Il link non è valido o è stato disabilitato.",
+    "loading": "Caricamento del report…",
+    "linkExpiredTitle": "Link scaduto",
+    "linkExpiredDesc": "Questo link di condivisione è scaduto. Chiedi a chi te l'ha inviato di generarne uno nuovo.",
+    "noDataTitle": "Report non disponibile",
+    "noDataDesc": "Non ci sono dati sufficienti per costruire questo report.",
+    "download": "Scarica il PDF",
+    "downloading": "Preparazione del PDF…",
+    "downloadFailed": "Download non riuscito. Riprova.",
+    "expiresOn": "Il link scade il {date}",
+    "period": "Periodo",
+    "revenue": "Ricavi",
+    "netMargin": "Margine netto",
+    "headcount": "Dipendenti",
+    "monthlyTable": "Andamento mensile",
+    "colMonth": "Mese",
+    "colRevenue": "Ricavi",
+    "colCosts": "Costi",
+    "colProfit": "Utile",
+    "recommendations": "Segnalazioni"
   },
   "login": {
     "appName": "Anlyra",

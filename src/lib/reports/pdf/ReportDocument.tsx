@@ -356,18 +356,24 @@ function SectionContent({
               label={s.kpi.revenueGrowth}
               value={fmtPct(payload.kpis.revenueGrowth)}
             />
-            <KpiCard
-              label={s.kpi.grossMargin}
-              value={fmtPct(payload.kpis.grossMargin)}
-            />
+            {/* Null = not derivable from this org's real data: the card is left
+                out rather than printing an invented figure. */}
+            {payload.kpis.grossMargin !== null && (
+              <KpiCard
+                label={s.kpi.grossMargin}
+                value={fmtPct(payload.kpis.grossMargin)}
+              />
+            )}
             <KpiCard
               label={s.kpi.netMargin}
               value={fmtPct(payload.kpis.netMargin)}
             />
-            <KpiCard
-              label={s.kpi.cashRunway}
-              value={`${payload.kpis.cashRunwayMonths} ${s.kpi.months}`}
-            />
+            {payload.kpis.cashRunwayMonths !== null && (
+              <KpiCard
+                label={s.kpi.cashRunway}
+                value={`${payload.kpis.cashRunwayMonths} ${s.kpi.months}`}
+              />
+            )}
             <KpiCard label={s.kpi.headcount} value={String(payload.kpis.headcount)} />
           </View>
         </>
