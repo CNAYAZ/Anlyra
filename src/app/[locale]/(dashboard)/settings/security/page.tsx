@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/api/fetcher';
 import { validatePassword } from '@/lib/auth/config';
 import TwoFactorPanel from './TwoFactorPanel';
+import PrivacyPanel from './PrivacyPanel';
 
 // Maps a server error code (thrown by apiFetch as Error.message) to an i18n key,
 // so the user understands exactly what went wrong.
@@ -116,6 +117,8 @@ export default function SettingsSecurityPage() {
       </form>
 
       <TwoFactorPanel />
+
+      <PrivacyPanel />
 
       <div className="card flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 text-success" />

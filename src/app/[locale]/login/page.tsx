@@ -32,6 +32,8 @@ const COPY = {
     resend: 'Invia di nuovo l’email di verifica',
     resent: 'Email di verifica inviata.',
     generic: 'Accesso non riuscito. Riprova.',
+    deletionPending:
+      'Questo account è stato chiuso su tua richiesta e non è più accessibile. Se si tratta di un errore, scrivi all’assistenza prima che la cancellazione diventi definitiva.',
   },
   en: {
     title: 'Sign in to Anlyra',
@@ -54,6 +56,8 @@ const COPY = {
     resend: 'Resend verification email',
     resent: 'Verification email sent.',
     generic: 'Sign-in failed. Please try again.',
+    deletionPending:
+      'This account was closed at your request and can no longer be accessed. If this is a mistake, contact support before the deletion becomes permanent.',
   },
 } as const;
 
@@ -96,6 +100,13 @@ function LoginPageInner() {
 
       if (!pre.valid) {
         setError(t.invalid);
+        return;
+      }
+      // Account closed by a GDPR deletion request: say so plainly instead of
+      // letting signIn() fail with the generic message. authorize() blocks it
+      // server-side either way — this only makes the reason visible.
+      if (pre.deletionRequested) {
+        setError(t.deletionPending);
         return;
       }
       if (!pre.emailVerified) {
