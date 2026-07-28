@@ -38,6 +38,13 @@ const providers = [
       const passwordMatches = await bcrypt.compare(password, user.passwordHash);
       if (!passwordMatches) return null;
 
+      // GDPR deletion pending: the account is closed the moment it is requested,
+      // even though the rows survive for the 30-day grace period. Checked here,
+      // right after the password, so a correct password no longer grants access.
+      if (user.deletionRequestedAt) {
+        throw new Error('ACCOUNT_DELETION_PENDING');
+      }
+
       if (!user.emailVerifiedAt) {
         throw new Error('EMAIL_NOT_VERIFIED');
       }
@@ -99,6 +106,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider === 'google' || account?.provider === 'microsoft-entra-id') {
         if (user.email) {
           const existing = await prisma.user.findUnique({ where: { email: user.email } });
+          // Second half of the deletion block: authorize() above only guards the
+          // Credentials provider, so Google/Microsoft are stopped here. Denying in
+          // this callback closes the OAuth path without creating a session.
+          if (existing?.deletionRequestedAt) return false;
           if (existing && !existing.emailVerifiedAt) {
             await prisma.user.update({
               where: { id: existing.id },

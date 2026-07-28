@@ -33,6 +33,12 @@ model User {
   twoFactorRemindSentAt  DateTime?
   lastLoginAt            DateTime?
 
+  // GDPR "right to erasure": set when the user requests account deletion. The row
+  // is NOT removed here — a cron purges it after the 30-day grace period (see
+  // src/lib/gdpr/purge.ts). Nullable with no default, so existing rows are
+  // untouched and a NULL means "no deletion requested".
+  deletionRequestedAt DateTime?
+
   memberships Membership[]
   accounts    Account[]
   sessions    Session[]
@@ -59,6 +65,11 @@ model Organization {
   setupCompletedAt DateTime?
   trialStartedAt   DateTime?
   trialEndsAt      DateTime?
+
+  // GDPR "right to erasure": set only when an owner/admin requests deletion of the
+  // whole organization. Same contract as User.deletionRequestedAt — nullable, no
+  // default, purged by the cron after 30 days.
+  deletionRequestedAt DateTime?
 
   memberships     Membership[]
   transactions    Transaction[]

@@ -43,5 +43,10 @@ export async function POST(req: Request) {
     valid: true,
     emailVerified: !!user.emailVerifiedAt,
     needs2fa: !!user.twoFactorEnabledAt,
+    // NextAuth v5 collapses every authorize() error into a generic
+    // "CredentialsSignin", so the reason travels here instead: it lets the login
+    // form tell a closed account apart from a wrong password. The account is
+    // blocked in authorize() regardless of what this pre-check reports.
+    deletionRequested: !!user.deletionRequestedAt,
   });
 }
