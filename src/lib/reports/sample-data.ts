@@ -11,9 +11,15 @@ export interface ReportPayload {
   kpis: {
     revenue: number;
     revenueGrowth: number;
-    grossMargin: number;
+    /**
+     * Null when the figure is NOT derivable from the organization's real data —
+     * gross margin needs costs tagged as COGS, cash runway needs a cash balance
+     * this schema does not hold. The PDF simply omits a null card instead of
+     * printing an invented number. buildSamplePayload still fills both.
+     */
+    grossMargin: number | null;
     netMargin: number;
-    cashRunwayMonths: number;
+    cashRunwayMonths: number | null;
     headcount: number;
   };
   finance: {

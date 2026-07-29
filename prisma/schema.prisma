@@ -751,6 +751,18 @@ model Report_b8 {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  // Full ReportConfig (type/period/language/includeCharts) as JSON, needed to
+  // render the PDF. Nullable: rows created before this column derive a config
+  // from `sections` + defaults (see src/lib/reports/config.ts).
+  config String?
+
+  // Server-issued public share link. The token is generated with
+  // crypto.randomBytes (never by the browser) and is the ONLY way to read the
+  // report anonymously; all three are null while the report is not shared.
+  shareToken     String?   @unique
+  shareCreatedAt DateTime?
+  shareExpiresAt DateTime?
+
   @@index([organizationId])
 }
 

@@ -2,10 +2,11 @@
 
 export const dynamic = 'force-dynamic';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Play, Trash2, Calendar, Clock } from 'lucide-react';
+import { FileText, Plus, Play, Trash2, Calendar, Clock, Loader2 } from 'lucide-react';
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
@@ -32,10 +33,44 @@ export default function ReportsPage() {
     queryFn: () => apiFetch<{ reports: Report[] }>('/api/reports'),
   });
 
-  const runMutation = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/reports/${id}`, { method: 'POST' }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['reports'] }),
-  });
+  const [runningId, setRunningId] = useState<string | null>(null);
+  const [runError, setRunError] = useState('');
+
+  // "Run now" returns a PDF stream, not the JSON envelope apiFetch expects, so it
+  // is fetched directly and saved as a file.
+  async function runReport(id: string, title: string) {
+    if (runningId) return;
+    setRunningId(id);
+    setRunError('');
+    try {
+      const res = await fetch(`/api/reports/${id}`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? 'RUN_FAILED');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      qc.invalidateQueries({ queryKey: ['reports'] });
+    } catch (e) {
+      const code = e instanceof Error ? e.message : '';
+      setRunError(
+        code === 'NO_DATA_FOR_REPORT'
+          ? t('runNoData')
+          : code === 'REPORT_NOT_RENDERABLE'
+            ? t('notRenderable')
+            : t('runFailed'),
+      );
+    } finally {
+      setRunningId(null);
+    }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/reports/${id}`, { method: 'DELETE' }),
@@ -56,6 +91,12 @@ export default function ReportsPage() {
           <Plus className="h-4 w-4" /> {t('newReport')}
         </Link>
       </div>
+
+      {runError && (
+        <div className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+          {runError}
+        </div>
+      )}
 
       {isLoading || !data ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -117,17 +158,22 @@ export default function ReportsPage() {
                 )}
               </div>
 
-              {/* Messo a riposo il 2026-06-30 — azione non ancora implementata (vedi .vscode/STATO-REALE-E-VALUTAZIONE.md) */}
-              {/*
+              {/* Riattivato il 2026-07-28: "Genera ora" produce davvero il PDF
+                  dai dati reali dell'organizzazione (prima aggiornava solo la
+                  data e non generava nulla). */}
               <button
                 type="button"
-                onClick={() => runMutation.mutate(r.id)}
-                disabled={runMutation.isPending}
-                className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                onClick={() => runReport(r.id, r.title)}
+                disabled={runningId === r.id}
+                className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
               >
-                <Play className="h-3 w-3" /> {t('runNow')}
+                {runningId === r.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3" />
+                )}
+                {runningId === r.id ? t('running') : t('runNow')}
               </button>
-              */}
             </div>
           ))}
         </div>

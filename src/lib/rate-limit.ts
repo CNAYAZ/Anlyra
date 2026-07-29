@@ -27,8 +27,11 @@ const WINDOWS = {
   'email-status-ip': [20, '10 m'],
   // second factor code brute force
   '2fa-ip': [5, '10 m'],
-  // public, unauthenticated PDF generation (CPU-heavy) — DoS guard, per IP
+  // PDF generation (CPU-heavy) — DoS guard. Authenticated use is keyed per
+  // IP+org; the public share download shares this budget under a 'share:' key.
   'report-generate-ip': [10, '10 m'],
+  // public share-link resolution — guards against brute-forcing share tokens
+  'share-token-ip': [30, '10 m'],
   // AI analysis (expensive Anthropic calls) — per IP+org, abuse guard
   'ai-analyze': [20, '10 m'],
 } as const;

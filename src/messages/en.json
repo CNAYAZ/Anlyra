@@ -1559,8 +1559,24 @@
       "publicLinkDesc": "Anyone with the link can view the report",
       "copy": "Copy link",
       "copied": "Copied!",
-      "proOnly": "Available on PRO and Enterprise plans"
-    }
+      "proOnly": "Available on PRO and Enterprise plans",
+      "createLink": "Create public link",
+      "creating": "Creating…",
+      "revokeLink": "Revoke link",
+      "revoking": "Revoking…",
+      "expiresOn": "Expires on {date}",
+      "managerOnly": "Only an owner or admin can create a public link.",
+      "linkWarning": "Anyone with this link sees the company accounts, without signing in. The link expires after 30 days.",
+      "shareFailed": "Action failed. Please try again."
+    },
+    "runNow": "Run now",
+    "running": "Generating…",
+    "runFailed": "Generation failed.",
+    "runNoData": "There is not enough data to generate this report.",
+    "notRenderable": "The selected sections are not available as PDF yet.",
+    "loadFailed": "Report not found.",
+    "lastRun": "Last run",
+    "sectionsTitle": "Included sections"
   },
   "customDashboards": {
     "title": "Custom Dashboards",
@@ -2831,7 +2847,26 @@
   "share": {
     "appName": "Anlyra",
     "linkUnavailableTitle": "Link not available",
-    "linkUnavailableDesc": "The link is invalid or has been disabled."
+    "linkUnavailableDesc": "The link is invalid or has been disabled.",
+    "loading": "Loading the report…",
+    "linkExpiredTitle": "Link expired",
+    "linkExpiredDesc": "This share link has expired. Ask whoever sent it to generate a new one.",
+    "noDataTitle": "Report unavailable",
+    "noDataDesc": "There is not enough data to build this report.",
+    "download": "Download the PDF",
+    "downloading": "Preparing the PDF…",
+    "downloadFailed": "Download failed. Please try again.",
+    "expiresOn": "The link expires on {date}",
+    "period": "Period",
+    "revenue": "Revenue",
+    "netMargin": "Net margin",
+    "headcount": "Headcount",
+    "monthlyTable": "Monthly trend",
+    "colMonth": "Month",
+    "colRevenue": "Revenue",
+    "colCosts": "Costs",
+    "colProfit": "Profit",
+    "recommendations": "Findings"
   },
   "login": {
     "appName": "Anlyra",
