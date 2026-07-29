@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { renderToStream } from '@react-pdf/renderer';
 import { ReportDocument } from './pdf/ReportDocument';
 import { buildRealPayload } from './real-data';
@@ -37,14 +38,19 @@ export async function renderReportPdf(
   return Buffer.concat(chunks);
 }
 
-/** Standard PDF download response, identical for every entry point. */
-export function pdfResponse(pdf: Buffer, filename: string): Response {
-  // Response's BodyInit does not list Node's Buffer type, only BufferSource
-  // (ArrayBuffer/typed arrays) among binary options. A Uint8Array view over the
-  // SAME underlying bytes — respecting byteOffset/byteLength, since a Buffer can
-  // be a slice of a larger pool — satisfies the type with zero copying.
-  const bytes = new Uint8Array(pdf.buffer, pdf.byteOffset, pdf.byteLength);
-  return new Response(bytes, {
+/**
+ * Standard PDF download response, identical for every entry point.
+ *
+ * Uses NextResponse (not the global Response) specifically because it accepts a
+ * Buffer body directly: this is the exact pattern the pre-existing
+ * /api/reports/generate route used (see git history at b0b1475), which
+ * type-checked with node_modules present. The global Response's BodyInit type in
+ * this project's TS config does not include Buffer or Uint8Array, so passing
+ * either to `new Response(...)` fails — NextResponse's typing is the one that
+ * already worked here, so this is not a new pattern, just the old, proven one.
+ */
+export function pdfResponse(pdf: Buffer, filename: string): NextResponse {
+  return new NextResponse(pdf, {
     status: 200,
     headers: {
       'content-type': 'application/pdf',
