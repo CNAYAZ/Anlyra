@@ -20,7 +20,7 @@ import type { ReportConfig } from './types';
 export async function renderReportPdf(
   organizationId: string,
   config: ReportConfig,
-): Promise<Buffer | null> {
+): Promise<Buffer<ArrayBuffer> | null> {
   const real = await buildRealPayload(organizationId, config);
   if (!real) return null;
 
@@ -35,6 +35,9 @@ export async function renderReportPdf(
   for await (const chunk of stream as unknown as AsyncIterable<Buffer | string>) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
+  // Buffer.concat's return type is the concrete Buffer<ArrayBuffer> — narrower
+  // than the generic Buffer<ArrayBufferLike> the chunks array elements have —
+  // which is exactly the type BodyInit (via pdfResponse) needs downstream.
   return Buffer.concat(chunks);
 }
 
@@ -48,8 +51,14 @@ export async function renderReportPdf(
  * this project's TS config does not include Buffer or Uint8Array, so passing
  * either to `new Response(...)` fails — NextResponse's typing is the one that
  * already worked here, so this is not a new pattern, just the old, proven one.
+ *
+ * The parameter is typed as the CONCRETE `Buffer<ArrayBuffer>` — the same type
+ * `Buffer.concat` returns — rather than the generic `Buffer<ArrayBufferLike>`
+ * (what plain `Buffer` resolves to with the current @types/node). The generic
+ * form is too wide for BodyInit; narrowing it here mirrors the original working
+ * route, which only ever passed it a `Buffer.concat(chunks)` result directly.
  */
-export function pdfResponse(pdf: Buffer, filename: string): NextResponse {
+export function pdfResponse(pdf: Buffer<ArrayBuffer>, filename: string): NextResponse {
   return new NextResponse(pdf, {
     status: 200,
     headers: {
