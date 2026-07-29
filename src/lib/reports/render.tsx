@@ -39,7 +39,12 @@ export async function renderReportPdf(
 
 /** Standard PDF download response, identical for every entry point. */
 export function pdfResponse(pdf: Buffer, filename: string): Response {
-  return new Response(pdf, {
+  // Response's BodyInit does not list Node's Buffer type, only BufferSource
+  // (ArrayBuffer/typed arrays) among binary options. A Uint8Array view over the
+  // SAME underlying bytes — respecting byteOffset/byteLength, since a Buffer can
+  // be a slice of a larger pool — satisfies the type with zero copying.
+  const bytes = new Uint8Array(pdf.buffer, pdf.byteOffset, pdf.byteLength);
+  return new Response(bytes, {
     status: 200,
     headers: {
       'content-type': 'application/pdf',
