@@ -45,9 +45,11 @@ export function BuilderClient() {
   const [configureId, setConfigureId] = React.useState<string | null>(null);
   const [savedFlash, setSavedFlash] = React.useState(false);
   const [bootstrapped, setBootstrapped] = React.useState(false);
+  const initRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!hasHydrated) return;
+    if (!hasHydrated || initRef.current) return;
+    initRef.current = true;
     if (id) {
       const existing = dashboards.find((d) => d.id === id);
       if (existing) {
@@ -61,8 +63,7 @@ export function BuilderClient() {
       const created = createDashboard(t('common.untitled'));
       router.replace(`/custom-dashboards/builder?id=${created.id}`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated, id]);
+  }, [hasHydrated, id, dashboards, createDashboard, t, router]);
 
   const addWidget = React.useCallback((type: WidgetType) => {
     setWidgets((current) => {
