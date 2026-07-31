@@ -3,7 +3,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { getImportTarget, suggestMapping } from '@/lib/import-targets';
-import { parseImportFile } from '@/lib/import/parse';
+import { ImportParseError, parseImportFile } from '@/lib/import/parse';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
 
 export const runtime = 'nodejs';
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     const target = getImportTarget(targetKey);
     if (!target) return fail('INVALID_TARGET', 400);
 
+    // Size is checked BEFORE the bytes are read into memory.
     if (file.size > MAX_FILE_SIZE) return fail('FILE_TOO_LARGE', 400);
 
     const fileName = (file as unknown as { name?: string }).name ?? 'upload';
@@ -34,8 +35,11 @@ export async function POST(req: NextRequest) {
 
     let parsed;
     try {
-      parsed = parseImportFile(buffer, fileName);
-    } catch {
+      parsed = await parseImportFile(buffer, fileName);
+    } catch (e) {
+      // Known limits and the legacy .xls case carry their own code so the UI
+      // can explain what to do; anything else stays the generic format error.
+      if (e instanceof ImportParseError) return fail(e.code, 400);
       return fail('UNSUPPORTED_FORMAT', 400);
     }
 

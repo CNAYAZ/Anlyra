@@ -32,6 +32,21 @@ type ApiResult<T> = { success: true; data: T } | { success: false; error: string
 
 const STEPS: Step[] = ['target', 'upload', 'mapping', 'preview', 'result'];
 
+/**
+ * Error codes the upload/parse step can return, mapped to a `dataImport` key.
+ * Anything not listed here keeps being shown as-is (it is already a message,
+ * e.g. a validation error from the commit step).
+ */
+const UPLOAD_ERROR_KEYS: Record<string, string> = {
+  FILE_TOO_LARGE: 'uploadTooLarge',
+  UNSUPPORTED_FORMAT: 'uploadInvalidFormat',
+  LEGACY_XLS_UNSUPPORTED: 'errorLegacyXls',
+  EMPTY_FILE: 'errorEmptyFile',
+  TOO_MANY_ROWS: 'errorTooManyRows',
+  TOO_MANY_COLUMNS: 'errorTooManyColumns',
+  TOO_MANY_SHEETS: 'errorTooManySheets',
+};
+
 export default function DataImportPage() {
   const t = useTranslations('dataImport');
   const tBilling = useTranslations('billing');
@@ -44,6 +59,13 @@ export default function DataImportPage() {
   const [error, setError] = useState<string | null>(null);
 
   const target = targetKey ? getImportTarget(targetKey) : null;
+
+  function describeError(code: string | null): string | null {
+    if (!code) return null;
+    if (code === 'TRIAL_EXPIRED') return tBilling('trialExpiredImport');
+    const key = UPLOAD_ERROR_KEYS[code];
+    return key ? t(key) : code;
+  }
 
   const previewMutation = useMutation({
     mutationFn: async ({ file, key }: { file: File; key: ImportTargetKey }) => {
@@ -146,9 +168,9 @@ export default function DataImportPage() {
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
           <X className="h-4 w-4" />
-          {/* The commit endpoint returns 'TRIAL_EXPIRED' (402) when the trial has
-              ended — surface the dedicated upsell message instead of the raw code. */}
-          <span>{error === 'TRIAL_EXPIRED' ? tBilling('trialExpiredImport') : error}</span>
+          {/* The API answers with codes ('TRIAL_EXPIRED', 'LEGACY_XLS_UNSUPPORTED',
+              'TOO_MANY_ROWS', …) — show the explanation, not the code. */}
+          <span>{describeError(error)}</span>
         </div>
       )}
 
@@ -165,7 +187,7 @@ export default function DataImportPage() {
       {step === 'upload' && targetKey && (
         <ImportUploader
           pending={previewMutation.isPending}
-          error={previewMutation.error ? (previewMutation.error as Error).message : null}
+          error={describeError(previewMutation.error ? (previewMutation.error as Error).message : null)}
           onFileAccepted={(file) => previewMutation.mutate({ file, key: targetKey })}
         />
       )}

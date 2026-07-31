@@ -9,6 +9,11 @@ const nextConfig = {
   // the module graph when the package is pulled through dynamic imports.
   // transpilePackages forces webpack to treat them as transpilable sources.
   transpilePackages: ['react-grid-layout', 'react-resizable'],
+  // exceljs e' un pacchetto CJS pesante usato SOLO lato server (lettura dei file
+  // caricati in /api/data/import/preview). Lasciarlo fuori dal bundle: viene
+  // richiesto a runtime da Node, evitando che il bundler debba risolvere i suoi
+  // require dinamici.
+  serverExternalPackages: ['exceljs'],
   typescript: {
     ignoreBuildErrors: true,
   },
