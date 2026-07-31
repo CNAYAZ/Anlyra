@@ -24,7 +24,7 @@ function toneToType(tone: string): string {
   }
 }
 
-export async function PATCH(req: Request, ctx: { params: { id: string } }) {
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -36,12 +36,12 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     }
 
     const existing = await prisma.insight.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 
     const updated = await prisma.insight.update({
-      where: { id: ctx.params.id },
+      where: { id: (await ctx.params).id },
       data: { status: body.status },
     });
 

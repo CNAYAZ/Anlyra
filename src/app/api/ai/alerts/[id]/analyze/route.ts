@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Credits charged per AI alert analysis. Aligned with the insights pattern.
 const ANALYSIS_CREDIT_COST = 1;
 
-export async function POST(_req: Request, ctx: { params: { id: string } }) {
+export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -19,7 +19,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
     // 1. Ownership: alert must exist and belong to the current org.
     const alert = await prisma.alert.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!alert) return fail('NOT_FOUND', 404);
 

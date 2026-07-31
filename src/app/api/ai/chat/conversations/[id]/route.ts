@@ -4,11 +4,11 @@ import { getCurrentContext } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: Request, ctx: { params: { id: string } }) {
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { organizationId } = await getCurrentContext();
 
   const conversation = await prisma.aIConversation.findFirst({
-    where: { id: ctx.params.id, organizationId },
+    where: { id: (await ctx.params).id, organizationId },
     include: { messages: { orderBy: { createdAt: 'asc' } } },
   });
 

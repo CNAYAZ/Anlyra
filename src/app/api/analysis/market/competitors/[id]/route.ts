@@ -16,10 +16,8 @@ const updateSchema = z.object({
   qualityScore: z.number().min(0).max(100).optional(),
 });
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const ctx = await getAuthContext();
     if (!ctx) return fail("Unauthorized", 401);
@@ -45,10 +43,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const ctx = await getAuthContext();
     if (!ctx) return fail("Unauthorized", 401);

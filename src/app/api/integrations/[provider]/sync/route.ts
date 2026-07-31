@@ -5,10 +5,8 @@ import { requireManagerRole } from "@/lib/auth/require-role";
 import { getIntegration } from "@/lib/integrations/registry";
 import { runSync } from "@/lib/sync/manager";
 
-export async function POST(
-  _req: Request,
-  { params }: { params: { provider: string } },
-) {
+export async function POST(_req: Request, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 

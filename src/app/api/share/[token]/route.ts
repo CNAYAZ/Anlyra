@@ -25,7 +25,8 @@ export const dynamic = 'force-dynamic';
  * company and its cover page carries them — sharing the link is choosing to
  * disclose exactly that.
  */
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   // Public route → rate-limited like the other public endpoints, keyed by IP.
   // Also blunts brute-forcing tokens.
   const rl = await checkRateLimit('share-token-ip', getClientIp(req));

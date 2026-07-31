@@ -22,7 +22,7 @@ const PatchSchema = z.object({
 
 // PATCH /api/recurring-expenses/[id] — update fields, including `active` to
 // cancel/reactivate. Ownership verified against the session org.
-export async function PATCH(req: Request, ctx: { params: { id: string } }) {
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -33,7 +33,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     const p = parsed.data;
 
     const existing = await prisma.recurringExpense.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 
@@ -61,7 +61,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
 }
 
 // DELETE /api/recurring-expenses/[id] — remove. Ownership verified.
-export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -69,7 +69,7 @@ export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
     if (denied) return denied;
     const { organizationId } = authCtx;
     const existing = await prisma.recurringExpense.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 
