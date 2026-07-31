@@ -10,7 +10,7 @@ const PatchSchema = z.object({
   status: z.enum(['NEW', 'READ', 'RESOLVED', 'DISMISSED']),
 });
 
-export async function PATCH(req: Request, ctx: { params: { id: string } }) {
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -20,7 +20,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     if (!parsed.success) return fail('INVALID_INPUT', 400);
 
     const existing = await prisma.alert.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!existing) return fail('NOT_FOUND', 404);
 

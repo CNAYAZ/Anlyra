@@ -7,10 +7,8 @@ import { getIntegration } from "@/lib/integrations/registry";
 
 const Body = z.object({ frequency: z.enum(["H6", "H12", "H24"]) });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { provider: string } },
-) {
+export async function POST(req: Request, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 

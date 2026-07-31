@@ -45,6 +45,10 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Auto-select the most recent conversation only once, on first load — not every
+  // time activeId becomes null, otherwise "Nuova conversazione" would be undone by
+  // this same effect re-selecting the previous conversation.
+  const hasAutoSelectedRef = useRef(false);
 
   useEffect(() => {
     setCredits(initialCredits);
@@ -57,10 +61,12 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   });
 
   useEffect(() => {
-    if (activeId === null && conversationsQuery.data && conversationsQuery.data.length > 0) {
+    if (hasAutoSelectedRef.current || !conversationsQuery.data) return;
+    hasAutoSelectedRef.current = true;
+    if (conversationsQuery.data.length > 0) {
       setActiveId(conversationsQuery.data[0].id);
     }
-  }, [conversationsQuery.data, activeId]);
+  }, [conversationsQuery.data]);
 
   const conversationQuery = useQuery({
     queryKey: ['conversation', activeId],
@@ -79,7 +85,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
     onSuccess: (res) => {
       setCredits(res.creditsRemaining);
       setActiveId(res.conversation.id);
-      qc.setQueryData(['conversation', res.conversation.id], { conversation: res.conversation });
+      qc.setQueryData(['conversation', res.conversation.id], res.conversation);
       qc.invalidateQueries({ queryKey: ['conversations'] });
       setPendingUser(null);
     },

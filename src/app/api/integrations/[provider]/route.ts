@@ -3,10 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { provider: string } },
-) {
+export async function GET(_req: Request, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 

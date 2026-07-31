@@ -14,7 +14,8 @@ export const dynamic = 'force-dynamic';
  * detail page used to do, so a report opened on another device actually loads.
  * The share TOKEN is included only for owner/admin — it is the link's secret.
  */
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -43,7 +44,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -67,7 +69,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
  * lastRunAt is written ONLY after a successful render, so the timestamp means
  * "a PDF was produced on this date" and never "we tried".
  */
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);

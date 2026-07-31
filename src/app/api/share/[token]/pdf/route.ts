@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic';
  * Rate-limited on the PDF budget (rendering is CPU-heavy) rather than the
  * lookup one, so anonymous downloads cannot exhaust the app's CPU.
  */
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const rl = await checkRateLimit('report-generate-ip', `share:${getClientIp(req)}`);
   if (!rl.success) {
     return NextResponse.json(

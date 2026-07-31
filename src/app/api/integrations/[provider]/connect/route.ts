@@ -13,10 +13,8 @@ import { getIntegration } from "@/lib/integrations/registry";
 //
 // NOTE: this is the DATA-SYNC integration, unrelated to the real Stripe BILLING
 // under /api/billing/*, /api/webhooks/stripe and src/lib/billing/* — do not merge.
-export async function POST(
-  _req: Request,
-  { params }: { params: { provider: string } },
-) {
+export async function POST(_req: Request, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 

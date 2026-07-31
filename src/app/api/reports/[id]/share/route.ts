@@ -23,7 +23,8 @@ export const dynamic = 'force-dynamic';
  * browser's localStorage, which is why a shared link never worked on another
  * device.
  */
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
@@ -61,7 +62,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 }
 
 /** Revokes the link: the token is cleared, so the public URL stops resolving. */
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);

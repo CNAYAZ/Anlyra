@@ -12,9 +12,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // L'opzione `eslint` e' stata RIMOSSA in Next 16 (`next lint` non esiste piu'
+  // e `next build` non esegue piu' il lint). Il lint gira ora con la CLI ESLint
+  // tramite `npm run lint`.
   // Security headers (Level 1 — low risk, no CSP yet). CSP is intentionally
   // omitted here: a strict policy would break Stripe/inline scripts and will be
   // introduced later in report-only mode first.

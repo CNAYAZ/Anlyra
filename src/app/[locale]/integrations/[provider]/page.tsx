@@ -15,10 +15,11 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 interface Props {
-  params: { locale: string; provider: string };
+  params: Promise<{ locale: string; provider: string }>;
 }
 
-export default async function ProviderPage({ params }: Props) {
+export default async function ProviderPage(props: Props) {
+  const params = await props.params;
   const definition = getIntegration(params.provider);
   if (!definition) notFound();
 

@@ -17,7 +17,7 @@ const BodySchema = z.object({
 // pure generator in src/lib/reminders/generate.ts. The tone is taken from the
 // body when provided, otherwise auto-selected from days overdue via suggestTone.
 // v1: text only — NO email is sent and NO AI is called.
-export async function POST(req: Request, ctx: { params: { id: string } }) {
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { organizationId } = await getCurrentContext();
     const json = await req.json().catch(() => ({}));
@@ -25,7 +25,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     if (!parsed.success) return fail('INVALID_INPUT', 400);
 
     const receivable = await prisma.receivable.findFirst({
-      where: { id: ctx.params.id, organizationId },
+      where: { id: (await ctx.params).id, organizationId },
     });
     if (!receivable) return fail('NOT_FOUND', 404);
 
