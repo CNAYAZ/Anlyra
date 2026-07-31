@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, X } from 'lucide-react';
@@ -26,6 +26,7 @@ export default function SettingsProfilePage() {
   const [name, setName] = useState('');
   const [locale, setLocale] = useState<'it' | 'en'>('it');
   const [toast, setToast] = useState<'ok' | 'err' | null>(null);
+  const initRef = useRef(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings-profile'],
@@ -33,7 +34,8 @@ export default function SettingsProfilePage() {
   });
 
   useEffect(() => {
-    if (data) {
+    if (data && !initRef.current) {
+      initRef.current = true;
       setName(data.name ?? '');
       setLocale(data.locale === 'en' ? 'en' : 'it');
     }
