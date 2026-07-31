@@ -103,9 +103,10 @@ export default function ReportsPage() {
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
         </div>
       ) : data.reports.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center gap-3 py-12 text-sm text-muted-foreground">
+        <div className="card flex flex-col items-center justify-center gap-3 py-12 text-center text-sm text-muted-foreground">
           <FileText className="h-8 w-8 opacity-40" />
-          <p>{t('empty')}</p>
+          <p className="font-medium text-foreground">{t('empty.title')}</p>
+          <p>{t('empty.description')}</p>
           <Link
             href="/reports/builder"
             className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
