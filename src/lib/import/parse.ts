@@ -102,7 +102,15 @@ export function deriveTypeAndAmount(parsed: ParsedFile): ParsedFile {
     const newColumns = columns.includes('type') ? columns : [...columns, 'type'];
     const newRows = rows.map((row) => {
       const raw = parseItalianAmount(row[amountCol.original]);
-      if (raw === undefined) return row;
+      if (raw === undefined) {
+        // Amount unreadable: leave it untouched so the amount schema reports
+        // the real problem ("Importo mancante"), but still supply a valid
+        // `type` so the row doesn't ALSO fail typeEnum with "Tipo non
+        // riconosciuto" — a column this file never had. The row is rejected
+        // either way (the amount is still invalid); this only avoids a
+        // second, confusing error for what is a single root cause.
+        return { ...row, type: 'REVENUE' };
+      }
       return { ...row, [amountCol.original]: Math.abs(raw), type: raw < 0 ? 'COST' : 'REVENUE' };
     });
     return { columns: newColumns, rows: newRows };
