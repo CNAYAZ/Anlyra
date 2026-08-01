@@ -1,6 +1,3 @@
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const ACCEPTED_MIME = [
   'text/csv',
@@ -8,12 +5,6 @@ export const ACCEPTED_MIME = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 export const ACCEPTED_EXT = ['.csv', '.xls', '.xlsx'];
-
-export type ParsedFile = {
-  headers: string[];
-  rows: Record<string, string>[];
-  totalRows: number;
-};
 
 export function isAcceptedFile(file: { name: string; size: number; type?: string }) {
   if (file.size > MAX_FILE_BYTES) return { ok: false as const, reason: 'fileTooLarge' as const };
@@ -23,41 +14,13 @@ export function isAcceptedFile(file: { name: string; size: number; type?: string
   return { ok: true as const };
 }
 
-export async function parseFile(file: File): Promise<ParsedFile> {
-  const lower = file.name.toLowerCase();
-  if (lower.endsWith('.csv')) return parseCsv(file);
-  return parseExcel(file);
-}
-
-async function parseCsv(file: File): Promise<ParsedFile> {
-  const text = await file.text();
-  const result = Papa.parse<Record<string, string>>(text, {
-    header: true,
-    skipEmptyLines: 'greedy',
-    transformHeader: (h) => h.trim(),
-  });
-  const rows = (result.data ?? []).filter(Boolean);
-  const headers = result.meta.fields?.map((f) => f.trim()) ?? [];
-  return { headers, rows, totalRows: rows.length };
-}
-
-async function parseExcel(file: File): Promise<ParsedFile> {
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: 'array' });
-  const firstSheet = wb.SheetNames[0];
-  if (!firstSheet) return { headers: [], rows: [], totalRows: 0 };
-  const sheet = wb.Sheets[firstSheet];
-  if (!sheet) return { headers: [], rows: [], totalRows: 0 };
-  const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: '',
-    raw: false,
-  });
-  const rows = json.map((r) =>
-    Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim(), String(v ?? '')]))
-  );
-  const headers = rows[0] ? Object.keys(rows[0]) : [];
-  return { headers, rows, totalRows: rows.length };
-}
+// NOTE: this module used to also expose a client-side `parseFile()` that read
+// spreadsheets in the browser with SheetJS. It had no callers left — parsing
+// happens server-side in /api/data/import/preview (src/lib/import/parse.ts) —
+// and it was the only thing pulling the spreadsheet library into the client
+// bundle, so it was removed together with the `xlsx` dependency. What stays
+// here is what the import UI actually imports: the accept/size guard above and
+// the field-detection helpers below.
 
 const DATE_HINTS = ['date', 'data', 'giorno', 'day', 'mese', 'month'];
 const AMOUNT_HINTS = ['amount', 'importo', 'totale', 'total', 'value', 'valore', 'price', 'prezzo'];
