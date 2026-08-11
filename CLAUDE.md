@@ -1,5 +1,45 @@
 # CLAUDE.md — Guida operativa per sessioni di sviluppo Anlyra
 
+> ## ⛔ FERMO — IL DATABASE È QUELLO DEL SITO ONLINE
+>
+> **C'è UN SOLO database Supabase** (project ref `ikthodgtxflhiykgpcnr`) e serve sia lo
+> sviluppo sia **anlyra.com in produzione**. Dentro ci sono **utenti registrati veri**.
+> Non esiste un database "di prova": ogni comando parte sui dati dei clienti.
+>
+> **MAI lanciare, né dal Codespace né da un container:**
+> `npm run db:seed` · `npx prisma db seed` · `npx tsx prisma/seed-*.ts` ·
+> `npm run prisma:migrate` (`prisma migrate dev`) · `npm run db:push` / `prisma:push`
+> (`prisma db push`) · `prisma migrate reset`.
+> I quattro script di seed fanno `deleteMany` su 10 tabelle; `migrate dev` e `db push`
+> possono azzerare o riscrivere lo schema. Non sono reversibili.
+>
+> **Esiste una guardia che li blocca**: [`prisma/guard.ts`](prisma/guard.ts) (VERIFICATO
+> 2026-08-11). Riconosce il database dall'identificativo dentro `DATABASE_URL`/`DIRECT_URL`
+> — controlla l'ambiente della shell **e** i file `.env` / `.env.local` / `prisma/.env`,
+> perché ogni comando ne legge uno diverso — e **blocca prima di collegarsi**: se una sola
+> di quelle sorgenti punta alla produzione, il comando muore con exit 1 senza toccare
+> niente. È **fail-closed**: blocca anche se non trova nessuna URL o se trova un database
+> remoto che non conosce. Passa solo host locali e i ref elencati come non-produzione.
+> Non si basa su `NODE_ENV` (in locale è sempre `development` anche puntando alla produzione).
+>
+> **Se serve DAVVERO scrivere in produzione**: prima backup da Supabase
+> (Database → Backups), poi lo sblocco **sulla stessa riga** del comando, così vale solo
+> per quello e non resta attivo:
+>
+> ```
+> ALLOW_PROD_DB_WRITE=yes npm run db:seed
+> ```
+>
+> **Non** esportare `ALLOW_PROD_DB_WRITE` nella shell, **non** metterlo in un `.env`,
+> **non** aggiungerlo alle variabili di Vercel: se resta attivo la protezione non serve più
+> a niente. Quando arriverà un progetto Supabase separato, aggiornare le due costanti in
+> cima a `prisma/guard.ts` (`PRODUCTION_DATABASE_IDS`, `NON_PRODUCTION_DATABASE_IDS`).
+>
+> `npm run build` (che esegue `prisma migrate deploy`) **NON** è guardato ed è corretto
+> così: applicare le migrazioni in avanti è quello che il deploy deve fare. Vedi §3.
+
+---
+
 > Contesto operativo per le future sessioni Claude Code. Versione **v5.0** (2026-07-26).
 > Leggere PRIMA di toccare codice. Ogni affermazione di stato è marcata
 > **VERIFICATO** (controllato su codice/DB/runtime alla data indicata) o **DA VERIFICARE**.
@@ -64,6 +104,18 @@ Il fondatore (cnayaz) **non è tecnico**. Regole di collaborazione:
   `20260712142054_repoint_integration_fk_drop_org_b12`.
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
+  **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
+  `migrate deploy` applica solo le migrazioni mancanti in avanti — non cancella dati e non
+  azzera lo schema, al contrario di `migrate dev`/`migrate reset` — e Vercel deve poterlo
+  fare a ogni deploy. Guardarlo avrebbe costretto a tenere `ALLOW_PROD_DB_WRITE=yes`
+  impostata **in permanenza** su Vercel, e una volta lì quella variabile avrebbe disarmato
+  la protezione anche per tutto il resto. La guardia copre solo i comandi distruttivi
+  lanciati **a mano**.
+- **Comandi distruttivi guardati** (VERIFICATO 2026-08-11): i 4 seed
+  (`prisma/seed.ts`, `seed-alerts.ts`, `seed-insights.ts`, `seed-receivables.ts` — la
+  guardia è chiamata a livello di modulo, quindi copre anche `npx prisma db seed`) più
+  `db:push`, `prisma:push`, `prisma:migrate` (guardia come primo comando dello script npm:
+  se blocca, la CLI Prisma non parte nemmeno).
 - Oggi lo **stesso progetto Supabase** serve sviluppo e servirà produzione. PRIMA del
   lancio serve un progetto separato per la produzione (deciso dal fondatore: per ora
   se ne tiene uno solo).

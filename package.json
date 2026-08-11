@@ -9,11 +9,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "tsx prisma/guard.ts \"npm run db:push\" && prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "tsx prisma/guard.ts \"npm run prisma:push\" && prisma db push",
+    "prisma:migrate": "tsx prisma/guard.ts \"npm run prisma:migrate\" && prisma migrate dev",
     "postinstall": "prisma generate"
   },
   "dependencies": {
