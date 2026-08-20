@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { buildDemoDataset } from '../src/lib/demo/data';
+import { assertNotProductionDatabase } from './guard';
+
+// Questo script fa `deleteMany` su 7 tabelle e riscrive i dati della demo: se
+// parte contro il database di produzione cancella dati di clienti veri. La
+// guardia è chiamata qui, a livello di modulo, perché è il punto più presto
+// possibile — prima del PrismaClient, prima degli upsert e prima dei deleteMany.
+assertNotProductionDatabase('npm run db:seed');
 
 const prisma = new PrismaClient();
 

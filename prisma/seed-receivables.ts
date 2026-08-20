@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { assertNotProductionDatabase } from './guard';
+
+// Cancella tutti i crediti dell'organizzazione demo e li riscrive.
+assertNotProductionDatabase('npx tsx prisma/seed-receivables.ts');
 
 const prisma = new PrismaClient();
 

@@ -1,4 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { assertNotProductionDatabase } from './guard';
+
+// Cancella tutti gli insight dell'organizzazione e li riscrive. Come
+// seed-alerts.ts ricade su `findFirst()`, quindi in produzione può colpire
+// l'organizzazione di un cliente vero.
+assertNotProductionDatabase('npx tsx prisma/seed-insights.ts');
 
 const prisma = new PrismaClient();
 
