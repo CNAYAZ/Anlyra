@@ -46,9 +46,22 @@ export const MAX_INSIGHTS = 5;
 /** Marks rows produced by a real model call. Read by the UI to show the AI badge. */
 export const AI_SOURCE = `ai:${ANTHROPIC_MODEL}`;
 
+// Kept short on purpose (was 2000/400). 5 insights × long fields is what pushed a
+// real generation past the 4096-token response budget: the model kept writing
+// until the reply was cut off mid-JSON, which is why parsing failed with "model
+// did not return a JSON array" — the true cause (truncation) was invisible
+// because the raw text was never logged. content is a few sentences of advice,
+// not an essay; MAX_TOKENS below is also raised as a second line of defence.
 const MAX_TITLE = 120;
-const MAX_SUMMARY = 400;
-const MAX_CONTENT = 2000;
+const MAX_SUMMARY = 300;
+const MAX_CONTENT = 900;
+
+// Generous headroom over the shared ANTHROPIC_MAX_TOKENS default (4096): up to
+// 5 insights, each with title+summary+content+JSON punctuation, easily adds up
+// even at the tightened lengths above once Italian/English prose is tokenized.
+// Anthropic bills actual tokens generated, not this ceiling, so raising it only
+// changes the worst case, not the typical cost of a generation.
+const INSIGHTS_MAX_TOKENS = 8192;
 
 function buildSystemPrompt(locale: 'it' | 'en'): string {
   const lang = locale === 'en' ? 'english' : 'italiano';
@@ -63,17 +76,23 @@ function buildSystemPrompt(locale: 'it' | 'en'): string {
     '',
     `LINGUA: scrivi title, summary e content in ${lang}. I valori dei campi "type" e "priority" restano invece SEMPRE in inglese maiuscolo, esattamente come elencati sotto.`,
     '',
-    `FORMATO DELLA RISPOSTA: rispondi ESCLUSIVAMENTE con un array JSON valido, senza testo prima o dopo e senza blocchi di codice. Da ${MIN_INSIGHTS} a ${MAX_INSIGHTS} elementi, ciascuno con questa struttura esatta:`,
-    '{"type": "...", "priority": "...", "title": "...", "summary": "...", "content": "...", "confidence": 0.85}',
-    '',
+    `CAMPI — da ${MIN_INSIGHTS} a ${MAX_INSIGHTS} insight, ognuno con:`,
     `- "type": uno tra ${INSIGHT_TYPES.join(' | ')}. Nient'altro.`,
     `- "priority": uno tra ${INSIGHT_PRIORITIES.join(' | ')}. Nient'altro.`,
     `- "title": massimo ${MAX_TITLE} caratteri, specifico e concreto (non "Migliora il cashflow" ma "Tre clienti in ritardo su 6.200 €").`,
-    `- "summary": 1-2 frasi, massimo ${MAX_SUMMARY} caratteri, con i numeri veri.`,
-    `- "content": la spiegazione completa e le azioni consigliate, massimo ${MAX_CONTENT} caratteri. Testo semplice o markdown leggero.`,
+    `- "summary": UNA frase, massimo ${MAX_SUMMARY} caratteri, con i numeri veri.`,
+    `- "content": SII CONCISO — 2-4 frasi al massimo, massimo ${MAX_CONTENT} caratteri: la spiegazione essenziale e l'azione consigliata, non un saggio.`,
     '- "confidence": numero tra 0 e 1, quanto sei sicuro del consiglio dati i dati disponibili.',
     '',
     'Ogni insight deve riguardare un aspetto DIVERSO: non ripetere lo stesso consiglio con parole diverse. Niente premesse, niente disclaimer generici: quelli li aggiunge già l\'interfaccia.',
+    '',
+    // Placed LAST and repeated in the strongest terms on purpose: instructions
+    // near the end of a system prompt are the ones the model tends to weigh
+    // most when producing the final tokens, and format compliance is exactly
+    // what must hold at the very end of the reply.
+    '═══ FORMATO DELLA RISPOSTA — REGOLA ASSOLUTA, PIÙ IMPORTANTE DI TUTTO IL RESTO ═══',
+    'Rispondi ESCLUSIVAMENTE con un array JSON valido. Nient\'altro: NESSUN testo prima, NESSUN testo dopo, NESSUN blocco di codice ```, NESSUNA spiegazione. Il tuo intero messaggio deve iniziare con [ e finire con ], senza nulla fuori da quelle parentesi. Non racchiudere l\'array in un oggetto (niente {"insights": [...]}): l\'array va scritto direttamente, allo stesso livello. Struttura di ogni elemento:',
+    '{"type": "...", "priority": "...", "title": "...", "summary": "...", "content": "...", "confidence": 0.85}',
   ].join('\n');
 }
 
@@ -96,34 +115,116 @@ function buildUserMessage(ctx: AIBusinessContext): string {
   ].join('\n');
 }
 
+/** Removes trailing commas before `]`/`}` — a common near-miss from LLM output that JSON.parse rejects outright. */
+function stripTrailingCommas(s: string): string {
+  return s.replace(/,(\s*[\]}])/g, '$1');
+}
+
 /**
- * Pull the JSON array out of the model's text, tolerating code fences and stray
- * prose around it. Returns null when nothing parseable is found — unlike the
- * alerts parser this NEVER falls back to "use the raw text", because a malformed
- * answer here would become database rows presented to the user as AI advice.
+ * Accepts either a bare array or a single object that WRAPS the array under a
+ * plausible key (models sometimes answer `{"insights": [...]}` even when told
+ * not to). Anything else — a lone object, a string, a number — is rejected: this
+ * function's only job is finding THE array of insights, nothing looser.
  */
-function extractJsonArray(text: string): unknown[] | null {
-  const trimmed = (text ?? '').trim();
-  const candidates: string[] = [];
-
-  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence?.[1]) candidates.push(fence[1].trim());
-
-  const first = trimmed.indexOf('[');
-  const last = trimmed.lastIndexOf(']');
-  if (first !== -1 && last > first) candidates.push(trimmed.slice(first, last + 1));
-
-  candidates.push(trimmed);
-
-  for (const c of candidates) {
-    try {
-      const parsed = JSON.parse(c) as unknown;
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // try the next candidate
+function asInsightArray(parsed: unknown): unknown[] | null {
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const obj = parsed as Record<string, unknown>;
+    for (const key of ['insights', 'data', 'items', 'results']) {
+      if (Array.isArray(obj[key])) return obj[key] as unknown[];
     }
   }
   return null;
+}
+
+function tryParse(candidate: string): unknown[] | null {
+  for (const s of [candidate, stripTrailingCommas(candidate)]) {
+    try {
+      const arr = asInsightArray(JSON.parse(s));
+      if (arr) return arr;
+    } catch {
+      // try the next variant
+    }
+  }
+  return null;
+}
+
+/**
+ * Pull the JSON array out of the model's text. Tolerates everything a real
+ * Anthropic reply has been observed to do despite instructions: introductory
+ * prose before the array, a ```json fence, the whole thing wrapped in a
+ * container object, and trailing commas. Returns null only when NONE of these
+ * shapes parse — including a response truncated mid-array, which is exactly the
+ * case that must fail cleanly here so the caller can refuse to persist anything
+ * and refund the credit, rather than silently accepting a cut-off payload.
+ */
+function extractJsonArray(text: string): unknown[] | null {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed) return null;
+
+  const candidates: string[] = [];
+
+  // 1. The whole trimmed reply — covers a clean bare array AND a clean
+  //    container object, since tryParse/asInsightArray handle both.
+  candidates.push(trimmed);
+
+  // 2. A ```json … ``` or ``` … ``` fenced block, if present.
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence?.[1]) candidates.push(fence[1].trim());
+
+  // 3. First '[' .. last ']' span — an array with prose or a trailing note
+  //    around it. Prefill makes prose-BEFORE unlikely, but trailing commentary
+  //    after the array is still possible.
+  const firstArr = trimmed.indexOf('[');
+  const lastArr = trimmed.lastIndexOf(']');
+  if (firstArr !== -1 && lastArr > firstArr) candidates.push(trimmed.slice(firstArr, lastArr + 1));
+
+  // 4. First '{' .. last '}' span — a container object with prose around it.
+  const firstObj = trimmed.indexOf('{');
+  const lastObj = trimmed.lastIndexOf('}');
+  if (firstObj !== -1 && lastObj > firstObj) candidates.push(trimmed.slice(firstObj, lastObj + 1));
+
+  for (const c of candidates) {
+    const arr = tryParse(c);
+    if (arr) return arr;
+  }
+  return null;
+}
+
+const RAW_LOG_MAX_CHARS = 1500;
+
+/**
+ * Logs the model's raw answer when it could not be turned into insights — the
+ * one piece of evidence that makes the failure diagnosable at all (this exact
+ * gap — no logged raw text — is why the previous bug report only said "model
+ * did not return a JSON array" with no way to tell truncation from a refusal
+ * from a wrapped object).
+ *
+ * PRIVACY: the raw text is a direct function of `<dati_utente>` — it can contain
+ * real client names and amounts pulled from the org's receivables/recurring
+ * expenses. So the full (truncated) text is only ever written in a NON-production
+ * environment, where server logs stay on the developer's own machine/terminal.
+ * In production, Vercel's log dashboard is reachable by anyone with project
+ * access and logs may be retained or exported outside our control, so only
+ * content-free structural facts are logged there — enough to tell a truncated
+ * reply from a wrapped object from a fully non-JSON answer, without leaking a
+ * single customer name or euro amount.
+ */
+function logInvalidResponse(text: string, reason: string): void {
+  const length = text.length;
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(
+      `[ai/insights] invalid response (${reason}). length=${length}. ` +
+        `Raw text (truncated to ${RAW_LOG_MAX_CHARS} chars):\n` +
+        text.slice(0, RAW_LOG_MAX_CHARS),
+    );
+    return;
+  }
+  console.error(
+    `[ai/insights] invalid response (${reason}). length=${length}, ` +
+      `startsWithBracket=${/^\s*[[{]/.test(text)}, endsWithBracket=${/[\]}]\s*$/.test(text)}, ` +
+      `hasCodeFence=${text.includes('```')}, hasInsightsKey=${text.includes('"insights"')}`,
+  );
 }
 
 function asCleanString(value: unknown, max: number): string | null {
@@ -195,18 +296,33 @@ export function validateInsights(raw: unknown[]): GeneratedInsight[] {
  * Ask the model for insights and return only what passed validation. Callers own
  * the credit accounting and the isAnthropicConfigured() check, exactly as with
  * analyzeAlert in src/lib/alerts/ai-analysis.ts.
+ *
+ * The call is prefilled with "[" (assistantPrefill): the reply is then forced to
+ * start with the array itself, which rules out introductory prose by
+ * construction rather than hoping the model complies. max_tokens is also raised
+ * for this call specifically (INSIGHTS_MAX_TOKENS) — see the constant's comment.
  */
 export async function generateInsights(
   ctx: AIBusinessContext,
   locale: 'it' | 'en',
 ): Promise<GeneratedInsight[]> {
-  const { text } = await chatComplete(buildSystemPrompt(locale), [
-    { role: 'user', content: buildUserMessage(ctx) },
-  ]);
+  const { text } = await chatComplete(
+    buildSystemPrompt(locale),
+    [{ role: 'user', content: buildUserMessage(ctx) }],
+    { maxTokens: INSIGHTS_MAX_TOKENS, assistantPrefill: '[' },
+  );
 
   const arr = extractJsonArray(text);
   if (!arr) {
+    logInvalidResponse(text, 'no parseable JSON array found');
     throw new InvalidInsightResponseError('model did not return a JSON array');
   }
-  return validateInsights(arr);
+  try {
+    return validateInsights(arr);
+  } catch (err) {
+    if (err instanceof InvalidInsightResponseError) {
+      logInvalidResponse(text, err.reason);
+    }
+    throw err;
+  }
 }

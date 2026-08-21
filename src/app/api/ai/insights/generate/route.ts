@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
-import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import { consumeCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { loadBusinessContext } from '@/lib/ai-context';
 import {
@@ -102,17 +102,32 @@ export async function POST(req: NextRequest) {
 
     // 8. Model call + validation. A malformed answer writes NOTHING.
     //
-    //    On failure the credit is NOT refunded, which matches chat and analyze:
-    //    the Anthropic call was made and billed to us either way, so refunding
-    //    would mean paying for retries indefinitely. The user gets a clear error
-    //    and can retry. (Deliberately different from the pre-call refusals above,
-    //    which cost nothing and therefore charge nothing.)
+    //    Two distinct failure modes, two distinct policies:
+    //      • InvalidInsightResponseError (the model answered, but not in a
+    //        shape we can use — unparseable JSON, wrong enum values, or fewer
+    //        than MIN_INSIGHTS survived validation): the credit IS refunded
+    //        below. This is a format failure, not a "the user got advice and
+    //        should pay for it" situation — the org would otherwise pay 3
+    //        credits for literally nothing.
+    //      • any other error (network failure, Anthropic outage, HTTP error):
+    //        NOT refunded, matching chat and analyze — the Anthropic call was
+    //        made and billed to us either way, and this is the same "model
+    //        failure mid-stream" case those routes already accept as
+    //        non-refundable.
     let generated;
     try {
       generated = await generateInsights(businessCtx, locale);
     } catch (err) {
       if (err instanceof InvalidInsightResponseError) {
         console.error('[ai/insights/generate] invalid model response:', err.reason);
+        // Best-effort: if the refund itself fails, the generation error is
+        // still what we report — the credit desync is logged for a manual fix
+        // rather than masked behind a different error message.
+        try {
+          await refundCredits(organizationId, GENERATION_CREDIT_COST);
+        } catch (refundErr) {
+          console.error('[ai/insights/generate] credit refund FAILED after invalid response:', refundErr);
+        }
         return fail('INVALID_AI_RESPONSE', 502);
       }
       console.error('[ai/insights/generate] Anthropic API error:', err);

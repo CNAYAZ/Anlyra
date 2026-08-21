@@ -886,7 +886,7 @@
     "generateSuccess": "{count, plural, one {# nuovo insight generato} other {# nuovi insight generati}}.",
     "generateErrorCredits": "Crediti AI insufficienti: servono 3 crediti per generare nuovi insight.",
     "generateErrorNoData": "Non ci sono ancora abbastanza dati per generare insight. Aggiungi entrate, spese o crediti e riprova.",
-    "generateErrorModel": "L'AI ha risposto in un formato non valido. Non è stato salvato nulla: riprova.",
+    "generateErrorModel": "L'AI ha risposto in un formato non valido. Non è stato salvato nulla e i crediti usati sono stati restituiti: riprova.",
     "generateErrorRateLimited": "Troppe richieste. Riprova tra qualche minuto.",
     "generateErrorTrial": "La prova è scaduta. Attiva un abbonamento per generare nuovi insight.",
     "generateErrorGeneric": "Errore durante la generazione degli insight. Riprova.",
