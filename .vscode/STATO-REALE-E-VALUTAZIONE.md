@@ -1,4 +1,3 @@
-ps aux | grep "next dev" | grep -v grep
 # Anlyra — Stato reale del progetto e valutazione
 
 > **Cos'è questo file.** Non è un handoff e non è una lista di cose da fare. È una
@@ -16,6 +15,10 @@ ps aux | grep "next dev" | grep -v grep
 > **Aggiornato il 2026-07-01**: vedi §9 in fondo — cambio password reale, bonifica branch (da 64 a 2), fix font, refactor getOrgData 3/4. ⚠️ PASSWORD DEMO CAMBIATA: ora `NuovaDemo2026!`.
 >
 > **Aggiornato il 2026-07-03**: vedi §10 — Anlyra è ONLINE su Vercel (anlyra.vercel.app), migrato a PostgreSQL/Supabase. DB dev ora è Postgres (non più SQLite).
+>
+> **Aggiornato il 2026-08-21**: vedi **§26 in fondo** — rivalutazione completa riletta dal
+> codice. La fotografia del §2 è in gran parte SUPERATA (quasi tutti i "pezzi che fingono"
+> sono stati sistemati); §26 dice cosa è cambiato, cosa resta vero, e i debiti attuali.
 ---
 
 ## 0. Regole d'oro (leggere prima di tutto)
@@ -749,7 +752,6 @@ Rimossi 11 utenti temp-mail di test + 4 org spazzatura (Demo User x2, Michl, Tes
 
 ### UI agent — refresh estetico FATTO
 Pagina agent ridisegnata coerente con lo stile dell'app (tile-icona sage, segmented control per le 5 tab con icone, risultato come "report", stati curati). Logica intatta. Approvato dal founder.
-cat >> .vscode/STATO-REALE-E-VALUTAZIONE.md << 'EOF'
 
 ## 24. Aggiornamento 2026-07-20 — gating trial scaduto FATTO
 
@@ -763,8 +765,6 @@ Chiuso il limite noto (gating era plan-only, ignorava lo status → trial scadut
 ### Contesto esterno (20/07)
 - P.IVA: pagata oggi, oggi parte il processo Camera di Commercio (14-20 gg per il via → poi Stripe LIVE).
 - Martina: non ha (ancora) risposto al WhatsApp. Non insistere; riagganciare quando si apre davvero (notizia concreta).
-EOF
-cat >> .vscode/STATO-REALE-E-VALUTAZIONE.md << 'EOF'
 
 ## 25. Aggiornamento 2026-07-20 — UI trial scaduto (banner + messaggio import)
 - TrialExpiredBanner (src/components/billing/TrialExpiredBanner.tsx): striscia in alto nella dashboard (sotto Topbar), appare SOLO se status non in {active,trialing}. Testo + bottone "Abbonati" → /settings/billing (locale-aware). Non copre i dati (border-b che spinge il contenuto giù, non overlay). Legge useBilling().state.status.
@@ -774,3 +774,240 @@ cat >> .vscode/STATO-REALE-E-VALUTAZIONE.md << 'EOF'
 
 ### Gating trial scaduto: COMPLETO end-to-end
 Server (402 su AI+scritture) + UI (banner dashboard + messaggio import). Il "buco" del PRO regalato a vita è chiuso in ogni aspetto. Follow-up minori possibili (bloccare anche endpoint di scrittura secondari: receivables/recurring PATCH-DELETE, custom-dashboards, reports) ma non critici.
+
+---
+---
+
+## 26. Aggiornamento 2026-08-21 — rivalutazione completa, riletta dal codice
+
+> **Cos'è questa sezione.** Non un diario di sessione: una **nuova fotografia intera**,
+> come il §2 originale, scritta rileggendo il codice al commit `b105be7` sul branch
+> `claude/merge-repos-nextjs-rOZU3`. Il documento era fermo al §25 (2026-07-20); nel
+> mese successivo sono successe molte cose, incluse alcune brutte (un incidente di
+> cherry-pick che ha cancellato traduzioni, poi riparato). Qui c'è cosa è vero ADESSO.
+>
+> **Nota di onestà.** Chi scrive lavora in un **container remoto** (`CODESPACE_NAME`
+> vuoto): ha riletto il codice e fatto girare `tsc` (0 errori, verificato), ma **non ha
+> visto il sito girare nel browser né interrogato il DB di produzione**. Ogni
+> affermazione qui sotto è marcata: *(verificato su file:riga)* = letta nel codice ora;
+> *(riportato)* = dichiarata dai §14-25 o dal CLAUDE.md ma non ricontrollabile da qui
+> (runtime, Vercel, DB, Stripe). Regola d'oro n.2: prima di agire, verifica sulla fonte.
+
+### 26.1 Cosa del vecchio documento è SUPERATO
+
+La lista dei "pezzi che fingono di funzionare" del §2 è quasi tutta risolta:
+
+- **Cambio password**: REALE. `POST /api/auth/change-password` verifica la vecchia
+  password, applica la policy e salva l'hash bcrypt (verificato su
+  `src/app/api/auth/change-password/route.ts:36,49-52`). Debito residuo: **non invalida
+  le sessioni JWT esistenti** — chi era loggato altrove resta loggato (verificato:
+  nessuna logica di session-invalidation nella route).
+- **Condivisione report**: REALE e validata dal server. Il token è generato lato server
+  con `crypto.randomBytes(32)`, salvato su `Report_b8` con scadenza
+  (`SHARE_LINK_TTL_DAYS`), e la pagina pubblica legge da `/api/share/[token]` — non più
+  dal localStorage del browser di chi condivide (verificato su
+  `src/app/api/reports/[id]/share/route.ts:46-50` e
+  `src/app/[locale]/share/[token]/page.tsx:54`). Solo owner/admin possono creare il
+  link (`requireManagerRole`).
+- **"Run now" dei report**: ora fa un PDF VERO. `POST /api/reports/[id]` chiama
+  `renderReportPdf` che costruisce i dati da Prisma (`src/lib/reports/real-data.ts`) e
+  il client lo scarica come file (verificato su
+  `src/app/api/reports/[id]/route.ts:85-94` e
+  `src/app/[locale]/(dashboard)/reports/page.tsx:42-60`). Le sezioni che non si possono
+  riempire con dati veri vengono ESCLUSE invece che riempite di numeri plausibili
+  (`real-data.ts:174-196`) — scelta onesta, ma vedi debito in 26.4.
+- **Finta sync Stripe**: neutralizzata. Il provider dati-Stripe è ora uno stub onesto
+  che non scrive nulla e fallisce dichiaratamente — prima fabbricava FinancialRecord con
+  `Math.random()` (verificato su `src/lib/sync/providers/stripe.ts:12`). Il connect
+  delle integrazioni risponde 503 "Integration not available yet"
+  (`src/app/api/integrations/[provider]/connect/route.ts:26`).
+- **`netProfit = operatingProfit × 0.88`** (l'invenzione segnalata al §9): SPARITA —
+  grep su `0.88` in `src/lib/analysis/financial.ts` non trova nulla (verificato).
+- **Bug Organization_b12** (integrazioni rotte per org nuove): risolto al §18, e la FK
+  di Integration punta a Organization vera (riportato §18; coerente con lo schema letto).
+
+Restano VERI del vecchio documento:
+
+- **"Genera insight" è ancora uno stub 503**: la route esiste, controlla crediti e
+  configurazione ma finisce sempre in `fail('AI_DISABLED_IN_DEMO', 503)` (verificato su
+  `src/app/api/ai/insights/generate/route.ts:29`). Il bottone è nascosto dalla UI, quindi
+  nessun utente lo vede — ma la generazione insight NON esiste.
+- **Operations e Mercato restano motori sintetici**, a riposo: le voci di menu sono
+  commentate con nota datata (verificato su `src/components/dashboard/nav-config.ts:71-98`),
+  i motori seno/coseno sono ancora nel repo (`src/lib/operations-data.ts`,
+  `src/lib/widgets/data.ts` — verificato con grep su `Math.sin`).
+- **Zombie Prisma**: 48 modelli nello schema, di cui 11 col suffisso `_bN` più i doppioni
+  `Kpi`/`KPI` e `FinancialData`/`FinancialRecord` (verificato su `prisma/schema.prisma`).
+  `Report_b8`/`CustomDashboard_b8`/`NotificationPref_b8` sono ATTIVI nonostante il nome.
+- **Split-brain competitor**: le scritture vanno su `Competitor` (import/commit e CRUD),
+  ma la lettura per la UI passa da `Competitor_b7` (verificato su
+  `src/lib/market-data.ts:77,96`) — un competitor importato non compare. Nota nuova:
+  anche l'**export GDPR legge `competitor_b7`** (`src/app/api/gdpr/export/route.ts:137`),
+  quindi i competitor importati non finiscono nemmeno nell'export dei dati dell'utente.
+- **`main` è ancora divergente**: 4 commit unici su `origin/main` (ultimo: `935208c`,
+  un bundle di design) non presenti nel tronco, che è avanti di 98 (verificato con
+  `git rev-list --count`). La trappola del Production Branch su Vercel è stata
+  disinnescata (§13), ma `main` resta un tronco vecchio con contenuto proprio: la
+  chirurgia promessa non è stata fatta.
+
+### 26.2 Cosa è arrivato dopo il §25 (il mese mancante)
+
+Tutto verificato sul codice ora, salvo dove indicato:
+
+- **Audit sicurezza/qualità del 2026-07-26** (riportato dal CLAUDE.md v5.0): nessun IDOR,
+  no SQLi/XSS, nessun segreto hardcoded. Da quell'audit discendono i lavori sotto.
+- **Controllo ruoli sulle azioni distruttive**: `requireManagerRole` (fail-closed, 403)
+  applicato a **12 route** — le DELETE di receivables, recurring-expenses, reports,
+  custom-dashboards, import batches, competitors; PATCH settings/organization; le 4
+  route integrazioni; e la creazione share-link (verificato con grep: 12 file sotto
+  `src/app/api`). Ruoli reali lowercase su `Membership.role`.
+- **Contesto AI su dati reali**: `src/lib/ai-context.ts` importa `getFinancialFacts` e
+  non contiene più KPI/competitor hardcoded (verificato su `ai-context.ts:2,73`). Le date
+  passano dagli helper `Europe/Rome` di `src/lib/timezone.ts` (verificato: 5 usi in
+  `financial-facts.ts`, `APP_TIME_ZONE = 'Europe/Rome'`).
+- **`/api/ai/analyze` ora consuma crediti**: `consumeCredits` con decremento condizionale
+  atomico, bloccato PRIMA della chiamata al modello; una modalità sconosciuta non costa
+  nulla (verificato su `src/app/api/ai/analyze/route.ts:15,123-132`). Chiuso il debito
+  "analyze non scala i crediti" del §19.
+- **GDPR**: export completo dei dati (`/api/gdpr/export`) e cancellazione account con
+  grazia di 30 giorni (`DELETION_GRACE_DAYS = 30` in `src/lib/gdpr/constants.ts:7`,
+  richiesta in `/api/gdpr/account`, purge nel cron `/api/cron/gdpr-purge` registrato in
+  `vercel.json`). Verificato sui file.
+- **`xlsx` sostituito con `exceljs`**: la libreria vulnerabile senza fix è FUORI dal
+  progetto (verificato: 0 occorrenze in package.json e nessun import; `exceljs ^4.4.0`
+  usato in `src/lib/import/parse.ts`). Le 3 vulnerabilità critical del §10 CLAUDE.md
+  sono scese: oggi `npm audit` dice **9 (1 low, 2 moderate, 6 high)**, quasi tutte con
+  fix disponibile via `npm audit fix` (verificato a runtime ora).
+- **Next.js 16 + React 19**: `next ^16.2.12`, `react ^19.2.8` (verificato su
+  package.json). `tsc --noEmit` → 0 errori (verificato ora).
+- **Guardia sul database di produzione** (`prisma/guard.ts`, 356 righe): blocca i 4 seed
+  e `db:push`/`prisma:migrate` se una qualunque sorgente di `DATABASE_URL`/`DIRECT_URL`
+  (shell, `.env`, `.env.local`, `prisma/.env`) punta al project ref di produzione; è
+  **fail-closed** (blocca anche l'ignoto); sblocco solo con `ALLOW_PROD_DB_WRITE=yes`
+  sulla stessa riga (verificato leggendo guard.ts e gli script in package.json:12-16).
+  È la risposta alla regola d'oro del §10: il DB unico resta, ma i comandi che possono
+  distruggerlo ora muoiono prima di collegarsi.
+- **Conformità AI Act (trasparenza)**: le superfici AI portano il disclaimer e i link
+  "quale modello usiamo" / "come trattiamo i tuoi dati" (verificato: chat-client.tsx,
+  AgentClient.tsx, alert-detail.tsx, pagina import con avviso sui dati inviati ad
+  Anthropic); la Privacy dichiara il **modello corrente reale** interpolando
+  `ANTHROPIC_MODEL` nel testo (verificato su
+  `src/app/[locale]/legal/privacy/page.tsx:3,23`); gli insight hanno l'etichetta
+  "Generato da AI" (`insight-card.tsx:69` — ma vedi il debito sotto).
+- **Vercel Web Analytics** montato nel root layout (`@vercel/analytics/next` in
+  `src/app/layout.tsx:3`) — cookieless; il **cookie banner** è stato riscritto onesto:
+  solo cookie tecnici, niente finte categorie marketing/analytics da accettare
+  (verificato su `src/components/cookie-banner.tsx:30`).
+- **Identità aziendale**: footer con "Lena di Ipek Mikail", Piazza Gramsci 8,
+  41030 San Prospero (MO), P.IVA 04275010363, contact@anlyra.com (verificato su
+  `site-footer.tsx:83-86` e nelle chiavi `landing.footer.*`); Privacy §1 e Terms §1
+  riportano la stessa identità con PEC; footer email allineato
+  (`src/lib/email/templates/_layout.ts:79`). **La P.IVA esiste**: il percorso Camera di
+  Commercio del §20 è arrivato in fondo (riportato; il numero è nel codice).
+- **Riparazione i18n post-incidente**: un cherry-pick risolto male (checkout --theirs)
+  aveva riportato i file messaggi a una versione vecchia cancellando le sezioni AI Act,
+  il footer aziendale e il banner onesto; ripristinato tutto da `63c2e52` + fix nome
+  (commit `6aa9872`), poi aggiunte 18 chiavi mancanti reali (commit `c3df116`).
+  IT e EN sono allineati (2148 foglie ciascuno, contando gli elementi degli array).
+
+### 26.3 La fotografia aggiornata, in una frase per categoria
+
+- **Cuore solido**: tutto quello del §2 (entrate/costi, scadenzario, ricorrenti, import,
+  auth) PIÙ: agente AI a 5 modalità con streaming e crediti veri, motore dei fatti,
+  billing Stripe persistente con trial onesto e gating a scadenza, PDF report da dati
+  reali, GDPR export/cancellazione, sicurezza C1-C4/A1-A4 chiusa.
+- **Promessa giusta costruita male**: Operations — invariata, a riposo, da rifare sui
+  dati veri quando avrà senso.
+- **Scenografia**: Mercato — invariata, a riposo. Più una NUOVA piccola: la tabella
+  prezzi orfana (vedi sotto).
+- **Pezzi che fingono di funzionare**: la categoria si è quasi svuotata. Restano lo stub
+  insights (invisibile in UI) e l'etichetta "Generato da AI" sugli insight del seed.
+
+### 26.4 Debiti e rischi ATTUALI, con giudizio di gravità
+
+**Gravi (da chiudere prima di incassare soldi veri):**
+- **Un solo database per sviluppo e produzione.** Il rischio è mitigato dalla guardia
+  (fail-closed, verificata), ma la guardia protegge solo i comandi che passano da lei:
+  uno script nuovo, una query a mano, un tool esterno non sono coperti. La soluzione
+  vera — un progetto Supabase separato — resta da fare (decisione founder: per ora uno).
+- **Stripe è in modalità TEST** (riportato §16-17; le chiavi sono su Vercel/.env, non
+  verificabili dal codice). Prima di aprire: chiavi live, webhook live, prodotti live.
+- **Webhook Stripe senza idempotency su `event.id`** (verificato: nessuna traccia di
+  dedup in `src/app/api/webhooks/stripe/route.ts`). Un retry di Stripe può processare
+  due volte lo stesso evento. Da fare insieme al passaggio LIVE.
+- **Pagine legali ancora "in fase di revisione legale"** (il disclaimer lo dice, 2
+  occorrenze in it.json — verificato). Con P.IVA attiva e pagamenti in arrivo, Privacy
+  e Terms vanno fatti validare da un professionista. Non è più un dettaglio.
+
+**Medi (brutti ma non bloccanti):**
+- **Insight etichettati "Generato da AI" ma scritti dal seed.** L'unico writer di
+  `Insight` sono `prisma/seed.ts` e `seed-insights.ts` (verificato con grep); la
+  generazione vera è lo stub 503. Il badge AI Act su contenuto NON generato da AI è
+  l'esatto contrario della trasparenza che vorrebbe dare. O si toglie il badge dai
+  contenuti seed, o si collega la generazione vera.
+- **Report "pianificati" che non partono mai**: la UI mostra frequenze e "prossima
+  esecuzione", ma in `vercel.json` i cron sono solo `trial-check` e `gdpr-purge`
+  (verificato). Nessun job genera/spedisce report. Il "Run now" invece è vero.
+- **Sezioni report offerte ma mai generate**: il builder offre "Top clienti", "Churn",
+  "Benchmark" (`src/lib/report-sections.ts:24-27`), ma il renderer le scarta sempre
+  (`real-data.ts:186-190` ritorna `false`). L'utente le seleziona e riceve un PDF senza,
+  in silenzio. Meglio nasconderle dal builder finché non esistono.
+- **Cambio password non invalida le sessioni JWT** esistenti (sopra, 26.1).
+- **Niente CSP** (verificato: nessuna Content-Security-Policy in next.config) e
+  **niente audit log** delle azioni (l'unica cosa chiamata audit_log è un flag di
+  feature nel piano Enterprise — `src/lib/billing/plans.ts:19`). Rimandate
+  consapevolmente al §14; da riprendere post-lancio.
+- **9 vulnerabilità npm** (1 low, 2 moderate, 6 high — verificato ora). Nessuna
+  critical, la maggior parte fixabile con `npm audit fix` senza breaking: è diventato
+  un lavoretto da un'ora, farlo.
+- **Rate-limit fail-open**: senza le env Upstash il limite si disattiva con un warn
+  (verificato su `src/lib/rate-limit.ts:58`). Oggi Upstash è configurato (riportato);
+  ma se un domani le env si perdono, il sito resta aperto senza accorgersene.
+
+**Piccoli (igiene):**
+- **Tabella prezzi orfana con prezzi falsi**: `src/components/pricing-table.tsx` ha un
+  piano "starter" e prezzi €29/79/199 mai esistiti; non è montata da nessuna route
+  (verificato con grep sugli import) ma è un trappolone per chi la trovasse. Cancellarla
+  o allinearla ai piani veri (PRO 49 / ADVANCED 149 / ENTERPRISE custom).
+- **I seed usano `findFirst()` sull'organizzazione** (`seed-alerts.ts:12`,
+  `seed-insights.ts:15-16` — verificato): in un DB condiviso prenderebbero la PRIMA org
+  che trovano, anche di un cliente. La guardia li blocca prima, ma il pattern resta
+  sbagliato: puntare sempre a `demo-org` esplicitamente.
+- **I testi del motore dei fatti sono solo in italiano** (verificato su
+  `financial-facts.ts:101-167`: titoli e descrizioni hardcoded in italiano). Un utente
+  con lingua EN vede la pagina Situazione e il contesto AI in italiano. Da portare
+  su next-intl quando si internazionalizza sul serio.
+- **`pricing.title`/`pricing.subtitle`**: `PricingClient.tsx:18-20` chiama chiavi che
+  non esistono — il testo identico esiste come `pricing.hero.*`. È un bug di codice
+  (route `/pricing` mostra i nomi delle chiavi nei titoli): un rename da 2 righe.
+- **Zombie Prisma e split-brain competitor** (sopra): la pulizia col LOTTO 1 del §10 è
+  ancora tutta da fare, backup prima.
+- **`AiAlert`/`AiAlertConfig`**: mai letti da funzioni di prodotto; oggi compaiono solo
+  nell'export GDPR e nella cancellazione (verificato con grep). Candidati alla pulizia.
+
+### 26.5 La direzione che vedo (aggiornata — opinione, non ordine)
+
+Due mesi fa scrivevo che il problema era "gusci con l'interfaccia bella e il motore
+finto". Oggi quel problema è sostanzialmente risolto: **quasi tutto quello che si vede
+fa una cosa vera**, e i pezzi finti sono nascosti o dichiarati. Il progetto ha fatto il
+salto che serviva: è online con dominio proprio, ha un'identità legale vera (ditta
+individuale, P.IVA), un flusso di registrazione collaudato end-to-end, un agente AI che
+consuma crediti veri su dati veri, e i binari dei pagamenti pronti in test.
+
+Il collo di bottiglia adesso NON è il codice. È l'ultimo miglio commerciale-legale:
+Stripe TEST→LIVE (con l'idempotency del webhook fatta insieme), le pagine legali
+validate da un professionista, e la separazione del database di produzione. Sono tre
+lavori noiosi e nessuno dei tre è una feature — ed è esattamente per questo che
+rischiano di slittare mentre si fa altro. Il mio consiglio da collega: **congelare le
+feature finché questi tre non sono chiusi**. Ogni giorno di sviluppo su funzioni nuove,
+adesso, è un giorno in cui il prodotto poteva incassare e non l'ha fatto.
+
+Subito dopo, in ordine di valore: togliere il badge "Generato da AI" dagli insight del
+seed (o collegare la generazione vera — è l'ultima bugia rimasta visibile), nascondere
+dal builder le sezioni report che non escono mai, e il fix da 2 righe su
+`pricing.title`. Poi, con calma: pulizia zombie Prisma, CSP, audit log.
+
+La regola che ha funzionato fin qui resta quella: un mattone alla volta, verificato sul
+codice e sul database, mai sulla parola di un `.md` — questo incluso.
+
+*Documento di valutazione, non un ordine. La rotta la tiene il fondatore.*
