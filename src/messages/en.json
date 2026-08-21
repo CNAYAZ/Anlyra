@@ -1805,6 +1805,10 @@
       "title": "Simple, transparent pricing",
       "subtitle": "Three plans for every growth stage. 7-day trial, 14-day money-back guarantee."
     },
+    "compareTitle": "Compare plans",
+    "faqTitle": "Frequently asked questions",
+    "everythingIn": "Everything in {plan}, plus:",
+    "ctaUpgrade": "Choose this plan",
     "toggle": {
       "monthly": "Monthly",
       "annual": "Annual",
@@ -2119,9 +2123,13 @@
     "hero": {
       "title": "AI analysis for your business. Privacy taken seriously.",
       "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, automatic alerts, and accurate forecasts. European servers. Never sold, never identifiable data shared, never used to train third-party AI.",
+      "badge": "AI for SMBs · Data hosted in Europe",
       "cta1": "Start 7-day trial",
       "cta2": "See pricing",
+      "ctaPrimary": "Start 7-day trial",
+      "ctaSecondary": "See how it works",
       "disclaimer": "7-day trial · GDPR-compliant · Setup in 5 minutes",
+      "trust": "7-day trial · GDPR-compliant · Setup in 5 minutes",
       "previewCaption": "A complete overview of your business, always at your fingertips."
     },
     "problem": {
@@ -2143,6 +2151,7 @@
     },
     "features": {
       "title": "Everything you need. Nothing you don't.",
+      "subtitle": "The essential features to really understand how your business is doing, nothing more.",
       "items": [
         {
           "title": "Financial analysis",
@@ -2172,6 +2181,7 @@
     },
     "howItWorks": {
       "title": "From CSV to insights in 3 steps",
+      "subtitle": "No complex setup: upload your data and let the AI do the rest.",
       "steps": [
         {
           "number": "1",
@@ -2204,6 +2214,7 @@
     },
     "testimonials": {
       "title": "People are talking about Anlyra",
+      "subtitle": "Companies and consultants who use Anlyra every day to decide faster.",
       "items": [
         {
           "initials": "MC",
@@ -2224,6 +2235,15 @@
           "quote": "Privacy-first and affordable pricing. We didn't need another tool sharing our numbers with OpenAI."
         }
       ]
+    },
+    "pricing": {
+      "title": "Pricing",
+      "subtitle": "Choose the plan that's right for your business.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyDiscount": "Save with yearly billing",
+      "popular": "Most Popular",
+      "perMonth": "/mo"
     },
     "finalCta": {
       "title": "Start today. Risk-free.",

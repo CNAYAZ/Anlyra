@@ -1805,6 +1805,10 @@
       "title": "Prezzi semplici e trasparenti",
       "subtitle": "Tre piani per ogni fase di crescita. 7 giorni di prova, 14 giorni di garanzia rimborso."
     },
+    "compareTitle": "Confronta i piani",
+    "faqTitle": "Domande frequenti",
+    "everythingIn": "Tutto incluso in {plan}, più:",
+    "ctaUpgrade": "Scegli questo piano",
     "toggle": {
       "monthly": "Mensile",
       "annual": "Annuale",
@@ -2119,9 +2123,13 @@
     "hero": {
       "title": "L'AI che analizza la tua azienda. Privacy seria, sul serio.",
       "subtitle": "Anlyra trasforma i tuoi CSV finanziari e dati di mercato in insight strategici, alert automatici e forecast accurati. Server in Europa. Dati mai venduti, mai identificabili condivisi, mai usati per addestrare AI di terzi.",
+      "badge": "AI per PMI · Dati in Europa",
       "cta1": "Inizia prova 7 giorni",
       "cta2": "Vedi i prezzi",
+      "ctaPrimary": "Inizia prova 7 giorni",
+      "ctaSecondary": "Guarda come funziona",
       "disclaimer": "7 giorni di prova · GDPR-compliant · Setup in 5 minuti",
+      "trust": "7 giorni di prova · GDPR-compliant · Setup in 5 minuti",
       "previewCaption": "Una panoramica completa della tua azienda, sempre a portata di mano."
     },
     "problem": {
@@ -2143,6 +2151,7 @@
     },
     "features": {
       "title": "Tutto quello che serve. Niente di più.",
+      "subtitle": "Le funzionalità essenziali per capire come va davvero la tua azienda, senza fronzoli.",
       "items": [
         {
           "title": "Analisi finanziaria",
@@ -2172,6 +2181,7 @@
     },
     "howItWorks": {
       "title": "Da CSV a insight in 3 step",
+      "subtitle": "Nessuna configurazione complessa: carica i dati e lascia che l'AI faccia il resto.",
       "steps": [
         {
           "number": "1",
@@ -2204,6 +2214,7 @@
     },
     "testimonials": {
       "title": "Stanno parlando di Anlyra",
+      "subtitle": "Aziende e consulenti che usano Anlyra ogni giorno per decidere più in fretta.",
       "items": [
         {
           "initials": "MC",
@@ -2224,6 +2235,15 @@
           "quote": "Privacy-first e prezzo accessibile. Non ci voleva un altro tool che condividesse i nostri numeri con OpenAI."
         }
       ]
+    },
+    "pricing": {
+      "title": "Prezzi",
+      "subtitle": "Scegli il piano più adatto alla tua azienda.",
+      "monthly": "Mensile",
+      "yearly": "Annuale",
+      "yearlyDiscount": "Risparmia con l'annuale",
+      "popular": "Più Popolare",
+      "perMonth": "/mese"
     },
     "finalCta": {
       "title": "Inizia oggi. Senza rischio.",
