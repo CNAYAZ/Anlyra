@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Pro Business Analyzer',
-    short_name: 'Pro',
+    name: 'Anlyra',
+    short_name: 'Anlyra',
     description: 'Analyze your business with AI',
     start_url: '/',
     display: 'standalone',

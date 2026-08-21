@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Pro",
+    "name": "Anlyra",
     "tagline": "Analisi aziendale intelligente",
     "logoSubtitle": "Analytics"
   },
@@ -1918,7 +1918,7 @@
       },
       {
         "q": "Posso vedere una demo prima?",
-        "a": "Sì, scrivici a hello@anlyra.com e organizzeremo una demo personalizzata di 30 minuti."
+        "a": "Sì, scrivici a contact@anlyra.com e organizzeremo una demo personalizzata di 30 minuti."
       }
     ],
     "finalCta": {
@@ -2241,9 +2241,9 @@
       "cookies": "Cookie Policy",
       "contact": "Contattaci",
       "contactEmail": "contact@anlyra.com",
-      "companyLegalName": "Anlyra di Nayaz Mikail — Regime Forfetario",
+      "companyLegalName": "Anlyra — Ipek Mikail",
       "companyAddress": "Piazza Gramsci 8, 41030 San Prospero (MO), Italia",
-      "companyVat": "P.IVA 04275010363",
+      "companyVat": "P.IVA 04275010363 · Regime Forfetario",
       "rights": "Tutti i diritti riservati."
     }
   },
@@ -2347,7 +2347,7 @@
   "legal": {
     "common": {
       "disclaimerLabel": "⚠️ Documento in fase di revisione legale",
-      "disclaimer": "Questo documento è in fase di revisione legale e non costituisce consulenza legale ufficiale. Per contratti commerciali ufficiali contattare hello@anlyra.com. Anlyra è gestito da Claudio Nayaz, persona fisica (entità giuridica formale in via di costituzione).",
+      "disclaimer": "Questo documento è in fase di revisione legale e non costituisce consulenza legale ufficiale. Per contratti commerciali ufficiali contattare contact@anlyra.com. Anlyra è gestito da Ipek Mikail, titolare di ditta individuale in Regime Forfetario (P.IVA 04275010363).",
       "aiModelNoteLabel": "🤖 Intelligenza artificiale usata da Anlyra",
       "aiModelNote": "Le funzionalità AI di Anlyra (chat, analisi, insight, alert) sono generate da un modello di linguaggio fornito da Anthropic — attualmente {model}. I contenuti generati dall'AI sono sempre segnalati come tali nell'interfaccia e possono contenere errori: vanno verificati prima di essere usati per decisioni importanti.",
       "aiDataFlowNote": "Per generare consigli e analisi, ad Anthropic vengono inviati: nome dell'azienda, settore, numero dipendenti, aggregati finanziari mensili, il riepilogo dello scadenzario (inclusi nomi dei clienti e importi), le spese ricorrenti (inclusi nomi dei fornitori) e le segnalazioni generate dall'analisi dei tuoi dati. Nella chat vengono inviati anche il testo scritto e l'intera cronologia della conversazione. Non vengono inviati: email e nome dell'utente, email dei clienti, numeri di fattura, note.",
@@ -2368,7 +2368,7 @@
           "id": "controller",
           "title": "1. Titolare del trattamento",
           "paragraphs": [
-            "Anlyra è un servizio SaaS gestito da Claudio Nayaz, persona fisica (in via di costituzione come entità giuridica formale). Indirizzo email di contatto: hello@anlyra.com.",
+            "Anlyra è un servizio SaaS gestito da Ipek Mikail, titolare della ditta individuale operante in Regime Forfetario, con sede in Piazza Gramsci 8, 41030 San Prospero (MO), Italia — P.IVA 04275010363. Indirizzo email di contatto: contact@anlyra.com — PEC: mikail.ipek@pec.fiscozen.it.",
             "Ai sensi del Regolamento UE 2016/679 (GDPR), il Titolare del trattamento è la persona o entità che determina le finalità e i mezzi del trattamento dei dati personali degli Utenti."
           ]
         },
@@ -2463,7 +2463,7 @@
             "Portabilità (art. 20): ricevere i tuoi dati in formato strutturato, leggibile da macchina e interoperabile.",
             "Opposizione (art. 21): opporti al trattamento effettuato sulla base dell'interesse legittimo.",
             "Limitazione (art. 18): richiedere la limitazione del trattamento in specifiche circostanze previste dalla norma.",
-            "Per esercitare i tuoi diritti: invia una email a hello@anlyra.com con oggetto 'Privacy Request'. Risponderemo entro 30 giorni dalla ricezione."
+            "Per esercitare i tuoi diritti: invia una email a contact@anlyra.com con oggetto 'Privacy Request'. Risponderemo entro 30 giorni dalla ricezione."
           ]
         },
         {
@@ -2477,7 +2477,7 @@
             "Diritto di cancellazione: equivalente al diritto all'oblio previsto dal GDPR.",
             "Diritto di opt-out dalla vendita: Anlyra non vende dati personali a terzi. Non è necessario alcun opt-out attivo.",
             "Diritto di non discriminazione: non subirai alcuna penalità, differenza di prezzo o qualità del servizio per l'esercizio dei tuoi diritti CCPA.",
-            "Per richieste CCPA: hello@anlyra.com con oggetto 'CCPA Request'."
+            "Per richieste CCPA: contact@anlyra.com con oggetto 'CCPA Request'."
           ]
         },
         {
@@ -2492,7 +2492,7 @@
             "Anonimizzazione, blocco o eliminazione di dati trattati in modo non conforme alla LGPD.",
             "Portabilità dei dati verso un altro fornitore di servizi.",
             "Revoca del consenso in qualsiasi momento, senza penalità.",
-            "Per richieste LGPD: hello@anlyra.com con oggetto 'LGPD Request'."
+            "Per richieste LGPD: contact@anlyra.com con oggetto 'LGPD Request'."
           ]
         },
         {
@@ -2519,7 +2519,7 @@
           "id": "contact",
           "title": "13. Contatti — Privacy e DPO",
           "paragraphs": [
-            "Per qualsiasi richiesta relativa alla privacy, per esercitare i tuoi diritti o per domande sul trattamento dei dati personali: email hello@anlyra.com — oggetto: 'Privacy Inquiry'.",
+            "Per qualsiasi richiesta relativa alla privacy, per esercitare i tuoi diritti o per domande sul trattamento dei dati personali: email contact@anlyra.com (oggetto: 'Privacy Inquiry') oppure PEC mikail.ipek@pec.fiscozen.it.",
             "Risposta garantita entro 30 giorni dalla ricezione della richiesta.",
             "Hai il diritto di presentare reclamo all'Autorità di controllo competente. In Italia: Garante per la protezione dei dati personali (garanteprivacy.it)."
           ]
@@ -2528,14 +2528,14 @@
     },
     "terms": {
       "title": "Termini di Servizio",
-      "subtitle": "Contratto di utilizzo del Servizio Anlyra tra Claudio Nayaz (gestore) e l'Utente",
+      "subtitle": "Contratto di utilizzo del Servizio Anlyra tra Ipek Mikail (gestore) e l'Utente",
       "lastRevised": "Ultima revisione: 17 maggio 2026",
       "sections": [
         {
           "id": "definitions",
           "title": "1. Definizioni",
           "items": [
-            "Anlyra: il Servizio SaaS descritto nei presenti Termini, gestito da Claudio Nayaz (in via di costituzione come entità giuridica formale).",
+            "Anlyra: il Servizio SaaS descritto nei presenti Termini, gestito da Ipek Mikail, titolare di ditta individuale in Regime Forfetario (P.IVA 04275010363), con sede in Piazza Gramsci 8, 41030 San Prospero (MO), Italia.",
             "Utente / Cliente: la persona fisica o giuridica che crea un account e utilizza il Servizio.",
             "Servizio: la piattaforma Anlyra accessibile via web, incluse funzionalità AI, dashboard, report e integrazioni.",
             "Contenuti: tutti i dati, file e informazioni caricati dall'Utente sulla piattaforma.",
@@ -2573,7 +2573,7 @@
             "Ogni persona fisica o entità giuridica può registrare un solo account principale.",
             "Sei responsabile della riservatezza delle tue credenziali di accesso e di tutta l'attività effettuata con il tuo account.",
             "È vietato condividere le credenziali di accesso con terzi non autorizzati.",
-            "Devi notificare immediatamente Anlyra a hello@anlyra.com in caso di accesso non autorizzato al tuo account."
+            "Devi notificare immediatamente Anlyra a contact@anlyra.com in caso di accesso non autorizzato al tuo account."
           ]
         },
         {
@@ -2585,7 +2585,7 @@
           "items": [
             "Piano Pro: abbonamento mensile o annuale (sconto ~17% sull'annuale). Destinato a professionisti e PMI.",
             "Piano Avanzato: abbonamento mensile o annuale (sconto ~17% sull'annuale). Per team in crescita che richiedono maggiori risorse AI e analisi estese.",
-            "Piano Enterprise: prezzo personalizzato in base al numero di utenti, volumi di dati e requisiti specifici. Contattare hello@anlyra.com.",
+            "Piano Enterprise: prezzo personalizzato in base al numero di utenti, volumi di dati e requisiti specifici. Contattare contact@anlyra.com.",
             "Prova gratuita: 7 giorni per i piani Pro e Avanzato. Richiede un metodo di pagamento valido al momento dell'attivazione.",
             "Rinnovo automatico: al termine della prova o di ogni periodo di fatturazione, l'abbonamento si rinnova automaticamente al prezzo del piano scelto. Puoi annullare in qualsiasi momento dalle impostazioni; l'effetto è a fine del periodo corrente.",
             "I pagamenti sono elaborati in sicurezza tramite Stripe. Anlyra non conserva i dati della carta di pagamento.",
@@ -2601,7 +2601,7 @@
           ],
           "items": [
             "Garanzia 14 giorni: rimborso completo garantito entro i primi 14 giorni dalla data del primo pagamento effettivo (non dalla fine della prova). Nessuna domanda, nessuna burocrazia.",
-            "Come richiedere il rimborso: inviare email a hello@anlyra.com con oggetto 'Rimborso — Garanzia 14 giorni' entro il termine indicato. Il rimborso viene processato entro 7 giorni lavorativi.",
+            "Come richiedere il rimborso: inviare email a contact@anlyra.com con oggetto 'Rimborso — Garanzia 14 giorni' entro il termine indicato. Il rimborso viene processato entro 7 giorni lavorativi.",
             "Dopo il periodo di garanzia: non sono previsti rimborsi pro-rata per periodi di fatturazione non ancora scaduti.",
             "Eccezione per interruzioni del servizio: in caso di interruzione prolungata del servizio superiore a 48 ore consecutive imputabile ad Anlyra, valuteremo rimborsi o crediti caso per caso.",
             "Crediti AI acquistati separatamente: non rimborsabili una volta parzialmente o totalmente utilizzati."
@@ -2673,7 +2673,7 @@
           "id": "contact-terms",
           "title": "13. Contatti",
           "paragraphs": [
-            "Per domande, richieste o contestazioni relative ai presenti Termini di Servizio: email hello@anlyra.com.",
+            "Per domande, richieste o contestazioni relative ai presenti Termini di Servizio: email contact@anlyra.com oppure PEC mikail.ipek@pec.fiscozen.it.",
             "Risposta garantita entro 5 giorni lavorativi dalla ricezione."
           ]
         }
@@ -2754,7 +2754,7 @@
           "title": "5. Modifiche alla Cookie Policy",
           "paragraphs": [
             "Anlyra si riserva il diritto di aggiornare la presente Cookie Policy in qualsiasi momento. Le modifiche saranno comunicate tramite notifica nell'applicazione e aggiornamento della data di revisione in questa pagina.",
-            "Per domande sui cookie o sulle tecnologie di tracciamento utilizzate: hello@anlyra.com."
+            "Per domande sui cookie o sulle tecnologie di tracciamento utilizzate: contact@anlyra.com."
           ]
         }
       ]

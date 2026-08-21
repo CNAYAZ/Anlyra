@@ -58,9 +58,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-5 py-5 border-b border-border/50">
           <Link href="/" className="flex items-center gap-2">
             <span className="h-8 w-8 rounded-lg bg-primary text-white grid place-items-center font-heading font-bold">
-              P
+              A
             </span>
-            <span className="font-heading text-lg font-semibold">Pro</span>
+            <span className="font-heading text-lg font-semibold">{t('common.appName')}</span>
           </Link>
         </div>
 

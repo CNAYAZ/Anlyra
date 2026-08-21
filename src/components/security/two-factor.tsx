@@ -29,7 +29,7 @@ export function TwoFactor() {
     if (!setupOpen) return;
     const next = randomSecret();
     setSecret(next);
-    const otpauth = `otpauth://totp/Pro:you@example.com?secret=${next}&issuer=Pro%20Business%20Analyzer&algorithm=SHA1&digits=6&period=30`;
+    const otpauth = `otpauth://totp/Anlyra:you@example.com?secret=${next}&issuer=Anlyra&algorithm=SHA1&digits=6&period=30`;
     QRCode.toDataURL(otpauth, { margin: 1, width: 200 }).then(setQrDataUrl).catch(() => null);
   }, [setupOpen]);
 

@@ -25,7 +25,7 @@ export function ReportPreview({ config }: { config: ReportConfig }) {
 
       <div className="rounded-lg border border-border bg-muted/30 aspect-[1/1.4] overflow-hidden flex flex-col">
         <div className="bg-gradient-to-br from-primary to-primary-hover text-white p-4">
-          <div className="text-[10px] uppercase tracking-wider opacity-80">Pro Analytics</div>
+          <div className="text-[10px] uppercase tracking-wider opacity-80">Anlyra</div>
           <div className="font-heading font-bold text-base mt-1 line-clamp-2">
             {config.title || (config.language === 'it' ? 'Report aziendale' : 'Business report')}
           </div>
