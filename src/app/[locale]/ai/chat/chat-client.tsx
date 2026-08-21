@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
+import { Info } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import { ChatSidebar } from '@/components/ai/chat-sidebar';
 import { ChatMessage } from '@/components/ai/chat-message';
 import { ChatInput } from '@/components/ai/chat-input';
@@ -39,6 +41,9 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 export function ChatClient({ companyName, initialCredits }: Props) {
   const t = useTranslations('chat');
   const tCommon = useTranslations('common');
+  // Reuses the AI Agent's disclaimer copy/key on purpose: one source of truth
+  // for "you're talking to an AI" across both surfaces (AI Act art. 50).
+  const tAgent = useTranslations('agent');
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
@@ -163,6 +168,17 @@ export function ChatClient({ companyName, initialCredits }: Props) {
             </div>
           )}
         </div>
+
+        {/* Disclaimer: always visible, from the very first contact (including
+            the empty state before the user has typed anything) — not just
+            after a reply arrives. */}
+        <p className="flex items-center justify-center gap-1.5 border-t border-border bg-card/40 px-6 py-2 text-center text-xs text-fg-3">
+          <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {tAgent('disclaimer')}{' '}
+          <Link href="/legal/privacy" className="underline hover:text-foreground">
+            {tAgent('disclaimerLinkLabel')}
+          </Link>
+        </p>
 
         <ChatInput onSend={handleSend} disabled={noCredits || sendMutation.isPending} />
       </section>

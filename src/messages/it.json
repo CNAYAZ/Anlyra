@@ -887,6 +887,7 @@
     "filterPriority": "Priorità",
     "filterStatus": "Stato",
     "all": "Tutti",
+    "aiGenerated": "Generato da AI",
     "empty": "Nessun insight ancora. Genera i primi insight con l'AI.",
     "noResults": "Nessun insight corrisponde ai filtri selezionati.",
     "confidence": "Confidence",
@@ -939,6 +940,7 @@
     "aiEmpty": "Nessuna analisi disponibile. Genera una spiegazione e le azioni consigliate con l'AI.",
     "aiExplanation": "Spiegazione",
     "aiActions": "Azioni consigliate",
+    "aiGeneratedCaption": "Contenuto generato da intelligenza artificiale.",
     "analyzeErrorCredits": "Crediti AI insufficienti per generare l'analisi.",
     "analyzeErrorConfig": "AI non configurata: aggiungi ANTHROPIC_API_KEY per usare questa funzione.",
     "analyzeError": "Errore durante l'analisi AI. Riprova.",
@@ -1187,6 +1189,7 @@
     "thinking": "Sto pensando…",
     "empty": "Seleziona una modalità e genera un’analisi, oppure fai una domanda.",
     "disclaimer": "Anlyra è un’AI e può commettere errori. Verifica sempre le informazioni importanti.",
+    "disclaimerLinkLabel": "Scopri quale modello di AI usiamo",
     "errors": {
       "rateLimit": "Troppe richieste. Riprova tra poco.",
       "notConfigured": "AI non configurata. Contatta il supporto.",
@@ -2344,6 +2347,8 @@
     "common": {
       "disclaimerLabel": "⚠️ Documento in fase di revisione legale",
       "disclaimer": "Questo documento è in fase di revisione legale e non costituisce consulenza legale ufficiale. Per contratti commerciali ufficiali contattare hello@anlyra.com. Anlyra è gestito da Claudio Nayaz, persona fisica (entità giuridica formale in via di costituzione).",
+      "aiModelNoteLabel": "🤖 Intelligenza artificiale usata da Anlyra",
+      "aiModelNote": "Le funzionalità AI di Anlyra (chat, analisi, insight, alert) sono generate da un modello di linguaggio fornito da Anthropic — attualmente {model}. I contenuti generati dall'AI sono sempre segnalati come tali nell'interfaccia e possono contenere errori: vanno verificati prima di essere usati per decisioni importanti.",
       "tocTitle": "Indice",
       "readAlso": "Leggi anche"
     },
@@ -2689,7 +2694,7 @@
           "title": "2. Categorie di cookie utilizzate",
           "items": [
             "Strettamente necessari: indispensabili per il funzionamento del Servizio (autenticazione, sicurezza, preferenze di base). Non richiedono il consenso dell'Utente.",
-            "Analitici anonimi (futuri): raccolgono informazioni aggregate e anonime sull'utilizzo del Servizio (es. Plausible Analytics o Umami). Richiedono consenso esplicito prima dell'attivazione.",
+            "Analitici anonimi: Anlyra usa Vercel Web Analytics per contare le visite in forma aggregata e anonima. Non usa cookie, non salva identificativi persistenti e non traccia il singolo utente: per questo non richiede consenso.",
             "NESSUN cookie di marketing o retargeting pubblicitario.",
             "NESSUN cookie di profilazione comportamentale a fini commerciali.",
             "NESSUN cookie di terze parti per scopi pubblicitari o di tracciamento cross-site."
@@ -2752,26 +2757,10 @@
       ]
     },
     "banner": {
-      "title": "Rispettiamo la tua privacy",
-      "description": "Usiamo i cookie per migliorare la tua esperienza, analizzare il traffico e personalizzare i contenuti. Puoi accettare tutto, rifiutare o personalizzare le tue scelte.",
-      "accept": "Accetta tutto",
-      "reject": "Rifiuta",
-      "customize": "Personalizza",
-      "save": "Salva preferenze",
-      "categories": {
-        "necessary": {
-          "title": "Necessari",
-          "description": "Indispensabili per il funzionamento del sito."
-        },
-        "analytics": {
-          "title": "Analytics",
-          "description": "Ci aiutano a capire come usi il sito."
-        },
-        "marketing": {
-          "title": "Marketing",
-          "description": "Per offerte personalizzate e campagne."
-        }
-      }
+      "title": "Cookie tecnici, nient'altro",
+      "description": "Anlyra usa solo cookie tecnici necessari (per esempio per tenerti collegato e ricordare le tue preferenze). Le statistiche di utilizzo del sito sono anonime e non usano cookie. Maggiori dettagli nella Cookie Policy.",
+      "accept": "Ho capito",
+      "cookiePolicyLink": "Cookie Policy"
     }
   },
   "security": {

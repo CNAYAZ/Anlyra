@@ -1,5 +1,6 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LegalPage, type LegalSection } from '@/components/legal/legal-page';
+import { ANTHROPIC_MODEL } from '@/lib/ai/client';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -19,6 +20,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       lastRevised={t('privacy.lastRevised')}
       disclaimer={t('common.disclaimer')}
       disclaimerLabel={t('common.disclaimerLabel')}
+      aiModelNote={t('common.aiModelNote', { model: ANTHROPIC_MODEL })}
+      aiModelNoteLabel={t('common.aiModelNoteLabel')}
       tocTitle={t('common.tocTitle')}
       readAlso={t('common.readAlso')}
       sections={t.raw('privacy.sections') as LegalSection[]}

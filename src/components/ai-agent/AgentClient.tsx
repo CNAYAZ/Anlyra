@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
 
@@ -274,7 +275,10 @@ export function AgentClient() {
       {/* ── Disclaimer (always visible) ── */}
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-fg-3">
         <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        {t('disclaimer')}
+        {t('disclaimer')}{' '}
+        <Link href="/legal/privacy" className="underline hover:text-foreground">
+          {t('disclaimerLinkLabel')}
+        </Link>
       </p>
     </div>
   );
