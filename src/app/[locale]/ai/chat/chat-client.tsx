@@ -171,12 +171,19 @@ export function ChatClient({ companyName, initialCredits }: Props) {
 
         {/* Disclaimer: always visible, from the very first contact (including
             the empty state before the user has typed anything) — not just
-            after a reply arrives. */}
-        <p className="flex items-center justify-center gap-1.5 border-t border-border bg-card/40 px-6 py-2 text-center text-xs text-fg-3">
+            after a reply arrives. Second link points to the same privacy-page
+            box, now covering what's actually sent to Anthropic (company data,
+            client/vendor names, and — specific to chat — the message text and
+            full conversation history), so the chat line itself stays short. */}
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-t border-border bg-card/40 px-6 py-2 text-center text-xs text-fg-3">
           <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {tAgent('disclaimer')}{' '}
           <Link href="/legal/privacy" className="underline hover:text-foreground">
             {tAgent('disclaimerLinkLabel')}
+          </Link>
+          <span aria-hidden>·</span>
+          <Link href="/legal/privacy" className="underline hover:text-foreground">
+            {t('dataHandlingLinkLabel')}
           </Link>
         </p>
 

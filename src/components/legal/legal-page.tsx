@@ -22,6 +22,8 @@ export type LegalPageProps = {
   /** Optional — only the privacy page passes this (AI Act art. 50 disclosure). */
   aiModelNote?: string;
   aiModelNoteLabel?: string;
+  /** Optional — second paragraph of the same box: exactly which fields are sent to the AI provider. */
+  aiDataFlowNote?: string;
   tocTitle: string;
   readAlso: string;
   sections: LegalSection[];
@@ -36,6 +38,7 @@ export function LegalPage({
   disclaimerLabel,
   aiModelNote,
   aiModelNoteLabel,
+  aiDataFlowNote,
   tocTitle,
   readAlso,
   sections,
@@ -62,6 +65,9 @@ export function LegalPage({
                 <p className="text-sm font-semibold text-primary-accent">{aiModelNoteLabel}</p>
               )}
               <p className="mt-1 text-sm text-foreground">{aiModelNote}</p>
+              {aiDataFlowNote && (
+                <p className="mt-2 text-sm text-foreground">{aiDataFlowNote}</p>
+              )}
             </div>
           )}
 

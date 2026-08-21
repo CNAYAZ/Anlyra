@@ -22,6 +22,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       disclaimerLabel={t('common.disclaimerLabel')}
       aiModelNote={t('common.aiModelNote', { model: ANTHROPIC_MODEL })}
       aiModelNoteLabel={t('common.aiModelNoteLabel')}
+      aiDataFlowNote={t('common.aiDataFlowNote')}
       tocTitle={t('common.tocTitle')}
       readAlso={t('common.readAlso')}
       sections={t.raw('privacy.sections') as LegalSection[]}

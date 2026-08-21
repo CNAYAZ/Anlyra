@@ -871,7 +871,8 @@
     "noCreditsTitle": "Crediti esauriti",
     "noCreditsDescription": "Hai esaurito i tuoi crediti AI. Acquistane altri per continuare.",
     "creditsCost": "Costa 1 credito",
-    "errorSending": "Errore nell'invio del messaggio. Riprova."
+    "errorSending": "Errore nell'invio del messaggio. Riprova.",
+    "dataHandlingLinkLabel": "Come trattiamo i tuoi dati"
   },
   "insights": {
     "title": "Insights AI",
@@ -1200,6 +1201,9 @@
   "dataImport": {
     "title": "Import Dati",
     "subtitle": "Carica un file CSV o Excel, mappa le colonne e importa i dati nel sistema.",
+    "aiNoticeTitle": "I tuoi dati alimentano le analisi AI",
+    "aiNoticeBody": "I dati che importi vengono usati per generare consigli e analisi. Le funzioni AI di Anlyra inviano parte di questi dati ad Anthropic, un fornitore esterno con sede fuori dall'Unione Europea: possono essere inclusi nomi di clienti e fornitori con i relativi importi. Non vengono inviati email e nome dell'utente, email dei clienti, numeri di fattura o note.",
+    "aiNoticeLink": "Dettagli nella Privacy Policy",
     "stepTarget": "Tipo dati",
     "stepUpload": "Caricamento",
     "stepMapping": "Mappatura",
@@ -2349,6 +2353,7 @@
       "disclaimer": "Questo documento è in fase di revisione legale e non costituisce consulenza legale ufficiale. Per contratti commerciali ufficiali contattare hello@anlyra.com. Anlyra è gestito da Claudio Nayaz, persona fisica (entità giuridica formale in via di costituzione).",
       "aiModelNoteLabel": "🤖 Intelligenza artificiale usata da Anlyra",
       "aiModelNote": "Le funzionalità AI di Anlyra (chat, analisi, insight, alert) sono generate da un modello di linguaggio fornito da Anthropic — attualmente {model}. I contenuti generati dall'AI sono sempre segnalati come tali nell'interfaccia e possono contenere errori: vanno verificati prima di essere usati per decisioni importanti.",
+      "aiDataFlowNote": "Per generare consigli e analisi, ad Anthropic vengono inviati: nome dell'azienda, settore, numero dipendenti, aggregati finanziari mensili, il riepilogo dello scadenzario (inclusi nomi dei clienti e importi), le spese ricorrenti (inclusi nomi dei fornitori) e le segnalazioni generate dall'analisi dei tuoi dati. Nella chat vengono inviati anche il testo scritto e l'intera cronologia della conversazione. Non vengono inviati: email e nome dell'utente, email dei clienti, numeri di fattura, note.",
       "tocTitle": "Indice",
       "readAlso": "Leggi anche"
     },
