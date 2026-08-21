@@ -293,7 +293,7 @@
     "add": "Aggiungi",
     "currency": "€",
     "percent": "%",
-    "appName": "Pro",
+    "appName": "Anlyra",
     "month": "Mese",
     "year": "Anno",
     "trend": "Andamento",
@@ -1191,6 +1191,7 @@
     "empty": "Seleziona una modalità e genera un’analisi, oppure fai una domanda.",
     "disclaimer": "Anlyra è un’AI e può commettere errori. Verifica sempre le informazioni importanti.",
     "disclaimerLinkLabel": "Scopri quale modello di AI usiamo",
+    "dataHandlingLinkLabel": "Come trattiamo i tuoi dati",
     "errors": {
       "rateLimit": "Troppe richieste. Riprova tra poco.",
       "notConfigured": "AI non configurata. Contatta il supporto.",
@@ -2231,29 +2232,25 @@
       "ctaSecondary": "Parla con noi"
     },
     "footer": {
-      "company": "Azienda",
-      "about": "Chi siamo",
-      "blog": "Blog",
-      "careers": "Lavora con noi",
       "product": "Prodotto",
       "features": "Funzionalità",
       "pricing": "Prezzi",
-      "changelog": "Changelog",
       "legal": "Legale",
       "privacy": "Privacy Policy",
       "terms": "Termini di Servizio",
       "cookies": "Cookie Policy",
-      "support": "Supporto",
-      "help": "Centro assistenza",
       "contact": "Contattaci",
-      "status": "Stato del servizio",
+      "contactEmail": "contact@anlyra.com",
+      "companyLegalName": "Anlyra di Nayaz Mikail — Regime Forfetario",
+      "companyAddress": "Piazza Gramsci 8, 41030 San Prospero (MO), Italia",
+      "companyVat": "P.IVA 04275010363",
       "rights": "Tutti i diritti riservati."
     }
   },
   "onboarding": {
     "progress": "Step {current} di {total}",
     "step1": {
-      "title": "Benvenuto in Pro",
+      "title": "Benvenuto in Anlyra",
       "subtitle": "In pochi minuti avrai la tua dashboard pronta. Iniziamo!",
       "cta": "Iniziamo"
     },
@@ -2592,7 +2589,8 @@
             "Prova gratuita: 7 giorni per i piani Pro e Avanzato. Richiede un metodo di pagamento valido al momento dell'attivazione.",
             "Rinnovo automatico: al termine della prova o di ogni periodo di fatturazione, l'abbonamento si rinnova automaticamente al prezzo del piano scelto. Puoi annullare in qualsiasi momento dalle impostazioni; l'effetto è a fine del periodo corrente.",
             "I pagamenti sono elaborati in sicurezza tramite Stripe. Anlyra non conserva i dati della carta di pagamento.",
-            "Crediti AI aggiuntivi: acquistabili separatamente, non hanno scadenza e non sono trasferibili ad altri account."
+            "Crediti AI aggiuntivi: acquistabili separatamente, non hanno scadenza e non sono trasferibili ad altri account.",
+            "Regime fiscale: Operazione senza applicazione dell'IVA ai sensi dell'art. 1, commi 54-89, Legge 190/2014 - Regime forfetario."
           ]
         },
         {

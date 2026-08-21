@@ -293,7 +293,7 @@
     "add": "Add",
     "currency": "€",
     "percent": "%",
-    "appName": "Pro",
+    "appName": "Anlyra",
     "month": "Month",
     "year": "Year",
     "trend": "Trend",
@@ -1191,6 +1191,7 @@
     "empty": "Pick a mode and generate an analysis, or ask a question.",
     "disclaimer": "Anlyra is an AI and can make mistakes. Always verify important information.",
     "disclaimerLinkLabel": "Learn which AI model we use",
+    "dataHandlingLinkLabel": "How we handle your data",
     "errors": {
       "rateLimit": "Too many requests. Please try again shortly.",
       "notConfigured": "AI is not configured. Please contact support.",
@@ -2231,29 +2232,25 @@
       "ctaSecondary": "Talk to us"
     },
     "footer": {
-      "company": "Company",
-      "about": "About",
-      "blog": "Blog",
-      "careers": "Careers",
       "product": "Product",
       "features": "Features",
       "pricing": "Pricing",
-      "changelog": "Changelog",
       "legal": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
       "cookies": "Cookie Policy",
-      "support": "Support",
-      "help": "Help center",
       "contact": "Contact",
-      "status": "Status",
+      "contactEmail": "contact@anlyra.com",
+      "companyLegalName": "Anlyra di Nayaz Mikail — Regime Forfetario",
+      "companyAddress": "Piazza Gramsci 8, 41030 San Prospero (MO), Italia",
+      "companyVat": "P.IVA 04275010363",
       "rights": "All rights reserved."
     }
   },
   "onboarding": {
     "progress": "Step {current} of {total}",
     "step1": {
-      "title": "Welcome to Pro",
+      "title": "Welcome to Anlyra",
       "subtitle": "In a few minutes your dashboard will be ready. Let's start!",
       "cta": "Let's go"
     },
@@ -2592,7 +2589,8 @@
             "Free trial: 7 days for Pro and Advanced plans. Requires a valid payment method at activation.",
             "Automatic renewal: at the end of the trial or each billing period, the subscription automatically renews at the chosen plan price. You may cancel at any time from settings; cancellation takes effect at the end of the current period.",
             "Payments are processed securely via Stripe. Anlyra does not store payment card data.",
-            "Additional AI credits: purchasable separately, do not expire, and are non-transferable to other accounts."
+            "Additional AI credits: purchasable separately, do not expire, and are non-transferable to other accounts.",
+            "Tax regime: this business operates under Italy's simplified \"regime forfetario\" for sole proprietors, which is VAT-exempt. Mandatory invoice wording under Italian law (kept in the original): \"Operazione senza applicazione dell'IVA ai sensi dell'art. 1, commi 54-89, Legge 190/2014 - Regime forfetario.\""
           ]
         },
         {

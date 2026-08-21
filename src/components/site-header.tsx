@@ -21,10 +21,10 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <a href="/#features" className="hover:text-foreground">{t('nav.features')}</a>
-          <a href="/#how" className="hover:text-foreground">{t('nav.howItWorks')}</a>
+          <Link href="/#features" className="hover:text-foreground">{t('nav.features')}</Link>
+          <Link href="/#how" className="hover:text-foreground">{t('nav.howItWorks')}</Link>
           <Link href="/pricing" className="hover:text-foreground">{t('nav.pricing')}</Link>
-          <a href="/#testimonials" className="hover:text-foreground">{t('nav.testimonials')}</a>
+          <Link href="/#testimonials" className="hover:text-foreground">{t('nav.testimonials')}</Link>
         </nav>
 
         <div className="flex items-center gap-3">

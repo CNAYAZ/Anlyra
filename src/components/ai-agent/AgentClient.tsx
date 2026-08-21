@@ -273,11 +273,15 @@ export function AgentClient() {
       </div>
 
       {/* ── Disclaimer (always visible) ── */}
-      <p className="flex items-center justify-center gap-1.5 text-center text-xs text-fg-3">
+      <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-xs text-fg-3">
         <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
         {t('disclaimer')}{' '}
         <Link href="/legal/privacy" className="underline hover:text-foreground">
           {t('disclaimerLinkLabel')}
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/legal/privacy" className="underline hover:text-foreground">
+          {t('dataHandlingLinkLabel')}
         </Link>
       </p>
     </div>
