@@ -1,7 +1,7 @@
 # FAQ — Domande Frequenti su Anlyra
 
 > Ultimo aggiornamento: maggio 2026  
-> Per domande non presenti qui: [hello@anlyra.com](mailto:hello@anlyra.com)
+> Per domande non presenti qui: [contact@anlyra.com](mailto:contact@anlyra.com)
 
 ---
 
@@ -73,7 +73,7 @@ Il piano annuale è adatto a chi ha una necessità continuativa. Il risparmio è
 Entrambi includono chat AI, insights automatici, previsioni e benchmark di settore. Il piano Pro non include alcune funzionalità avanzate di collaborazione che diventano disponibili dal piano Avanzato. Il piano Enterprise sblocca anche AI Agent e white-label.
 
 ### Cosa include il piano Enterprise?
-Utenti illimitati, crediti AI illimitati, tutte le funzionalità (incluse AI Agent, audit log, 2FA, white-label), integrazioni con Salesforce, HubSpot, Google Analytics, Shopify e SAP, SLA dedicato e supporto prioritario. Il prezzo è personalizzato in base alle esigenze. [Contatta il team commerciale](mailto:hello@anlyra.com).
+Utenti illimitati, crediti AI illimitati, tutte le funzionalità (incluse AI Agent, audit log, 2FA, white-label), integrazioni con Salesforce, HubSpot, Google Analytics, Shopify e SAP, SLA dedicato e supporto prioritario. Il prezzo è personalizzato in base alle esigenze. [Contatta il team commerciale](mailto:contact@anlyra.com).
 
 ### Posso passare da un piano all'altro?
 Sì, upgrade e downgrade sono disponibili in qualsiasi momento dal pannello **Impostazioni → Fatturazione**. L'upgrade è immediato. In caso di downgrade, il nuovo piano entra in vigore alla scadenza del periodo corrente.
@@ -89,7 +89,7 @@ Sì. Tutti i piani a pagamento includono **7 giorni di prova**. È richiesta una
 No. Puoi cancellare il trial in qualsiasi momento prima della scadenza dei 7 giorni senza alcun costo.
 
 ### C'è una garanzia soddisfatti o rimborsati?
-Sì. Se Anlyra non ti convince entro **14 giorni dal primo pagamento**, puoi richiedere il rimborso completo scrivendo a [hello@anlyra.com](mailto:hello@anlyra.com). Nessuna domanda, nessuna burocrazia.
+Sì. Se Anlyra non ti convince entro **14 giorni dal primo pagamento**, puoi richiedere il rimborso completo scrivendo a [contact@anlyra.com](mailto:contact@anlyra.com). Nessuna domanda, nessuna burocrazia.
 
 ### Come funziona il rinnovo?
 L'abbonamento si rinnova automaticamente (mensile o annuale) alla data di scadenza. Riceverai un'e-mail di conferma del pagamento con la fattura allegata.
@@ -161,7 +161,7 @@ Sì, sono previsti ruoli con permessi diversi (amministratore, membro, visualizz
 Sì. I report possono essere condivisi tramite link pubblico o protetto da password, senza che il destinatario debba avere un account Anlyra. La funzione di condivisione è disponibile a partire dal piano Pro.
 
 ### Posso avere più organizzazioni sotto lo stesso account?
-Attualmente ogni abbonamento supporta **1 organizzazione**. Il supporto multi-organizzazione è nella roadmap. Se hai esigenze specifiche (holding con più aziende controllate), contattaci: [hello@anlyra.com](mailto:hello@anlyra.com).
+Attualmente ogni abbonamento supporta **1 organizzazione**. Il supporto multi-organizzazione è nella roadmap. Se hai esigenze specifiche (holding con più aziende controllate), contattaci: [contact@anlyra.com](mailto:contact@anlyra.com).
 
 ---
 
@@ -196,7 +196,7 @@ Dal pannello **Integrazioni**, seleziona Stripe e segui il wizard di autorizzazi
 Non ancora. I gestionali italiani sono nella roadmap. Per ora puoi esportare i dati in CSV dal tuo gestionale e importarli in Anlyra.
 
 ### Posso importare dati via API?
-Un'API pubblica per l'import dati è nella roadmap. Se hai esigenze specifiche di integrazione, scrivici a [hello@anlyra.com](mailto:hello@anlyra.com) — valutiamo integrazioni custom per i piani Enterprise.
+Un'API pubblica per l'import dati è nella roadmap. Se hai esigenze specifiche di integrazione, scrivici a [contact@anlyra.com](mailto:contact@anlyra.com) — valutiamo integrazioni custom per i piani Enterprise.
 
 ---
 
@@ -211,17 +211,17 @@ Dalla pagina di login, clicca **Password dimenticata** e inserisci la tua e-mail
 ### Posso vedere il prodotto prima di registrarmi?
 Sì, in due modi:
 - **Demo interattiva**: accedi alla demo pubblica su [anlyra.it](https://anlyra.it) per esplorare l'interfaccia con dati di esempio.
-- **Demo personalizzata**: prenota una sessione di 30 minuti con il nostro team scrivendo a [hello@anlyra.com](mailto:hello@anlyra.com).
+- **Demo personalizzata**: prenota una sessione di 30 minuti con il nostro team scrivendo a [contact@anlyra.com](mailto:contact@anlyra.com).
 
 ### Che tipo di supporto è incluso?
-Tutti i piani includono supporto via e-mail ([hello@anlyra.com](mailto:hello@anlyra.com)) con risposta entro 2 giorni lavorativi. Il piano Enterprise include supporto prioritario con SLA dedicato.
+Tutti i piani includono supporto via e-mail ([contact@anlyra.com](mailto:contact@anlyra.com)) con risposta entro 2 giorni lavorativi. Il piano Enterprise include supporto prioritario con SLA dedicato.
 
 ### Dove posso segnalare un bug o proporre una funzionalità?
-Scrivi a [hello@anlyra.com](mailto:hello@anlyra.com) con l'oggetto `[bug]` o `[feature request]`. Per problemi urgenti che impediscono l'utilizzo del prodotto, specifica `[urgente]` nell'oggetto.
+Scrivi a [contact@anlyra.com](mailto:contact@anlyra.com) con l'oggetto `[bug]` o `[feature request]`. Per problemi urgenti che impediscono l'utilizzo del prodotto, specifica `[urgente]` nell'oggetto.
 
 ### C'è documentazione tecnica o un centro assistenza?
 La documentazione tecnica e le guide di utilizzo sono in fase di pubblicazione. Nel frattempo, il team risponde direttamente a qualsiasi domanda via e-mail.
 
 ---
 
-*Hai trovato risposta alla tua domanda? Se no, scrivi a [hello@anlyra.com](mailto:hello@anlyra.com) — risponderemo entro 2 giorni lavorativi.*
+*Hai trovato risposta alla tua domanda? Se no, scrivi a [contact@anlyra.com](mailto:contact@anlyra.com) — risponderemo entro 2 giorni lavorativi.*

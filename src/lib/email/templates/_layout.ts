@@ -76,7 +76,7 @@ export function baseLayout(params: LayoutParams): string {
           <tr>
             <td style="padding:16px 32px 32px;">
               <p style="margin:0;font-size:12px;line-height:1.6;color:#6B6760;">
-                Anlyra · Via Esempio 1 · Milano, 20100 · Italia
+                Lena di Ipek Mikail · Piazza Gramsci 8, 41030 San Prospero (MO) · Italia
               </p>
               ${footerEmail}
               <p style="margin:8px 0 0;font-size:12px;color:#6B6760;">

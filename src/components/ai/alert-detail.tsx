@@ -166,6 +166,10 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                     </ul>
                   </div>
                 )}
+                <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+                  <Sparkles className="h-3 w-3 shrink-0" aria-hidden />
+                  {t('aiGeneratedCaption')}
+                </p>
               </div>
             )}
           </div>

@@ -235,14 +235,14 @@ export function ReportDocument({ config, payload }: ReportDocumentProps) {
     <Document
       title={config.title}
       author={payload.organization.name}
-      creator="Pro Analytics"
-      producer="Pro Analytics"
+      creator="Anlyra"
+      producer="Anlyra"
     >
       {/* Cover */}
       <Page size="A4" style={{ padding: 0 }}>
         <View style={styles.cover}>
           <View>
-            <Text style={styles.coverBrand}>PRO ANALYTICS</Text>
+            <Text style={styles.coverBrand}>ANLYRA</Text>
             <Text style={styles.coverTitle}>{config.title}</Text>
             <Text style={styles.coverSubtitle}>{s.coverTitle}</Text>
             <View style={styles.coverMeta}>
@@ -309,7 +309,7 @@ export function ReportDocument({ config, payload }: ReportDocumentProps) {
 function Header({ config }: { config: ReportConfig }) {
   return (
     <View style={styles.pageHeader} fixed>
-      <Text>Pro Analytics</Text>
+      <Text>Anlyra</Text>
       <Text>{config.title}</Text>
     </View>
   );
@@ -318,7 +318,7 @@ function Header({ config }: { config: ReportConfig }) {
 function Footer() {
   return (
     <View style={styles.pageFooter} fixed>
-      <Text>© Pro Analytics</Text>
+      <Text>© Anlyra</Text>
       <Text
         render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
       />

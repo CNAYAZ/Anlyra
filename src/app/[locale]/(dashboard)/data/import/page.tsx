@@ -5,8 +5,9 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, ArrowRight, Check, Loader2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Info, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from '@/i18n/navigation';
 import { PageHeader } from '@/components/ui/section';
 import { ImportTargetSelector } from '@/components/data/import-target-selector';
 import { ImportUploader } from '@/components/data/import-uploader';
@@ -162,6 +163,23 @@ export default function DataImportPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+
+      {/* Shown before the file is uploaded (target/upload steps only): the
+          data being imported can end up in prompts sent to the AI provider,
+          so this has to be visible before the user commits to a file, not
+          buried after the fact. */}
+      {(step === 'target' || step === 'upload') && (
+        <div className="flex items-start gap-3 rounded-lg border border-primary-accent/30 bg-primary-accent/5 p-4">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-accent" aria-hidden />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-primary-accent">{t('aiNoticeTitle')}</p>
+            <p className="text-sm text-foreground">{t('aiNoticeBody')}</p>
+            <Link href="/legal/privacy" className="inline-block text-sm text-primary-accent underline hover:no-underline">
+              {t('aiNoticeLink')}
+            </Link>
+          </div>
+        </div>
+      )}
 
       <Stepper current={step} />
 

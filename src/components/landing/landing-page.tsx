@@ -243,7 +243,7 @@ export function LandingPage({
                 <Link href="/login?signup=pro">{finalCtaPrimary}</Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <a href="mailto:hello@anlyra.com">{finalCtaSecondary}</a>
+                <a href="mailto:contact@anlyra.com">{finalCtaSecondary}</a>
               </Button>
             </div>
           </div>

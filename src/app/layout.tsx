@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { organizationSchema, websiteSchema } from '@/lib/seo/json-ld';
@@ -123,6 +124,10 @@ export default function RootLayout({
       <body>
         {children}
         <Toaster />
+        {/* Vercel Web Analytics: cookieless by design (no cookies, no
+            localStorage — verified in the installed package source), so it
+            needs no consent and is not part of the cookie banner. */}
+        <Analytics />
       </body>
     </html>
   );

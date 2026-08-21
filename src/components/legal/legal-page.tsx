@@ -19,6 +19,11 @@ export type LegalPageProps = {
   lastRevised: string;
   disclaimer: string;
   disclaimerLabel: string;
+  /** Optional — only the privacy page passes this (AI Act art. 50 disclosure). */
+  aiModelNote?: string;
+  aiModelNoteLabel?: string;
+  /** Optional — second paragraph of the same box: exactly which fields are sent to the AI provider. */
+  aiDataFlowNote?: string;
   tocTitle: string;
   readAlso: string;
   sections: LegalSection[];
@@ -31,6 +36,9 @@ export function LegalPage({
   lastRevised,
   disclaimer,
   disclaimerLabel,
+  aiModelNote,
+  aiModelNoteLabel,
+  aiDataFlowNote,
   tocTitle,
   readAlso,
   sections,
@@ -46,6 +54,22 @@ export function LegalPage({
             <p className="text-sm font-semibold text-destructive">{disclaimerLabel}</p>
             <p className="mt-1 text-sm text-foreground">{disclaimer}</p>
           </div>
+
+          {/* AI Act art. 50 disclosure: provider + model, read from config at
+              render time (see the privacy page.tsx) so it's never hand-typed
+              in more than one place. Neutral styling — it's an info note, not
+              a warning like the box above. */}
+          {aiModelNote && (
+            <div className="mb-8 rounded-lg border border-primary-accent/30 bg-primary-accent/5 p-4">
+              {aiModelNoteLabel && (
+                <p className="text-sm font-semibold text-primary-accent">{aiModelNoteLabel}</p>
+              )}
+              <p className="mt-1 text-sm text-foreground">{aiModelNote}</p>
+              {aiDataFlowNote && (
+                <p className="mt-2 text-sm text-foreground">{aiDataFlowNote}</p>
+              )}
+            </div>
+          )}
 
           {/* Header */}
           <p className="text-xs font-medium uppercase tracking-wide text-primary-accent">Legal</p>
