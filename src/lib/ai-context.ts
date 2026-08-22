@@ -3,6 +3,7 @@ import { getFinancialFacts, daysOverdueOf } from './facts/financial-facts';
 import { effectiveStatus } from './receivables/dto';
 import { computeTotals } from './recurring-expenses/dto';
 import { toAppDateString } from './timezone';
+import { defaultLocale, type Locale } from '@/i18n/config';
 import type { Receivable, RecurringExpense } from '@prisma/client';
 
 export type AIBusinessContext = {
@@ -41,7 +42,16 @@ function monthKey(d: Date): string {
   return toAppDateString(d).slice(0, 7);
 }
 
-export async function loadBusinessContext(organizationId: string): Promise<AIBusinessContext> {
+/**
+ * @param locale Language for the composed fact sentences fed to the model. The
+ *   raw numbers are locale-independent; only the wording and the currency
+ *   formatting change. Defaults to Italian, which is what every caller got
+ *   before this parameter existed.
+ */
+export async function loadBusinessContext(
+  organizationId: string,
+  locale: Locale = defaultLocale,
+): Promise<AIBusinessContext> {
   const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId } });
 
   const since = new Date();
@@ -70,7 +80,7 @@ export async function loadBusinessContext(organizationId: string): Promise<AIBus
       margin: v.revenue > 0 ? ((v.revenue - v.costs) / v.revenue) * 100 : 0,
     }));
 
-  const financialFacts = await getFinancialFacts(organizationId);
+  const financialFacts = await getFinancialFacts(organizationId, locale);
   const facts = financialFacts.map((f) => ({
     title: f.title,
     description: f.description,

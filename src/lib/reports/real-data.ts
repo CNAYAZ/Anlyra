@@ -28,7 +28,10 @@ export async function buildRealPayload(
 ): Promise<{ payload: ReportPayload; sections: ReportSection[] } | null> {
   const [data, facts, org] = await Promise.all([
     getOrgData(organizationId),
-    getFinancialFacts(organizationId),
+    // The report already carries the language the user picked in the builder;
+    // the facts that become the "Recommendations" section must be written in it
+    // (they used to be hard-coded Italian inside an otherwise English PDF).
+    getFinancialFacts(organizationId, config.language),
     prisma.organization.findUnique({
       where: { id: organizationId },
       select: { name: true, industry: true, country: true, employees: true },

@@ -1,29 +1,64 @@
+import { createTranslator } from 'next-intl';
 import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/format';
 import { effectiveStatus } from '@/lib/receivables/dto';
 import { computeTotals } from '@/lib/recurring-expenses/dto';
 import { appDateStartUTC } from '@/lib/timezone';
-import type { Locale } from '@/i18n/config';
+import { defaultLocale, type Locale } from '@/i18n/config';
+import itMessages from '@/messages/it.json';
+import enMessages from '@/messages/en.json';
 import type { Receivable, RecurringExpense, FinancialRecord } from '@prisma/client';
 
 export type FactCategory = 'cashflow' | 'receivables' | 'expenses' | 'trend';
 export type FactSeverity = 'info' | 'warning' | 'critical';
 
-/** Raw values behind `description`, kept numeric/string so a future AI layer can reason over them. */
+/**
+ * A fact carries BOTH shapes on purpose:
+ *   • `id` doubles as the translation key under the `facts` namespace, and
+ *     `values` holds the raw numbers — so any consumer can compose the sentence
+ *     itself (e.g. a React view via next-intl `t(...)`);
+ *   • `title`/`description` are already composed IN THE REQUESTED LOCALE, so the
+ *     non-React consumers keep working unchanged.
+ *
+ * Composing here rather than only in the UI is deliberate: three of the four
+ * consumers are NOT React — the AI context (src/lib/ai-context.ts) needs a
+ * finished sentence to put in the prompt, and the PDF report
+ * (src/lib/reports/real-data.ts) renders outside any next-intl provider. Leaving
+ * composition to each caller would mean writing the same sentence three times
+ * and letting the three copies drift.
+ */
 export type FinancialFact = {
+  /** Also the i18n key: `facts.<id>.title` / `facts.<id>.description`. */
   id: string;
   category: FactCategory;
   severity: FactSeverity;
   title: string;
   description: string;
+  /** Raw, unformatted values behind `description` — for AI reasoning or custom rendering. */
   values: Record<string, number | string | string[]>;
 };
 
-const LOCALE: Locale = 'it';
+const MESSAGES: Record<Locale, typeof itMessages> = {
+  it: itMessages,
+  en: enMessages as typeof itMessages,
+};
 
-function money(value: number): string {
-  return formatCurrency(value, LOCALE);
+/**
+ * Translator over the `facts` namespace, built from the same message catalogs
+ * the app uses. `createTranslator` is the non-React entry point of next-intl: it
+ * needs no request context, so it works in a plain server module (unlike
+ * `useTranslations`/`getTranslations`). ICU plurals in those messages also
+ * replace the hand-rolled "cliente/clienti" ternaries this file used to carry.
+ */
+function factTranslator(locale: Locale) {
+  return createTranslator({
+    locale,
+    messages: MESSAGES[locale] ?? MESSAGES[defaultLocale],
+    namespace: 'facts',
+  });
 }
+
+type FactT = ReturnType<typeof factTranslator>;
 
 function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -82,7 +117,12 @@ export function daysOverdueOf(dueDate: Date, now: Date): number {
 }
 
 // Rule 1 — overdue receivables: real total + distinct customers + how overdue, in days.
-function ruleOverdueReceivables(receivables: Receivable[], now: Date): FinancialFact | null {
+function ruleOverdueReceivables(
+  receivables: Receivable[],
+  now: Date,
+  t: FactT,
+  locale: Locale,
+): FinancialFact | null {
   const overdue = receivables.filter((r) => effectiveStatus(r, now) === 'OVERDUE');
   if (overdue.length === 0) return null;
 
@@ -91,21 +131,28 @@ function ruleOverdueReceivables(receivables: Receivable[], now: Date): Financial
   const daysOverdue = overdue.map((r) => daysOverdueOf(r.dueDate, now));
   const minDaysOverdue = Math.min(...daysOverdue);
   const maxDaysOverdue = Math.max(...daysOverdue);
-  const customerWord = distinctCustomers === 1 ? 'cliente' : 'clienti';
-  const verb = distinctCustomers === 1 ? 'deve' : 'devono';
 
   return {
     id: 'receivables-overdue',
     category: 'receivables',
     severity: maxDaysOverdue > 60 ? 'critical' : 'warning',
-    title: 'Crediti scaduti',
-    description: `${distinctCustomers} ${customerWord} ti ${verb} ${money(total)} da oltre ${minDaysOverdue} giorni.`,
+    title: t('receivables-overdue.title'),
+    description: t('receivables-overdue.description', {
+      distinctCustomers,
+      totalOverdue: formatCurrency(total, locale),
+      minDaysOverdue,
+    }),
     values: { totalOverdue: total, count: overdue.length, distinctCustomers, minDaysOverdue, maxDaysOverdue },
   };
 }
 
 // Rule 2 — how much of the outstanding (not-yet-paid) balance is overdue vs still on time.
-function ruleOverdueRatio(receivables: Receivable[], now: Date): FinancialFact | null {
+function ruleOverdueRatio(
+  receivables: Receivable[],
+  now: Date,
+  t: FactT,
+  locale: Locale,
+): FinancialFact | null {
   const open = receivables.filter((r) => effectiveStatus(r, now) === 'OPEN');
   const overdue = receivables.filter((r) => effectiveStatus(r, now) === 'OVERDUE');
   const openAmount = open.reduce((s, r) => s + r.amount, 0);
@@ -120,14 +167,24 @@ function ruleOverdueRatio(receivables: Receivable[], now: Date): FinancialFact |
     id: 'receivables-overdue-ratio',
     category: 'receivables',
     severity: ratio > 0.75 ? 'critical' : 'warning',
-    title: 'Quota crediti scaduti elevata',
-    description: `Il ${Math.round(ratio * 100)}% del totale crediti da incassare (${money(outstanding)}) è scaduto (${money(overdueAmount)}); solo ${money(openAmount)} è ancora nei termini.`,
+    title: t('receivables-overdue-ratio.title'),
+    description: t('receivables-overdue-ratio.description', {
+      ratioPercent: Math.round(ratio * 100),
+      outstanding: formatCurrency(outstanding, locale),
+      overdueAmount: formatCurrency(overdueAmount, locale),
+      openAmount: formatCurrency(openAmount, locale),
+    }),
     values: { openAmount, overdueAmount, outstanding, ratio },
   };
 }
 
 // Rule 6a — a single customer's overdue invoice dominating the overdue total.
-function ruleReceivableConcentration(receivables: Receivable[], now: Date): FinancialFact | null {
+function ruleReceivableConcentration(
+  receivables: Receivable[],
+  now: Date,
+  t: FactT,
+  locale: Locale,
+): FinancialFact | null {
   const overdue = receivables.filter((r) => effectiveStatus(r, now) === 'OVERDUE');
   if (overdue.length < 2) return null;
 
@@ -142,14 +199,24 @@ function ruleReceivableConcentration(receivables: Receivable[], now: Date): Fina
     id: 'concentration-receivable',
     category: 'receivables',
     severity: share > 0.7 ? 'critical' : 'warning',
-    title: 'Concentrazione su un singolo credito scaduto',
-    description: `Il credito scaduto di ${largest.customerName} (${money(largest.amount)}) è il ${Math.round(share * 100)}% del totale crediti scaduti (${money(overdueAmount)}).`,
+    title: t('concentration-receivable.title'),
+    description: t('concentration-receivable.description', {
+      customerName: largest.customerName,
+      amount: formatCurrency(largest.amount, locale),
+      sharePercent: Math.round(share * 100),
+      totalOverdue: formatCurrency(overdueAmount, locale),
+    }),
     values: { customerName: largest.customerName, amount: largest.amount, totalOverdue: overdueAmount, share },
   };
 }
 
 // Rule 3 — recurring obligations measured against the average income that has to cover them.
-function ruleExpensesVsIncome(records: FinancialRecord[], recurringExpenses: RecurringExpense[]): FinancialFact | null {
+function ruleExpensesVsIncome(
+  records: FinancialRecord[],
+  recurringExpenses: RecurringExpense[],
+  t: FactT,
+  locale: Locale,
+): FinancialFact | null {
   const totals = computeTotals(recurringExpenses);
   if (totals.totalMonthly === 0) return null;
 
@@ -163,14 +230,24 @@ function ruleExpensesVsIncome(records: FinancialRecord[], recurringExpenses: Rec
     id: 'expenses-vs-income',
     category: 'cashflow',
     severity: ratio > 0.6 ? 'critical' : 'warning',
-    title: 'Spese ricorrenti vicine alle entrate',
-    description: `Le spese ricorrenti mensili (${money(totals.totalMonthly)}) assorbono il ${Math.round(ratio * 100)}% delle entrate medie mensili (${money(window.avg)}, calcolate su ${window.months.length} mes${window.months.length === 1 ? 'e' : 'i'}: ${window.months.join(', ')}).`,
+    title: t('expenses-vs-income.title'),
+    description: t('expenses-vs-income.description', {
+      totalMonthlyRecurring: formatCurrency(totals.totalMonthly, locale),
+      ratioPercent: Math.round(ratio * 100),
+      avgMonthlyIncome: formatCurrency(window.avg, locale),
+      monthsCount: window.months.length,
+      monthsUsed: window.months.join(', '),
+    }),
     values: { totalMonthlyRecurring: totals.totalMonthly, avgMonthlyIncome: window.avg, ratio, monthsUsed: window.months },
   };
 }
 
 // Rule 6b — a single vendor dominating the recurring-expense monthly total.
-function ruleRecurringExpenseConcentration(recurringExpenses: RecurringExpense[]): FinancialFact | null {
+function ruleRecurringExpenseConcentration(
+  recurringExpenses: RecurringExpense[],
+  t: FactT,
+  locale: Locale,
+): FinancialFact | null {
   const active = recurringExpenses.filter((e) => e.active);
   if (active.length < 2) return null;
 
@@ -186,14 +263,19 @@ function ruleRecurringExpenseConcentration(recurringExpenses: RecurringExpense[]
     id: 'concentration-recurring-expense',
     category: 'expenses',
     severity: share > 0.7 ? 'critical' : 'warning',
-    title: 'Concentrazione su una singola spesa ricorrente',
-    description: `La spesa ricorrente di ${largest.e.vendorName} (${money(largest.monthlyEquivalent)}/mese) è il ${Math.round(share * 100)}% del totale spese ricorrenti mensili (${money(totalMonthly)}).`,
+    title: t('concentration-recurring-expense.title'),
+    description: t('concentration-recurring-expense.description', {
+      vendorName: largest.e.vendorName,
+      monthlyEquivalent: formatCurrency(largest.monthlyEquivalent, locale),
+      sharePercent: Math.round(share * 100),
+      totalMonthly: formatCurrency(totalMonthly, locale),
+    }),
     values: { vendorName: largest.e.vendorName, monthlyEquivalent: largest.monthlyEquivalent, totalMonthly, share },
   };
 }
 
 // Rule 4 — expenses trending up: last 3 months vs the 3 months before, >10% increase.
-function ruleExpenseTrend(records: FinancialRecord[]): FinancialFact | null {
+function ruleExpenseTrend(records: FinancialRecord[], t: FactT, locale: Locale): FinancialFact | null {
   const trend = trendLast3VsPrev3(sortedMonthly(records, 'COST'));
   if (!trend || trend.change <= 0.1) return null;
 
@@ -201,14 +283,20 @@ function ruleExpenseTrend(records: FinancialRecord[]): FinancialFact | null {
     id: 'expenses-trend',
     category: 'trend',
     severity: trend.change > 0.3 ? 'critical' : 'warning',
-    title: 'Spese in aumento',
-    description: `Le spese sono aumentate del ${Math.round(trend.change * 100)}% negli ultimi 3 mesi (${money(trend.lastAvg)}/mese: ${trend.lastMonths.join(', ')}) rispetto ai 3 mesi precedenti (${money(trend.prevAvg)}/mese: ${trend.prevMonths.join(', ')}).`,
+    title: t('expenses-trend.title'),
+    description: t('expenses-trend.description', {
+      changePercent: Math.round(trend.change * 100),
+      lastAvg: formatCurrency(trend.lastAvg, locale),
+      lastMonths: trend.lastMonths.join(', '),
+      prevAvg: formatCurrency(trend.prevAvg, locale),
+      prevMonths: trend.prevMonths.join(', '),
+    }),
     values: { lastAvg: trend.lastAvg, prevAvg: trend.prevAvg, change: trend.change, lastMonths: trend.lastMonths, prevMonths: trend.prevMonths },
   };
 }
 
 // Rule 5 — revenue trending down: last 3 months vs the 3 months before, >10% decrease.
-function ruleRevenueTrend(records: FinancialRecord[]): FinancialFact | null {
+function ruleRevenueTrend(records: FinancialRecord[], t: FactT, locale: Locale): FinancialFact | null {
   const trend = trendLast3VsPrev3(sortedMonthly(records, 'REVENUE'));
   if (!trend || trend.change >= -0.1) return null;
 
@@ -216,8 +304,14 @@ function ruleRevenueTrend(records: FinancialRecord[]): FinancialFact | null {
     id: 'revenue-trend',
     category: 'trend',
     severity: trend.change < -0.3 ? 'critical' : 'warning',
-    title: 'Ricavi in calo',
-    description: `I ricavi sono diminuiti del ${Math.round(Math.abs(trend.change) * 100)}% negli ultimi 3 mesi (${money(trend.lastAvg)}/mese: ${trend.lastMonths.join(', ')}) rispetto ai 3 mesi precedenti (${money(trend.prevAvg)}/mese: ${trend.prevMonths.join(', ')}).`,
+    title: t('revenue-trend.title'),
+    description: t('revenue-trend.description', {
+      changePercent: Math.round(Math.abs(trend.change) * 100),
+      lastAvg: formatCurrency(trend.lastAvg, locale),
+      lastMonths: trend.lastMonths.join(', '),
+      prevAvg: formatCurrency(trend.prevAvg, locale),
+      prevMonths: trend.prevMonths.join(', '),
+    }),
     values: { lastAvg: trend.lastAvg, prevAvg: trend.prevAvg, change: trend.change, lastMonths: trend.lastMonths, prevMonths: trend.prevMonths },
   };
 }
@@ -226,9 +320,18 @@ function ruleRevenueTrend(records: FinancialRecord[]): FinancialFact | null {
  * Deterministic financial facts for an organization: real numbers computed from
  * FinancialRecord / Receivable / RecurringExpense, no AI and no invented data.
  * Each rule independently skips itself when the underlying data is insufficient.
+ *
+ * @param locale Language for `title`/`description` AND for number/currency
+ *   formatting (€1.234,56 in it, €1,234.56 in en). Defaults to Italian so every
+ *   existing call site keeps its previous behaviour. `values` is unaffected —
+ *   it always carries raw, unformatted numbers.
  */
-export async function getFinancialFacts(organizationId: string): Promise<FinancialFact[]> {
+export async function getFinancialFacts(
+  organizationId: string,
+  locale: Locale = defaultLocale,
+): Promise<FinancialFact[]> {
   const now = new Date();
+  const t = factTranslator(locale);
   const [records, receivables, recurringExpenses] = await Promise.all([
     prisma.financialRecord.findMany({ where: { organizationId } }),
     prisma.receivable.findMany({ where: { organizationId } }),
@@ -236,13 +339,13 @@ export async function getFinancialFacts(organizationId: string): Promise<Financi
   ]);
 
   const facts = [
-    ruleOverdueReceivables(receivables, now),
-    ruleOverdueRatio(receivables, now),
-    ruleReceivableConcentration(receivables, now),
-    ruleExpensesVsIncome(records, recurringExpenses),
-    ruleRecurringExpenseConcentration(recurringExpenses),
-    ruleExpenseTrend(records),
-    ruleRevenueTrend(records),
+    ruleOverdueReceivables(receivables, now, t, locale),
+    ruleOverdueRatio(receivables, now, t, locale),
+    ruleReceivableConcentration(receivables, now, t, locale),
+    ruleExpensesVsIncome(records, recurringExpenses, t, locale),
+    ruleRecurringExpenseConcentration(recurringExpenses, t, locale),
+    ruleExpenseTrend(records, t, locale),
+    ruleRevenueTrend(records, t, locale),
   ];
 
   return facts.filter((f): f is FinancialFact => f !== null);

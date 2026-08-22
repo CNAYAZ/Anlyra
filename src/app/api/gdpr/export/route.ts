@@ -57,7 +57,8 @@ export async function GET() {
     customDashboards,
     notificationPrefs,
     kpis,
-    competitors,
+    competitorsSeed,
+    competitorsUser,
     conversations,
     integrations,
     importBatches,
@@ -134,7 +135,17 @@ export async function GET() {
     prisma.customDashboard_b8.findMany({ where: { organizationId } }),
     prisma.notificationPref_b8.findMany({ where: { userId, organizationId } }),
     prisma.kPI.findMany({ where: { organizationId } }),
+    // SPLIT-BRAIN, deliberately exported from BOTH tables. Competitors the user
+    // actually entered or imported are written to `Competitor` (see
+    // /api/data/import/commit and /api/analysis/market/competitors/[id]), while
+    // `Competitor_b7` only ever receives the demo rows seeded by
+    // seedCompetitors() in src/lib/session.ts — and the Mercato pages read the
+    // latter. Exporting only `Competitor_b7` meant a subject-access request
+    // returned demo data and silently omitted everything the user had entered,
+    // which is a compliance defect. Until the split-brain itself is fixed (a
+    // larger, separate job), a complete export must contain both.
     prisma.competitor_b7.findMany({ where: { organizationId } }),
+    prisma.competitor.findMany({ where: { organizationId } }),
     // One query with nested messages — not a per-conversation N+1 loop.
     prisma.aIConversation.findMany({
       where: { organizationId },
@@ -205,7 +216,10 @@ export async function GET() {
       aiAlertConfigs,
       conversations,
       kpis,
-      competitors,
+      // Two distinct sources, kept separate so the export is self-explanatory
+      // rather than a silently merged list: see the comment at the queries.
+      competitors: competitorsUser,
+      competitorsDemo: competitorsSeed,
     },
     workspace: {
       reports,
