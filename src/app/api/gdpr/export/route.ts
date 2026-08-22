@@ -3,6 +3,7 @@ import { fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { isManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -237,6 +238,14 @@ export async function GET() {
   };
 
   const filename = `anlyra-export-${organizationId}-${new Date().toISOString().slice(0, 10)}.json`;
+
+  await auditLog({
+    action: 'gdpr.export',
+    userId,
+    organizationId,
+    // Only WHETHER the team roster was included — never any exported content.
+    metadata: { teamDataIncluded: canSeeTeam },
+  });
 
   // Returned as a file download rather than through ok(): the user is meant to
   // keep this JSON, not for an app screen to parse it.

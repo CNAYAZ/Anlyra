@@ -3,6 +3,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 import { resolveReportConfig } from '@/lib/reports/config';
 import { renderReportPdf, pdfResponse } from '@/lib/reports/render';
 
@@ -55,6 +56,14 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     const r = await prisma.report_b8.findFirst({ where: { id: params.id, organizationId } });
     if (!r) return fail('NOT_FOUND', 404);
     await prisma.report_b8.delete({ where: { id: params.id } });
+    await auditLog({
+      action: 'report.delete',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'report',
+      targetId: params.id,
+      req: _req,
+    });
     return ok({ id: params.id });
   } catch (e) {
     return fail((e as Error).message, 500);

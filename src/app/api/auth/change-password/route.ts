@@ -3,6 +3,7 @@ import { ok, fail } from '@/lib/api';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { validatePassword } from '@/lib/auth/config';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,5 +53,6 @@ export async function POST(req: Request) {
     data: { passwordHash },
   });
 
+  await auditLog({ action: 'password.change', userId, req });
   return ok({ success: true });
 }

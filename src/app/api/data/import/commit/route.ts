@@ -7,6 +7,7 @@ import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -216,6 +217,21 @@ export async function POST(req: NextRequest) {
     const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id: batch.id } });
     const persistedRecords = await prisma.financialRecord.count({
       where: { importBatchId: batch.id },
+    });
+
+    await auditLog({
+      action: 'import.commit',
+      userId,
+      organizationId,
+      targetType: 'import_batch',
+      targetId: persisted.id,
+      req,
+      // Counts and status only — never the imported rows themselves.
+      metadata: {
+        status: persisted.status,
+        rowsImported: persisted.rowsImported,
+        rowsErrors: persisted.rowsErrors,
+      },
     });
 
     return ok({

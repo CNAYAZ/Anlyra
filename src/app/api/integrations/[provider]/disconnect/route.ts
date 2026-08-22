@@ -2,6 +2,7 @@ import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { requireManagerRole } from "@/lib/auth/require-role";
+import { auditLog } from '@/lib/audit/log';
 import { getIntegration } from "@/lib/integrations/registry";
 
 export async function POST(_req: Request, props: { params: Promise<{ provider: string }> }) {
@@ -25,5 +26,13 @@ export async function POST(_req: Request, props: { params: Promise<{ provider: s
     data: { status: "DISCONNECTED", apiKey: null },
   });
 
+  await auditLog({
+    action: 'integration.disconnect',
+    userId: authCtx.userId,
+    organizationId: authCtx.organizationId,
+    targetType: 'integration',
+    targetId: params.provider,
+    req: _req,
+  });
   return ok({ disconnected: true });
 }

@@ -5,6 +5,7 @@ import { getAuthContext } from '@/lib/session';
 import { isManagerRole } from '@/lib/auth/require-role';
 import { getStripe } from '@/lib/stripe/client';
 import { DELETION_GRACE_DAYS } from '@/lib/gdpr/constants';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -131,6 +132,14 @@ export async function POST(req: Request) {
       );
     }
   }
+
+  await auditLog({
+    action: 'gdpr.account_deletion_request',
+    userId,
+    organizationId,
+    req,
+    metadata: { organizationIncluded: deletesOrganization, subscriptionCancelled },
+  });
 
   return ok({
     requestedAt: requestedAt.toISOString(),

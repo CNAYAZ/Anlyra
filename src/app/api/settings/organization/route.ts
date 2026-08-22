@@ -4,6 +4,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,16 @@ export async function PATCH(req: NextRequest) {
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);
     const updated = await prisma.organization.update({ where: { id: organizationId }, data: parsed.data });
+    await auditLog({
+      action: 'organization.update',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'organization',
+      targetId: organizationId,
+      req,
+      // Field NAMES only — never the values, which are company data.
+      metadata: { fields: Object.keys(parsed.data).join(',') },
+    });
     return ok(updated);
   } catch (e) {
     return fail((e as Error).message, 500);

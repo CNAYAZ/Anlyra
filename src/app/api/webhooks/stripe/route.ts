@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe/client";
 import {
   addCreditEntry,
@@ -191,6 +193,43 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── IDEMPOTENCY ──────────────────────────────────────────────────────────
+  // Stripe retries an event when our response is slow, non-2xx, or the
+  // connection drops, so the same event.id can arrive more than once. Without
+  // this, a retried checkout.session.completed for a credit purchase inserts a
+  // SECOND CreditEntry ledger row (addCreditEntry is a plain create), re-runs
+  // the plan transition, and re-sends the confirmation email.
+  //
+  // The claim is an INSERT on a UNIQUE column, so the race between two
+  // simultaneous deliveries is settled by the DATABASE (P2002 on the loser),
+  // not by a read-then-write check that both concurrent requests could pass.
+  //
+  // ORDER — claim BEFORE processing, and RELEASE the claim if processing fails:
+  //   • Claiming after processing would leave a window where a retry arriving
+  //     mid-processing starts a second concurrent run of the same handler.
+  //   • Keeping the claim after a failure would mark a never-applied event as
+  //     "already seen", so Stripe's retry — the very thing that would fix a
+  //     transient database error — would be discarded and the event lost for
+  //     good.
+  // Claiming first and deleting the claim on failure gives both properties: at
+  // most one run at a time, and a failed run stays retryable.
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: { eventId: event.id, type: event.type },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      // Already processed (or being processed right now). Answer 200 so Stripe
+      // stops retrying — a duplicate is not an error on their side or ours.
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // The idempotency store itself is broken. Fail loudly with 500 so Stripe
+    // retries later: processing without the guard risks the double-write this
+    // whole block exists to prevent.
+    console.error("[stripe-webhook] idempotency claim failed", err);
+    return NextResponse.json({ error: "Idempotency store unavailable" }, { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -213,6 +252,19 @@ export async function POST(req: NextRequest) {
         break;
     }
   } catch (err) {
+    // Release the claim so Stripe's retry can actually re-run this event.
+    // Best-effort: if the release fails too, the event stays claimed and will
+    // NOT be retried — logged explicitly because that needs a human.
+    try {
+      await prisma.stripeWebhookEvent.delete({ where: { eventId: event.id } });
+    } catch (releaseErr) {
+      console.error(
+        "[stripe-webhook] FAILED to release idempotency claim for",
+        event.id,
+        "— this event will not be retried:",
+        releaseErr,
+      );
+    }
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 
