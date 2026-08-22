@@ -89,10 +89,14 @@ function buildSystemPrompt(locale: 'it' | 'en'): string {
     // Placed LAST and repeated in the strongest terms on purpose: instructions
     // near the end of a system prompt are the ones the model tends to weigh
     // most when producing the final tokens, and format compliance is exactly
-    // what must hold at the very end of the reply.
+    // what must hold at the very end of the reply. This instruction is the
+    // ONLY mechanism pinning the reply's shape (the model in use answers a 400
+    // to a trailing assistant turn, so that route to force the first character
+    // is not available here), so it has to be unambiguous.
     '═══ FORMATO DELLA RISPOSTA — REGOLA ASSOLUTA, PIÙ IMPORTANTE DI TUTTO IL RESTO ═══',
-    'Rispondi ESCLUSIVAMENTE con un array JSON valido. Nient\'altro: NESSUN testo prima, NESSUN testo dopo, NESSUN blocco di codice ```, NESSUNA spiegazione. Il tuo intero messaggio deve iniziare con [ e finire con ], senza nulla fuori da quelle parentesi. Non racchiudere l\'array in un oggetto (niente {"insights": [...]}): l\'array va scritto direttamente, allo stesso livello. Struttura di ogni elemento:',
+    'Rispondi ESCLUSIVAMENTE con un array JSON valido. Nient\'altro: NESSUN testo prima, NESSUN testo dopo, NESSUN blocco di codice ```, NESSUNA spiegazione, NESSUN saluto, NESSUN commento. Non racchiudere l\'array in un oggetto (niente {"insights": [...]}): l\'array va scritto direttamente, allo stesso livello. Struttura di ogni elemento:',
     '{"type": "...", "priority": "...", "title": "...", "summary": "...", "content": "...", "confidence": 0.85}',
+    'IL PRIMO CARATTERE DELLA TUA RISPOSTA, SENZA ECCEZIONI, DEVE ESSERE [ — e l\'ultimo carattere deve essere ]. Non scrivere nulla, nemmeno uno spazio o un a-capo, prima di quel [ o dopo quel ].',
   ].join('\n');
 }
 
@@ -172,9 +176,8 @@ function extractJsonArray(text: string): unknown[] | null {
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence?.[1]) candidates.push(fence[1].trim());
 
-  // 3. First '[' .. last ']' span — an array with prose or a trailing note
-  //    around it. Prefill makes prose-BEFORE unlikely, but trailing commentary
-  //    after the array is still possible.
+  // 3. First '[' .. last ']' span — an array with introductory prose or a
+  //    trailing note around it.
   const firstArr = trimmed.indexOf('[');
   const lastArr = trimmed.lastIndexOf(']');
   if (firstArr !== -1 && lastArr > firstArr) candidates.push(trimmed.slice(firstArr, lastArr + 1));
@@ -297,10 +300,11 @@ export function validateInsights(raw: unknown[]): GeneratedInsight[] {
  * the credit accounting and the isAnthropicConfigured() check, exactly as with
  * analyzeAlert in src/lib/alerts/ai-analysis.ts.
  *
- * The call is prefilled with "[" (assistantPrefill): the reply is then forced to
- * start with the array itself, which rules out introductory prose by
- * construction rather than hoping the model complies. max_tokens is also raised
- * for this call specifically (INSIGHTS_MAX_TOKENS) — see the constant's comment.
+ * The reply's shape is pinned ONLY by the emphatic, last-in-the-prompt format
+ * instruction in buildSystemPrompt — see the comment there for why (the model in
+ * use rejects a trailing assistant turn with a 400, so that route is not
+ * available). max_tokens is still raised for this call specifically
+ * (INSIGHTS_MAX_TOKENS) — see the constant's comment.
  */
 export async function generateInsights(
   ctx: AIBusinessContext,
@@ -309,7 +313,7 @@ export async function generateInsights(
   const { text } = await chatComplete(
     buildSystemPrompt(locale),
     [{ role: 'user', content: buildUserMessage(ctx) }],
-    { maxTokens: INSIGHTS_MAX_TOKENS, assistantPrefill: '[' },
+    { maxTokens: INSIGHTS_MAX_TOKENS },
   );
 
   const arr = extractJsonArray(text);
