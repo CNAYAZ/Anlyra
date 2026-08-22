@@ -1,22 +1,32 @@
 import { PrismaClient } from '@prisma/client';
 import { assertNotProductionDatabase } from './guard';
 
-// Cancella tutti gli alert dell'organizzazione e li riscrive. Peggio: prende
-// l'organizzazione con `findFirst()`, quindi in produzione colpirebbe la prima
-// organizzazione che trova — che può essere quella di un cliente vero.
+// Cancella tutti gli alert dell'organizzazione demo e li riscrive.
 assertNotProductionDatabase('npx tsx prisma/seed-alerts.ts');
 
 const prisma = new PrismaClient();
 
+// L'organizzazione demo, per id esplicito (stesso criterio di
+// prisma/seed-receivables.ts e stesso id creato da prisma/seed.ts via
+// buildDemoDataset). PRIMA questo script usava `findFirst()` senza filtro:
+// su un database con più organizzazioni avrebbe cancellato e riscritto gli
+// alert della PRIMA che trovava — potenzialmente quella di un cliente vero.
+// La guardia sopra blocca comunque la produzione, ma un seed non deve
+// scegliere il proprio bersaglio a caso.
+const DEMO_ORG_ID = 'demo-org';
+
 async function main() {
-  const org = await prisma.organization.findFirst();
+  const org = await prisma.organization.findUnique({ where: { id: DEMO_ORG_ID } });
 
   if (!org) {
-    console.log('❌ Nessuna organizzazione trovata. Esegui prima il seed principale.');
-    return;
+    // Fermarsi, MAI ripiegare su un'altra organizzazione.
+    console.error(
+      `❌ Organizzazione demo "${DEMO_ORG_ID}" non trovata. Esegui prima il seed principale (npm run db:seed).`,
+    );
+    process.exit(1);
   }
 
-  console.log(`📋 Aggiungo alert a: ${org.name}`);
+  console.log(`📋 Aggiungo alert a: ${org.name} (${DEMO_ORG_ID})`);
 
   // Remove existing demo alerts to avoid duplicates
   await prisma.alert.deleteMany({ where: { organizationId: org.id } });

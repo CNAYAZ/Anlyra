@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, AlertTriangle, Info, CheckCircle2, type LucideIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/ui/section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
@@ -55,10 +55,14 @@ function FactCard({ fact }: { fact: FinancialFact }) {
 
 export default function SituazionePage() {
   const t = useTranslations('situazione');
+  const locale = useLocale();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['facts'],
-    queryFn: () => apiFetch<FactsResponse>('/api/analysis/facts'),
+    // The locale is part of the key: switching language must refetch, because
+    // the fact sentences are composed server-side in that language.
+    queryKey: ['facts', locale],
+    queryFn: () =>
+      apiFetch<FactsResponse>(`/api/analysis/facts?locale=${encodeURIComponent(locale)}`),
   });
 
   const facts = [...(data?.facts ?? [])].sort(

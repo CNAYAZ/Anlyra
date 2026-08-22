@@ -970,6 +970,36 @@
     "subtitle": "Cosa tenere d'occhio nei tuoi numeri",
     "empty": "Nessuna segnalazione al momento — i tuoi numeri non mostrano criticità."
   },
+  "facts": {
+    "receivables-overdue": {
+      "title": "Crediti scaduti",
+      "description": "{distinctCustomers, plural, one {# cliente ti deve} other {# clienti ti devono}} {totalOverdue} da oltre {minDaysOverdue, plural, one {# giorno} other {# giorni}}."
+    },
+    "receivables-overdue-ratio": {
+      "title": "Quota crediti scaduti elevata",
+      "description": "Il {ratioPercent}% del totale crediti da incassare ({outstanding}) è scaduto ({overdueAmount}); solo {openAmount} è ancora nei termini."
+    },
+    "concentration-receivable": {
+      "title": "Concentrazione su un singolo credito scaduto",
+      "description": "Il credito scaduto di {customerName} ({amount}) è il {sharePercent}% del totale crediti scaduti ({totalOverdue})."
+    },
+    "expenses-vs-income": {
+      "title": "Spese ricorrenti vicine alle entrate",
+      "description": "Le spese ricorrenti mensili ({totalMonthlyRecurring}) assorbono il {ratioPercent}% delle entrate medie mensili ({avgMonthlyIncome}, calcolate su {monthsCount, plural, one {# mese} other {# mesi}}: {monthsUsed})."
+    },
+    "concentration-recurring-expense": {
+      "title": "Concentrazione su una singola spesa ricorrente",
+      "description": "La spesa ricorrente di {vendorName} ({monthlyEquivalent}/mese) è il {sharePercent}% del totale spese ricorrenti mensili ({totalMonthly})."
+    },
+    "expenses-trend": {
+      "title": "Spese in aumento",
+      "description": "Le spese sono aumentate del {changePercent}% negli ultimi 3 mesi ({lastAvg}/mese: {lastMonths}) rispetto ai 3 mesi precedenti ({prevAvg}/mese: {prevMonths})."
+    },
+    "revenue-trend": {
+      "title": "Ricavi in calo",
+      "description": "I ricavi sono diminuiti del {changePercent}% negli ultimi 3 mesi ({lastAvg}/mese: {lastMonths}) rispetto ai 3 mesi precedenti ({prevAvg}/mese: {prevMonths})."
+    }
+  },
   "scadenzario": {
     "title": "Scadenzario Incassi",
     "subtitle": "{count, plural, =0 {Nessun credito da incassare} one {# credito da incassare} other {# crediti da incassare}}",

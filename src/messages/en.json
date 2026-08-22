@@ -970,6 +970,36 @@
     "subtitle": "What to keep an eye on in your numbers",
     "empty": "No issues to report right now — your numbers look clean."
   },
+  "facts": {
+    "receivables-overdue": {
+      "title": "Overdue receivables",
+      "description": "{distinctCustomers, plural, one {# customer owes you} other {# customers owe you}} {totalOverdue}, overdue by more than {minDaysOverdue, plural, one {# day} other {# days}}."
+    },
+    "receivables-overdue-ratio": {
+      "title": "High share of overdue receivables",
+      "description": "{ratioPercent}% of your total outstanding receivables ({outstanding}) is overdue ({overdueAmount}); only {openAmount} is still within terms."
+    },
+    "concentration-receivable": {
+      "title": "One overdue invoice dominates",
+      "description": "The overdue invoice from {customerName} ({amount}) is {sharePercent}% of all overdue receivables ({totalOverdue})."
+    },
+    "expenses-vs-income": {
+      "title": "Recurring expenses close to income",
+      "description": "Monthly recurring expenses ({totalMonthlyRecurring}) absorb {ratioPercent}% of average monthly income ({avgMonthlyIncome}, based on {monthsCount, plural, one {# month} other {# months}}: {monthsUsed})."
+    },
+    "concentration-recurring-expense": {
+      "title": "One recurring expense dominates",
+      "description": "The recurring expense from {vendorName} ({monthlyEquivalent}/month) is {sharePercent}% of total monthly recurring expenses ({totalMonthly})."
+    },
+    "expenses-trend": {
+      "title": "Expenses rising",
+      "description": "Expenses rose {changePercent}% over the last 3 months ({lastAvg}/month: {lastMonths}) compared with the previous 3 months ({prevAvg}/month: {prevMonths})."
+    },
+    "revenue-trend": {
+      "title": "Revenue falling",
+      "description": "Revenue fell {changePercent}% over the last 3 months ({lastAvg}/month: {lastMonths}) compared with the previous 3 months ({prevAvg}/month: {prevMonths})."
+    }
+  },
   "scadenzario": {
     "title": "Receivables",
     "subtitle": "{count, plural, =0 {No receivables to collect} one {# receivable to collect} other {# receivables to collect}}",

@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
  * Order of the guards is deliberate — every cheap refusal happens before the
  * expensive one, so a request that can never reach Anthropic is never billed:
  *   401 auth → 402 trial gate → 429 rate limit → 400 input → 503 no API key
- *   → 422 not enough data → credits → model call → validation → write.
+ *   → locale → 422 not enough data → credits → model call → validation → write.
  */
 
 // Cost per generation. 3 credits, the value the UI has always advertised
@@ -75,20 +75,23 @@ export async function POST(req: NextRequest) {
     // 5. Configuration guard.
     if (!isAnthropicConfigured()) return fail(MISSING_KEY_MESSAGE, 503);
 
-    // 6. Real data. The facts engine is the materia prima: no facts and no
-    //    monthly figures means there is nothing truthful to advise on, so we
-    //    refuse BEFORE charging anything rather than pay for generic filler.
-    const businessCtx = await loadBusinessContext(organizationId);
-    const hasData = businessCtx.facts.length > 0 || businessCtx.financials.length > 0;
-    if (!hasData) return fail('NOT_ENOUGH_DATA', 422);
-
+    // 6. Language, resolved BEFORE loading the context: the facts engine now
+    //    composes its sentences in this locale, and those sentences go into the
+    //    prompt — so the model must receive them already in the user's language.
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { locale: true },
     });
     const locale = parsed.data.locale ?? (user?.locale === 'en' ? 'en' : 'it');
 
-    // 7. Credits: charged HERE, the last gate before the Anthropic call, with the
+    // 7. Real data. The facts engine is the materia prima: no facts and no
+    //    monthly figures means there is nothing truthful to advise on, so we
+    //    refuse BEFORE charging anything rather than pay for generic filler.
+    const businessCtx = await loadBusinessContext(organizationId, locale);
+    const hasData = businessCtx.facts.length > 0 || businessCtx.financials.length > 0;
+    if (!hasData) return fail('NOT_ENOUGH_DATA', 422);
+
+    // 8. Credits: charged HERE, the last gate before the Anthropic call, with the
     //    same atomic conditional UPDATE used by /api/ai/chat and /api/ai/analyze
     //    (…WHERE aiCredits >= cost), so concurrent requests can never drive the
     //    balance negative.
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
-    // 8. Model call + validation. A malformed answer writes NOTHING.
+    // 9. Model call + validation. A malformed answer writes NOTHING.
     //
     //    Two distinct failure modes, two distinct policies:
     //      • InvalidInsightResponseError (the model answered, but not in a
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest) {
       return fail(msg, 502);
     }
 
-    // 9. Persist. Added to the existing ones, never replacing them: an insight
+    // 10. Persist. Added to the existing ones, never replacing them: an insight
     //    the user has already marked REVIEWED/IMPLEMENTED is their record of a
     //    decision and must not be deleted by a new generation.
     //    `source` marks these as genuinely AI-written — the UI badge reads it.

@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { assertNotProductionDatabase } from './guard';
 
-// Cancella tutti gli insight dell'organizzazione e li riscrive. Come
-// seed-alerts.ts ricade su `findFirst()`, quindi in produzione può colpire
-// l'organizzazione di un cliente vero.
+// Cancella tutti gli insight dell'organizzazione demo e li riscrive.
 assertNotProductionDatabase('npx tsx prisma/seed-insights.ts');
 
 const prisma = new PrismaClient();
@@ -11,16 +9,28 @@ const prisma = new PrismaClient();
 // Insight model fields: id (auto), organizationId, title, summary, impact, tone, createdAt
 // type/priority/status/content/confidence are derived by the API from tone/impact.
 
+// L'organizzazione demo, per id esplicito (stesso criterio di
+// prisma/seed-receivables.ts e stesso id creato da prisma/seed.ts via
+// buildDemoDataset). PRIMA questo script cercava lo slug 'techflow-srl' e, non
+// trovandolo, ripiegava su `findFirst()` senza filtro: su un database con più
+// organizzazioni avrebbe cancellato e riscritto gli insight della PRIMA che
+// trovava — potenzialmente quella di un cliente vero. Nota: 'techflow-srl' non
+// esiste più (l'org demo è 'acme'/demo-org), quindi il ripiego era di fatto il
+// percorso NORMALE di questo script, non un caso limite.
+const DEMO_ORG_ID = 'demo-org';
+
 async function main() {
-  const org = await prisma.organization.findFirst({ where: { slug: 'techflow-srl' } })
-    ?? await prisma.organization.findFirst();
+  const org = await prisma.organization.findUnique({ where: { id: DEMO_ORG_ID } });
 
   if (!org) {
-    console.log('❌ Nessuna organizzazione trovata. Esegui prima il seed principale.');
+    // Fermarsi, MAI ripiegare su un'altra organizzazione.
+    console.error(
+      `❌ Organizzazione demo "${DEMO_ORG_ID}" non trovata. Esegui prima il seed principale (npm run db:seed).`,
+    );
     process.exit(1);
   }
 
-  console.log(`📋 Seeding 6 insights for ${org.name}...`);
+  console.log(`📋 Seeding 6 insights for ${org.name} (${DEMO_ORG_ID})...`);
 
   const deleted = await prisma.insight.deleteMany({ where: { organizationId: org.id } });
   if (deleted.count > 0) console.log(`  🗑  Rimossi ${deleted.count} insight precedenti`);
