@@ -27,16 +27,22 @@ export function getAnthropicClient(): Anthropic {
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 
+export type ChatCompleteOptions = {
+  /** Overrides ANTHROPIC_MAX_TOKENS for this call only; other callers are unaffected. */
+  maxTokens?: number;
+};
+
 export async function chatComplete(
   systemPrompt: string,
   messages: ChatTurn[],
+  options: ChatCompleteOptions = {},
 ): Promise<{ text: string; tokensIn?: number; tokensOut?: number }> {
   const c = getAnthropicClient();
   const res = await c.messages.create({
     model: ANTHROPIC_MODEL,
     // temperature is deprecated/rejected by claude-sonnet-5 (400
     // invalid_request_error), so it is intentionally not passed.
-    max_tokens: ANTHROPIC_MAX_TOKENS,
+    max_tokens: options.maxTokens ?? ANTHROPIC_MAX_TOKENS,
     system: systemPrompt,
     messages,
   });

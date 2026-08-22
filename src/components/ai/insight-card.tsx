@@ -64,10 +64,14 @@ export function InsightCard({ insight, onClick }: Props) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-        <Badge variant="info" className="gap-1">
-          <Sparkles className="h-3 w-3" aria-hidden />
-          {t('aiGenerated')}
-        </Badge>
+        {/* AI Act disclosure: shown ONLY for insights a model actually wrote.
+            Demo/seed rows have aiGenerated false and stay unlabelled. */}
+        {insight.aiGenerated && (
+          <Badge variant="info" className="gap-1">
+            <Sparkles className="h-3 w-3" aria-hidden />
+            {t('aiGenerated')}
+          </Badge>
+        )}
         <Badge variant={statusVariant[insight.status]}>{t(`status.${insight.status}`)}</Badge>
         <Badge variant="neutral">{t(`type.${insight.type}`)}</Badge>
         <Badge variant="neutral">{t(`priority.${insight.priority}`)}</Badge>

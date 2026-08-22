@@ -55,6 +55,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         summary: updated.summary,
         content: updated.content ?? updated.summary,
         confidence: updated.confidence ?? 0.8,
+        // See the note in the GET route: badge only for real AI-written rows.
+        aiGenerated: (updated.source ?? '').startsWith('ai:'),
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       },
