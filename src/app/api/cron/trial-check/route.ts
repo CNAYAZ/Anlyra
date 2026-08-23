@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { runTrialCheck } from '@/lib/cron/trial-check';
+import { runScheduledReports } from '@/lib/cron/scheduled-reports';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Vercel Hobby's default function duration is 10s; this route now also renders
+// PDFs and sends emails with attachments for due scheduled reports, so it is
+// raised to 60s (the maximum Hobby allows) to give that a real margin. See
+// MAX_REPORTS_PER_RUN in scheduled-reports.ts for the corresponding cap that
+// keeps a single run from ever needing all 60s.
+export const maxDuration = 60;
 
 // Protected by CRON_SECRET. Vercel Cron sends `Authorization: Bearer <secret>`.
 // Fail-CLOSED: if CRON_SECRET is not configured we refuse to run (never execute
@@ -21,5 +28,23 @@ export async function GET(req: Request) {
   }
 
   const result = await runTrialCheck();
-  return NextResponse.json({ success: true, ...result });
+
+  // Bolted on rather than a separate cron: Hobby allows at most 2, and both are
+  // already spoken for. Best-effort and isolated in its own try/catch — a bug
+  // in report delivery must never turn a completed trial-check run into a
+  // failure response, and vice versa (runTrialCheck already ran and returned
+  // above this line).
+  let scheduledReports = null;
+  try {
+    scheduledReports = await runScheduledReports();
+    console.info(
+      `[cron/trial-check] scheduled reports: due=${scheduledReports.due} sent=${scheduledReports.sent} ` +
+        `skippedNoData=${scheduledReports.skippedNoData} skippedNoRecipients=${scheduledReports.skippedNoRecipients} ` +
+        `failed=${scheduledReports.failed}`,
+    );
+  } catch (e) {
+    console.error('[cron/trial-check] scheduled reports run failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, scheduledReports });
 }

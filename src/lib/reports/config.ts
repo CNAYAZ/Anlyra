@@ -17,6 +17,14 @@ import type { ReportSectionKey } from '@/lib/report-sections';
  * ReportPayload, and 'benchmarks' would need industry averages that are not in
  * the database. Per the founder's rule, a section we cannot fill with real
  * numbers is OMITTED, never invented.
+ *
+ * As of the section cleanup, these three are no longer even offered by the
+ * builder (removed from ReportSectionKey/REPORT_SECTIONS) — but a report saved
+ * BEFORE that change can still have them in its stored `sections` JSON. That is
+ * fine and requires no migration: `key as ReportSectionKey` below is a runtime
+ * no-op cast on data read from the database (typed as plain `string[]`), and
+ * SECTION_BRIDGE simply has no entry for those strings, exactly as it always
+ * did. Old rows keep rendering whatever real sections they also selected.
  */
 const SECTION_BRIDGE: Partial<Record<ReportSectionKey, ReportSection>> = {
   kpi_summary: 'executive',

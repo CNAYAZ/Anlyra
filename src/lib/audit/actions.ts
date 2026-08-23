@@ -39,6 +39,9 @@ export const AUDIT_ACTIONS = [
 
   // ── Report sharing (exposes company figures publicly, no login required) ──
   'report.share_link_created',
+
+  // ── Scheduled report delivery (cron-triggered, no acting user) ──
+  'report.scheduled_delivery',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
