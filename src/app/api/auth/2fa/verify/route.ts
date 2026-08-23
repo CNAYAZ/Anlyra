@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { generateBackupCodes } from '@/lib/auth/tokens';
 import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit/log';
 
 function tooManyRequests(reset: number) {
   return NextResponse.json(
@@ -54,5 +55,6 @@ export async function POST(req: Request) {
     },
   });
 
+  await auditLog({ action: 'two_factor.enable', userId, req });
   return NextResponse.json({ success: true, backupCodes });
 }

@@ -3,6 +3,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,15 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         data: { status: 'CANCELLED' },
       });
       const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id } });
+      await auditLog({
+        action: 'import_batch.delete',
+        userId: authCtx.userId,
+        organizationId,
+        targetType: 'import_batch',
+        targetId: id,
+        req,
+        metadata: { previousStatus: 'PENDING', newStatus: persisted.status },
+      });
       return ok({ id: persisted.id, status: persisted.status });
     }
 
@@ -81,6 +91,15 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     });
 
     const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id } });
+    await auditLog({
+      action: 'import.rollback',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'import_batch',
+      targetId: id,
+      req,
+      metadata: { newStatus: persisted.status },
+    });
     return ok({ id: persisted.id, status: persisted.status });
   } catch (e) {
     return fail((e as Error).message, 500);

@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit/log';
 
 // Build the providers list, including OAuth only when credentials are present
 // so the app boots cleanly in environments without OAuth configured.
@@ -33,10 +34,19 @@ const providers = [
       if (!emailLimit.success) return null;
 
       const user = await prisma.user.findUnique({ where: { email } });
-      if (!user || !user.passwordHash) return null;
+      if (!user || !user.passwordHash) {
+        // Unknown address (or an OAuth-only account): recorded WITHOUT the email.
+        // Storing attempted addresses would turn the audit table into an account
+        // enumeration list, which is the opposite of what it is for.
+        await auditLog({ action: 'auth.login_failed', outcome: 'failure' });
+        return null;
+      }
 
       const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-      if (!passwordMatches) return null;
+      if (!passwordMatches) {
+        await auditLog({ action: 'auth.login_failed', userId: user.id, outcome: 'failure' });
+        return null;
+      }
 
       // GDPR deletion pending: the account is closed the moment it is requested,
       // even though the rows survive for the 30-day grace period. Checked here,
@@ -65,6 +75,8 @@ const providers = [
         where: { id: user.id },
         data: { lastLoginAt: new Date() },
       });
+
+      await auditLog({ action: 'auth.login', userId: user.id });
 
       return {
         id: user.id,

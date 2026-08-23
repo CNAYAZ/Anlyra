@@ -2,6 +2,7 @@ import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { requireManagerRole } from "@/lib/auth/require-role";
+import { auditLog } from '@/lib/audit/log';
 import { getIntegration } from "@/lib/integrations/registry";
 import { runSync } from "@/lib/sync/manager";
 
@@ -29,8 +30,27 @@ export async function POST(_req: Request, props: { params: Promise<{ provider: s
 
   try {
     const result = await runSync(integration.id);
+    await auditLog({
+      action: 'integration.sync',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'integration',
+      targetId: definition.id,
+      req: _req,
+    });
     return ok(result);
   } catch (err) {
+    // A failed sync is worth a trail row too — it is how a broken integration
+    // shows up later. The message is ours, not user data.
+    await auditLog({
+      action: 'integration.sync',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'integration',
+      targetId: definition.id,
+      outcome: 'failure',
+      req: _req,
+    });
     return fail(err instanceof Error ? err.message : "Sync failed", 500);
   }
 }

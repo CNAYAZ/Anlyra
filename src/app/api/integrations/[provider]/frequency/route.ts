@@ -3,6 +3,7 @@ import { fail, ok } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { requireManagerRole } from "@/lib/auth/require-role";
+import { auditLog } from '@/lib/audit/log';
 import { getIntegration } from "@/lib/integrations/registry";
 
 const Body = z.object({ frequency: z.enum(["H6", "H12", "H24"]) });
@@ -32,5 +33,14 @@ export async function POST(req: Request, props: { params: Promise<{ provider: st
     select: { frequency: true },
   });
 
+  await auditLog({
+    action: 'integration.frequency_update',
+    userId: authCtx.userId,
+    organizationId: authCtx.organizationId,
+    targetType: 'integration',
+    targetId: params.provider,
+    req,
+    metadata: { frequency: parsed.data.frequency },
+  });
   return ok(integration);
 }

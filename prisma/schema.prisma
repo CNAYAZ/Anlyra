@@ -846,3 +846,60 @@ model CreditEntry {
 
   @@index([organizationId, createdAt])
 }
+
+/// Stripe webhook idempotency ledger. One row per event.id Stripe has delivered
+/// AND we have fully processed. Stripe retries a webhook when the response is
+/// slow, non-2xx, or the connection drops, so the same event.id can arrive
+/// several times; without this table each retry would re-run the handler
+/// (duplicate CreditEntry ledger rows, repeated plan transitions, repeated
+/// confirmation emails).
+///
+/// `eventId` is @unique on purpose: the race between two SIMULTANEOUS
+/// deliveries of the same event is settled by the DATABASE (the second INSERT
+/// fails with P2002), never by a read-then-write check in application code,
+/// which two concurrent requests can both pass.
+model StripeWebhookEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique // Stripe's evt_… id
+  type      String // e.g. checkout.session.completed — kept for debugging only
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// Audit trail of sensitive actions (founder's decision: destructive/management actions,
+/// logins and data imports — NOT AI generations, which are frequent and already
+/// tracked by the credit ledger).
+///
+/// PRIVACY: this table records THAT something happened, never the payload.
+/// No passwords, no tokens, no imported file contents, no financial figures.
+/// `metadata` is a small JSON string for non-sensitive context only (e.g. which
+/// provider was disconnected, how many rows an import committed).
+///
+/// Writes are best-effort: a failure here must never fail the user's action
+/// (see src/lib/audit/log.ts), so there is deliberately NO foreign key —
+/// an audit row must survive the deletion of the user or org it refers to,
+/// which is exactly when the trail matters most.
+model AuditLog {
+  id             String   @id @default(cuid())
+  /// Who. Null for a failed login where the account does not exist.
+  userId         String?
+  /// On which organization. Null for account-level actions (login, 2FA).
+  organizationId String?
+  /// What happened — see AuditAction in src/lib/audit/actions.ts.
+  action         String
+  /// What it was done to, when there is a specific target (e.g. a receivable id).
+  targetType     String?
+  targetId       String?
+  /// Outcome: success | failure.
+  outcome        String   @default("success")
+  /// Caller IP, when the request context already provides it. Never derived.
+  ip             String?
+  /// Small non-sensitive JSON context. Never file contents or amounts.
+  metadata       String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}

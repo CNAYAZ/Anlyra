@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { auditLog } from '@/lib/audit/log';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -40,5 +41,6 @@ export async function POST(req: Request) {
     },
   });
 
+  await auditLog({ action: 'two_factor.disable', userId, req });
   return NextResponse.json({ success: true });
 }

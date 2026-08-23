@@ -4,6 +4,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 import { SHARE_LINK_TTL_DAYS } from '@/lib/reports/share';
 
 export const runtime = 'nodejs';
@@ -48,6 +49,18 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
       where: { id: report.id },
       data: { shareToken: token, shareCreatedAt: now, shareExpiresAt: expiresAt },
       select: { shareToken: true, shareCreatedAt: true, shareExpiresAt: true },
+    });
+
+    // The share link exposes company figures to anyone holding the URL, with no
+    // login — worth a trail row. The TOKEN ITSELF IS NEVER RECORDED: it is a
+    // credential, and an audit table is not the place for one.
+    await auditLog({
+      action: 'report.share_link_created',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'report',
+      targetId: report.id,
+      req: _req,
     });
 
     return ok({

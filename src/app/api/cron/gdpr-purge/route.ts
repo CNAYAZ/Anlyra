@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runGdprPurge } from '@/lib/gdpr/purge';
+import { purgeOldWebhookEvents } from '@/lib/billing/webhook-retention';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,5 +26,17 @@ export async function GET(req: Request) {
   console.info(
     `[cron/gdpr-purge] cutoff=${result.cutoff} orgs=${result.organizationsPurged.length} users=${result.usersPurged.length} errors=${result.errors.length}`,
   );
-  return NextResponse.json({ success: true, ...result });
+
+  // Housekeeping bolted onto this nightly run instead of a second cron: expire
+  // Stripe idempotency records well past Stripe's retry horizon. Best-effort —
+  // a failure here must not turn a completed GDPR purge into a 500.
+  let webhookEventsPurged = 0;
+  try {
+    webhookEventsPurged = await purgeOldWebhookEvents();
+    console.info(`[cron/gdpr-purge] stripe idempotency rows purged=${webhookEventsPurged}`);
+  } catch (e) {
+    console.error('[cron/gdpr-purge] stripe idempotency purge failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, webhookEventsPurged });
 }

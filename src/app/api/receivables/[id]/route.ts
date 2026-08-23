@@ -4,6 +4,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireManagerRole } from '@/lib/auth/require-role';
+import { auditLog } from '@/lib/audit/log';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 
 export const runtime = 'nodejs';
@@ -80,6 +81,14 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     if (!existing) return fail('NOT_FOUND', 404);
 
     await prisma.receivable.delete({ where: { id: existing.id } });
+    await auditLog({
+      action: 'receivable.delete',
+      userId: authCtx.userId,
+      organizationId,
+      targetType: 'receivable',
+      targetId: existing.id,
+      req: _req,
+    });
     return ok({ id: existing.id });
   } catch (e) {
     return fail((e as Error).message, 500);

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { requireManagerRole } from "@/lib/auth/require-role";
+import { auditLog } from '@/lib/audit/log';
 import { ok, fail } from "@/lib/api";
 
 const updateSchema = z.object({
@@ -56,6 +57,14 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     });
     if (!competitor) return fail("Competitor not found", 404);
     await prisma.competitor.delete({ where: { id: competitor.id } });
+    await auditLog({
+      action: 'competitor.delete',
+      userId: ctx.userId,
+      organizationId: orgId,
+      targetType: 'competitor',
+      targetId: competitor.id,
+      req: _req,
+    });
     return ok({ id: competitor.id });
   } catch (e) {
     return fail((e as Error).message, 500);
