@@ -10,3 +10,6 @@ export { trialThreeDaysTemplate } from './templates/trial-3days';
 export { trialOneDayTemplate } from './templates/trial-1day';
 export { trialExpiredTemplate } from './templates/trial-expired';
 export { subscriptionCanceledTemplate } from './templates/subscription-canceled';
+export { scheduledReportTemplate } from './templates/scheduled-report';
+export { MAX_EMAIL_ATTACHMENT_BYTES } from './send';
+export type { EmailAttachment } from './send';

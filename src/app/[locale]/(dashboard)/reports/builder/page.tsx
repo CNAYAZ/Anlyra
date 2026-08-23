@@ -37,7 +37,27 @@ export default function ReportsBuilderPage() {
     onSuccess: () => {
       router.push('/reports');
     },
-    onError: (e) => setError((e as Error).message),
+    onError: (e) => {
+      // The API answers with stable codes for the cases it validates itself
+      // (see POST /api/reports); two of them carry the offending address(es)
+      // after ": ". Anything else — an Unauthorized, a raw Zod validation
+      // message, a 500 — falls back to a generic message rather than showing
+      // the code/text as-is.
+      const raw = (e as Error).message;
+      const sep = raw.indexOf(': ');
+      const code = sep === -1 ? raw : raw.slice(0, sep);
+      const email = sep === -1 ? '' : raw.slice(sep + 2);
+
+      if (code === 'RECIPIENTS_REQUIRED') {
+        setError(t('errorRecipientsRequired'));
+      } else if (code === 'RECIPIENT_NOT_ORG_MEMBER') {
+        setError(t('errorRecipientNotMember', { email }));
+      } else if (code === 'INVALID_RECIPIENT_FORMAT') {
+        setError(t('errorRecipientInvalidFormat', { email }));
+      } else {
+        setError(t('errorSaveGeneric'));
+      }
+    },
   });
 
   function toggleSection(key: string) {

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { reportPeriodSchema, reportLanguageSchema } from '@/lib/reports/types';
 import { bridgeSections } from '@/lib/reports/config';
+import { validateReportRecipients } from '@/lib/reports/recipients';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,30 @@ export async function POST(req: NextRequest) {
     const { organizationId } = authCtx;
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);
+
+    // A scheduled report with nobody to send it to would silently never
+    // deliver anything while still looking "active" in the UI — require
+    // recipients whenever a schedule is set, matching what the builder already
+    // shows as a field (see reports/builder/page.tsx) even though it is not
+    // marked required there today.
+    if (parsed.data.schedule !== 'on_demand' && !parsed.data.recipients?.trim()) {
+      return fail('RECIPIENTS_REQUIRED', 400);
+    }
+
+    // Recipients must be real members of THIS organization — see the long note
+    // in validateReportRecipients for why a free-text address is an abuse
+    // vector for a report that emails real company financials.
+    if (parsed.data.recipients?.trim()) {
+      const validation = await validateReportRecipients(organizationId, parsed.data.recipients);
+      if (!validation.ok) {
+        return fail(
+          validation.reason === 'INVALID_FORMAT'
+            ? `INVALID_RECIPIENT_FORMAT: ${validation.invalid.join(', ')}`
+            : `RECIPIENT_NOT_ORG_MEMBER: ${validation.invalid.join(', ')}`,
+          400,
+        );
+      }
+    }
 
     // Persist the PDF config alongside the stored section keys. Sections that the
     // PDF cannot fill with real data are dropped by bridgeSections; when nothing
