@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/ui/section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
 import type { InsightDTO } from '@/types/ai';
@@ -24,6 +25,7 @@ const GENERATION_CREDIT_COST = 3;
 
 export default function InsightsPage() {
   const t = useTranslations('insights');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
@@ -38,6 +40,9 @@ export default function InsightsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  // Only INSUFFICIENT_CREDITS gets the Upgrade link next to it — the other
+  // codes (rate limit, bad AI response, missing data) aren't fixed by upgrading.
+  const [generateErrorIsCredits, setGenerateErrorIsCredits] = useState(false);
 
   const canGenerate = aiCreditsBalance >= GENERATION_CREDIT_COST;
 
@@ -95,6 +100,7 @@ export default function InsightsPage() {
       }),
     onMutate: () => {
       setGenerateError(null);
+      setGenerateErrorIsCredits(false);
     },
     onSuccess: (res) => {
       // Keep the header credit counter honest without waiting for a refetch.
@@ -114,6 +120,7 @@ export default function InsightsPage() {
         TRIAL_EXPIRED: t('generateErrorTrial'),
       };
       setGenerateError(known[code] ?? t('generateErrorGeneric'));
+      setGenerateErrorIsCredits(code === 'INSUFFICIENT_CREDITS');
     },
   });
 
@@ -161,15 +168,29 @@ export default function InsightsPage() {
       {generateError && (
         <div
           role="alert"
-          className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-foreground"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-foreground"
         >
-          {generateError}
+          <span>{generateError}</span>
+          {generateErrorIsCredits && (
+            <Link
+              href="/settings/billing"
+              className="shrink-0 font-medium text-danger underline-offset-4 hover:underline"
+            >
+              {tCommon('upgrade')}
+            </Link>
+          )}
         </div>
       )}
 
       {!canGenerate && !generateMutation.isPending && (
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
-          {t('generateButtonDisabled')}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
+          <span>{t('generateButtonDisabled')}</span>
+          <Link
+            href="/settings/billing"
+            className="shrink-0 font-medium underline-offset-4 hover:underline"
+          >
+            {tCommon('upgrade')}
+          </Link>
         </div>
       )}
 

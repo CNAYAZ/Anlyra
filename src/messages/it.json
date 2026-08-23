@@ -869,7 +869,7 @@
     "suggestion2": "Conviene entrare nel mercato DACH adesso?",
     "suggestion3": "Come ridurre il churn rate?",
     "noCreditsTitle": "Crediti esauriti",
-    "noCreditsDescription": "Hai esaurito i tuoi crediti AI. Acquistane altri per continuare.",
+    "noCreditsDescription": "I crediti AI del tuo piano sono terminati. Con un piano superiore hai più crediti inclusi ogni mese.",
     "creditsCost": "Costa 1 credito",
     "errorSending": "Errore nell'invio del messaggio. Riprova.",
     "dataHandlingLinkLabel": "Come trattiamo i tuoi dati"
@@ -879,7 +879,7 @@
     "subtitle": "Suggerimenti strategici generati dall'analisi dei tuoi dati",
     "generate": "Genera Nuovi Insight",
     "generateButton": "Genera Nuovi Insight (3 crediti)",
-    "generateButtonDisabled": "Crediti insufficienti. Acquistane altri nelle Impostazioni.",
+    "generateButtonDisabled": "Crediti AI del piano terminati. Con un piano superiore ne hai di più inclusi.",
     "creditsRequired": "Crediti AI insufficienti",
     "generateCost": "3 crediti",
     "generating": "Generazione in corso...",
@@ -949,7 +949,7 @@
     "aiExplanation": "Spiegazione",
     "aiActions": "Azioni consigliate",
     "aiGeneratedCaption": "Contenuto generato da intelligenza artificiale.",
-    "analyzeErrorCredits": "Crediti AI insufficienti per generare l'analisi.",
+    "analyzeErrorCredits": "Crediti AI del piano terminati: servono per generare l'analisi.",
     "analyzeErrorConfig": "AI non configurata: aggiungi ANTHROPIC_API_KEY per usare questa funzione.",
     "analyzeError": "Errore durante l'analisi AI. Riprova.",
     "severity": {
@@ -1233,7 +1233,8 @@
       "rateLimit": "Troppe richieste. Riprova tra poco.",
       "notConfigured": "AI non configurata. Contatta il supporto.",
       "generic": "Si è verificato un errore. Riprova.",
-      "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione."
+      "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione.",
+      "noCredits": "Crediti AI del piano terminati. Passa a un piano superiore per continuare."
     }
   },
   "dataImport": {
