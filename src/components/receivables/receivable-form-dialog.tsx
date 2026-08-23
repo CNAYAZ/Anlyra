@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
+import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,13 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ReceivableFormValues) => void;
   pending: boolean;
+  /**
+   * Save error from the caller's mutation. Rendered in the dialog FOOTER, next
+   * to the Save button: the page-level banner the parent used to rely on
+   * renders BEHIND this modal, so the user saw the spinner stop and nothing
+   * else. Empty/undefined renders nothing.
+   */
+  saveError?: string | null;
 };
 
 type Errors = Partial<Record<'customerName' | 'customerEmail' | 'amount' | 'dueDate', string>>;
@@ -49,7 +57,7 @@ const EMPTY = {
 // Light client-side check; the server is the source of truth (zod .email()).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: Props) {
+export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending, saveError }: Props) {
   const t = useTranslations('scadenzario');
   const [form, setForm] = useState({ ...EMPTY });
   const [errors, setErrors] = useState<Errors>({});
@@ -141,6 +149,9 @@ export function ReceivableFormDialog({ open, onOpenChange, onSubmit, pending }: 
               <Textarea value={form.notes} onChange={set('notes')} rows={3} />
             </Field>
           </DialogBody>
+          {/* Save error lives with the Save button, inside the dialog — the
+              parent page's banner is behind the modal overlay and unreadable. */}
+          <FormError className="mx-6 mb-2">{saveError}</FormError>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
               {t('form.cancel')}

@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, ShieldCheck, KeyRound, X } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, KeyRound } from 'lucide-react';
+import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/api/fetcher';
@@ -81,11 +82,6 @@ export default function SettingsSecurityPage() {
           <CheckCircle2 className="h-4 w-4" /> {toast.msg}
         </div>
       )}
-      {toast?.type === 'err' && (
-        <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
-          <X className="h-4 w-4" /> {toast.msg}
-        </div>
-      )}
 
       <form onSubmit={changePassword} className="card space-y-4">
         <div className="flex items-center gap-2">
@@ -107,6 +103,10 @@ export default function SettingsSecurityPage() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground">{t('securityPasswordHint')}</p>
+        {/* Failure shown with the button, not in a banner above the form. This
+            page also stacks 2FA and privacy panels below, so a top banner was
+            easy to miss entirely. */}
+        <FormError>{toast?.type === 'err' ? toast.msg : null}</FormError>
         <button
           type="submit"
           disabled={pending}

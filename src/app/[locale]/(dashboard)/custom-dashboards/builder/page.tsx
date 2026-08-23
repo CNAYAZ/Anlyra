@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Save, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/fetcher';
+import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WIDGET_CATALOG, type WidgetType, type WidgetConfig } from '@/lib/dashboard-widgets';
@@ -25,7 +26,10 @@ export default function CustomDashboardsBuilderPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  /** Form-level error (next to Save); the name error goes under its field. */
   const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const mutation = useMutation({
     mutationFn: (body: unknown) =>
@@ -36,6 +40,7 @@ export default function CustomDashboardsBuilderPage() {
     onSuccess: () => {
       router.push('/custom-dashboards');
     },
+    // Server failures here are not field-attributable, so they stay form-level.
     onError: (e) => setError((e as Error).message),
   });
 
@@ -69,11 +74,17 @@ export default function CustomDashboardsBuilderPage() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNameError(null);
     if (!name.trim()) {
-      setError(t('errorNameRequired'));
+      // The name box is the first field of a long builder — focus it, or the
+      // message lands under a field the user has already scrolled past.
+      setNameError(t('errorNameRequired'));
+      nameRef.current?.focus();
+      nameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (widgets.length === 0) {
+      // About the widget list as a whole, not one input → form-level.
       setError(t('errorWidgetsRequired'));
       return;
     }
@@ -95,17 +106,28 @@ export default function CustomDashboardsBuilderPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>
-      )}
-
       <form onSubmit={submit} className="space-y-6">
         <div className="card space-y-4">
           <h2 className="font-heading text-lg font-semibold">{t('builderInfo')}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="dash-name">{t('builderName')} *</Label>
-              <Input id="dash-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('builderNamePlaceholder')} />
+              <Input
+                id="dash-name"
+                ref={nameRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('builderNamePlaceholder')}
+                aria-invalid={nameError ? true : undefined}
+                aria-describedby={nameError ? 'dash-name-err' : undefined}
+                data-invalid={nameError ? 'true' : undefined}
+              />
+              {nameError && (
+                <p id="dash-name-err" role="alert" className="flex items-center gap-1.5 text-xs text-danger">
+                  <AlertCircle className="h-3 w-3 shrink-0" aria-hidden />
+                  {nameError}
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="dash-desc">{t('builderDescription')}</Label>
@@ -171,6 +193,10 @@ export default function CustomDashboardsBuilderPage() {
             )}
           </div>
         </div>
+
+        {/* Form-level error next to the button the user just pressed — the
+            old banner at the top of this long builder was off-screen. */}
+        <FormError>{error}</FormError>
 
         <div className="flex justify-end gap-2">
           <Link
