@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Save, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/fetcher';
+import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,7 +30,27 @@ export default function ReportsBuilderPage() {
   const [sections, setSections] = useState<string[]>(['kpi_summary', 'revenue_breakdown']);
   const [schedule, setSchedule] = useState<ReportSchedule>('on_demand');
   const [recipients, setRecipients] = useState('');
+  /**
+   * Form-level error (shown next to Save). Field-attributable errors go in
+   * fieldErrors instead, so they appear under the field they are about.
+   */
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; recipients?: string }>({});
+
+  const titleRef = useRef<HTMLInputElement>(null);
+  const recipientsRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Brings the recipients field into view and focuses it. Worth doing HERE
+   * specifically: the field sits in the third card, and the server only
+   * rejects a recipient after a round-trip — by then the user has usually
+   * scrolled to the button, so an error under a field they cannot see would be
+   * no better than the old top-of-page banner.
+   */
+  const focusRecipients = () => {
+    recipientsRef.current?.focus();
+    recipientsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const mutation = useMutation({
     mutationFn: (body: unknown) =>
@@ -48,12 +69,18 @@ export default function ReportsBuilderPage() {
       const code = sep === -1 ? raw : raw.slice(0, sep);
       const email = sep === -1 ? '' : raw.slice(sep + 2);
 
+      // All three recipient codes are ABOUT the recipients field, so they are
+      // shown under it (and the field is focused — it can be off-screen on a
+      // long form). Anything else is form-level and shown next to Save.
       if (code === 'RECIPIENTS_REQUIRED') {
-        setError(t('errorRecipientsRequired'));
+        setFieldErrors({ recipients: t('errorRecipientsRequired') });
+        focusRecipients();
       } else if (code === 'RECIPIENT_NOT_ORG_MEMBER') {
-        setError(t('errorRecipientNotMember', { email }));
+        setFieldErrors({ recipients: t('errorRecipientNotMember', { email }) });
+        focusRecipients();
       } else if (code === 'INVALID_RECIPIENT_FORMAT') {
-        setError(t('errorRecipientInvalidFormat', { email }));
+        setFieldErrors({ recipients: t('errorRecipientInvalidFormat', { email }) });
+        focusRecipients();
       } else {
         setError(t('errorSaveGeneric'));
       }
@@ -69,11 +96,19 @@ export default function ReportsBuilderPage() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     if (!title.trim()) {
-      setError(t('errorTitleRequired'));
+      // Title is the FIRST field of a three-card form: without focusing it the
+      // user would be told "title is required" at the bottom of the page while
+      // the empty box is out of sight.
+      setFieldErrors({ title: t('errorTitleRequired') });
+      titleRef.current?.focus();
+      titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (sections.length === 0) {
+      // Not attributable to a single input (it is a grid of toggles), so it
+      // stays form-level, next to the button the user just pressed.
       setError(t('errorSectionsRequired'));
       return;
     }
@@ -101,16 +136,27 @@ export default function ReportsBuilderPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">{error}</div>
-      )}
-
       <form onSubmit={submit} className="space-y-6">
         <div className="card space-y-4">
           <h2 className="font-heading text-lg font-semibold">{t('builderStepInfo')}</h2>
           <div className="space-y-1">
             <Label htmlFor="rep-title">{t('builderTitleField')} *</Label>
-            <Input id="rep-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('builderTitlePlaceholder')} />
+            <Input
+              id="rep-title"
+              ref={titleRef}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('builderTitlePlaceholder')}
+              aria-invalid={fieldErrors.title ? true : undefined}
+              aria-describedby={fieldErrors.title ? 'rep-title-err' : undefined}
+              data-invalid={fieldErrors.title ? 'true' : undefined}
+            />
+            {fieldErrors.title && (
+              <p id="rep-title-err" role="alert" className="flex items-center gap-1.5 text-xs text-danger">
+                <AlertCircle className="h-3 w-3 shrink-0" aria-hidden />
+                {fieldErrors.title}
+              </p>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="rep-desc">{t('builderDescription')}</Label>
@@ -176,14 +222,29 @@ export default function ReportsBuilderPage() {
               <Label htmlFor="rep-recipients">{t('builderRecipients')}</Label>
               <Input
                 id="rep-recipients"
+                ref={recipientsRef}
                 value={recipients}
                 onChange={(e) => setRecipients(e.target.value)}
                 placeholder="email1@example.com, email2@example.com"
+                aria-invalid={fieldErrors.recipients ? true : undefined}
+                aria-describedby={fieldErrors.recipients ? 'rep-recipients-err' : undefined}
+                data-invalid={fieldErrors.recipients ? 'true' : undefined}
               />
+              {fieldErrors.recipients && (
+                <p id="rep-recipients-err" role="alert" className="flex items-center gap-1.5 text-xs text-danger">
+                  <AlertCircle className="h-3 w-3 shrink-0" aria-hidden />
+                  {fieldErrors.recipients}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">{t('builderRecipientsHint')}</p>
             </div>
           )}
         </div>
+
+        {/* Form-level error sits with the submit button: this form is three
+            cards tall, so a banner at the top is off-screen exactly when the
+            user clicks Save. */}
+        <FormError>{error}</FormError>
 
         <div className="flex justify-end gap-2">
           <Link

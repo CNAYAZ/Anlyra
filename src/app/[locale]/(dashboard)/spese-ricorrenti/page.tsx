@@ -52,6 +52,9 @@ export default function SpeseRicorrentiPage() {
   const [editing, setEditing] = useState<RecurringExpenseDTO | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  /** Save error for the create/edit dialog — rendered inside it, next to Save. */
+  const [formError, setFormError] = useState<string | null>(null);
+
   const toast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 4000);
@@ -69,11 +72,14 @@ export default function SpeseRicorrentiPage() {
         body: JSON.stringify(values),
       }),
     onSuccess: () => {
+      setFormError(null);
       setFormOpen(false);
       qc.invalidateQueries({ queryKey: ['recurring-expenses'] });
       toast(t('toast.created'));
     },
-    onError: () => toast(t('toast.createError')),
+    // The dialog stays open on failure, so the message must be shown INSIDE it
+    // (see saveError below) — the page banner would render behind the overlay.
+    onError: () => setFormError(t('toast.createError')),
   });
 
   const updateMutation = useMutation({
@@ -83,12 +89,13 @@ export default function SpeseRicorrentiPage() {
         body: JSON.stringify(values),
       }),
     onSuccess: () => {
+      setFormError(null);
       setFormOpen(false);
       setEditing(null);
       qc.invalidateQueries({ queryKey: ['recurring-expenses'] });
       toast(t('toast.updated'));
     },
-    onError: () => toast(t('toast.error')),
+    onError: () => setFormError(t('toast.error')),
   });
 
   const toggleMutation = useMutation({
@@ -123,6 +130,7 @@ export default function SpeseRicorrentiPage() {
     setFormOpen(true);
   };
   const handleSubmit = (values: RecurringExpenseFormValues) => {
+    setFormError(null);
     if (editing) updateMutation.mutate({ id: editing.id, values });
     else createMutation.mutate(values);
   };
@@ -257,11 +265,16 @@ export default function SpeseRicorrentiPage() {
         open={formOpen}
         onOpenChange={(open) => {
           setFormOpen(open);
-          if (!open) setEditing(null);
+          if (!open) {
+            setEditing(null);
+            // Closing and reopening must not resurrect the previous failure.
+            setFormError(null);
+          }
         }}
         onSubmit={handleSubmit}
         pending={formPending}
         initial={editing}
+        saveError={formError}
       />
     </div>
   );

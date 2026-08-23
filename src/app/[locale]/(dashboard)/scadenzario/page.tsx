@@ -50,6 +50,8 @@ export default function ScadenzarioPage() {
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderEmail, setReminderEmail] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  /** Save error for the create dialog — rendered inside it, next to Save. */
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const toast = (msg: string) => {
     setToastMsg(msg);
@@ -71,11 +73,14 @@ export default function ScadenzarioPage() {
         body: JSON.stringify(values),
       }),
     onSuccess: () => {
+      setCreateError(null);
       setFormOpen(false);
       qc.invalidateQueries({ queryKey: ['receivables'] });
       toast(t('toast.created'));
     },
-    onError: () => toast(t('toast.createError')),
+    // The dialog stays open on failure, so the message must be shown INSIDE it
+    // (see saveError below) — the page banner would render behind the overlay.
+    onError: () => setCreateError(t('toast.createError')),
   });
 
   const markPaidMutation = useMutation({
@@ -237,9 +242,17 @@ export default function ScadenzarioPage() {
 
       <ReceivableFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
-        onSubmit={(values) => createMutation.mutate(values)}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          // Closing and reopening must not resurrect the previous failure.
+          if (!open) setCreateError(null);
+        }}
+        onSubmit={(values) => {
+          setCreateError(null);
+          createMutation.mutate(values);
+        }}
         pending={createMutation.isPending}
+        saveError={createError}
       />
 
       <ReminderDialog

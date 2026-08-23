@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
+import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,13 @@ type Props = {
   pending: boolean;
   /** When set, the dialog is in edit mode and prefills from this record. */
   initial?: RecurringExpenseDTO | null;
+  /**
+   * Save error from the caller's mutation. Rendered in the dialog FOOTER, next
+   * to the Save button: the page-level banner the parent used to rely on
+   * renders BEHIND this modal, so the user saw the spinner stop and nothing
+   * else. Empty/undefined renders nothing.
+   */
+  saveError?: string | null;
 };
 
 type Errors = Partial<Record<'vendorName' | 'amount', string>>;
@@ -54,7 +62,7 @@ const SELECT_CLASS =
   'transition-all duration-150 hover:border-sage-500/60 ' +
   'focus:border-sage-500 focus:ring-[3px] focus:ring-sage-500/25 focus:outline-none';
 
-export function RecurringExpenseFormDialog({ open, onOpenChange, onSubmit, pending, initial }: Props) {
+export function RecurringExpenseFormDialog({ open, onOpenChange, onSubmit, pending, initial, saveError }: Props) {
   const t = useTranslations('speseRicorrenti');
   const [form, setForm] = useState({ ...EMPTY });
   const [errors, setErrors] = useState<Errors>({});
@@ -143,6 +151,9 @@ export function RecurringExpenseFormDialog({ open, onOpenChange, onSubmit, pendi
               <Textarea value={form.notes} onChange={set('notes')} rows={3} />
             </Field>
           </DialogBody>
+          {/* Save error lives with the Save button, inside the dialog — the
+              parent page's banner is behind the modal overlay and unreadable. */}
+          <FormError className="mx-6 mb-2">{saveError}</FormError>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
               {t('form.cancel')}

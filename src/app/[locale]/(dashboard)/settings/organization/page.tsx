@@ -5,11 +5,12 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/fetcher';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FormError } from '@/components/ui/form-error';
 
 type Org = {
   id: string;
@@ -72,11 +73,6 @@ export default function SettingsOrganizationPage() {
           <CheckCircle2 className="h-4 w-4" /> {t('saved')}
         </div>
       )}
-      {toast === 'err' && (
-        <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
-          <X className="h-4 w-4" /> {t('saveError')}
-        </div>
-      )}
 
       {isLoading || !data ? (
         <Skeleton className="h-72 rounded-xl" />
@@ -120,6 +116,9 @@ export default function SettingsOrganizationPage() {
               <Input id="org-currency" maxLength={3} value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
             </div>
           </div>
+
+          {/* Failure shown with the button, not in a banner above the form. */}
+          <FormError>{toast === 'err' ? t('saveError') : null}</FormError>
 
           <button
             type="submit"
