@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/i18n/navigation';
 import { formatDate } from '@/lib/format';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
@@ -52,6 +53,7 @@ function analyzeErrorKey(message: string): 'analyzeErrorCredits' | 'analyzeError
 
 export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending }: Props) {
   const t = useTranslations('alerts');
+  const tCommon = useTranslations('common');
   const locale = useLocale() as Locale;
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
@@ -141,13 +143,28 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
             )}
 
             {errorKey && (
-              <p className="text-xs text-danger">{t(errorKey)}</p>
+              <div className="space-y-1 text-xs text-danger">
+                <p>{t(errorKey)}</p>
+                {errorKey === 'analyzeErrorCredits' && (
+                  <Link href="/settings/billing" className="inline-block font-medium underline-offset-4 hover:underline">
+                    {tCommon('upgrade')}
+                  </Link>
+                )}
+              </div>
             )}
 
             {!analysis && !isAnalyzing && !errorKey && (
-              <p className="text-xs text-muted-foreground">
-                {hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}
-              </p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>{hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}</p>
+                {!hasCredits && (
+                  <Link
+                    href="/settings/billing"
+                    className="inline-block font-medium text-sage-700 underline-offset-4 hover:underline dark:text-sage-300"
+                  >
+                    {tCommon('upgrade')}
+                  </Link>
+                )}
+              </div>
             )}
 
             {analysis && (

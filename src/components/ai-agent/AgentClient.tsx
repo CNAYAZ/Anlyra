@@ -20,7 +20,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { useCreditsStore } from '@/stores/credits-store';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
+
+// Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
+// route's ANALYSIS_CREDIT_COST. Used only to decide when to disable the
+// Generate/Send buttons ahead of a request; the server is the source of truth.
+const ANALYSIS_CREDIT_COST = 1;
 
 type AgentMode = 'financial' | 'marketing' | 'kpi' | 'competitor' | 'chat';
 const MODES: AgentMode[] = ['financial', 'marketing', 'kpi', 'competitor', 'chat'];
@@ -38,8 +44,16 @@ const MODE_ICON: Record<AgentMode, LucideIcon> = {
 // Per-tab in-session memory: each mode keeps its own question/result/error/loading
 // so switching tabs never discards a generated analysis (they cost ~3 cents each).
 // Not persisted — reloading the page resets it, which is intentional here.
-type TabState = { question: string; result: string | null; error: string | null; loading: boolean };
-const EMPTY_TAB: TabState = { question: '', result: null, error: null, loading: false };
+type TabState = {
+  question: string;
+  result: string | null;
+  error: string | null;
+  // True only when `error` is specifically INSUFFICIENT_CREDITS — lets the
+  // result panel show an Upgrade link instead of a dead-end message.
+  creditsExhausted: boolean;
+  loading: boolean;
+};
+const EMPTY_TAB: TabState = { question: '', result: null, error: null, creditsExhausted: false, loading: false };
 
 function initialStates(): Record<AgentMode, TabState> {
   return {
@@ -53,6 +67,9 @@ function initialStates(): Record<AgentMode, TabState> {
 
 export function AgentClient() {
   const t = useTranslations('agent');
+  const tCommon = useTranslations('common');
+  const credits = useCreditsStore((s) => s.credits);
+  const hasCredits = credits >= ANALYSIS_CREDIT_COST;
 
   const [mode, setMode] = useState<AgentMode>('financial');
   const [states, setStates] = useState<Record<AgentMode, TabState>>(initialStates);
@@ -82,11 +99,11 @@ export function AgentClient() {
   async function run(withQuestion: boolean) {
     const m = mode;
     const st = states[m];
-    if (st.loading) return;
+    if (st.loading || !hasCredits) return;
     const q = st.question.trim();
     if (withQuestion && !q) return;
 
-    patch(m, { loading: true, error: null, result: null });
+    patch(m, { loading: true, error: null, creditsExhausted: false, result: null });
     try {
       const res = await fetch('/api/ai/analyze', {
         method: 'POST',
@@ -95,15 +112,30 @@ export function AgentClient() {
       });
 
       if (!res.ok || !res.body) {
+        // The route answers 402 for TWO different reasons (see requireActiveAccess
+        // vs consumeCredits in /api/ai/analyze) and always as a JSON envelope, even
+        // on the streaming path — read the body to tell them apart instead of
+        // assuming every 402 means the trial ended.
+        let code: string | null = null;
+        try {
+          const body = (await res.json()) as { success: boolean; error?: string };
+          if (!body.success && typeof body.error === 'string') code = body.error;
+        } catch {
+          // Not JSON (shouldn't happen for this route) — fall through to the
+          // status-only mapping below.
+        }
+        const insufficientCredits = res.status === 402 && code === 'INSUFFICIENT_CREDITS';
         patch(m, {
-          error:
-            res.status === 402
+          error: insufficientCredits
+            ? t('errors.noCredits')
+            : res.status === 402
               ? t('errors.trialExpired')
               : res.status === 429
                 ? t('errors.rateLimit')
                 : res.status === 503
                   ? t('errors.notConfigured')
                   : t('errors.generic'),
+          creditsExhausted: insufficientCredits,
           loading: false,
         });
         return;
@@ -175,7 +207,12 @@ export function AgentClient() {
 
         {!isChat && (
           <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => run(false)} loading={current.loading} disabled={current.loading}>
+            <Button
+              onClick={() => run(false)}
+              loading={current.loading}
+              disabled={current.loading || !hasCredits}
+              title={!hasCredits ? t('errors.noCredits') : undefined}
+            >
               <Sparkles className="h-4 w-4" />
               {t('generate')}
             </Button>
@@ -203,13 +240,28 @@ export function AgentClient() {
               variant="secondary"
               onClick={() => run(true)}
               loading={current.loading}
-              disabled={current.loading || !current.question.trim()}
+              disabled={current.loading || !current.question.trim() || !hasCredits}
+              title={!hasCredits ? t('errors.noCredits') : undefined}
             >
               <Send className="h-4 w-4" />
               {t('send')}
             </Button>
           </div>
         </div>
+
+        {/* Proactive notice — shown BEFORE the user presses a now-disabled
+            button, not just after a failed request. */}
+        {!hasCredits && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
+            <span>{t('errors.noCredits')}</span>
+            <Link
+              href="/settings/billing"
+              className="shrink-0 font-medium underline-offset-4 hover:underline"
+            >
+              {tCommon('upgrade')}
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* ── Result (presented as a report card) ── */}
@@ -259,7 +311,17 @@ export function AgentClient() {
             // Pre-stream error (no text arrived).
             <div className="flex items-start gap-3 rounded-md border border-danger-500/30 bg-danger-500/5 p-4 text-sm text-danger-700">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              <span>{current.error}</span>
+              <div className="space-y-1">
+                <p>{current.error}</p>
+                {current.creditsExhausted && (
+                  <Link
+                    href="/settings/billing"
+                    className="inline-block font-medium underline-offset-4 hover:underline"
+                  >
+                    {tCommon('upgrade')}
+                  </Link>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-3 py-14 text-center text-sm text-muted-foreground">
