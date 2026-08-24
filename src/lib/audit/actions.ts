@@ -42,6 +42,13 @@ export const AUDIT_ACTIONS = [
 
   // ── Scheduled report delivery (cron-triggered, no acting user) ──
   'report.scheduled_delivery',
+
+  // ── Billing: credit movements that are NOT ordinary AI consumption ──
+  // (consumption itself stays unaudited — see the SCOPE note above.) These two
+  // change the balance without the org doing anything, so they need a trail:
+  // one is the cron resetting it, the other is money changing hands.
+  'credits.monthly_renewal',
+  'credits.purchase',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

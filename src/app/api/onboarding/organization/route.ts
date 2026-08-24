@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, teamInviteTemplate, welcomeTemplate } from '@/lib/email';
+import { signupCredits } from '@/lib/billing/plan-credits';
 
 const TRIAL_DAYS = 7;
 const INVITE_EXPIRY_HOURS = 72;
@@ -63,6 +64,10 @@ export async function POST(req: Request) {
       vatNumber: body.vatNumber?.trim() || null,
       industry: body.industry?.trim() || 'Generale',
       teamSize: body.teamSize || null,
+      // Credits follow the PLAN, not a fixed schema default. Previously this
+      // field was left unset, so every new org silently inherited the schema's
+      // @default(100) regardless of plan.
+      aiCredits: signupCredits(),
       setupCompletedAt: now,
       trialStartedAt: now,
       trialEndsAt,

@@ -6,6 +6,7 @@
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { auth } from '@/auth';
+import { signupCredits } from '@/lib/billing/plan-credits';
 
 const DEMO_EMAIL = 'demo@pro.app';
 const DEMO_ORG_ID = 'demo-org';
@@ -101,6 +102,10 @@ async function getDemoContext(): Promise<{ userId: string; organizationId: strin
       slug: 'demo',
       industry: 'SaaS B2B',
       employees: 18,
+      // Same plan-based allocation as a real signup. `update` stays empty on
+      // purpose, so this only applies when the demo org is first created and
+      // never rewrites the balance of an existing one.
+      aiCredits: signupCredits(),
     },
   });
 
