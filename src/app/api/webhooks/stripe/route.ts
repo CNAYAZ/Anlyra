@@ -4,11 +4,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe/client";
 import {
-  addCreditEntry,
+  applyCreditPurchase,
   getSubscription,
   recordInvoice,
   setSubscription,
 } from "@/lib/billing/repository";
+import { auditLog } from "@/lib/audit/log";
 import type { PlanId } from "@/lib/billing/plans";
 import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
@@ -26,16 +27,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (!orgId) return;
 
   if (session.metadata?.kind === "credits") {
+    // Number() on a missing/garbage value yields NaN, which would sail through a
+    // ">= 0" style check — guard on Number.isFinite so only a real positive
+    // integer ever reaches the balance.
     const credits = Number(session.metadata.credits ?? "0");
-    if (credits > 0) {
-      await addCreditEntry({
-        id: session.id,
-        orgId,
-        delta: credits,
-        reason: "purchase",
-        createdAt: new Date(),
-      });
+    if (!Number.isFinite(credits) || credits <= 0) {
+      console.error(
+        `[stripe-webhook] credits purchase for org ${orgId} has an invalid credits metadata:`,
+        session.metadata.credits,
+      );
+      return;
     }
+
+    // Credits the USABLE balance (Organization.aiCredits) and writes the ledger
+    // row in one transaction. Before this, only the ledger row was written, so a
+    // paying customer got a purchase in their history and no spendable credits.
+    await applyCreditPurchase({ orgId, credits });
+
+    await auditLog({
+      action: "credits.purchase",
+      organizationId: orgId,
+      targetType: "organization",
+      targetId: orgId,
+      // Non-sensitive: how many credits and which pack. No amount paid, no
+      // customer identifiers — see the privacy note in lib/audit/log.ts.
+      metadata: { credits, packId: session.metadata.packId ?? null },
+    });
     return;
   }
 

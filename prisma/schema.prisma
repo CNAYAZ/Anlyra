@@ -50,7 +50,16 @@ model Organization {
   name             String
   slug             String   @unique
   plan             String   @default("STARTER")
+  /// Usable AI credit balance. Decremented by consumeCredits (src/lib/credits.ts).
+  /// The application always sets this explicitly on creation from the org's PLAN
+  /// (see src/lib/billing/plan-credits.ts) and resets it every billing period in
+  /// the renewal job. The default stays deliberately LOW as a fail-safe: if a
+  /// future creation path ever forgets to set it, the org gets too FEW credits
+  /// (a visible, harmless, fixable annoyance) rather than a free windfall.
   aiCredits        Int      @default(100)
+  /// DEAD COLUMN — not read or written by any application code. Kept only so no
+  /// destructive migration is needed on the live database. Do not use it: the
+  /// real balance is aiCredits above.
   aiCreditsBalance Int      @default(100)
   currency         String   @default("EUR")
   industry         String   @default("Generale")
@@ -814,6 +823,17 @@ model BillingSubscription {
   stripeSubscriptionId String?   @unique
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean   @default(false)
+  /// When the monthly credit reset last ran for this subscription.
+  ///
+  /// Needed because currentPeriodEnd alone cannot answer "have I already granted
+  /// this period?" — the cron runs daily inside a ±1h Hobby window, so without a
+  /// marker it would re-grant every single day of the period. Compared on
+  /// CALENDAR MONTHS in Europe/Rome (see src/lib/cron/credit-renewal.ts), never
+  /// on raw timestamps.
+  ///
+  /// NULL means "never renewed": treated as due, so existing subscriptions get
+  /// their first reset on the next run rather than being stuck forever.
+  creditsRenewedAt     DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @default(now()) @updatedAt
 

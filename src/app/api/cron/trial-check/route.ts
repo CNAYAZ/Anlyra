@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runTrialCheck } from '@/lib/cron/trial-check';
 import { runScheduledReports } from '@/lib/cron/scheduled-reports';
+import { runCreditRenewal } from '@/lib/cron/credit-renewal';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,5 +47,22 @@ export async function GET(req: Request) {
     console.error('[cron/trial-check] scheduled reports run failed:', e);
   }
 
-  return NextResponse.json({ success: true, ...result, scheduledReports });
+  // Monthly AI-credit renewal — bolted on for the same reason as the reports
+  // above (Hobby allows only 2 crons, both taken), and isolated the same way:
+  // its own try/catch, so a failure here cannot mark the trial-check or the
+  // report delivery as failed, and a failure in either of those cannot prevent
+  // this from running. See lib/cron/credit-renewal.ts for the due-ness rules.
+  let creditRenewal = null;
+  try {
+    creditRenewal = await runCreditRenewal();
+    console.info(
+      `[cron/trial-check] credit renewal: considered=${creditRenewal.considered} renewed=${creditRenewal.renewed} ` +
+        `skippedAlreadyRenewed=${creditRenewal.skippedAlreadyRenewed} ` +
+        `skippedUnknownPlan=${creditRenewal.skippedUnknownPlan} failed=${creditRenewal.failed}`,
+    );
+  } catch (e) {
+    console.error('[cron/trial-check] credit renewal run failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, scheduledReports, creditRenewal });
 }

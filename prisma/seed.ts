@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { buildDemoDataset } from '../src/lib/demo/data';
+import { creditsForPlan } from '../src/lib/billing/plan-credits';
 import { assertNotProductionDatabase } from './guard';
 
 // Questo script fa `deleteMany` su 7 tabelle e riscrive i dati della demo: se
@@ -25,6 +26,10 @@ async function main() {
       slug: data.organization.slug,
       plan: data.organization.plan as 'PRO',
       currency: data.organization.currency,
+      // Credits match the plan this org is seeded on, instead of the schema's
+      // fixed default. Only on `create` — the `update` branch above stays
+      // limited to the name, so re-seeding never rewrites a live balance.
+      aiCredits: creditsForPlan(data.organization.plan) ?? undefined,
     },
   });
 

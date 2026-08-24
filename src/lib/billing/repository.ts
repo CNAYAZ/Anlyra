@@ -159,18 +159,50 @@ export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
   }));
 }
 
-export async function addCreditEntry(entry: CreditEntry): Promise<void> {
-  // Persists the ledger row only, mirroring the stub (which did NOT touch the
-  // balance). The usable balance stays on Organization.aiCredits, consumed
-  // atomically by @/lib/credits. See STEP-2 report: wiring a purchase to also
-  // increment aiCredits is a deliberate follow-up decision, not replicated here.
-  await prisma.creditEntry.create({
-    data: {
-      organizationId: entry.orgId,
-      delta: entry.delta,
-      reason: entry.reason,
-    },
-  });
+/**
+ * Applies a PAID credit pack: increments the usable balance AND records the
+ * ledger row, atomically.
+ *
+ * Replaces the previous ledger-only addCreditEntry(), which wrote a CreditEntry
+ * and nothing else. Because consumeCredits (src/lib/credits.ts) reads exclusively
+ * from Organization.aiCredits, that meant a customer could complete a Stripe
+ * payment and receive nothing usable — the purchase showed in the history while
+ * the balance stayed put.
+ *
+ * ── ATOMIC ──
+ * Both writes are in one transaction: a balance credited without a ledger row
+ * would be money we cannot account for, and a ledger row without the balance is
+ * exactly the bug being fixed here. `increment` (not `set`) because a purchase
+ * ADDS to whatever the org has — unlike the monthly renewal, which resets.
+ *
+ * ── NOT CREDITED TWICE ──
+ * This function is deliberately NOT idempotent by itself; it leans on the
+ * webhook's event-level guard (see POST in api/webhooks/stripe/route.ts), which
+ * claims event.id in a UNIQUE insert BEFORE any processing and only releases the
+ * claim if processing threw. A Stripe retry of an already-applied event therefore
+ * loses the insert race with P2002 and returns 200 without ever reaching this
+ * function. That claim is the single chokepoint for every handler in the webhook,
+ * which is why the guard belongs there and is not duplicated per-handler.
+ */
+export async function applyCreditPurchase(params: {
+  orgId: string;
+  credits: number;
+}): Promise<void> {
+  if (params.credits <= 0) return;
+
+  await prisma.$transaction([
+    prisma.organization.update({
+      where: { id: params.orgId },
+      data: { aiCredits: { increment: params.credits } },
+    }),
+    prisma.creditEntry.create({
+      data: {
+        organizationId: params.orgId,
+        delta: params.credits,
+        reason: "purchase",
+      },
+    }),
+  ]);
 }
 
 export async function getBillingState(orgId: string): Promise<BillingState> {
