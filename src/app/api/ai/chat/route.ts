@@ -115,6 +115,21 @@ export async function POST(req: NextRequest) {
         role: m.role === 'USER' ? 'user' : 'assistant',
         content: m.content,
       })),
+      {
+        // System prompt: the org's business-context JSON (financials, facts,
+        // scadenzario, spese ricorrenti) — identical for this org across ALL
+        // of its conversations on the same calendar day (see the prompt
+        // caching report on why: daysOverdueOf truncates to whole days, so
+        // nothing inside it changes call to call absent new underlying data).
+        // Reused across conversations, not just within one.
+        cacheSystemPrompt: true,
+        // Conversation history: every message resends the full prior thread.
+        // Marking the last one lets each new turn build on what the previous
+        // turn already cached, instead of reprocessing the whole history at
+        // full price on every single message.
+        cacheLastMessage: true,
+        logLabel: 'chat',
+      },
     );
     assistantText = result.text;
     tokensIn = result.tokensIn;

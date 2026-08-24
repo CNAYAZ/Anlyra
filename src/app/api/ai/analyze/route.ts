@@ -147,7 +147,17 @@ export async function POST(req: NextRequest) {
     const body = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          for await (const chunk of chatStream(systemPrompt, messages)) {
+          for await (const chunk of chatStream(systemPrompt, messages, {
+            // Same mode + same org + same day → byte-identical system prompt
+            // (see the prompt caching report). Worth caching when a user asks
+            // a follow-up question in the same tab within a few minutes of
+            // "Generate" or a prior question — not caching the messages array:
+            // the frontend does not resend history today (each call is a
+            // fresh single-turn request), so there is no growing prefix to
+            // extend, only this one reusable system block.
+            cacheSystemPrompt: true,
+            logLabel: `analyze:${type}`,
+          })) {
             controller.enqueue(encoder.encode(chunk));
           }
         } catch (err) {
@@ -172,7 +182,10 @@ export async function POST(req: NextRequest) {
 
   // Non-streaming path (unchanged): single JSON envelope.
   try {
-    const result = await chatComplete(systemPrompt, messages);
+    const result = await chatComplete(systemPrompt, messages, {
+      cacheSystemPrompt: true,
+      logLabel: `analyze:${type}`,
+    });
     return ok({
       text: result.text,
       tokensIn: result.tokensIn,
