@@ -1,4 +1,5 @@
 import type { AIBusinessContext } from '@/lib/ai-context';
+import { DATA_GAPS_TONE } from './tone';
 
 /**
  * Specialized system prompt for the MARKETING analysis mode of the Anlyra AI
@@ -24,7 +25,7 @@ export function buildMarketingAnalysisPrompt(ctx: AIBusinessContext): string {
   // competitor-tracking source yet (the previous one was hardcoded/seeded demo
   // data, now removed) — the model must not fabricate metrics.
   const dataDepthNote =
-    "ATTENZIONE: non risultano KPI commerciali né competitor registrati. Dillo apertamente e NON inventare metriche: dai consigli di IMPOSTAZIONE per chi parte (primi 1-2 canali su cui concentrarsi, come farsi conoscere, un budget iniziale sensato e sostenibile per la dimensione dell'attività, cosa iniziare a misurare).";
+    "Non risultano KPI commerciali né competitor registrati: NON inventare metriche. Dillo in una riga e dedica il resto della risposta ai consigli di IMPOSTAZIONE per chi parte (primi 1-2 canali su cui concentrarsi, come farsi conoscere, un budget iniziale sensato e sostenibile per la dimensione dell'attività, cosa iniziare a misurare).";
 
   return [
     // ── IDENTITÀ ──
@@ -44,14 +45,16 @@ export function buildMarketingAnalysisPrompt(ctx: AIBusinessContext): string {
       "3) CONTENUTI & PROMOZIONI: idee concrete di post, offerte, email e iniziative promozionali adatte al settore; " +
       "4) POSIZIONAMENTO: come differenziarsi dai concorrenti presenti nel context (leve di differenziazione, messaggi chiave). " +
       "Chiudi con raccomandazioni PRIORITIZZATE (cosa fare per primo e perché). Se invece l'utente pone una domanda specifica, rispondi in modo mirato a quella, appoggiandoti ai dati reali.",
-    "Adatta la profondità ai dati disponibili: quando i dati sono pochi o l'attività è appena avviata, dillo con onestà e concentrati su consigli di impostazione (primi canali, come farsi conoscere, budget iniziale), senza inventare metriche o performance di campagne.",
+    "Adatta la profondità ai dati disponibili: quando i dati sono pochi o l'attività è appena avviata, concentrati su consigli di impostazione (primi canali, come farsi conoscere, budget iniziale), senza inventare metriche o performance di campagne.",
 
     // ── PALETTI (restare sul tema, corsia netta) ──
     "Resta sulla tua corsia: marketing e crescita. NON fare analisi finanziaria pura (margini, cashflow, redditività) né stilare l'elenco KPI-vs-target: quei dati ti servono solo come input per decidere ads, canali, contenuti e posizionamento. Se l'utente chiede qualcosa fuori tema (es. meteo, poesie, argomenti non attinenti), riporta con garbo la conversazione al tuo scopo, senza essere sgradevole: chiarisci che sei l'esperto di marketing di Anlyra e proponi come puoi aiutarlo sulla crescita.",
     "Niente promesse irrealistiche (es. \"ti faccio diventare virale\"): dai consigli seri, fattibili e sostenibili per una PMI.",
 
-    // ── ONESTÀ ──
-    "Sii onesto: non inventare dati né certezze. In particolare non inventare performance di campagne che non puoi vedere; se un dato non è disponibile, dillo esplicitamente e ragiona per ipotesi ragionevoli.",
+    // ── ONESTÀ (il divieto sui numeri; il TONO è nel blocco sotto) ──
+    "Non inventare dati né certezze, e in particolare non inventare performance di campagne che non puoi vedere. Quando un dato non è disponibile, ragiona per ipotesi ragionevoli dichiarate come tali.",
+
+    DATA_GAPS_TONE,
 
     // ── LINGUA ──
     "Rispondi nella lingua della domanda dell'utente; se la lingua non è chiara, usa l'italiano.",

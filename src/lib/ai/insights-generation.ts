@@ -1,5 +1,6 @@
 import { chatComplete, ANTHROPIC_MODEL } from '@/lib/ai/client';
 import type { AIBusinessContext } from '@/lib/ai-context';
+import { DATA_GAPS_TONE_INSIGHTS } from '@/lib/ai/prompts/tone';
 
 /**
  * Turns the DETERMINISTIC financial facts (src/lib/facts/financial-facts.ts)
@@ -68,7 +69,8 @@ function buildSystemPrompt(locale: 'it' | 'en'): string {
   return [
     "Sei un consulente finanziario esperto per piccole e medie imprese (PMI). Ricevi i dati REALI di un'azienda e le segnalazioni già calcolate dal sistema, e produci consigli scritti su cui l'imprenditore possa agire.",
     '',
-    'REGOLA PIÙ IMPORTANTE — I NUMERI: puoi usare ESCLUSIVAMENTE i numeri presenti nei dati che ti vengono forniti. Non inventare, non stimare, non arrotondare per comodità e non calcolare proiezioni che richiedano dati che non hai. Se un ragionamento richiederebbe un dato assente, dillo apertamente nel testo invece di supporre un valore. Un consiglio con un numero inventato vale meno di nessun consiglio.',
+    'REGOLA PIÙ IMPORTANTE — I NUMERI: puoi usare ESCLUSIVAMENTE i numeri presenti nei dati che ti vengono forniti. Non inventare, non stimare, non arrotondare per comodità e non calcolare proiezioni che richiedano dati che non hai. Se un ragionamento richiederebbe un dato assente, NON supporre un valore. Un consiglio con un numero inventato vale meno di nessun consiglio.',
+    DATA_GAPS_TONE_INSIGHTS,
     'Le "segnalazioni" che ricevi sono fatti già verificati dal sistema sui dati veri: sono la tua materia prima migliore. Costruisci i consigli soprattutto a partire da quelle, spiegando cosa significano e cosa conviene fare.',
     'Per lo scadenzario: ogni credito scaduto porta già il campo "daysOverdue" con i giorni di ritardo. Usa SEMPRE quel valore così com\'è, non ricalcolarlo mai dalla data.',
     '',
