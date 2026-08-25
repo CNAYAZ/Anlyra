@@ -219,6 +219,32 @@ org = solo owner/admin; leggere e creare/modificare dati = tutti i membri.**
 `src/lib/timezone.ts` (`toAppDateString`, `appDateStartUTC`) per date visibili all'utente
 o passate all'AI; i giorni di ritardo si calcolano solo con `daysOverdueOf`.
 
+**Row Level Security (RLS) su Supabase** (VERIFICATO 2026-08-25): oltre a servire l'app via
+Prisma, Supabase espone automaticamente un'API REST pubblica (PostgREST) su ogni tabella
+dello schema `public`. Senza RLS, la sola chiave `anon` bastava per leggere dati veri
+bypassando completamente l'applicazione — provato: `GET /rest/v1/User?select=email` ha
+restituito l'email di un utente registrato vero. Il 25/08/2026 RLS è stata abilitata su
+tutte le tabelle di `public` (prima a mano sul database, poi tracciata nella migration
+`prisma/migrations/20260825150000_enable_row_level_security/`): da quel momento la stessa
+richiesta restituisce `[]`. **Prisma non è influenzato**: si connette come proprietario
+delle tabelle, che bypassa RLS per definizione — ogni lettura/scrittura dell'app continua a
+funzionare come prima. L'unica cosa che RLS blocca è l'accesso diretto via API REST con i
+ruoli `anon`/`authenticated`.
+- **Ogni tabella NUOVA deve abilitare RLS nella stessa migration che la crea.** La migration
+  del 25/08 gira una volta sola e NON copre le tabelle create da migration successive (Prisma
+  non riesegue mai una migration già applicata). Riga da aggiungere sempre:
+  `ALTER TABLE public."NomeTabella" ENABLE ROW LEVEL SECURITY;`
+- **Come verificare**: `npm run db:check-rls` (`prisma/check-rls.ts`) elenca ogni tabella di
+  `public` priva di RLS. Sola lettura, nessuna guardia anti-produzione necessaria — pensato
+  apposta per essere lanciato anche contro la produzione, dopo un deploy che aggiunge tabelle
+  o come controllo periodico manuale (non un cron: i 2 disponibili su Vercel Hobby sono già
+  occupati da trial-check e gdpr-purge).
+- Nessuna policy RLS è stata creata: con RLS attiva e zero policy, ogni riga è già negata a
+  chiunque non sia il proprietario — è il comportamento voluto oggi ("nessuno passa dall'API
+  REST"). Se in futuro servisse esporre dati via API REST (es. un client Supabase lato
+  browser), servirebbero policy esplicite per organizzazione: decisione del fondatore, non
+  ancora presa.
+
 ## 8. Stato verificato al 2026-07-26
 
 - `npx tsc --noEmit` → **0 errori** (VERIFICATO a runtime).
