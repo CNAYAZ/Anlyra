@@ -73,3 +73,72 @@ export function assertSafeToStart(): void {
 export function isCronSecretConfigured(): boolean {
   return Boolean(process.env.CRON_SECRET);
 }
+
+/**
+ * ── CODESPACE PORT FORWARDING ──
+ *
+ * PROBLEM: binding to 127.0.0.1 only (the original design) means GitHub
+ * Codespaces' port-forwarding proxy — which reaches the container over its
+ * own network interface, not loopback — gets a connection-refused and the
+ * browser sees a 404. Outside a Codespace this was never an issue (the
+ * operator opens the browser on the SAME machine the server runs on).
+ *
+ * FIX: bind to 0.0.0.0 ONLY when CODESPACE_NAME shows we are inside a
+ * Codespace, and compensate by narrowing the Host-header check to the exact
+ * forwarded hostname (see expectedCodespaceHost) instead of relying on the
+ * bind address alone. Everywhere else, 127.0.0.1 and the localhost-only Host
+ * check are unchanged.
+ *
+ * WHY THIS IS STILL SAFE: the port GitHub forwards is PRIVATE BY DEFAULT —
+ * reachable only through a browser authenticated as the Codespace's owner,
+ * never from the open internet. Binding 0.0.0.0 only exposes the panel to
+ * that same private tunnel, not to the container's raw network. But once
+ * bound wider, the bind address itself is no longer a barrier — the Host
+ * check and the CSRF token become the ONLY defenses, which is why neither is
+ * loosened here.
+ */
+
+/** True only inside a GitHub Codespace — CODESPACE_NAME is set there and nowhere else. */
+export function isCodespace(): boolean {
+  return Boolean(process.env.CODESPACE_NAME);
+}
+
+/**
+ * Domain GitHub uses to forward a Codespace's ports (normally "app.github.dev").
+ * Read from GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN — GitHub's own documented
+ * environment variable (docs.github.com/en/codespaces/reference/system-environment-variables)
+ * — rather than hardcoded, because an Enterprise Codespaces setup can serve a
+ * different domain. The literal fallback below is GitHub's own documented
+ * default for that variable, used only on the rare chance the variable itself
+ * is absent; it is not a guess at some OTHER domain.
+ */
+export function getPortForwardingDomain(): string | null {
+  if (!isCodespace()) return null;
+  return process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev';
+}
+
+/**
+ * The exact Host header a browser sends when it reaches `port` through
+ * GitHub's Codespaces port-forwarding proxy, or null outside a Codespace.
+ * This is what the Host-header check in server.ts allows IN ADDITION to
+ * localhost, once binding widens to 0.0.0.0 — never a wildcard on the whole
+ * forwarding domain, which would also accept every OTHER forwarded port and
+ * every other Codespace on it.
+ */
+export function expectedCodespaceHost(port: number): string | null {
+  const name = process.env.CODESPACE_NAME;
+  const domain = getPortForwardingDomain();
+  if (!name || !domain) return null;
+  return `${name}-${port}.${domain}`;
+}
+
+/**
+ * Browser URL to open for `port` inside a Codespace, or null when it cannot be
+ * computed (missing CODESPACE_NAME — should not happen once isCodespace() is
+ * true, but the caller must still handle it: fall back to telling the operator
+ * to use the PORTS tab rather than printing a broken URL).
+ */
+export function codespaceUrl(port: number): string | null {
+  const host = expectedCodespaceHost(port);
+  return host ? `https://${host}` : null;
+}

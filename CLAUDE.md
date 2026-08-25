@@ -285,9 +285,19 @@ terminale. Non è una parte del prodotto: i clienti non lo vedono e non esiste o
 npm run admin
 ```
 
-Poi apri la scheda **PORTS** di VS Code, trova la porta **3001** e aprila nel browser
-(la porta resta privata: solo il tuo account GitHub la raggiunge). Si ferma con Ctrl+C.
-Se la 3001 è occupata: `ADMIN_PORT=3002 npm run admin`.
+Dentro il Codespace il server ascolta su tutte le interfacce (serve al proxy di inoltro porte di
+GitHub per raggiungerlo — su loopback soltanto il browser otterrebbe un 404); fuori dal Codespace
+resta su `127.0.0.1` come prima. L'avvio stampa il link diretto da aprire (calcolato da
+`CODESPACE_NAME`), altrimenti apri la scheda **PORTS** di VS Code, trova la porta **3001** e aprila
+da lì. Si ferma con Ctrl+C. Se la 3001 è occupata: `ADMIN_PORT=3002 npm run admin`.
+
+> ⚠️ **La porta 3001 deve restare "Private" nella scheda PORTS.** È l'UNICA cosa che la tiene
+> raggiungibile solo dal tuo account GitHub: il pannello non ha login, quindi impostarla su
+> "Public" la renderebbe raggiungibile da chiunque abbia il link, con accesso pieno e immediato
+> al database di produzione. Il controllo sull'header Host in `admin/server.ts` accetta solo
+> l'host esatto inoltrato dal tuo Codespace (mai l'intero dominio `*.app.github.dev`, che
+> accetterebbe anche porte e Codespace altrui) e il token richiesto su ogni scrittura sono difese
+> in più, non un sostituto della privacy della porta.
 
 **Cosa fa**:
 - *Vedere*: organizzazioni (con **entrambe** le colonne piano, vedi sotto), utenti, audit log

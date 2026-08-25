@@ -6,7 +6,14 @@ import { loadEnvFiles } from './env';
 // Prisma client early would capture a missing DATABASE_URL.
 loadEnvFiles();
 
-import { assertSafeToStart, isCronSecretConfigured, AdminStartupError } from './guards';
+import {
+  assertSafeToStart,
+  isCronSecretConfigured,
+  isCodespace,
+  expectedCodespaceHost,
+  codespaceUrl,
+  AdminStartupError,
+} from './guards';
 import { renderPage } from './ui';
 import {
   listOrganizations,
@@ -37,17 +44,19 @@ import {
 /**
  * Local-only admin panel for the founder.
  *
- * BINDS TO 127.0.0.1 ONLY — never 0.0.0.0. In a Codespace this means the port
- * is reachable through the port-forwarding tunnel (which is private to the
- * founder's GitHub account) and NOT from the container's network interface. An
- * admin API with no login must never be able to listen on a public interface.
+ * BIND ADDRESS: 127.0.0.1 everywhere EXCEPT inside a GitHub Codespace, where it
+ * is 0.0.0.0 — see guards.ts's "CODESPACE PORT FORWARDING" note for why
+ * loopback-only breaks the browser there (the forwarding proxy reaches the
+ * container over its own interface, not loopback) and why widening the bind
+ * is still safe (the forwarded port is private to the Codespace owner, and the
+ * Host-header check below narrows what 0.0.0.0 will actually answer to).
  *
  * See guards.ts for the startup preconditions and the note on why
  * prisma/guard.ts is deliberately not reused here.
  */
 
 const PORT = Number(process.env.ADMIN_PORT ?? 3001);
-const HOST = '127.0.0.1';
+const BIND_HOST = isCodespace() ? '0.0.0.0' : '127.0.0.1';
 
 /**
  * Per-start random token. The page embeds it; every mutating request must send
@@ -90,10 +99,24 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
 }
 
-/** Rejects requests whose Host is not localhost — blocks DNS-rebinding attempts. */
-function hostIsLocal(req: IncomingMessage): boolean {
+/**
+ * Rejects requests whose Host is neither localhost nor (inside a Codespace)
+ * the exact hostname GitHub's port-forwarding proxy sends. Blocks
+ * DNS-rebinding attempts the same way the original localhost-only check did;
+ * widened, not disabled, now that the bind address is 0.0.0.0 in a Codespace
+ * and can no longer do that job on its own.
+ *
+ * Deliberately an exact match against expectedCodespaceHost(PORT) — never a
+ * suffix check against the forwarding domain, which would also accept every
+ * OTHER forwarded port and every other Codespace's forwarded hosts on the
+ * same domain.
+ */
+function hostIsAllowed(req: IncomingMessage): boolean {
   const host = (req.headers.host ?? '').split(':')[0];
-  return host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1';
+  if (host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1') {
+    return true;
+  }
+  return isCodespace() && host === expectedCodespaceHost(PORT);
 }
 
 function str(v: unknown): string | undefined {
@@ -219,11 +242,14 @@ async function handlePost(pathname: string, body: Record<string, unknown>, res: 
 }
 
 async function handle(req: IncomingMessage, res: ServerResponse) {
-  if (!hostIsLocal(req)) {
-    return err(res, 403, 'Solo da localhost.');
+  if (!hostIsAllowed(req)) {
+    return err(res, 403, 'Host non ammesso.');
   }
 
-  const url = new URL(req.url ?? '/', `http://${HOST}:${PORT}`);
+  // Base for resolving the relative req.url into a URL object only — not the
+  // actual bind address, which is why 127.0.0.1 here is fine even when
+  // BIND_HOST is 0.0.0.0.
+  const url = new URL(req.url ?? '/', `http://127.0.0.1:${PORT}`);
   const pathname = url.pathname;
 
   if (req.method === 'GET') {
@@ -270,17 +296,34 @@ function main() {
     });
   });
 
-  server.listen(PORT, HOST, () => {
+  server.listen(PORT, BIND_HOST, () => {
     console.log('\n  ┌──────────────────────────────────────────────────────────┐');
     console.log('  │  Anlyra — pannello admin (SOLO LOCALE)                    │');
     console.log('  └──────────────────────────────────────────────────────────┘');
-    console.log(`\n  In ascolto su  http://${HOST}:${PORT}  (solo localhost)`);
+    console.log(`\n  In ascolto su  http://${BIND_HOST}:${PORT}`);
     console.log('  Database:      PRODUZIONE — le modifiche sono immediate e reali.');
     console.log(
       `  Cron:          ${isCronSecretConfigured() ? 'disponibili' : 'DISATTIVATI (CRON_SECRET assente)'}`,
     );
-    console.log('\n  Nel Codespace: apri la scheda PORTS, trova la porta ' + PORT + ' e aprila nel browser.');
-    console.log('  Ferma con Ctrl+C.\n');
+
+    if (isCodespace()) {
+      const url = codespaceUrl(PORT);
+      console.log('\n  ⚠️  SICUREZZA — porta inoltrata dal Codespace:');
+      console.log('      Nella scheda PORTS di VS Code questa porta deve restare "Private".');
+      console.log('      NON impostarla mai su "Public": diventerebbe raggiungibile da chiunque');
+      console.log('      abbia il link, senza login, con accesso pieno al database di produzione.');
+      if (url) {
+        console.log(`\n  Apri nel browser:  ${url}`);
+      } else {
+        console.log(
+          '\n  Impossibile calcolare il link (CODESPACE_NAME non letta): apri la scheda PORTS di',
+        );
+        console.log(`  VS Code, trova la porta ${PORT} e aprila da lì.`);
+      }
+    } else {
+      console.log(`\n  Apri nel browser:  http://127.0.0.1:${PORT}`);
+    }
+    console.log('\n  Ferma con Ctrl+C.\n');
   });
 
   server.on('error', (e: NodeJS.ErrnoException) => {
