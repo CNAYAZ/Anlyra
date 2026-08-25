@@ -89,7 +89,25 @@
     "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti.",
     "notificationsTitle": "Notifiche",
     "notificationsEmpty": "Nessuna notifica al momento",
-    "notificationsSettings": "Preferenze notifiche"
+    "notificationsSettings": "Preferenze notifiche",
+    "reportProblem": "Segnala un problema"
+  },
+  "bugReport": {
+    "title": "Segnala un problema",
+    "description": "Descrivi cosa è successo: più dettagli dai, più in fretta possiamo risolverlo.",
+    "fieldLabel": "Cosa è successo?",
+    "fieldPlaceholder": "Descrivi il problema che hai riscontrato...",
+    "errorRequired": "Descrivi il problema prima di inviare.",
+    "attachmentsTitle": "Verranno allegati automaticamente",
+    "attachmentsList": "La pagina in cui ti trovi, browser e risoluzione dello schermo, data e ora, la tua email e la tua organizzazione con piano e crediti residui.",
+    "submit": "Invia segnalazione",
+    "sending": "Invio in corso...",
+    "cancel": "Annulla",
+    "successTitle": "Segnalazione inviata",
+    "successBody": "Grazie, abbiamo ricevuto la tua segnalazione. Se serve una risposta, ti scriviamo alla tua email.",
+    "close": "Chiudi",
+    "errorGeneric": "Non siamo riusciti a inviare la segnalazione. Riprova tra poco.",
+    "errorRateLimited": "Troppe segnalazioni inviate di recente. Riprova più tardi."
   },
   "user": {
     "profile": "Profilo",
