@@ -6,6 +6,7 @@ import { useSidebarStore } from '@/store/sidebar';
 import { Breadcrumbs } from './Breadcrumbs';
 import { CreditsCounter } from './CreditsCounter';
 import { NotificationBell } from './NotificationBell';
+import { BugReportButton } from './BugReportButton';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitch } from './LanguageSwitch';
 import { UserMenu } from './UserMenu';
@@ -35,6 +36,7 @@ export function Topbar() {
         <OrgSwitcher />
         <CreditsCounter />
         <NotificationBell count={unreadCount} />
+        <BugReportButton />
         <LanguageSwitch />
         <ThemeToggle />
         <UserMenu />

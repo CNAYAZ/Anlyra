@@ -89,7 +89,25 @@
     "popoverHint": "Each chat message uses 1 credit. Generating new insights costs 3 credits.",
     "notificationsTitle": "Notifications",
     "notificationsEmpty": "No notifications at the moment",
-    "notificationsSettings": "Notification preferences"
+    "notificationsSettings": "Notification preferences",
+    "reportProblem": "Report a problem"
+  },
+  "bugReport": {
+    "title": "Report a problem",
+    "description": "Describe what happened: the more detail, the faster we can fix it.",
+    "fieldLabel": "What happened?",
+    "fieldPlaceholder": "Describe the problem you ran into...",
+    "errorRequired": "Describe the problem before sending.",
+    "attachmentsTitle": "Automatically attached",
+    "attachmentsList": "The page you're on, your browser and screen resolution, the date and time, your email, and your organization with its plan and remaining credits.",
+    "submit": "Send report",
+    "sending": "Sending...",
+    "cancel": "Cancel",
+    "successTitle": "Report sent",
+    "successBody": "Thanks, we received your report. If we need to follow up, we'll email you.",
+    "close": "Close",
+    "errorGeneric": "We couldn't send the report. Please try again shortly.",
+    "errorRateLimited": "Too many reports sent recently. Please try again later."
   },
   "user": {
     "profile": "Profile",

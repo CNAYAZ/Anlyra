@@ -49,6 +49,9 @@ export const AUDIT_ACTIONS = [
   // one is the cron resetting it, the other is money changing hands.
   'credits.monthly_renewal',
   'credits.purchase',
+
+  // ── Support ──
+  'support.bug_report',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
