@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
+    "db:check-rls": "tsx prisma/check-rls.ts",
     "db:push": "tsx prisma/guard.ts \"npm run db:push\" && prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "prisma:generate": "prisma generate",
