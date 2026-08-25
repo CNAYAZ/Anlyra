@@ -52,6 +52,19 @@ export const AUDIT_ACTIONS = [
 
   // ── Support ──
   'support.bug_report',
+
+  // ── Local admin panel (admin/, founder-only, never deployed) ──
+  // Deliberately prefixed 'admin.' so a single query separates operator actions
+  // from anything a normal user did. These rows carry NO userId (the panel has
+  // no login — it is protected by running only on the founder's localhost), so
+  // the prefix is the only way to tell them apart.
+  'admin.credits_set',
+  'admin.plan_set',
+  'admin.member_role_set',
+  'admin.insights_deleted',
+  'admin.row_deleted',
+  'admin.account_unblocked',
+  'admin.cron_triggered',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

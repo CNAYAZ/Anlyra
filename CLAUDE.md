@@ -295,7 +295,73 @@ ruoli `anon`/`authenticated`.
 
 La parola `ultrathink` nel prompt aumenta il ragionamento per quel turno.
 
-## 12. Riferimenti
+## 12. Pannello admin locale (`admin/`)
+
+**Cos'è**: un piccolo server web separato dall'applicazione, che gira SOLO sul Codespace del
+fondatore, per fare dal browser le operazioni che altrimenti richiedono comandi lunghi nel
+terminale. Non è una parte del prodotto: i clienti non lo vedono e non esiste online.
+
+> ⚠️ **Accede al database di PRODUZIONE**, lo stesso di anlyra.com, con utenti reali dentro.
+> Non ha login: la sua unica protezione è girare solo in locale. Ogni modifica è immediata,
+> irreversibile e registrata nell'audit log con azioni `admin.*`.
+
+**Come si avvia** (dal Codespace, in un terminale qualsiasi):
+
+```
+npm run admin
+```
+
+Dentro il Codespace il server ascolta su tutte le interfacce (serve al proxy di inoltro porte di
+GitHub per raggiungerlo — su loopback soltanto il browser otterrebbe un 404); fuori dal Codespace
+resta su `127.0.0.1` come prima. L'avvio stampa il link diretto da aprire (calcolato da
+`CODESPACE_NAME`), altrimenti apri la scheda **PORTS** di VS Code, trova la porta **3001** e aprila
+da lì. Si ferma con Ctrl+C. Se la 3001 è occupata: `ADMIN_PORT=3002 npm run admin`.
+
+> ⚠️ **La porta 3001 deve restare "Private" nella scheda PORTS.** È l'UNICA cosa che la tiene
+> raggiungibile solo dal tuo account GitHub: il pannello non ha login, quindi impostarla su
+> "Public" la renderebbe raggiungibile da chiunque abbia il link, con accesso pieno e immediato
+> al database di produzione. Il controllo sull'header Host in `admin/server.ts` accetta solo
+> l'host esatto inoltrato dal tuo Codespace (mai l'intero dominio `*.app.github.dev`, che
+> accetterebbe anche porte e Codespace altrui) e il token richiesto su ogni scrittura sono difese
+> in più, non un sostituto della privacy della porta.
+
+**Cosa fa**:
+- *Vedere*: organizzazioni (con **entrambe** le colonne piano, vedi sotto), utenti, audit log
+  filtrabile, conteggi generali.
+- *Modificare*: crediti AI di un'organizzazione, piano, ruolo di un membro.
+- *Pulire*: cancellare insight con filtri, cancellare singole righe di prova per id,
+  sbloccare un account (azzerare la richiesta GDPR, riportare un ruolo a `owner`).
+- *Lanciare i cron a mano*: `trial-check` (che include rinnovo crediti e report pianificati) e
+  `gdpr-purge`. Chiamano gli endpoint veri dell'app, quindi **serve `npm run dev` attivo sulla 3000**.
+
+**Cosa NON può fare** (per evitare aspettative sbagliate):
+- **Non modifica i testi dell'interfaccia**: le scritte stanno in `src/messages/it.json` e
+  `en.json`, cioè nel CODICE. Si cambiano modificando quei file e facendo un deploy, mai da qui.
+- Non modifica prompt AI, prezzi, piani come definizione, né alcuna logica: quelli sono codice.
+- Non crea organizzazioni o utenti (si creano dalla registrazione vera).
+- Non cancella un'organizzazione o un utente interi: per quello esiste il flusso GDPR
+  (`deletionRequestedAt` + cron `gdpr-purge`), che il pannello può solo **annullare**, non avviare.
+- Non manda email (a parte quelle che partono da sole lanciando `trial-check`).
+
+**I due campi "piano" che divergono** (difetto noto, il pannello li mostra entrambi):
+- `BillingSubscription.plan` è **quello vero**: lo legge `getBillingState()`, quindi decide
+  funzionalità, limiti e quanti crediti dà il rinnovo mensile.
+- `Organization.plan` è **legacy** (default `"STARTER"`, che non è nemmeno un piano valido):
+  oggi incide solo sul nome/prezzo del piano scritti nelle email di fine prova (`trial-check.ts`).
+- Impostando il piano dal pannello vengono aggiornati **entrambi**, così non restano disallineati.
+
+**Perché non può finire in produzione** (tre livelli, dal più forte):
+1. `admin/` è in `.vercelignore`: i file non vengono nemmeno caricati su Vercel.
+2. Sta fuori da `src/app`, quindi il router di Next non può trasformarlo in una route.
+3. `admin/guards.ts` rifiuta l'avvio se manca `ADMIN_PANEL=yes`, se `NODE_ENV=production`
+   o se è presente la variabile `VERCEL`.
+
+**Nota per Claude**: `prisma/guard.ts` (la guardia anti-produzione) **non** è usata qui, di
+proposito — lavorare sulla produzione è lo scopo del pannello, quindi importarla lo bloccherebbe
+sempre. Il modello di protezione è diverso: raggiungibile solo da localhost, avvio esplicito,
+ogni scrittura confermata e tracciata.
+
+## 13. Riferimenti
 
 - Stato e valutazione: [`.vscode/STATO-REALE-E-VALUTAZIONE.md`](.vscode/STATO-REALE-E-VALUTAZIONE.md)
 - Decision log: [`docs/decisions/`](docs/decisions/)
