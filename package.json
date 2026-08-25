@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "admin": "ADMIN_PANEL=yes tsx admin/server.ts",
     "db:generate": "prisma generate",
     "db:push": "tsx prisma/guard.ts \"npm run db:push\" && prisma db push",
     "db:seed": "tsx prisma/seed.ts",

@@ -1,0 +1,15 @@
+# Files NOT uploaded to Vercel when the site is deployed.
+#
+# admin/ is the founder's LOCAL-ONLY admin panel: an HTTP server with full,
+# unauthenticated access to the production database. It must never reach a
+# deployed environment, so it is excluded from the upload entirely — the files
+# are not present in the build at all, which is a stronger guarantee than
+# relying on Next simply never importing them.
+#
+# Belt and braces, in order of strength:
+#   1. this exclusion (the code is not uploaded);
+#   2. admin/ lives OUTSIDE src/app, so Next's router can never turn it into a
+#      route even if it were uploaded;
+#   3. admin/server.ts refuses to start when NODE_ENV=production or VERCEL is
+#      set, and requires an explicit ADMIN_PANEL=yes (see admin/guards.ts).
+admin/
