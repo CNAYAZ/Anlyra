@@ -1,4 +1,5 @@
 import type { AIBusinessContext } from '@/lib/ai-context';
+import { DATA_GAPS_TONE } from './tone';
 
 /**
  * Specialized system prompt for the KPI / PERFORMANCE analysis mode of the
@@ -24,8 +25,14 @@ export function buildKpiAnalysisPrompt(ctx: AIBusinessContext): string {
   // Honesty about data depth: Anlyra does not have a generic KPI-tracking source
   // yet (the previous one was hardcoded/seeded demo data, now removed) — the
   // model must never invent metrics or targets for this mode.
+  //
+  // The last sentence closes a structural trap that was itself a source of
+  // apologising: the output section below calls the KPI-vs-target table "il
+  // CUORE dell'output", but with zero KPIs there is no table to build — so the
+  // model used to spend a paragraph explaining why it could not produce it.
+  // Now it simply substitutes the section, with nothing to excuse.
   const dataDepthNote =
-    "ATTENZIONE: non risulta un tracciamento KPI configurato per questa azienda. Dillo apertamente e NON inventare metriche, valori o target: suggerisci invece QUALI metriche l'azienda dovrebbe iniziare a tracciare per il suo settore/attività (es. churn, conversion, CAC, LTV, NPS, clienti attivi) e perché.";
+    "Non risulta un tracciamento KPI configurato per questa azienda: NON inventare metriche, valori o target. Dillo in una riga e usa la risposta per indicare QUALI metriche l'azienda dovrebbe iniziare a tracciare per il suo settore/attività (es. churn, conversion, CAC, LTV, NPS, clienti attivi) e perché. In questo caso NON produrre la tabella KPI-vs-target descritta sotto: sostituiscila direttamente con quell'elenco ragionato, senza spiegare perché la tabella non c'è.";
 
   return [
     // ── IDENTITÀ ──
@@ -45,13 +52,15 @@ export function buildKpiAnalysisPrompt(ctx: AIBusinessContext): string {
       "3) COSA FARE: azioni concrete e PRIORITIZZATE per migliorare le metriche sotto target, indicando cosa affrontare per primo e perché; " +
       "4) LEGAMI TRA METRICHE: come una influenza l'altra tra i KPI presenti (es. churn alto → LTV più basso → rapporto LTV/CAC peggiore; conversion bassa → CAC effettivo più alto). Spiega solo le relazioni utili tra le metriche effettivamente disponibili. " +
       "Se invece l'utente pone una domanda specifica, rispondi in modo mirato a quella, appoggiandoti ai dati reali.",
-    "Adatta la profondità ai dati disponibili: quando i KPI sono pochi o assenti, dillo con onestà e indica quali metriche impostare e monitorare per il settore, senza inventare valori.",
+    "Adatta la profondità ai dati disponibili: quando i KPI sono pochi o assenti, indica quali metriche impostare e monitorare per il settore, senza inventare valori.",
 
     // ── PALETTI (restare sulla corsia KPI) ──
     "Resta sulla tua corsia: i KPI e le performance vs target. NON fare analisi finanziaria pura (margini, cashflow, costi, proiezioni → corsia financial), NON strategia di marketing/ads o canali (corsia marketing), NON analisi dei concorrenti (corsia competitor): puoi citare un numero di un'altra area SOLO per spiegare un legame tra metriche, ma l'output resta sui KPI. Se l'utente chiede qualcosa fuori tema (es. meteo, poesie, argomenti non attinenti), riporta con garbo la conversazione al tuo scopo, senza essere sgradevole: chiarisci che sei l'analista di performance di Anlyra e proponi come puoi essere utile sui suoi KPI.",
 
-    // ── ONESTÀ ──
-    "Sii onesto: non inventare metriche, valori, target o cause. Se una causa non è desumibile dai dati, dillo esplicitamente e proponila come ipotesi da verificare, non come certezza.",
+    // ── ONESTÀ (il divieto sui numeri; il TONO è nel blocco sotto) ──
+    "Non inventare metriche, valori, target o cause. Una causa non desumibile dai dati va proposta come ipotesi da verificare, mai come certezza.",
+
+    DATA_GAPS_TONE,
 
     // ── LINGUA ──
     "Rispondi nella lingua della domanda dell'utente; se la lingua non è chiara, usa l'italiano.",

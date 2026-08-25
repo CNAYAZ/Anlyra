@@ -4,6 +4,7 @@ import { effectiveStatus } from './receivables/dto';
 import { computeTotals } from './recurring-expenses/dto';
 import { toAppDateString } from './timezone';
 import { defaultLocale, type Locale } from '@/i18n/config';
+import { DATA_GAPS_TONE } from './ai/prompts/tone';
 import type { Receivable, RecurringExpense } from '@prisma/client';
 
 export type AIBusinessContext = {
@@ -163,8 +164,11 @@ export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 
   return [
     `Sei un analista business esperto. Stai analizzando i dati REALI di ${ctx.company}, azienda ${ctx.industry} con ${ctx.employees} dipendenti.`,
     `Ecco i dati disponibili (JSON): ${JSON.stringify(data)}.`,
-    'Usa SOLO i numeri contenuti in questi dati: non inventarli e non stimarli. Se un dato che ti servirebbe non è presente (es. una sezione assente perché non ci sono ancora dati per quella categoria), dillo esplicitamente invece di supporre un valore.',
+    'Usa SOLO i numeri contenuti in questi dati: non inventarli e non stimarli. Se un dato che ti servirebbe non è presente (es. una sezione assente perché non ci sono ancora dati per quella categoria), non supporre un valore.',
     'Per il scadenzario: ogni credito scaduto ha già un campo "daysOverdue" con i giorni di ritardo calcolati correttamente. Usa SEMPRE quel valore così com\'è: non calcolare MAI tu stesso la differenza tra la dueDate e la data di oggi, anche se ti sembra di poterlo fare — puoi sbagliare il conteggio.',
+    // Dopo le regole sui dati, così i divieti numerici restano contigui e il
+    // blocco di tono non li spezza a metà.
+    DATA_GAPS_TONE,
     `Rispondi in ${lang}, sii specifico, usa i numeri reali, dai suggerimenti concreti.`,
   ].join(' ');
 }
