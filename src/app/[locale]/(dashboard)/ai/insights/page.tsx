@@ -13,12 +13,16 @@ import { PageHeader } from '@/components/ui/section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { Link } from '@/i18n/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
 import type { InsightDTO } from '@/types/ai';
 
 type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
+
+/** Envelope returned alongside the page of insights. Mirrors the route. */
+type PaginationInfo = { total: number; page: number; pageSize: number; totalPages: number };
 
 /** Credits charged by POST /api/ai/insights/generate. Mirrors the server. */
 const GENERATION_CREDIT_COST = 3;
@@ -36,6 +40,7 @@ export default function InsightsPage() {
     priority: 'ALL',
     status: 'ALL',
   });
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<InsightDTO | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -47,14 +52,18 @@ export default function InsightsPage() {
   const canGenerate = aiCreditsBalance >= GENERATION_CREDIT_COST;
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['insights', filters.type, filters.priority, filters.status],
+    // `page` is part of the key: changing page is a different server request,
+    // and React Query must not serve page 1's cached rows for page 2.
+    queryKey: ['insights', filters.type, filters.priority, filters.status, page],
     queryFn: () => {
       const params = new URLSearchParams();
       if (filters.type !== 'ALL') params.set('type', filters.type);
       if (filters.priority !== 'ALL') params.set('priority', filters.priority);
       if (filters.status !== 'ALL') params.set('status', filters.status);
-      const q = params.toString() ? `?${params.toString()}` : '';
-      return apiFetch<{ insights: InsightDTO[] }>(`/api/ai/insights${q}`);
+      params.set('page', String(page));
+      return apiFetch<{ insights: InsightDTO[]; pagination: PaginationInfo }>(
+        `/api/ai/insights?${params.toString()}`,
+      );
     },
   });
 
@@ -66,10 +75,16 @@ export default function InsightsPage() {
       }),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ['insights'] });
-      const queryKey = ['insights', filters.type, filters.priority, filters.status];
-      const prev = qc.getQueryData<{ insights: InsightDTO[] }>(queryKey);
+      // Must match the query key EXACTLY, `page` included — otherwise
+      // getQueryData misses and the optimistic update silently does nothing.
+      const queryKey = ['insights', filters.type, filters.priority, filters.status, page];
+      const prev = qc.getQueryData<{ insights: InsightDTO[]; pagination: PaginationInfo }>(queryKey);
       if (prev) {
+        // Spread `prev` so `pagination` survives: writing only { insights }
+        // would strip the envelope and make the footer disappear until the
+        // next refetch.
         qc.setQueryData(queryKey, {
+          ...prev,
           insights: prev.insights.map((i) => (i.id === id ? { ...i, status } : i)),
         });
         const updatedInsight = prev.insights.find((i) => i.id === id);
@@ -105,6 +120,10 @@ export default function InsightsPage() {
     onSuccess: (res) => {
       // Keep the header credit counter honest without waiting for a refetch.
       setCredits(res.creditsRemaining);
+      // Back to page 1: the new insights are the most recent and sort to the
+      // front, so a user sitting on page 3 would otherwise pay for a generation
+      // and appear to get nothing.
+      setPage(1);
       qc.invalidateQueries({ queryKey: ['insights'] });
       showToast(t('generateSuccess', { count: res.created }));
     },
@@ -134,6 +153,7 @@ export default function InsightsPage() {
   };
 
   const insights = data?.insights ?? [];
+  const pagination = data?.pagination;
 
   return (
     <div className="space-y-6">
@@ -194,7 +214,16 @@ export default function InsightsPage() {
         </div>
       )}
 
-      <InsightFilters values={filters} onChange={setFilters} />
+      <InsightFilters
+        values={filters}
+        onChange={(next) => {
+          setFilters(next);
+          // Back to page 1 on every filter change: staying on page 3 of a
+          // narrower result set would show an empty grid even though matches
+          // exist. (The server clamps too — this keeps the URL/state honest.)
+          setPage(1);
+        }}
+      />
 
       {isError ? (
         <ErrorState onRetry={() => refetch()} />
@@ -207,15 +236,26 @@ export default function InsightsPage() {
       ) : insights.length === 0 ? (
         <EmptyState message={t('empty')} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {insights.map((insight) => (
-            <InsightCard
-              key={insight.id}
-              insight={insight}
-              onClick={() => handleCardClick(insight)}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {insights.map((insight) => (
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                onClick={() => handleCardClick(insight)}
+              />
+            ))}
+          </div>
+          {pagination && (
+            <Pagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={setPage}
             />
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <InsightDetail

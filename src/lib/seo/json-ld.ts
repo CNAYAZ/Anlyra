@@ -4,6 +4,8 @@
  * dentro Server Components.
  */
 
+import { COMPANY } from '@/lib/company';
+
 const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com').trim();
 
 // ─── ORGANIZATION ───────────────────────────────────────
@@ -32,14 +34,18 @@ export function organizationSchema() {
     ],
     address: {
       '@type': 'PostalAddress',
-      addressCountry: 'IT',
-      addressLocality: 'Bologna', // placeholder
-      addressRegion: 'Emilia-Romagna',
+      addressCountry: COMPANY.countryCode,
+      // Was hardcoded to 'Bologna' with a "// placeholder" comment — i.e. the
+      // structured data published to search engines named the wrong town. Now
+      // it reads the real registered address, like every other surface.
+      addressLocality: COMPANY.city,
+      addressRegion: COMPANY.region,
+      postalCode: COMPANY.postalCode,
     },
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'contact@anlyra.com',
+      email: COMPANY.contactEmail,
       availableLanguage: ['Italian', 'English'],
       areaServed: 'EU',
     },

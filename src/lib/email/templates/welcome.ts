@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { COMPANY } from '@/lib/company';
 
 interface WelcomeParams {
   userName: string;
@@ -70,7 +71,7 @@ export function welcomeTemplate(params: WelcomeParams): string {
     </table>
 
     <p style="margin:24px 0 0;font-size:14px;color:#6B6760;">
-      Hai domande? Rispondi a questa email o scrivici a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.
+      Hai domande? Rispondi a questa email o scrivici a <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.
     </p>
   `;
 

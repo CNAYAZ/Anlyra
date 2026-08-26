@@ -25,6 +25,39 @@ function toneToType(tone: string): string {
 
 const PRIORITY_RANK: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
+/**
+ * Insights per page.
+ *
+ * 12 because the page renders a card grid that is 3 columns wide on a large
+ * screen (`lg:grid-cols-3`): a multiple of 3 always fills the last row instead
+ * of leaving one or two ragged cards. Four rows is also roughly what fits
+ * without scrolling on a laptop, and it is comfortably more than the 3-5 cards
+ * a single generation adds — so a fresh generation lands visibly on page 1
+ * rather than being split across a page boundary.
+ */
+const PAGE_SIZE = 12;
+
+/**
+ * WHY THE FILTERING AND SORTING STILL HAPPEN IN MEMORY (and not in SQL).
+ *
+ * `type` and `priority` are NOT reliably stored: rows written before those
+ * columns existed have them NULL, and this route derives them from `tone` /
+ * `impact` via toneToType()/impactToPriority(). Two consequences:
+ *   • a SQL `WHERE type = 'WARNING'` would silently drop every legacy row whose
+ *     type is only derivable, showing the user fewer insights than exist;
+ *   • the sort key is the DERIVED priority, so the database cannot know which
+ *     rows belong on page 1 without computing it first.
+ * The second point is the blocking one: even a perfect SQL filter could not
+ * paginate correctly while the ordering depends on a value SQL cannot see.
+ *
+ * So this reads the org's rows, derives, filters and sorts, then slices — and
+ * sends the BROWSER only one page. That is the same shape the finance list
+ * routes already use (see api/analysis/financial/revenue). The real fix, for a
+ * future task, is a migration that backfills `type`/`priority` into the columns
+ * so both the filter and the ORDER BY become expressible in SQL; that is a
+ * schema change and deliberately out of scope here.
+ */
+
 export async function GET(req: NextRequest) {
   try {
     const { organizationId } = await getCurrentContext();
@@ -64,13 +97,38 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     const typeFilter = sp.get('type');
     const priorityFilter = sp.get('priority');
+    // The page has always SENT a status filter, but this route never read it —
+    // selecting a status silently returned the unfiltered list. Honoured now,
+    // against the same derived value the cards display (NULL status => 'NEW').
+    const statusFilter = sp.get('status');
+
     const filtered = insights.filter(
       (i) =>
         (!typeFilter || i.type === typeFilter) &&
-        (!priorityFilter || i.priority === priorityFilter),
+        (!priorityFilter || i.priority === priorityFilter) &&
+        (!statusFilter || i.status === statusFilter),
     );
 
-    return ok({ insights: filtered });
+    // `total` counts the FILTERED set, not every insight in the org: it is what
+    // the footer shows the user ("… of 47 results"), so it has to answer "how
+    // many match what I selected", not "how many exist".
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    // Clamped rather than trusted: a stale page number (filters changed in
+    // another tab, hand-edited URL) would otherwise return an empty page with a
+    // non-empty total, which reads as "my insights disappeared".
+    const requestedPage = Number(sp.get('page'));
+    const page = Number.isInteger(requestedPage)
+      ? Math.min(Math.max(requestedPage, 1), totalPages)
+      : 1;
+
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    return ok({
+      insights: pageItems,
+      pagination: { total, page, pageSize: PAGE_SIZE, totalPages },
+    });
   } catch (e) {
     return fail((e as Error).message, 500);
   }

@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { COMPANY } from '@/lib/company';
 
 interface TrialExpiredParams {
   userName: string;
@@ -74,7 +75,7 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
     ` : ''}
 
     <p style="margin:0;font-size:13px;color:#6B6760;text-align:center;">
-      Hai domande? Scrivici a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.
+      Hai domande? Scrivici a <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.
       La porta è sempre aperta.
     </p>
   `;

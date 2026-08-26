@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { COMPANY } from '@/lib/company';
 
 interface PaymentConfirmedParams {
   userName: string;
@@ -49,7 +50,7 @@ export function paymentConfirmedTemplate(params: PaymentConfirmedParams): string
         <td style="background-color:#F9F4EB;border:1px solid #E8DFD0;border-radius:8px;padding:12px 16px;">
           <p style="margin:0;font-size:13px;color:#2A2520;">
             <strong>Garanzia 14 giorni.</strong>
-            <span style="color:#6B6760;"> Se non sei soddisfatto entro i primi 14 giorni dal primo pagamento, rimborsiamo senza domande. Scrivi a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.</span>
+            <span style="color:#6B6760;"> Se non sei soddisfatto entro i primi 14 giorni dal primo pagamento, rimborsiamo senza domande. Scrivi a <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.</span>
           </p>
         </td>
       </tr>
