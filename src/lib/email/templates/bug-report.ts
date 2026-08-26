@@ -16,7 +16,7 @@ interface BugReportParams {
 /**
  * No next-intl here on purpose — same reasoning as scheduledReportTemplate:
  * none of the templates in this folder are localized, and this one is
- * internal-facing (sent to contact@anlyra.com, never to the reporting user),
+ * internal-facing (sent to COMPANY.contactEmail, never to the reporting user),
  * so there is no audience whose language it should follow anyway.
  *
  * PRIVACY: everything passed in here must already be safe to put in an email —

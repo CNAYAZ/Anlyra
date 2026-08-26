@@ -6,6 +6,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
+import { contactMailto } from '@/lib/company';
 import { cn } from '@/lib/utils';
 
 export type FaqItem = { q: string; a: string };
@@ -263,7 +264,7 @@ export function PricingPage({
 
               <div className="mt-8">
                 <Button asChild variant="secondary" size="lg" className="w-full justify-center">
-                  <a href="mailto:contact@anlyra.com?subject=Enterprise%20Inquiry%20%E2%80%94%20Anlyra">
+                  <a href={contactMailto('Enterprise Inquiry — Anlyra')}>
                     {enterpriseCta}
                   </a>
                 </Button>
@@ -328,7 +329,7 @@ export function PricingPage({
         <section className="mx-auto max-w-3xl px-6 pb-16 text-center">
           <p className="text-sm text-muted-foreground">{demoLabel}</p>
           <a
-            href="mailto:contact@anlyra.com?subject=Demo%20Request"
+            href={contactMailto('Demo Request')}
             className="mt-1 inline-flex items-center gap-1 text-sm text-primary-accent hover:underline"
             aria-label="Prenota una demo personalizzata"
           >

@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, teamInviteTemplate, welcomeTemplate } from '@/lib/email';
 import { signupCredits } from '@/lib/billing/plan-credits';
+import { COMPANY } from '@/lib/company';
 
 const TRIAL_DAYS = 7;
 const INVITE_EXPIRY_HOURS = 72;
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
       subject: `${inviter?.name || 'Un collega'} ti ha invitato su Anlyra`,
       html: teamInviteTemplate({
         inviterName: inviter?.name || inviter?.email || 'Un collega',
-        inviterEmail: inviter?.email || 'noreply@anlyra.com',
+        inviterEmail: inviter?.email || COMPANY.noreplyEmail,
         orgName: org.name,
         userEmail: inv.email,
         inviteUrl: `${siteUrl()}/it/invite/${token}`,

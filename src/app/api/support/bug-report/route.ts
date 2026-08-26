@@ -8,11 +8,10 @@ import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit
 import { sendEmail, bugReportTemplate } from '@/lib/email';
 import { auditLog } from '@/lib/audit/log';
 import { APP_TIME_ZONE } from '@/lib/timezone';
+import { COMPANY } from '@/lib/company';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const SUPPORT_EMAIL = 'contact@anlyra.com';
 
 // A problem is described in a few sentences or a short paragraph. 5000
 // characters (roughly 800-1000 words) is generous headroom for a detailed
@@ -91,7 +90,7 @@ export async function POST(req: NextRequest) {
   });
 
   const result = await sendEmail({
-    to: SUPPORT_EMAIL,
+    to: COMPANY.contactEmail,
     subject: `[Segnalazione] ${org.name}`,
     html,
     // Lets the founder hit "reply" in their inbox and land directly on the

@@ -16,6 +16,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
+import { contactMailto } from '@/lib/company';
 import { cn } from '@/lib/utils';
 
 export type TestimonialItem = { initials: string; name: string; role: string; quote: string };
@@ -243,7 +244,7 @@ export function LandingPage({
                 <Link href="/login?signup=pro">{finalCtaPrimary}</Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <a href="mailto:contact@anlyra.com">{finalCtaSecondary}</a>
+                <a href={contactMailto()}>{finalCtaSecondary}</a>
               </Button>
             </div>
           </div>

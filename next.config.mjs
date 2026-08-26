@@ -40,6 +40,36 @@ const isDev = process.env.NODE_ENV !== 'production';
  *  • Frames: no <iframe> anywhere in src/ → frame-src 'none'.
  *  • Downloads (PDF/JSON export) use blob: URLs on <a download>, which are
  *    navigations, not embedded resources — no directive needed.
+ *
+ * ── RE-AUDIT (things added AFTER this policy was written) ──
+ * Re-checked against the code, not assumed:
+ *  • Vercel Web Analytics — SAFE in production. `@vercel/analytics` picks its
+ *    script URL in getScriptSrc(): production (and no basePath/scriptSrc prop,
+ *    which is how <Analytics /> is used in app/layout.tsx) resolves to the
+ *    same-origin "/_vercel/insights/script.js", and the beacon endpoint is left
+ *    unset so it defaults to the same origin too. Covered by script-src 'self'
+ *    and connect-src 'self'; no external host needed.
+ *  • "Segnala un problema" button — POSTs to /api/support/bug-report, same
+ *    origin. Covered by connect-src 'self'.
+ *  • Insight pagination — same-origin GET /api/ai/insights. Covered.
+ *  • Still nothing external: no <iframe>, no <script src>, no remote images
+ *    (no images.remotePatterns configured), no <object>/<embed>, no <video>/
+ *    <audio>, no eval()/new Function(), no Web Worker. app/manifest.ts is
+ *    served same-origin, so manifest-src falls back to default-src 'self'
+ *    correctly. The Stripe redirect is window.location.href — a top-level
+ *    NAVIGATION, so neither form-action nor frame-src applies to it.
+ *
+ * ── ⚠️ DEV AND PRODUCTION DO NOT GET THE SAME POLICY ──
+ * buildCsp(isDev) returns DIFFERENT policies, so a clean console in the
+ * Codespace does NOT prove the production policy is safe:
+ *  • dev adds 'unsafe-eval' and ws:/wss: (React Refresh + HMR);
+ *  • dev loads analytics from the EXTERNAL https://va.vercel-scripts.com
+ *    (script.debug.js — see getScriptSrc's isDevelopment() branch), which the
+ *    dev policy does not list, while production loads it same-origin.
+ * The only meaningful validation is a deployed environment with the header
+ * still in Report-Only. Enable enforcement by setting CSP_ENFORCE=true on
+ * Vercel (no code change); remove the variable and redeploy to fall straight
+ * back to Report-Only.
  */
 const CSP_ENFORCE = process.env.CSP_ENFORCE === 'true';
 const CSP_HEADER_NAME = CSP_ENFORCE

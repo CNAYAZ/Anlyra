@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { COMPANY } from '@/lib/company';
 
 interface PasswordResetParams {
   userName: string;
@@ -55,7 +56,7 @@ export function passwordResetTemplate(params: PasswordResetParams): string {
     <p style="margin:24px 0 0;padding:16px;background-color:#FFF8F0;border-left:3px solid #E8DFD0;border-radius:0 4px 4px 0;font-size:13px;color:#6B6760;">
       <strong style="color:#2A2520;">Non hai richiesto questo reset?</strong>
       La tua password attuale rimane valida e il tuo account è al sicuro. Puoi ignorare questa email.
-      Se noti attività sospette, <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contattaci subito</a>.
+      Se noti attività sospette, <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">contattaci subito</a>.
     </p>
   `;
 

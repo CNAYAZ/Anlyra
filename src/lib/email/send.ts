@@ -1,4 +1,5 @@
 import { resend, isEmailEnabled } from './client';
+import { COMPANY } from '@/lib/company';
 
 /**
  * One file attachment. Mirrors the shape Resend's SDK accepts (content as a
@@ -40,7 +41,7 @@ interface SendEmailResult {
   error?: string;
 }
 
-const DEFAULT_FROM = process.env.RESEND_FROM || 'Anlyra <noreply@anlyra.com>';
+const DEFAULT_FROM = process.env.RESEND_FROM || `Anlyra <${COMPANY.noreplyEmail}>`;
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   if (!isEmailEnabled() || !resend) {

@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { COMPANY } from '@/lib/company';
 
 interface Trial1DayParams {
   userName: string;
@@ -52,7 +53,7 @@ export function trialOneDayTemplate(params: Trial1DayParams): string {
           <p style="margin:0;font-size:13px;color:#2A2520;">
             <strong>Garanzia 14 giorni.</strong>
             <span style="color:#6B6760;"> Se dopo il primo addebito non sei soddisfatto, rimborsiamo senza domande.
-            Scrivi a <a href="mailto:contact@anlyra.com" style="color:#5B6F4E;">contact@anlyra.com</a>.</span>
+            Scrivi a <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.</span>
           </p>
         </td>
       </tr>

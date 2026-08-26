@@ -34,7 +34,7 @@ const WINDOWS = {
   'share-token-ip': [30, '10 m'],
   // AI analysis (expensive Anthropic calls) — per IP+org, abuse guard
   'ai-analyze': [20, '10 m'],
-  // Bug report submission (sends an email to contact@anlyra.com) — anti
+  // Bug report submission (sends an email to the contact address) — anti
   // email-bombing, same ip/user split and shape as forgot-password.
   'bug-report-ip': [5, '15 m'],
   'bug-report-user': [3, '1 h'],
