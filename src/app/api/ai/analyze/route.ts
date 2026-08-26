@@ -157,6 +157,7 @@ export async function POST(req: NextRequest) {
             // extend, only this one reusable system block.
             cacheSystemPrompt: true,
             logLabel: `analyze:${type}`,
+            surface: 'analyze',
           })) {
             controller.enqueue(encoder.encode(chunk));
           }
@@ -185,6 +186,7 @@ export async function POST(req: NextRequest) {
     const result = await chatComplete(systemPrompt, messages, {
       cacheSystemPrompt: true,
       logLabel: `analyze:${type}`,
+      surface: 'analyze',
     });
     return ok({
       text: result.text,

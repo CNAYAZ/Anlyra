@@ -129,6 +129,9 @@ export async function POST(req: NextRequest) {
         // full price on every single message.
         cacheLastMessage: true,
         logLabel: 'chat',
+        // Full business context + open-ended question: stays on the default
+        // model (see @/lib/ai/models).
+        surface: 'chat',
       },
     );
     assistantText = result.text;
