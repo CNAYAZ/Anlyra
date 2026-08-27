@@ -1,6 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { DEFAULT_AI_MODEL, modelFor, type AiSurface } from '@/lib/ai/models';
 
-export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+/**
+ * The model used when a caller names no surface. Kept exported because it was
+ * exported before; the per-surface choice now lives in @/lib/ai/models.
+ */
+export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || DEFAULT_AI_MODEL;
 export const ANTHROPIC_TEMPERATURE = 0.4;
 export const ANTHROPIC_MAX_TOKENS = process.env.ANTHROPIC_MAX_TOKENS
   ? parseInt(process.env.ANTHROPIC_MAX_TOKENS, 10)
@@ -83,6 +88,13 @@ export type ChatCompleteOptions = {
   cacheLastMessage?: boolean;
   /** Short label for the usage log line only (see logUsage) — never sent to the API. */
   logLabel?: string;
+  /**
+   * Which AI surface this call belongs to — decides WHICH MODEL is used (see
+   * @/lib/ai/models). Omitting it keeps the pre-existing behaviour: the default
+   * model. A caller that forgets it therefore overpays; it never silently
+   * downgrades the answer.
+   */
+  surface?: AiSurface;
 };
 
 function buildSystemParam(
@@ -119,15 +131,27 @@ function buildMessagesParam(
  * under REAL traffic, which local development cannot reproduce. See the
  * prompt caching report for how to read `cacheRead`/`cacheWrite`.
  */
-function logUsage(label: string, usage: Anthropic.Usage | undefined): void {
+function logUsage(label: string, model: string, usage: Anthropic.Usage | undefined): void {
   if (!usage) return;
   const withCache = usage as UsageWithCache;
   const cacheRead = withCache.cache_read_input_tokens ?? 0;
   const cacheWrite = withCache.cache_creation_input_tokens ?? 0;
+  // `model` is on the line because tokens alone cannot tell you what a call
+  // COST: the same token counts are worth different money on different models.
+  // Without it there is no way to check from the logs that a per-surface choice
+  // is actually in force in production, nor to attribute the bill.
   console.info(
-    `[ai:usage] ${label} input=${usage.input_tokens} output=${usage.output_tokens} ` +
+    `[ai:usage] ${label} model=${model} input=${usage.input_tokens} output=${usage.output_tokens} ` +
       `cacheRead=${cacheRead} cacheWrite=${cacheWrite}`,
   );
+}
+
+/**
+ * The model for this call: the surface's choice, or the default when the caller
+ * named no surface.
+ */
+function resolveModel(options: ChatCompleteOptions): string {
+  return options.surface ? modelFor(options.surface) : ANTHROPIC_MODEL;
 }
 
 export async function chatComplete(
@@ -136,15 +160,16 @@ export async function chatComplete(
   options: ChatCompleteOptions = {},
 ): Promise<{ text: string; tokensIn?: number; tokensOut?: number }> {
   const c = getAnthropicClient();
+  const model = resolveModel(options);
   const res = await c.messages.create({
-    model: ANTHROPIC_MODEL,
+    model,
     // temperature is deprecated/rejected by claude-sonnet-5 (400
     // invalid_request_error), so it is intentionally not passed.
     max_tokens: options.maxTokens ?? ANTHROPIC_MAX_TOKENS,
     system: buildSystemParam(systemPrompt, options.cacheSystemPrompt),
     messages: buildMessagesParam(messages, options.cacheLastMessage),
   });
-  logUsage(options.logLabel ?? 'chatComplete', res.usage);
+  logUsage(options.logLabel ?? 'chatComplete', model, res.usage);
   const block = res.content.find((b) => b.type === 'text');
   const text = block && block.type === 'text' ? block.text : '';
   return {
@@ -169,8 +194,9 @@ export async function* chatStream(
   options: ChatCompleteOptions = {},
 ): AsyncGenerator<string> {
   const c = getAnthropicClient();
+  const model = resolveModel(options);
   const stream = c.messages.stream({
-    model: ANTHROPIC_MODEL,
+    model,
     max_tokens: options.maxTokens ?? ANTHROPIC_MAX_TOKENS,
     system: buildSystemParam(systemPrompt, options.cacheSystemPrompt),
     messages: buildMessagesParam(messages, options.cacheLastMessage),
@@ -185,7 +211,7 @@ export async function* chatStream(
   // cache fields) even when consuming events one at a time.
   try {
     const final = await stream.finalMessage();
-    logUsage(options.logLabel ?? 'chatStream', final.usage);
+    logUsage(options.logLabel ?? 'chatStream', model, final.usage);
   } catch (e) {
     // finalMessage() rejects if the underlying stream itself errored or was
     // aborted — that failure already propagated out of the `for await` above

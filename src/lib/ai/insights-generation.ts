@@ -1,4 +1,5 @@
-import { chatComplete, ANTHROPIC_MODEL } from '@/lib/ai/client';
+import { chatComplete } from '@/lib/ai/client';
+import { modelFor } from '@/lib/ai/models';
 import type { AIBusinessContext } from '@/lib/ai-context';
 import { DATA_GAPS_TONE_INSIGHTS } from '@/lib/ai/prompts/tone';
 
@@ -44,8 +45,19 @@ export class InvalidInsightResponseError extends Error {
 export const MIN_INSIGHTS = 3;
 export const MAX_INSIGHTS = 5;
 
-/** Marks rows produced by a real model call. Read by the UI to show the AI badge. */
-export const AI_SOURCE = `ai:${ANTHROPIC_MODEL}`;
+/**
+ * Marks rows produced by a real model call. Read by the UI to show the AI badge
+ * (the check is `source.startsWith('ai:')`, see the insights GET route).
+ *
+ * A FUNCTION, not a constant: the model is now resolved per surface and read
+ * from the environment at call time, so a module-level constant would freeze
+ * whatever was configured the first time this file happened to be imported. It
+ * names the model that actually generated the row, which is the point of storing
+ * it — a stored provenance that lies is worse than none.
+ */
+export function aiSource(): string {
+  return `ai:${modelFor('insights')}`;
+}
 
 // Kept short on purpose (was 2000/400). 5 insights × long fields is what pushed a
 // real generation past the 4096-token response budget: the model kept writing
@@ -315,7 +327,13 @@ export async function generateInsights(
   const { text } = await chatComplete(
     buildSystemPrompt(locale),
     [{ role: 'user', content: buildUserMessage(ctx) }],
-    { maxTokens: INSIGHTS_MAX_TOKENS },
+    {
+      maxTokens: INSIGHTS_MAX_TOKENS,
+      // Stays on the default model: this is the call that turns real numbers
+      // into the advice the product is sold on (see @/lib/ai/models).
+      surface: 'insights',
+      logLabel: 'insights:generate',
+    },
   );
 
   const arr = extractJsonArray(text);

@@ -148,8 +148,18 @@ export async function analyzeAlert(
   alert: AlertForAnalysis,
   orgContext?: OrgContext,
 ): Promise<AlertAnalysis> {
-  const { text } = await chatComplete(SYSTEM_PROMPT, [
-    { role: 'user', content: buildUserMessage(alert, orgContext) },
-  ]);
+  const { text } = await chatComplete(
+    SYSTEM_PROMPT,
+    [{ role: 'user', content: buildUserMessage(alert, orgContext) }],
+    {
+      // The one surface on the cheaper model — see @/lib/ai/models for why this
+      // task in particular can afford it. No caching flags: this call has no
+      // reusable prefix (a different alert every time) and the whole request is
+      // ~600 tokens, far below ANY model's minimum cacheable prefix, so asking
+      // for caching here would have been a no-op even before the model changed.
+      surface: 'alerts',
+      logLabel: 'alerts:analyze',
+    },
+  );
   return parseAnalysisResponse(text);
 }

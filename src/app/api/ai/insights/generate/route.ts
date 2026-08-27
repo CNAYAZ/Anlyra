@@ -12,7 +12,7 @@ import { loadBusinessContext } from '@/lib/ai-context';
 import {
   generateInsights,
   InvalidInsightResponseError,
-  AI_SOURCE,
+  aiSource,
 } from '@/lib/ai/insights-generation';
 
 export const runtime = 'nodejs';
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
         summary: g.summary,
         content: g.content,
         confidence: g.confidence,
-        source: AI_SOURCE,
+        source: aiSource(),
       })),
     });
 
