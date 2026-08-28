@@ -125,16 +125,23 @@ export function AgentClient() {
           // status-only mapping below.
         }
         const insufficientCredits = res.status === 402 && code === 'INSUFFICIENT_CREDITS';
+        // RATE_LIMIT_UNAVAILABLE is also a 503, but it means "the rate limiter
+        // is down and this bucket is fail-closed" — NOT "the AI is not
+        // configured". Checked on the CODE before the status, or the user would
+        // be told to contact support about a transient outage that clears itself.
+        const rateLimiterDown = code === 'RATE_LIMIT_UNAVAILABLE';
         patch(m, {
           error: insufficientCredits
             ? t('errors.noCredits')
-            : res.status === 402
-              ? t('errors.trialExpired')
-              : res.status === 429
-                ? t('errors.rateLimit')
-                : res.status === 503
-                  ? t('errors.notConfigured')
-                  : t('errors.generic'),
+            : rateLimiterDown
+              ? t('errors.rateLimitUnavailable')
+              : res.status === 402
+                ? t('errors.trialExpired')
+                : res.status === 429
+                  ? t('errors.rateLimit')
+                  : res.status === 503
+                    ? t('errors.notConfigured')
+                    : t('errors.generic'),
           creditsExhausted: insufficientCredits,
           loading: false,
         });

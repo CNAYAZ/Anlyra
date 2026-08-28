@@ -27,9 +27,16 @@ const providers = [
 
       // Rate-limit brute force that bypasses /api/auth/precheck by calling the
       // credentials provider directly. Keyed by email into the SAME 'login-email'
-      // bucket as precheck, so the two paths share one budget. Over the limit →
-      // deny like invalid credentials (return null). checkRateLimit fails OPEN on
-      // any limiter error, so an Upstash outage never blocks a legitimate login.
+      // bucket as precheck, so the two paths share one budget.
+      //
+      // 'login-email' is FAIL-CLOSED, so this now also denies when the limiter
+      // itself is unreachable. That is the intended trade-off: during an Upstash
+      // outage, password login is refused rather than left unmetered. NextAuth's
+      // authorize() can only say yes or no — it has no channel for "try again
+      // shortly" — so the outage surfaces as a failed sign-in here. The precheck
+      // route the login form calls FIRST does distinguish the two cases and
+      // shows the proper message (503 RATE_LIMIT_UNAVAILABLE), so in the real UI
+      // the user sees the honest explanation before ever reaching this point.
       const emailLimit = await checkRateLimit('login-email', email.trim().toLowerCase());
       if (!emailLimit.success) return null;
 

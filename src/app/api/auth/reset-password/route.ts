@@ -2,18 +2,13 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { validatePassword, PASSWORD_POLICY } from '@/lib/auth/config';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { error: 'TOO_MANY_REQUESTS' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 export async function POST(req: Request) {
   const ipLimit = await checkRateLimit('reset-ip', getClientIp(req));
-  if (!ipLimit.success) return tooManyRequests(ipLimit.reset);
+  if (!ipLimit.success) return authRateLimitResponse(ipLimit);
 
   let body: { token?: string; password?: string };
   try {

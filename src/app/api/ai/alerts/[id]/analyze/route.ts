@@ -4,6 +4,8 @@ import { getAuthContext } from '@/lib/session';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,17 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
     const { organizationId } = authCtx;
+
+    // 0. Rate limit. This route calls the Anthropic model, and until now it was
+    //    the ONLY model-calling route with no limiter at all — credits were the
+    //    sole bound, and credits can be bought. Keyed per IP+org like
+    //    /api/ai/analyze, and FAIL-CLOSED for the same reason: an unverifiable
+    //    limiter must not open an unmetered path to a billed API.
+    const rl = await checkRateLimit(
+      'ai-alert-analyze',
+      `${getClientIp(_req)}:org:${organizationId}`,
+    );
+    if (!rl.success) return rateLimitResponse(rl);
 
     // 1. Ownership: alert must exist and belong to the current org.
     const alert = await prisma.alert.findFirst({

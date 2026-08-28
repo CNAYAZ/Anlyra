@@ -34,6 +34,10 @@ const COPY = {
     generic: 'Accesso non riuscito. Riprova.',
     deletionPending:
       'Questo account è stato chiuso su tua richiesta e non è più accessibile. Se si tratta di un errore, scrivi all’assistenza prima che la cancellazione diventi definitiva.',
+    tokenInvalid: 'Il link di verifica non è valido o è scaduto. Richiedine uno nuovo.',
+    rateLimited: 'Troppi tentativi. Attendi qualche minuto e riprova.',
+    serviceUnavailable:
+      'Non riusciamo a completare la verifica in questo momento. Riprova tra qualche minuto.',
   },
   en: {
     title: 'Sign in to Anlyra',
@@ -58,6 +62,10 @@ const COPY = {
     generic: 'Sign-in failed. Please try again.',
     deletionPending:
       'This account was closed at your request and can no longer be accessed. If this is a mistake, contact support before the deletion becomes permanent.',
+    tokenInvalid: 'This verification link is invalid or has expired. Request a new one.',
+    rateLimited: 'Too many attempts. Wait a few minutes and try again.',
+    serviceUnavailable:
+      'We cannot complete the verification right now. Please try again in a few minutes.',
   },
 } as const;
 
@@ -68,13 +76,30 @@ function LoginPageInner() {
   const t = COPY[locale];
   const callbackUrl = search.get('callbackUrl') || `/${locale}/overview`;
 
+  // Errors handed over in the URL by endpoints that REDIRECT here instead of
+  // answering with JSON — /api/auth/verify-email is opened by clicking a link in
+  // an email, so its caller is a browser and a JSON body would render as raw
+  // text on a blank page.
+  //
+  // The route already emitted ?error=token_invalid, but nothing on this page
+  // ever read the parameter, so an expired verification link silently produced
+  // a plain login form with no explanation. Reading it here fixes that too.
+  const urlErrorCopy: Record<string, string> = {
+    token_invalid: t.tokenInvalid,
+    rate_limited: t.rateLimited,
+    service_unavailable: t.serviceUnavailable,
+  };
+  const urlError = urlErrorCopy[search.get('error') ?? ''] ?? '';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [needs2fa, setNeeds2fa] = useState(false);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // Seeded from the URL so the message is visible on first paint; a later
+  // submit overwrites it with whatever that attempt produced.
+  const [error, setError] = useState(urlError);
   const [notVerified, setNotVerified] = useState(false);
   const [resent, setResent] = useState(false);
 

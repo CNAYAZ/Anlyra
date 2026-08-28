@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { reportConfigSchema } from '@/lib/reports/types';
 import { renderReportPdf, pdfResponse } from '@/lib/reports/render';
 import { getAuthContext } from '@/lib/session';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,12 +24,7 @@ export async function POST(req: NextRequest) {
     'report-generate-ip',
     `${getClientIp(req)}:org:${ctx.organizationId}`,
   );
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: 'TOO_MANY_REQUESTS' },
-      { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(rl.reset)) } },
-    );
-  }
+  if (!rl.success) return authRateLimitResponse(rl);
 
   let body: unknown;
   try {

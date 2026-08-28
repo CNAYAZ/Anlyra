@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { consumeCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
@@ -44,12 +45,6 @@ const GenerateSchema = z.object({
   locale: z.enum(['it', 'en']).optional(),
 });
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { success: false, error: 'RATE_LIMITED' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,7 +60,7 @@ export async function POST(req: NextRequest) {
     // 3. Rate limit per IP+org. Shares the 'ai-analyze' budget: it is the same
     //    resource being protected (expensive Anthropic calls from one org).
     const rl = await checkRateLimit('ai-analyze', `${getClientIp(req)}:org:${organizationId}`);
-    if (!rl.success) return tooManyRequests(rl.reset);
+    if (!rl.success) return rateLimitResponse(rl);
 
     // 4. Input. An absent body is fine — locale is optional.
     const json = await req.json().catch(() => null);

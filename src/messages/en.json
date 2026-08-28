@@ -353,7 +353,8 @@
     "signup": "Sign up",
     "logout": "Sign out",
     "dashboard": "Dashboard",
-    "settings": "Settings"
+    "settings": "Settings",
+    "rateLimitUnavailable": "We cannot complete this request right now. Please try again in a few minutes."
   },
   "periods": {
     "1m": "Last month",
@@ -937,7 +938,8 @@
       "REVIEWED": "Reviewed",
       "IMPLEMENTED": "Implemented",
       "IGNORED": "Ignored"
-    }
+    },
+    "generateErrorUnavailable": "Service temporarily unavailable. Please try again in a few minutes."
   },
   "alerts": {
     "title": "Smart Alerts",
@@ -981,7 +983,8 @@
       "READ": "Read",
       "RESOLVED": "Resolved",
       "DISMISSED": "Dismissed"
-    }
+    },
+    "analyzeErrorUnavailable": "Service temporarily unavailable. Please try again in a few minutes."
   },
   "situazione": {
     "title": "Status",
@@ -1252,7 +1255,8 @@
       "notConfigured": "AI is not configured. Please contact support.",
       "generic": "Something went wrong. Please try again.",
       "trialExpired": "Your trial has ended. Subscribe to keep using this feature.",
-      "noCredits": "Your plan's AI credits have run out. Upgrade to a higher plan to continue."
+      "noCredits": "Your plan's AI credits have run out. Upgrade to a higher plan to continue.",
+      "rateLimitUnavailable": "Service temporarily unavailable. Please try again in a few minutes."
     }
   },
   "dataImport": {
