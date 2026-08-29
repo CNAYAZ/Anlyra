@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { auditLog } from '@/lib/audit/log';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export async function POST(req: Request) {
@@ -48,6 +48,10 @@ export async function POST(req: Request) {
       twoFactorBackupCodes: null,
     },
   });
+
+  // Correct password: not a guess, so the budget resets. A WRONG one still
+  // consumes it, which is what guards this route.
+  await resetRateLimit('2fa-disable-user', userId);
 
   await auditLog({ action: 'two_factor.disable', userId, req });
   return NextResponse.json({ success: true });

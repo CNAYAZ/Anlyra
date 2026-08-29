@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 
@@ -33,6 +33,19 @@ export async function POST(req: Request) {
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return NextResponse.json({ valid: false });
+
+  // The password is correct, so this attempt was not a guess: give the per-email
+  // budget back. Without this the user pays for their own successful logins and
+  // eventually locks themselves out — and they pay MORE than someone who types
+  // the wrong password, since a correct one also goes on to spend a token in
+  // authorize().
+  //
+  // Only 'login-email' is cleared, never 'login-ip'. That distinction is the
+  // security-relevant part: someone holding one valid account could otherwise
+  // log into it repeatedly to wipe the per-IP counter and keep hammering OTHER
+  // addresses from the same machine for free. The per-IP budget must keep
+  // counting everything that comes from that IP, correct or not.
+  await resetRateLimit('login-email', email);
 
   return NextResponse.json({
     valid: true,

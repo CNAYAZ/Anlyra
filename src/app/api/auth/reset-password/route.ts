@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { validatePassword, PASSWORD_POLICY } from '@/lib/auth/config';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 
@@ -47,6 +47,10 @@ export async function POST(req: Request) {
       emailVerified: user.emailVerified ?? new Date(),
     },
   });
+
+  // Valid token, password changed: the caller proved they hold the reset link,
+  // so the token-guessing budget starts over. Invalid tokens keep consuming it.
+  await resetRateLimit('reset-ip', getClientIp(req));
 
   return NextResponse.json({ success: true });
 }

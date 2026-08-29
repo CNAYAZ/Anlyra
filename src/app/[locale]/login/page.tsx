@@ -35,7 +35,9 @@ const COPY = {
     deletionPending:
       'Questo account è stato chiuso su tua richiesta e non è più accessibile. Se si tratta di un errore, scrivi all’assistenza prima che la cancellazione diventi definitiva.',
     tokenInvalid: 'Il link di verifica non è valido o è scaduto. Richiedine uno nuovo.',
-    rateLimited: 'Troppi tentativi. Attendi qualche minuto e riprova.',
+    rateLimited: 'Troppi tentativi di accesso. Attendi qualche minuto e riprova.',
+    tooManyAttemptsIn:
+      'Troppi tentativi di accesso. Riprova tra {minutes} minuti. Le tue credenziali potrebbero essere corrette: non è un errore di password.',
     serviceUnavailable:
       'Non riusciamo a completare la verifica in questo momento. Riprova tra qualche minuto.',
   },
@@ -63,7 +65,9 @@ const COPY = {
     deletionPending:
       'This account was closed at your request and can no longer be accessed. If this is a mistake, contact support before the deletion becomes permanent.',
     tokenInvalid: 'This verification link is invalid or has expired. Request a new one.',
-    rateLimited: 'Too many attempts. Wait a few minutes and try again.',
+    rateLimited: 'Too many sign-in attempts. Wait a few minutes and try again.',
+    tooManyAttemptsIn:
+      'Too many sign-in attempts. Try again in {minutes} minutes. Your credentials may well be correct — this is not a password error.',
     serviceUnavailable:
       'We cannot complete the verification right now. Please try again in a few minutes.',
   },
@@ -117,11 +121,32 @@ function LoginPageInner() {
     setLoading(true);
     try {
       // Pre-check so we can branch on 2FA / email-verification before signIn.
-      const pre = await fetch('/api/auth/precheck', {
+      const preRes = await fetch('/api/auth/precheck', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-      }).then((r) => r.json());
+      });
+
+      // The status has to be read BEFORE the body. A refusal here carries no
+      // `valid` field, so the old code (which only parsed JSON and tested
+      // `pre.valid`) fell through to "wrong email or password" — telling a user
+      // who was rate-limited that their credentials were wrong. They then retry,
+      // which is the one thing that makes it worse.
+      if (preRes.status === 429) {
+        // Retry-After is sent by the server; turn it into plain minutes rather
+        // than showing the user a raw number of seconds.
+        const seconds = Number(preRes.headers.get('Retry-After'));
+        const minutes = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds / 60) : null;
+        setError(minutes ? t.tooManyAttemptsIn.replace('{minutes}', String(minutes)) : t.rateLimited);
+        return;
+      }
+      if (preRes.status === 503) {
+        // Our limiter is down and this bucket is fail-closed: not the user's fault.
+        setError(t.serviceUnavailable);
+        return;
+      }
+
+      const pre = await preRes.json();
 
       if (!pre.valid) {
         setError(t.invalid);

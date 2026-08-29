@@ -52,9 +52,27 @@ type BucketConfig = {
 const BUCKETS = {
   // ── AUTHENTICATION — fail-closed ────────────────────────────────────────
   // An unverifiable limiter here means unlimited password guessing.
-  // login/precheck: generous per-IP (tolerates typos / shared NAT) + tighter per-email
-  'login-ip': { limit: 10, window: '10 m', onFailure: 'closed' },
-  'login-email': { limit: 5, window: '15 m', onFailure: 'closed' },
+  //
+  // ── LOGIN BUDGETS, AND WHY THEY WERE RAISED ──
+  // 'login-email' now counts FAILURES ONLY: a correct password clears it (see
+  // resetRateLimit). Before that it charged every attempt, and a success cost
+  // TWO tokens (precheck + authorize) against a limit of 5 — so the third
+  // consecutive successful sign-in already exhausted it and the fourth was
+  // refused. 5 was also tight for an honest person who genuinely mistypes:
+  // 8 wrong passwords in 15 minutes is still hopeless for an attacker (32/hour
+  // against one account) but leaves room for someone rummaging for the right one.
+  //
+  // 'login-ip' is deliberately NOT reset on success — someone holding one valid
+  // account could otherwise sign into it on a loop to wipe the per-IP counter
+  // and keep spraying other addresses from the same machine. But that means a
+  // SUCCESSFUL login still costs an IP token, so 10 per 10 minutes locked out
+  // any shared address: an office behind one NAT where a dozen people sign in
+  // each morning, a co-working space, or simply testing the login a few times.
+  // 30 fits those, and the real defence against a targeted attack is the
+  // per-email budget anyway — this one only bounds spraying across many
+  // addresses from one source.
+  'login-ip': { limit: 30, window: '10 m', onFailure: 'closed' },
+  'login-email': { limit: 8, window: '15 m', onFailure: 'closed' },
   // account creation (sends a verification email each time)
   'register-ip': { limit: 5, window: '1 h', onFailure: 'closed' },
   // password reset request (sends an email — anti email-bombing)
@@ -253,6 +271,47 @@ export async function checkRateLimit(
     // can be an email address or an IP.
     console.error(`${UNAVAILABLE_TAG} cause=error action=${action} stage=limit:`, err);
     return onUnverifiable(action, 'error');
+  }
+}
+
+/**
+ * Clear the budget for one identifier after the caller PROVED they are
+ * legitimate — a correct password, a valid 2FA code, a valid reset token.
+ *
+ * ── WHY THIS EXISTS ──
+ * These buckets exist to stop someone GUESSING. Charging a token for an attempt
+ * that turned out to be correct means an honest user who signs in and out a few
+ * times locks themselves out — which is exactly what happened: a successful
+ * login spent TWO tokens of the 5-per-15-minutes 'login-email' budget (one in
+ * /api/auth/precheck, one in authorize()), while a WRONG password spent only
+ * one, because precheck answers `valid:false` and the form never reaches
+ * signIn(). The budget was charging success more than failure.
+ *
+ * ── WHY RESET-ON-SUCCESS, AND NOT "COUNT ONLY FAILURES" ──
+ * The obvious alternative is to peek at the counter without consuming and to
+ * charge a token only after a failure. It is worse here:
+ *   • `limit()` is a single atomic operation; `getRemaining()` + a later write
+ *     is not. Between the peek and the charge, any number of concurrent
+ *     requests read the same "still under the limit" value and all proceed —
+ *     precisely the burst a brute-force script produces.
+ *   • It would also mean the check no longer protects the expensive work
+ *     (bcrypt) that sits between the two calls.
+ * Consuming first and clearing afterwards keeps the atomic guarantee and never
+ * widens the window. Someone who does NOT know the password can never reach the
+ * reset, so the protection against failed attempts is untouched: they still get
+ * the full, unchanged budget and nothing refunds it.
+ *
+ * Failures here are swallowed on purpose: this runs AFTER a successful
+ * authentication, and a Redis hiccup while clearing a counter must never turn a
+ * valid login into a failed one. The worst case is the old behaviour.
+ */
+export async function resetRateLimit(action: RateLimitAction, identifier: string): Promise<void> {
+  try {
+    const limiter = getLimiter(action);
+    if (!limiter) return;
+    await limiter.resetUsedTokens(identifier);
+  } catch (err) {
+    console.error(`${UNAVAILABLE_TAG} cause=error action=${action} stage=reset:`, err);
   }
 }
 

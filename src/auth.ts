@@ -6,7 +6,7 @@ import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 
 // Build the providers list, including OAuth only when credentials are present
@@ -77,6 +77,15 @@ const providers = [
         });
         if (!valid) throw new Error('2FA_INVALID');
       }
+
+      // Authentication fully succeeded (password + deletion + verification +
+      // 2FA all passed): clear the per-email brute-force budget, so signing in
+      // correctly does not push the user towards their own lockout. Placed
+      // HERE, after every check, so a request that got the password right but
+      // failed 2FA still leaves the counter charged — that case is exactly the
+      // one the limit is for.
+      // Per-IP is deliberately left alone; see the note in precheck.
+      await resetRateLimit('login-email', email.trim().toLowerCase());
 
       await prisma.user.update({
         where: { id: user.id },

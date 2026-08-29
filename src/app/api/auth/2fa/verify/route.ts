@@ -3,7 +3,7 @@ import speakeasy from 'speakeasy';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { generateBackupCodes } from '@/lib/auth/tokens';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { auditLog } from '@/lib/audit/log';
 
@@ -40,6 +40,12 @@ export async function POST(req: Request) {
   if (!valid) {
     return NextResponse.json({ error: 'INVALID_CODE' }, { status: 400 });
   }
+
+  // Correct code: give the budget back. Same defect as login had — 5 attempts
+  // per 10 minutes was being spent by SUCCESSES too, so a user who set up 2FA,
+  // removed it and set it up again could lock themselves out of their own
+  // second factor. Wrong codes still consume, which is the whole point.
+  await resetRateLimit('2fa-ip', getClientIp(req));
 
   const backupCodes = generateBackupCodes(10);
   await prisma.user.update({
