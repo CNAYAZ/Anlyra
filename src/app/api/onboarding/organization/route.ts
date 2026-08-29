@@ -5,6 +5,8 @@ import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, teamInviteTemplate, welcomeTemplate } from '@/lib/email';
 import { signupCredits } from '@/lib/billing/plan-credits';
 import { COMPANY } from '@/lib/company';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 const TRIAL_DAYS = 7;
 const INVITE_EXPIRY_HOURS = 72;
@@ -28,6 +30,14 @@ export async function POST(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
+
+  // Rate limit per user. This route sends ONE INVITE EMAIL PER ENTRY of a
+  // caller-supplied array, to arbitrary addresses, with the inviter's name in
+  // the subject — i.e. a spam cannon with a legitimate return address, and it
+  // had no limiter of any kind. FAIL-CLOSED, because the cost of an outage here
+  // is measured in sent email and sender reputation.
+  const rl = await checkRateLimit('onboarding-user', userId);
+  if (!rl.success) return authRateLimitResponse(rl);
 
   let body: {
     name?: string;
@@ -86,7 +96,15 @@ export async function POST(req: Request) {
 
   // Create + send invites (best-effort).
   const inviter = await prisma.user.findUnique({ where: { id: userId } });
-  const invites = (body.invites || []).filter((inv) => inv.email && /\S+@\S+\.\S+/.test(inv.email));
+  // Cap the batch. The rate limit above bounds how OFTEN this route runs, but a
+  // single call iterates the caller's array and sends one email per entry — so
+  // without a cap, 3 permitted calls could still mean 30 000 emails. The limiter
+  // and this cap only work as a pair; neither alone bounds the sends.
+  // 20 is above any plausible onboarding team and far below abuse.
+  const MAX_INVITES_PER_REQUEST = 20;
+  const invites = (body.invites || [])
+    .filter((inv) => inv.email && /\S+@\S+\.\S+/.test(inv.email))
+    .slice(0, MAX_INVITES_PER_REQUEST);
   for (const inv of invites) {
     const role = VALID_ROLES.includes(inv.role || '') ? (inv.role as string) : 'viewer';
     const token = generateToken();

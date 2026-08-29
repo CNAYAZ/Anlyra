@@ -4,6 +4,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { validatePassword } from '@/lib/auth/config';
 import { auditLog } from '@/lib/audit/log';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +19,13 @@ export async function POST(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return fail('UNAUTHORIZED', 401);
+
+  // 1b. Rate limit, keyed by user id (not IP: the attacker here is whoever holds
+  //     the session, and they keep the same id whatever network they use).
+  //     This route bcrypt-compares the CURRENT password, so without a limit a
+  //     hijacked or borrowed session can brute-force it offline-fast. FAIL-CLOSED.
+  const rl = await checkRateLimit('change-password-user', userId);
+  if (!rl.success) return rateLimitResponse(rl);
 
   // 2. Read body.
   let body: { currentPassword?: string; newPassword?: string };
@@ -52,6 +61,9 @@ export async function POST(req: Request) {
     where: { id: user.id },
     data: { passwordHash },
   });
+
+  // The current password was correct, so this was not a guess: clear the budget.
+  await resetRateLimit('change-password-user', userId);
 
   await auditLog({ action: 'password.change', userId, req });
   return ok({ success: true });

@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { auditLog } from '@/lib/audit/log';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -10,6 +12,12 @@ export async function POST(req: Request) {
   if (!userId) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
+
+  // Rate limit per user. Succeeding here REMOVES a security control, and it is
+  // gated by a bcrypt.compare against the account password, so it gets a
+  // stricter budget than change-password. FAIL-CLOSED.
+  const rl = await checkRateLimit('2fa-disable-user', userId);
+  if (!rl.success) return authRateLimitResponse(rl);
 
   let body: { password?: string };
   try {
@@ -40,6 +48,10 @@ export async function POST(req: Request) {
       twoFactorBackupCodes: null,
     },
   });
+
+  // Correct password: not a guess, so the budget resets. A WRONG one still
+  // consumes it, which is what guards this route.
+  await resetRateLimit('2fa-disable-user', userId);
 
   await auditLog({ action: 'two_factor.disable', userId, req });
   return NextResponse.json({ success: true });

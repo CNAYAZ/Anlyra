@@ -136,6 +136,9 @@ export default function InsightsPage() {
         NOT_ENOUGH_DATA: t('generateErrorNoData'),
         INVALID_AI_RESPONSE: t('generateErrorModel'),
         RATE_LIMITED: t('generateErrorRateLimited'),
+        // Refused because the rate limiter itself is down (fail-closed bucket),
+        // not because the user did anything wrong.
+        RATE_LIMIT_UNAVAILABLE: t('generateErrorUnavailable'),
         TRIAL_EXPIRED: t('generateErrorTrial'),
       };
       setGenerateError(known[code] ?? t('generateErrorGeneric'));

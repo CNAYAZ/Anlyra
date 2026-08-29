@@ -45,9 +45,15 @@ const severityVariant: Record<AlertSeverity, 'danger' | 'warning' | 'info'> = {
 const ANALYSIS_CREDIT_COST = 1;
 
 /** Map the raw API error string to a user-facing i18n key. */
-function analyzeErrorKey(message: string): 'analyzeErrorCredits' | 'analyzeErrorConfig' | 'analyzeError' {
+function analyzeErrorKey(
+  message: string,
+): 'analyzeErrorCredits' | 'analyzeErrorConfig' | 'analyzeErrorUnavailable' | 'analyzeError' {
   if (message.includes('INSUFFICIENT_CREDITS')) return 'analyzeErrorCredits';
   if (message.includes('ANTHROPIC_API_KEY')) return 'analyzeErrorConfig';
+  // The rate limiter is unreachable and this bucket is fail-closed: the request
+  // was refused for OUR reason, so the user is told to retry shortly rather
+  // than being blamed for sending too many requests.
+  if (message.includes('RATE_LIMIT_UNAVAILABLE')) return 'analyzeErrorUnavailable';
   return 'analyzeError';
 }
 

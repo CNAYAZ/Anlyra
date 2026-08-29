@@ -353,7 +353,8 @@
     "signup": "Registrati",
     "logout": "Esci",
     "dashboard": "Dashboard",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "rateLimitUnavailable": "Non riusciamo a completare la richiesta in questo momento. Riprova tra qualche minuto."
   },
   "periods": {
     "1m": "Ultimo mese",
@@ -937,7 +938,8 @@
       "REVIEWED": "Rivisto",
       "IMPLEMENTED": "Implementato",
       "IGNORED": "Ignorato"
-    }
+    },
+    "generateErrorUnavailable": "Servizio momentaneamente non disponibile. Riprova tra qualche minuto."
   },
   "alerts": {
     "title": "Alert Intelligenti",
@@ -981,7 +983,8 @@
       "READ": "Letto",
       "RESOLVED": "Risolto",
       "DISMISSED": "Ignorato"
-    }
+    },
+    "analyzeErrorUnavailable": "Servizio momentaneamente non disponibile. Riprova tra qualche minuto."
   },
   "situazione": {
     "title": "Situazione",
@@ -1252,7 +1255,8 @@
       "notConfigured": "AI non configurata. Contatta il supporto.",
       "generic": "Si è verificato un errore. Riprova.",
       "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione.",
-      "noCredits": "Crediti AI del piano terminati. Passa a un piano superiore per continuare."
+      "noCredits": "Crediti AI del piano terminati. Passa a un piano superiore per continuare.",
+      "rateLimitUnavailable": "Servizio momentaneamente non disponibile. Riprova tra qualche minuto."
     }
   },
   "dataImport": {

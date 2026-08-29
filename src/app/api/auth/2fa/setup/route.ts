@@ -3,6 +3,8 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export async function POST() {
   const session = await auth();
@@ -11,6 +13,12 @@ export async function POST() {
   if (!userId || !email) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
+
+  // Rate limit per user. Each call generates a new secret and OVERWRITES the
+  // stored one, so a loop here both burns CPU on QR rendering and repeatedly
+  // invalidates a setup the user may be halfway through. FAIL-CLOSED (auth).
+  const rl = await checkRateLimit('2fa-setup-user', userId);
+  if (!rl.success) return authRateLimitResponse(rl);
 
   const secret = speakeasy.generateSecret({ name: `Anlyra:${email}` });
 

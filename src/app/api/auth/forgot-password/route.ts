@@ -2,20 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, passwordResetTemplate } from '@/lib/email';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
 const RESET_EXPIRY_MINUTES = 30;
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { error: 'TOO_MANY_REQUESTS' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 export async function POST(req: Request) {
   const ipLimit = await checkRateLimit('forgot-ip', getClientIp(req));
-  if (!ipLimit.success) return tooManyRequests(ipLimit.reset);
+  if (!ipLimit.success) return authRateLimitResponse(ipLimit);
 
   let body: { email?: string; locale?: string };
   try {
@@ -32,7 +27,7 @@ export async function POST(req: Request) {
     // Per-email cap on reset emails (anti email-bombing). 429 is count-based and
     // reveals nothing about whether the account exists.
     const emailLimit = await checkRateLimit('forgot-email', email);
-    if (!emailLimit.success) return tooManyRequests(emailLimit.reset);
+    if (!emailLimit.success) return authRateLimitResponse(emailLimit);
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
       const token = generateToken();

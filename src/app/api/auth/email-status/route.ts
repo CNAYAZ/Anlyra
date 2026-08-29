@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { error: 'TOO_MANY_REQUESTS' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 export async function GET(req: Request) {
   const ipLimit = await checkRateLimit('email-status-ip', getClientIp(req));
-  if (!ipLimit.success) return tooManyRequests(ipLimit.reset);
+  if (!ipLimit.success) return authRateLimitResponse(ipLimit);
 
   const url = new URL(req.url);
   const email = (url.searchParams.get('email') || '').trim().toLowerCase();

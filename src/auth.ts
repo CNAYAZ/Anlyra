@@ -6,7 +6,7 @@ import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 
 // Build the providers list, including OAuth only when credentials are present
@@ -27,9 +27,16 @@ const providers = [
 
       // Rate-limit brute force that bypasses /api/auth/precheck by calling the
       // credentials provider directly. Keyed by email into the SAME 'login-email'
-      // bucket as precheck, so the two paths share one budget. Over the limit →
-      // deny like invalid credentials (return null). checkRateLimit fails OPEN on
-      // any limiter error, so an Upstash outage never blocks a legitimate login.
+      // bucket as precheck, so the two paths share one budget.
+      //
+      // 'login-email' is FAIL-CLOSED, so this now also denies when the limiter
+      // itself is unreachable. That is the intended trade-off: during an Upstash
+      // outage, password login is refused rather than left unmetered. NextAuth's
+      // authorize() can only say yes or no — it has no channel for "try again
+      // shortly" — so the outage surfaces as a failed sign-in here. The precheck
+      // route the login form calls FIRST does distinguish the two cases and
+      // shows the proper message (503 RATE_LIMIT_UNAVAILABLE), so in the real UI
+      // the user sees the honest explanation before ever reaching this point.
       const emailLimit = await checkRateLimit('login-email', email.trim().toLowerCase());
       if (!emailLimit.success) return null;
 
@@ -70,6 +77,15 @@ const providers = [
         });
         if (!valid) throw new Error('2FA_INVALID');
       }
+
+      // Authentication fully succeeded (password + deletion + verification +
+      // 2FA all passed): clear the per-email brute-force budget, so signing in
+      // correctly does not push the user towards their own lockout. Placed
+      // HERE, after every check, so a request that got the password right but
+      // failed 2FA still leaves the counter charged — that case is exactly the
+      // one the limit is for.
+      // Per-IP is deliberately left alone; see the note in precheck.
+      await resetRateLimit('login-email', email.trim().toLowerCase());
 
       await prisma.user.update({
         where: { id: user.id },

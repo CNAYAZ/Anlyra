@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import {
   chatComplete,
   chatStream,
@@ -53,12 +54,6 @@ type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
 // (/api/ai/chat) and one alert analysis: a request is a request.
 const ANALYSIS_CREDIT_COST = 1;
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { success: false, error: 'RATE_LIMITED' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 export async function POST(req: NextRequest) {
   // Auth (strict): a real logged-in user with an org, no demo fallback.
@@ -73,9 +68,10 @@ export async function POST(req: NextRequest) {
   if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
   // Rate limit per IP+org — AI calls are expensive, so guard against abuse.
-  // Fails open if the limiter is not configured (see rate-limit.ts).
+  // FAIL-CLOSED (see the 'ai-analyze' bucket): if the limiter cannot be reached
+  // the request is refused rather than allowed to bill Anthropic unmetered.
   const rl = await checkRateLimit('ai-analyze', `${getClientIp(req)}:org:${organizationId}`);
-  if (!rl.success) return tooManyRequests(rl.reset);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const json = await req.json().catch(() => null);
   const parsed = AnalyzeSchema.safeParse(json);

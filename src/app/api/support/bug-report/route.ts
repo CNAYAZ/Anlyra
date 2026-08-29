@@ -4,7 +4,8 @@ import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { getBillingState, getCreditBalance } from '@/lib/billing/repository';
-import { checkRateLimit, getClientIp, retryAfterSeconds } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { sendEmail, bugReportTemplate } from '@/lib/email';
 import { auditLog } from '@/lib/audit/log';
 import { APP_TIME_ZONE } from '@/lib/timezone';
@@ -20,12 +21,6 @@ export const dynamic = 'force-dynamic';
 const MAX_DESCRIPTION_CHARS = 5000;
 const MAX_TECH_FIELD_CHARS = 300;
 
-function tooManyRequests(reset: number) {
-  return NextResponse.json(
-    { success: false, error: 'RATE_LIMITED' },
-    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds(reset)) } },
-  );
-}
 
 const BodySchema = z.object({
   description: z.string().trim().min(1).max(MAX_DESCRIPTION_CHARS),
@@ -51,7 +46,7 @@ export async function POST(req: NextRequest) {
   ]);
   const limited = !userLimit.success ? userLimit : !ipLimit.success ? ipLimit : null;
   if (limited) {
-    return tooManyRequests(limited.reset);
+    return rateLimitResponse(limited);
   }
 
   const json = await req.json().catch(() => null);
