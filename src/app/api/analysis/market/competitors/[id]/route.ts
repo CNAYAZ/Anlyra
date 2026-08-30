@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from "@/lib/auth/require-role";
 import { auditLog } from '@/lib/audit/log';
 import { ok, fail } from "@/lib/api";
@@ -22,6 +23,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   try {
     const ctx = await getAuthContext();
     if (!ctx) return fail("Unauthorized", 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(ctx.organizationId);
+    if (readOnly) return readOnly;
     const orgId = ctx.organizationId;
     const body = updateSchema.parse(await req.json());
     const competitor = await prisma.competitor.findFirst({
@@ -49,6 +53,9 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   try {
     const ctx = await getAuthContext();
     if (!ctx) return fail("Unauthorized", 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly1 = requireWritableOrg(ctx.organizationId);
+    if (readOnly1) return readOnly1;
     const denied = requireManagerRole(ctx);
     if (denied) return denied;
     const orgId = ctx.organizationId;

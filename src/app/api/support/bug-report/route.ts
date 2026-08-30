@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { prisma } from '@/lib/prisma';
 import { getBillingState, getCreditBalance } from '@/lib/billing/repository';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -35,6 +36,9 @@ export async function POST(req: NextRequest) {
   // as Anlyra to anyone who finds the endpoint.
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
   const { userId, organizationId, email } = ctx;
 
   // Both per-user and per-IP: a compromised/shared IP (office NAT) must not

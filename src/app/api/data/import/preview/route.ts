@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { getImportTarget, suggestMapping } from '@/lib/import-targets';
 import { ImportParseError, parseImportFile } from '@/lib/import/parse';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { userId, organizationId } = authCtx;
 
     const form = await req.formData();

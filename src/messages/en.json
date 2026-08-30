@@ -3008,5 +3008,13 @@
     "signUpLink": "Start for free",
     "forgotPasswordLink": "Forgot password?",
     "errorInvalid": "Invalid email or password."
+  },
+  "demo": {
+    "banner": {
+      "message": "You are exploring an Anlyra demonstration. The figures shown are invented for demo purposes and belong to no real company. In this mode you can only look around: nothing can be changed.",
+      "cta": "Create your account"
+    },
+    "readOnly": "This action is not available in the demo: the data is read-only. Sign up to use Anlyra with your own data.",
+    "readOnlyShort": "Not available in the demo"
   }
 }

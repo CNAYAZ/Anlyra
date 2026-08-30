@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
 
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return ok({ batch, records, errors });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
 
@@ -47,6 +48,9 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const denied = requireManagerRole(authCtx);
     if (denied) return denied;
     const { organizationId } = authCtx;
@@ -102,6 +106,6 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     });
     return ok({ id: persisted.id, status: persisted.status });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }

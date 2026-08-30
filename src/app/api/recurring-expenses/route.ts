@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { toRecurringExpenseDTO, computeTotals } from '@/lib/recurring-expenses/dto';
 
@@ -34,7 +35,7 @@ export async function GET() {
 
     return ok({ expenses, totals });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
 
@@ -44,6 +45,9 @@ export async function POST(req: Request) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
 
     // Expired trial (or past_due) is read-only: block creating a recurring expense.
@@ -69,6 +73,6 @@ export async function POST(req: Request) {
 
     return ok({ expense: toRecurringExpenseDTO(created) });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }

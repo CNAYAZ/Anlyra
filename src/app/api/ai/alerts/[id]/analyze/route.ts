@@ -1,6 +1,7 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
@@ -17,6 +18,9 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
 
     // 0. Rate limit. This route calls the Anthropic model, and until now it was

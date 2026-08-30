@@ -1,6 +1,7 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { runAllRules } from '@/lib/alerts/rules';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,9 @@ export async function POST() {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
     const triggered = await runAllRules(organizationId);
 

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { generateReminders, suggestTone } from '@/lib/reminders/generate';
 import type { ReminderResponse } from '@/types/receivable';
 
@@ -19,7 +20,17 @@ const BodySchema = z.object({
 // v1: text only — NO email is sent and NO AI is called.
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const { organizationId } = await getCurrentContext();
+    // Switched from getCurrentContext to the STRICT context: this is a POST,
+    // and it was the only mutation-shaped route still resolving through the
+    // fallback, so an anonymous visitor could reach it. It writes nothing and
+    // calls no model, but "reachable anonymously" is not a property a POST
+    // should have.
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
+    const { organizationId } = authCtx;
+
     const json = await req.json().catch(() => ({}));
     const parsed = BodySchema.safeParse(json ?? {});
     if (!parsed.success) return fail('INVALID_INPUT', 400);

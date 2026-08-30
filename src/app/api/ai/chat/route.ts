@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { prisma } from '@/lib/prisma';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import {
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
 
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
   const { userId, organizationId } = ctx;
 
   const json = await req.json().catch(() => null);

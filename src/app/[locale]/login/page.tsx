@@ -40,6 +40,9 @@ const COPY = {
       'Troppi tentativi di accesso. Riprova tra {minutes} minuti. Le tue credenziali potrebbero essere corrette: non è un errore di password.',
     serviceUnavailable:
       'Non riusciamo a completare la verifica in questo momento. Riprova tra qualche minuto.',
+    demoCta: 'Prova la demo',
+    demoHint: 'Dati dimostrativi, sola lettura. Nessuna registrazione richiesta.',
+    demoStarting: 'Apertura demo…',
   },
   en: {
     title: 'Sign in to Anlyra',
@@ -70,6 +73,9 @@ const COPY = {
       'Too many sign-in attempts. Try again in {minutes} minutes. Your credentials may well be correct — this is not a password error.',
     serviceUnavailable:
       'We cannot complete the verification right now. Please try again in a few minutes.',
+    demoCta: 'Try the demo',
+    demoHint: 'Demonstration data, read-only. No sign-up required.',
+    demoStarting: 'Opening demo…',
   },
 } as const;
 
@@ -106,6 +112,24 @@ function LoginPageInner() {
   const [error, setError] = useState(urlError);
   const [notVerified, setNotVerified] = useState(false);
   const [resent, setResent] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  // Starting the demo is a POST, never a link: a GET would be followed by link
+  // prefetching and crawlers, handing a demo session to visitors who never
+  // asked for one. The full reload afterwards is deliberate — the cookie the
+  // route sets is httpOnly and is read on the SERVER by the dashboard layout,
+  // so a client-side router push would render before it is in play.
+  async function startDemo() {
+    setDemoLoading(true);
+    try {
+      const res = await fetch('/api/demo/start', { method: 'POST' });
+      if (!res.ok) throw new Error('demo');
+      window.location.href = `/${locale}/overview`;
+    } catch {
+      setError(t.generic);
+      setDemoLoading(false);
+    }
+  }
 
   async function resendVerification() {
     // Reuse register endpoint? Instead re-trigger via a dedicated path is not
@@ -296,6 +320,25 @@ function LoginPageInner() {
               {t.signup}
             </Link>
           </p>
+
+          {/* Demo entry point. It lives on the LOGIN page because that is where
+              an anonymous visitor now lands when they open any dashboard URL —
+              previously they were dropped straight into the demo without asking,
+              so this is exactly the moment where the choice has to be offered.
+              Visually separated and secondary: it must not compete with the real
+              sign-in, and the hint states up front that the data is not real. */}
+          <div className="mt-6 border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={startDemo}
+              disabled={demoLoading}
+            >
+              {demoLoading ? t.demoStarting : t.demoCta}
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">{t.demoHint}</p>
+          </div>
         </CardContent>
       </Card>
     </main>
