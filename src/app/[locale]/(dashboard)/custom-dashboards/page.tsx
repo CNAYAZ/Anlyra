@@ -70,8 +70,17 @@ export default function CustomDashboardsPage() {
           {data.dashboards.map((d) => (
             <div key={d.id} className="card flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-heading text-base font-semibold">{d.name}</h3>
+                {/* The card title is now the way INTO the dashboard. Until this
+                    change the only control on a card was the delete button, so
+                    a saved dashboard could be created and destroyed but never
+                    opened. */}
+                <div className="min-w-0">
+                  <Link
+                    href={`/custom-dashboards/${d.id}`}
+                    className="font-heading text-base font-semibold hover:text-primary-accent hover:underline"
+                  >
+                    {d.name}
+                  </Link>
                   {d.description && <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>}
                 </div>
                 <button
