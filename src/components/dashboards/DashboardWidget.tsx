@@ -181,33 +181,48 @@ export function DashboardWidget({ widget }: { widget: WidgetConfig }) {
     const d = financial.data;
     if (!d) return <Frame title={widget.title}><EmptyHint hint={hint} /></Frame>;
 
-    // "No movements at all" is the one condition that makes every
-    // FinancialRecord-backed widget empty, so it is checked once here.
+    // "No movements at all" gates chart_revenue_trend below, which — like the
+    // Finance → Revenue page's own trend chart — always shows the FULL
+    // available history regardless of the period picked. `series` is that
+    // unfiltered history, so it is the right check for that one case only.
     const hasMovements = d.series.length > 0;
+
+    // The three kpi_* widgets must NOT read d.kpis: that object is computed
+    // from the single most recent month (`series.at(-1)`, see computeKpis in
+    // lib/analysis/financial.ts) and is therefore the SAME number whatever
+    // `period` is requested — the bug this fix addresses. revenueByCategory /
+    // costsByCategory, by contrast, are built from the period-filtered
+    // transaction set, so summing their categories gives the real total for
+    // the selected window. Their presence is also the correct "any data this
+    // period?" check — d.series being non-empty only proves history exists
+    // SOMEWHERE, not within the chosen period.
+    const periodRevenue = d.revenueByCategory.reduce((sum, c) => sum + c.total, 0);
+    const periodCosts = d.costsByCategory.reduce((sum, c) => sum + c.total, 0);
+    const periodMargin = periodRevenue > 0 ? ((periodRevenue - periodCosts) / periodRevenue) * 100 : 0;
 
     switch (widget.type) {
       case 'kpi_revenue':
         return (
           <Frame title={widget.title}>
-            {hasMovements
-              ? <KpiValue value={formatCurrency(d.kpis.totalRevenue, locale)} caption={t(`period_${period}` as 'period_12m')} />
+            {d.revenueByCategory.length > 0
+              ? <KpiValue value={formatCurrency(periodRevenue, locale)} caption={t(`period_${period}` as 'period_12m')} />
               : <EmptyHint hint={hint} />}
           </Frame>
         );
       case 'kpi_costs':
         return (
           <Frame title={widget.title}>
-            {hasMovements
-              ? <KpiValue value={formatCurrency(d.kpis.totalCosts, locale)} caption={t(`period_${period}` as 'period_12m')} />
+            {d.costsByCategory.length > 0
+              ? <KpiValue value={formatCurrency(periodCosts, locale)} caption={t(`period_${period}` as 'period_12m')} />
               : <EmptyHint hint={hint} />}
           </Frame>
         );
       case 'kpi_margin':
         return (
           <Frame title={widget.title}>
-            {hasMovements
+            {periodRevenue > 0
               ? <KpiValue
-                  value={`${formatNumber(d.kpis.grossMargin, locale, { maximumFractionDigits: 1 })}%`}
+                  value={`${formatNumber(periodMargin, locale, { maximumFractionDigits: 1 })}%`}
                   caption={t(`period_${period}` as 'period_12m')}
                 />
               : <EmptyHint hint={hint} />}

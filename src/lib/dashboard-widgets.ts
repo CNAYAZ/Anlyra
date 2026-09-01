@@ -100,8 +100,12 @@ export const WIDGET_CATALOG: WidgetCatalogEntry[] = [
   { type: 'kpi_customers', labelKey: 'widgetKpiCustomers', descKey: 'widgetKpiCustomersDesc',
     category: 'kpi', options: [], emptyHintKey: 'emptyHintCustomers' },
 
+  // No period option: like the Finance → Revenue page's own trend chart, this
+  // always shows the full available monthly history for context, whatever
+  // period is picked elsewhere. Offering a period selector that silently did
+  // nothing was itself the bug this file once had — see DashboardWidget.tsx.
   { type: 'chart_revenue_trend',   labelKey: 'widgetChartRevenueTrend', descKey: 'widgetChartRevenueTrendDesc',
-    category: 'chart', options: ['period'], emptyHintKey: 'emptyHintFinancial' },
+    category: 'chart', options: [], emptyHintKey: 'emptyHintFinancial' },
   { type: 'chart_costs_breakdown', labelKey: 'widgetChartCosts',        descKey: 'widgetChartCostsDesc',
     category: 'chart', options: ['period'], emptyHintKey: 'emptyHintFinancial' },
   // Cashflow reads CashflowEntry, falling back to a 1:1 derivation from the
