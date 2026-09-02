@@ -110,10 +110,6 @@ function buildCsp(dev) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // react-grid-layout ships CJS-only which causes webpack 5 to hang analyzing
-  // the module graph when the package is pulled through dynamic imports.
-  // transpilePackages forces webpack to treat them as transpilable sources.
-  transpilePackages: ['react-grid-layout', 'react-resizable'],
   // exceljs e' un pacchetto CJS pesante usato SOLO lato server (lettura dei file
   // caricati in /api/data/import/preview). Lasciarlo fuori dal bundle: viene
   // richiesto a runtime da Node, evitando che il bundler debba risolvere i suoi
