@@ -2,7 +2,10 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { prisma } from '@/lib/prisma';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import {
   chatComplete,
@@ -60,6 +63,23 @@ export async function POST(req: NextRequest) {
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
   const { userId, organizationId } = ctx;
+
+  // Trial/subscription gate: an expired trial (or past_due) is read-only and may
+  // not run the AI. Blocked BEFORE the rate limit and any AI call, so no credits
+  // are spent. active/trialing pass straight through, unchanged.
+  // Same gate, same order and same 402 as /api/ai/analyze: the chat is an AI
+  // call like the others and was the only one missing it.
+  const access = await requireActiveAccess(organizationId);
+  if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
+
+  // Rate limit per IP+org — AI calls are expensive, so guard against abuse.
+  // FAIL-CLOSED (see the 'ai-analyze' bucket): if the limiter cannot be reached
+  // the request is refused rather than allowed to bill Anthropic unmetered.
+  // Deliberately the SAME bucket as the other three AI surfaces: a chat turn
+  // costs us exactly what an analysis costs, so it shares the same 20/10min
+  // budget instead of getting a separate one that would double the ceiling.
+  const rl = await checkRateLimit('ai-analyze', `${getClientIp(req)}:org:${organizationId}`);
+  if (!rl.success) return rateLimitResponse(rl);
 
   const json = await req.json().catch(() => null);
   const parsed = SendSchema.safeParse(json);
@@ -138,9 +158,13 @@ export async function POST(req: NextRequest) {
     tokensIn = result.tokensIn;
     tokensOut = result.tokensOut;
   } catch (err) {
-    console.error('Anthropic API error:', err);
-    const msg = err instanceof Error ? err.message : 'AI request failed';
-    return fail(msg, 502);
+    // L'errore VERO resta nei log del server, per intero, con il marcatore
+    // [ai:error] per ritrovarlo. Al browser va solo un messaggio generico: il
+    // testo di un errore Anthropic puo' contenere dettagli sulla nostra
+    // configurazione (modello, quote, forma della richiesta) che non hanno
+    // motivo di uscire. Lo status 502 non cambia.
+    console.error('[ai:error] surface=chat', err);
+    return fail('AI_REQUEST_FAILED', 502);
   }
 
   await prisma.aIMessage.create({
