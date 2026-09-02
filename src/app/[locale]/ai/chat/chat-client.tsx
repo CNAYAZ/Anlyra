@@ -38,6 +38,40 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return json.data;
 }
 
+/**
+ * Carries the HTTP status and the API error code from a failed /api/ai/chat
+ * call, so the render below can pick the right message — same distinction
+ * AgentClient.tsx makes for /api/ai/analyze (402 has two different meanings,
+ * 503 has two different meanings; status alone cannot tell them apart).
+ */
+class ChatRequestError extends Error {
+  constructor(
+    public status: number,
+    public code: string | null,
+  ) {
+    super(code ?? 'Request failed');
+  }
+}
+
+async function sendChatMessage(vars: {
+  conversationId: string | null;
+  message: string;
+}): Promise<SendMessageResponse> {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(vars),
+  });
+  const json = (await res.json()) as ApiResponse<SendMessageResponse>;
+  if (!res.ok || !json.success) {
+    throw new ChatRequestError(res.status, json.success ? null : json.error);
+  }
+  if (json.data === undefined) {
+    throw new ChatRequestError(res.status, null);
+  }
+  return json.data;
+}
+
 export function ChatClient({ companyName, initialCredits }: Props) {
   const t = useTranslations('chat');
   const tCommon = useTranslations('common');
@@ -81,12 +115,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   });
 
   const sendMutation = useMutation({
-    mutationFn: async (vars: { conversationId: string | null; message: string }) =>
-      fetchJson<SendMessageResponse>('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(vars),
-      }),
+    mutationFn: sendChatMessage,
     onSuccess: (res) => {
       setCredits(res.creditsRemaining);
       setActiveId(res.conversation.id);
@@ -117,6 +146,26 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   const messages: ChatMessageDTO[] = conversationQuery.data?.messages ?? [];
   const showEmpty = !activeId && !pendingUser && !sendMutation.isPending;
   const noCredits = credits <= 0;
+
+  // Same status/code priority as AgentClient.tsx's error mapping for
+  // /api/ai/analyze: INSUFFICIENT_CREDITS before a bare 402, the rate-limiter
+  // outage code before a bare 429/503, then status-only, then the generic
+  // fallback already used by this file for every other kind of failure.
+  const sendError = sendMutation.error;
+  const sendErrorMessage =
+    sendError instanceof ChatRequestError
+      ? sendError.status === 402 && sendError.code === 'INSUFFICIENT_CREDITS'
+        ? tAgent('errors.noCredits')
+        : sendError.code === 'RATE_LIMIT_UNAVAILABLE'
+          ? tAgent('errors.rateLimitUnavailable')
+          : sendError.status === 402
+            ? tAgent('errors.trialExpired')
+            : sendError.status === 429
+              ? tAgent('errors.rateLimit')
+              : sendError.status === 503
+                ? tAgent('errors.notConfigured')
+                : t('errorSending')
+      : t('errorSending');
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
@@ -163,7 +212,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
                 </div>
               )}
               {sendMutation.isError && (
-                <p className="text-center text-sm text-danger">{t('errorSending')}</p>
+                <p className="text-center text-sm text-danger">{sendErrorMessage}</p>
               )}
             </div>
           )}

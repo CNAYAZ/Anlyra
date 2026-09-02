@@ -120,8 +120,10 @@ const BUCKETS = {
   'onboarding-user': { limit: 3, window: '1 h', onFailure: 'closed' },
 
   // ── AI MODEL CALLS — fail-closed ────────────────────────────────────────
-  // Each call is billed by Anthropic. Shared by /api/ai/analyze and
-  // /api/ai/insights/generate; keyed per IP+org.
+  // Each call is billed by Anthropic. Shared by /api/ai/chat, /api/ai/analyze
+  // and /api/ai/insights/generate; keyed per IP+org. NOT shared with the
+  // per-alert explanation route, which has its own bucket below
+  // ('ai-alert-analyze').
   'ai-analyze': { limit: 20, window: '10 m', onFailure: 'closed' },
 
   // NEW — per-alert AI explanation. Was the ONLY model-calling route with no
