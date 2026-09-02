@@ -1392,4 +1392,85 @@ Codice che ESISTE ma non è finito. Diverso dal codice morto (archiviato nei lot
 7. **Decisione su `main`** — resta il tronco vecchio e il default branch su GitHub.
 8. **9 errori eslint preesistenti** in `src/` — mai guardati.
 9. **Finanza → Panoramica**: un totale accanto a un selettore di periodo che non lo
-   influenza (stesso difetto già corretto in Custom Dashboards).
+   influenza (stesso difetto già corretto in Custom Dashboards).git merge origin/claude/ai-hardening-1 --no-ff -m "merge: AI hardening, images, chat rate limit, error masking" && git push
+   ## §31 — Sessione 2026-09-02: pulizia del codice + audit prompt injection
+
+Fase 1 del piano post-Camera di Commercio (pulizia → sicurezza → Stripe → fatturazione).
+
+### Censimento e rimozione codice morto
+Censimento fatto con grafo completo degli import (0 import dinamici, 0 import per
+variabile → grafo statico affidabile), knip usato solo come controprova.
+
+RIMOSSI in 2 lotti, tutti mergiati sul tronco:
+- Lotto 1 (`bf187ff`): 13 file, 900 righe. Fra questi `lib/auth/current-user.ts`
+  (restituiva un utente finto hardcoded) e `lib/ai-mock.ts` (risposte AI finte).
+- Lotto 2 (`940d148`): 67 file, 7.248 righe, 11 pacchetti npm. Blocchi interi:
+  vecchia pagina billing, componenti Mercato superati, shadcn mai adottati, wizard
+  import vecchio, report builder vecchio, 3 app-shell e 3 page-header duplicati.
+- **TOTALE: 80 file, ~8.150 righe (16,8% di src/), 11 pacchetti.**
+
+TENUTI di proposito: `src/components/security/*` (interfaccia 2FA da finire, vedi §30),
+`src/components/feature-gate.tsx` (lo importa `audit-log.tsx`), le pagine Mercato e
+Operations (a riposo per decisione, non morte), `/api/market/scrape` (porta chiusa
+apposta a 410).
+
+### Audit prompt injection — la risposta di fondo
+**Il modello produce SOLO testo.** Verificato: il parametro `tools` non compare in
+tutto il repo (senza quello un modello non può chiamare funzioni), nessun `eval`,
+`new Function`, `$queryRaw` o `$executeRaw`, nessun invio email dalle superfici AI.
+Quindi un'iniezione riuscita può al massimo far scrivere un testo diverso: non può
+agire sul database, sulle email o sulla rete.
+
+Isolamento multi-tenant sul percorso AI: NESSUNA FALLA. Tutte le route AI di scrittura
+ricavano l'organizzazione da `getAuthContext` (sessione server), mai dal client.
+
+CORRETTO in questa sessione (branch `claude/ai-hardening-1`, mergiato `c3bc0a2`):
+1. **Immagini nel markdown dell'Agente**: `img` non era nella mappa dei tag, quindi
+   un'immagine scritta dal modello poteva mandare i dati del cliente a un server
+   esterno al solo caricarsi. Ora `img` rende testo senza `src`: senza indirizzo il
+   browser non ha dove andare. Verificato che nessun altro tag capace di caricare
+   risorse è raggiungibile (rehype-raw assente → HTML grezzo scartato).
+2. **`/api/ai/chat` non aveva rate limit né blocco a prova scaduta** — era l'unica
+   delle superfici AI senza. Ora ha entrambi, stesso bucket delle altre.
+3. **Errori grezzi di Anthropic** rimandati al browser: ora messaggio generico,
+   errore vero nei log con marcatore `[ai:error]`.
+
+RESTA APERTO dall'audit (va nella fase sicurezza):
+- **Delimitazione anti-iniezione dei prompt**: solo la superficie ALERT ha una difesa
+  (marcatori `<dati_utente>` + regola nel system prompt), e ha 2 buchi: nome azienda e
+  settore stanno PRIMA dei marcatori, e il marcatore di chiusura non è protetto da
+  escape. Chat, analyze e insight non hanno nessuna delimitazione.
+- **Una richiesta ANONIMA scrive nel DB di produzione**: `getDemoContext()`
+  (session.ts:88-124) fa upsert di utente/org e lancia `seedDemoData()`, che genera
+  18 mesi di movimenti sintetici con un PRNG. Ancorato a 'demo-org' e idempotente,
+  non tocca clienti veri — ma la guardia `prisma/guard.ts` copre solo i comandi npm
+  lanciati a mano, NON il codice dell'applicazione. Scrive ancora churn 4.2, NPS 42 e
+  i competitor Alpha/Beta/Gamma che i documenti davano per rimossi (è vero che non
+  arrivano più al modello; è falso che il codice che li scrive sia sparito).
+- **`ignoreBuildErrors: true`** in next.config.mjs: il build passa anche con errori di
+  tipo. Il controllo `tsc --noEmit` non è agganciato al deploy.
+
+### CSP — VERIFICATA in produzione, è SPENTA
+`curl -D -` su anlyra.com/it restituisce l'header
+`content-security-policy-report-only`: osserva e prende appunti, **non blocca nulla**.
+La policy scritta sarebbe la difesa giusta (`img-src 'self' data: blob:`,
+`connect-src 'self'`), è solo disattivata: si accende con `CSP_ENFORCE=true` su Vercel.
+**NON accesa ora di proposito**: `script-src 'self' 'unsafe-inline'` non prevede domini
+esterni, e Stripe carica il suo codice da fuori → accenderla così com'è potrebbe
+rompere il checkout. Va accesa nella fase sicurezza, insieme a Stripe, dopo aver letto
+i rapporti raccolti in questi mesi e confrontato la policy con ciò che Stripe carica.
+
+### Rifiniture (branch `claude/polish-1`)
+Riga `transpilePackages` che citava un pacchetto disinstallato; commento sbagliato sul
+bucket rate limit (le superfici che lo condividono sono 3, gli alert ne hanno uno
+separato — correzione a un'affermazione errata fatta in chat); messaggi d'errore della
+chat ora distinti per caso (429/402/503) riusando le stringhe già esistenti dell'Agente.
+
+### Note di metodo
+- `npm run build` NON va mai usato per verificare: lancia `prisma migrate deploy` e
+  tocca il database di produzione. Usare `npx next build`.
+- Sonnet ha corretto più volte percorsi e affermazioni sbagliate contenute nei prompt,
+  verificando sulla fonte invece di eseguire alla cieca. È il comportamento voluto.
+- Scelta del modello: **Opus** quando la risposta va scoperta (censimenti, audit,
+  diagnosi); **Sonnet** quando il prompt contiene già l'elenco di cosa fare; **Haiku**
+  per i comandi meccanici.
