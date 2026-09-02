@@ -44,3 +44,8 @@ prisma/dev.db.*
 .env.local.backup-*
 src/middleware.ts.before-*
 server.log
+
+# Backup locali di variabili ambiente (mai committare)
+.env*.BACKUP*
+*.BACKUP-prod
+check-credits.mjs
