@@ -17,6 +17,11 @@ const { auth } = NextAuth(authConfig);
 // sensitive next step, /onboarding, stays gated below.
 // The demo fallback in getCurrentContext remains in code but is unreachable
 // for any path listed here.
+// I tre percorsi in fondo vivono nel gruppo (dashboard) come tutti gli altri, ma
+// mancavano da questo elenco: un visitatore senza login li apriva e vedeva i dati
+// dell'organizzazione demo. Non hanno un nome inglese separato — non esiste una
+// mappa `pathnames` in src/i18n/routing.ts, quindi la stessa cartella risponde sia
+// sotto /it che sotto /en e una sola voce per percorso copre entrambe le lingue.
 const AUTH_ONLY_PATHS = [
   '/overview',
   '/finance',
@@ -29,6 +34,9 @@ const AUTH_ONLY_PATHS = [
   '/data',
   '/integrations',
   '/reports',
+  '/scadenzario',
+  '/situazione',
+  '/spese-ricorrenti',
 ];
 
 export default auth((req) => {
