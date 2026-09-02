@@ -1474,3 +1474,48 @@ chat ora distinti per caso (429/402/503) riusando le stringhe già esistenti del
 - Scelta del modello: **Opus** quando la risposta va scoperta (censimenti, audit,
   diagnosi); **Sonnet** quando il prompt contiene già l'elenco di cosa fare; **Haiku**
   per i comandi meccanici.
+  ### §31b — Riordino branch e scoperte collaterali (2026-09-02)
+
+**Branch: da 84 a 5.** Cancellati 82 branch già mergiati (nessuna riga persa: i commit
+restano nella storia del tronco). Restano solo `main` e tre branch NON mergiati.
+
+**`main` NON toccato per decisione del fondatore.** Resta il tronco vecchio (3 maggio)
+ed è ancora il branch predefinito su GitHub: chi clona il progetto prende codice di
+quattro mesi fa. Trappola nota, da riprendere al deploy definitivo.
+
+**DA VALUTARE (non mergiare a scatola chiusa):**
+- `claude/explicit-demo` (30/08, 59 file) — demo esplicita in sola lettura al posto del
+  fallback anonimo. È probabilmente la soluzione della falla §31 (scrittura anonima nel
+  DB). Da leggere prima: il tronco ha perso 80 file dopo quella data.
+- `claude/fix-credit-consumption` (21/07) — "consume credits in DB for all AI endpoints
+  (fixes self-refilling balance)". Verificare se il difetto esiste ancora.
+- `claude/trial-expired-gating` (20/07) — estende il gate trial agli endpoint AI.
+  Probabilmente già superato da §24-25, da verificare.
+METODO: NON mergiare. Verificare se il difetto esiste ancora oggi nel tronco; se sì,
+rifare il lavoro sul codice attuale. Precedente che lo giustifica: il branch
+`anlyra-code-audit-50c4yr` conteneva la versione PIÙ POVERA di un cambio già presente
+nel tronco (cherry-pick `d34a0f4` + estensione `63c2e52` con P.IVA, indirizzo, PEC);
+mergiarlo avrebbe sovrascritto il testo buono. Cancellato dopo la verifica.
+
+**FALLA CHIUSA: chiavi di produzione non protette** (commit `efd49d2`). I file
+`.env.BACKUP-prod` e `.env.local.BACKUP-prod` nel Codespace NON erano coperti da
+`.gitignore`: un `git add -A` li avrebbe pubblicati su GitHub. Aggiunte le regole
+`.env*.BACKUP*`, `*.BACKUP-prod`, `check-credits.mjs`. Verificato con `git check-ignore`.
+Da fare: cancellare quelle copie dal Codespace quando non servono più.
+
+**IDENTITÀ AZIENDALE: già allineata, verificata.** `src/lib/company.ts` è la fonte unica
+(12 file la importano), `scripts/check-company-data.ts` conferma l'allineamento con i
+JSON. Zero occorrenze di "Claudio Nayaz" o "hello@anlyra.com" in `src/`. Stripe NON
+riceve oggi il nome legale da nessuna parte del codice (`business_profile` /
+`statement_descriptor` mai impostati) — DA VERIFICARE prima del collegamento reale.
+
+**⚠️ DUE DOMINI CONVIVONO — bloccante prima di Stripe.** Il codice ripiega su
+`https://anlyra.com` in 5 file (pricing/page.tsx, robots.ts, layout.tsx, sitemap.ts,
+seo/json-ld.ts) e il sito vero risponde su .com. Ma `.env.example`, README, tutta la
+cartella `docs/` (30+ file, inclusi DEPLOY.md e stripe-setup.md con gli esempi di
+RESEND_FROM, AUTH_URL e webhook Stripe) e questo stesso documento dicono `anlyra.IT`.
+Sono le istruzioni che si seguiranno per configurare Stripe: puntano a un dominio che
+non è quello in produzione. Da allineare PRIMA di toccare Stripe.
+
+**Nota di metodo:** `git branch -r` apre un visore a pagine e "mangia" il comando
+successivo. Usare `| cat` in fondo. Si esce dal visore con `q`.
