@@ -1011,3 +1011,385 @@ La regola che ha funzionato fin qui resta quella: un mattone alla volta, verific
 codice e sul database, mai sulla parola di un `.md` — questo incluso.
 
 *Documento di valutazione, non un ordine. La rotta la tiene il fondatore.*
+cd /workspaces/Anlyra && git fetch origin && git log --oneline -2 origin/claude/merge-repos-nextjs-rOZU3grep "ai:usage" /tmp/dev.log
+## §27 — Aggiornamento 2026-08-25
+
+### Sicurezza — falla Supabase RLS trovata e chiusa (VERIFICATO)
+
+Supabase ha inviato due avvisi critici il 23/08: "RLS Disabled in Public" e "Exposed Sensitive
+Data". In una sessione precedente questi avvisi erano stati giudicati un falso allarme, con la
+motivazione che Anlyra non usa l'API REST di Supabase (accede al DB solo via Prisma). **Quel
+giudizio era sbagliato**, ed è stato smentito da una prova diretta: l'API REST di Supabase è
+attiva di default a prescindere da come l'applicazione accede al database.
+
+Prove eseguite (VERIFICATE con curl reale sul progetto di produzione):
+- senza chiave `anon` → HTTP 401 (l'API rifiuta chi non ha la chiave)
+- con chiave `anon` → HTTP 200 e **dati reali restituiti**: la query su `User?select=email`
+  ha restituito l'email di un utente vero
+- 52 tabelle su 52 risultavano con `rowsecurity=false`, incluse `User` (passwordHash,
+  emailVerifyToken, twoFactorSecret), `Session`, `FinancialRecord`, `Receivable`, `AuditLog`
+
+Rischio reale: la chiave `anon` è progettata per stare nel browser e non è un segreto forte.
+Anlyra non l'ha mai pubblicata da nessuna parte, quindi non risulta sfruttata — ma la porta
+era aperta.
+
+Intervento: RLS abilitata su **tutte e 52 le tabelle** dello schema `public`.
+- prima su una sola tabella (`AuditLog`) come prova → Prisma continuava a leggere (5 righe),
+  l'API REST restituiva `[]` invece dei dati
+- poi sulle restanti 51 → 51 riuscite, 0 fallite, 0 tabelle rimaste scoperte
+- dopo l'intervento: API REST su `User` → `[]`, sito di produzione (anlyra.com) → login e
+  dashboard funzionanti (VERIFICATO nel browser)
+
+Prisma non è soggetto a RLS perché si connette come utente proprietario del database: per questo
+l'attivazione non ha rotto nulla.
+
+**DEBITO APERTO — importante**: questa è una modifica al DATABASE, non al codice. Non è tracciata
+in git e **non sopravviverebbe a una ricostruzione del database da zero**. Va portata in una
+migration Prisma. Finché non lo è, chiunque ricrei l'ambiente si ritrova le 52 tabelle esposte.
+
+Nota aggiuntiva: sono state abilitate solo le RLS, senza policy. Questo significa "nessuno passa
+dall'API REST", che è il comportamento voluto oggi. Se un domani si volesse usare l'API REST di
+Supabase (per esempio da un'app mobile), servirebbero policy vere per organizzazione.
+
+### Lavoro completato dopo il §26
+
+Tutto mergiato su `claude/merge-repos-nextjs-rOZU3`, ogni voce verificata nel browser o con
+comandi reali prima del merge:
+
+- **Sistema crediti riparato** (era rotto in tre modi): i crediti ora seguono il piano
+  (PRO 200, ADVANCED 700) invece del default fisso 100; rinnovo mensile con azzeramento,
+  agganciato al cron `trial-check` (Vercel Hobby consente 2 cron, entrambi occupati);
+  l'acquisto di pacchetti ora incrementa davvero `Organization.aiCredits` — prima scriveva solo
+  nel ledger, quindi **un cliente avrebbe pagato senza ricevere crediti** (flusso non ancora
+  esposto in UI, nessun cliente reale coinvolto). VERIFICATO: `renewed:1` al primo giro,
+  `skippedAlreadyRenewed:1` al secondo (nessun doppio accredito).
+- **Esperienza a crediti esauriti**: il pulsante "Acquista altri" nella chat non faceva nulla;
+  l'AI Agent lasciava inviare e poi mostrava "periodo di prova terminato" anche quando il
+  problema erano i crediti. Corretti, tutti i percorsi portano a Fatturazione.
+- **Prompt caching** su chat e agent. VERIFICATO sui log: `cacheWrite=1333 → cacheRead=1333 →
+  cacheRead=2264` su tre messaggi consecutivi. NON applicato a insights e analisi alert
+  (contesto sotto la soglia minima e chiamate isolate: costerebbe il 25% in più senza benefici).
+- **Tono dell'AI corretto**: i prompt ordinavano di dichiarare i dati mancanti 4-7 volte
+  ciascuno, e il modello obbediva a tutte, producendo paragrafi di scuse. Ora la regola sta in un
+  blocco condiviso (`src/lib/ai/prompts/tone.ts`). VERIFICATO che il rigore resta: alla richiesta
+  "stimami il churn in percentuale" il modello non produce cifre inventate.
+- **Pulsante "Segnala un problema"** in topbar, invio email a contact@ con contesto tecnico,
+  rate-limit 3/ora per utente. VERIFICATO: `[email] sent`, email ricevuta.
+- **Pannello admin locale** (`admin/`, `npm run admin`, porta 3001): letture, modifica crediti/
+  piano/ruoli, pulizie, lancio cron. Fuori da `src/`, escluso dal deploy via `.vercelignore`,
+  rifiuta di partire in produzione, token CSRF sui POST. NON ANCORA PROVATO nel browser:
+  l'inoltro porte del Codespace continua a dare 404 (problema di infrastruttura, non del codice —
+  il server risponde 200 in locale).
+- **Report pianificati funzionanti**: generano il PDF e lo inviano per email. VERIFICATO:
+  `due:1 sent:1`, poi `due:0` al secondo giro. Aggiunta validazione dei destinatari (prima era un
+  campo libero: si poteva far spedire i conti dell'azienda a un indirizzo qualsiasi).
+- **Errori dei moduli visibili** dove l'utente sta guardando. Scoperto che nello Scadenzario e
+  nelle Spese ricorrenti l'errore era **invisibile**: veniva disegnato dietro il dialogo.
+
+### Chiarito: i due campi `plan` (VERIFICATO sul codice)
+
+- `BillingSubscription.plan` è **quello vero**: decide funzionalità, limiti e crediti del rinnovo.
+- `Organization.plan` è **legacy** (default "STARTER", che non è nemmeno un piano valido): letto
+  in due soli punti, di cui uno inutilizzato; l'altro sceglie nome e prezzo nelle email di fine
+  prova. Il pannello admin mostra entrambi e li evidenzia quando divergono.
+
+### Debiti aperti dopo questo giro
+
+- **RLS non in migration** (vedi sopra) — il più importante.
+- CSP attiva in sola osservazione: nessuna violazione rilevata nel Codespace, va accesa
+  (`CSP_ENFORCE=true`) dopo qualche giorno di traffico vero.
+- Accumulo insight senza limite né paginazione: 20 generazioni = 100 card caricate tutte insieme.
+- `contact@anlyra.com` ripetuto come stringa in 8 punti diversi.
+- Le email sono tutte in italiano fisso, nessuna localizzata (9 template + i nuovi).
+- Interfaccia di acquisto crediti mai collegata (secondo impianto billing orfano: `BillingClient`,
+  `CreditsCard` e altri, mai montati da nessuna route).
+- Stripe ancora in modalità test.
+- Pagine legali da far validare da un professionista.
+## §28 — Aggiornamento 2026-08-26
+
+### Sicurezza — rate limiting riscritto (VERIFICATO)
+
+Il difetto principale: se Upstash mancava o non rispondeva, `checkRateLimit`
+restituiva sempre `success: true`. Tutte le protezioni anti-abuso si spegnevano
+in silenzio, senza errori e senza che nessuno se ne accorgesse.
+
+DECISIONE DEL FONDATORE: comportamento differenziato. Fail-closed dove un abuso
+costa (autenticazione, chiamate AI, invio email), fail-open sul resto
+(navigazione, letture). Un guasto di Upstash non deve buttare giù il sito, ma
+non deve nemmeno lasciare aperta la porta dove un attacco costa soldi.
+
+BUCHI TROVATI E CHIUSI (7 endpoint senza alcun rate limit):
+- `/api/onboarding/organization` — **il più grave**: inviava un'email di invito
+  per OGNI elemento di un array fornito dal client, a indirizzi arbitrari, senza
+  limite né tetto. Un cannone da spam con mittente legittimo, capace di bruciare
+  la reputazione del dominio su Resend. Aggiunti rate limit E un tetto di 20
+  inviti per richiesta (senza il tetto il limite non limitava nulla).
+- `/api/ai/alerts/[id]/analyze` — chiamava il modello Anthropic senza alcun
+  freno se non i crediti, che si comprano.
+- `/api/auth/verify-email` — pubblico, era un oracolo per indovinare token.
+- `change-password`, `2fa/disable`, `2fa/setup`, `exchange-rates`.
+
+BUG DI PROGETTAZIONE TROVATO E CORRETTO — **il sistema puniva il successo più
+del fallimento**: un login riuscito consumava DUE gettoni (precheck + authorize),
+uno fallito ne consumava uno. Con il limite a 5, un utente si autobloccava al
+quarto accesso corretto. Osservato dal fondatore nel browser, diagnosi confermata
+sui numeri.
+Correzione: il budget viene consumato sempre (l'operazione resta atomica), ma
+azzerato DOPO un'autenticazione riuscita. Chi non conosce la password non arriva
+mai a quella riga. Il contatore per IP non viene mai azzerato di proposito: chi
+possiede un account valido potrebbe entrarci in loop per ripulirlo e continuare a
+tempestare altre email dalla stessa macchina.
+Limiti alzati di conseguenza: login-email 5→8 (ora conta solo i fallimenti),
+login-ip 10→30 (un ufficio dietro NAT si bloccava).
+
+VERIFICATO NEL BROWSER: il blocco scatta davvero (429 nei log del server) e
+resta attivo anche con la password corretta finché la finestra non scade — che è
+il comportamento voluto.
+
+L'INDIRIZZO IP era già letto correttamente: `x-real-ip`, lo stesso header che usa
+l'helper ufficiale di Vercel (verificato sul loro sorgente, non sul commento nel
+file). Reso rumoroso il ripiego `'unknown'`, che prima era silenzioso.
+
+Totale: 20 bucket, ognuno con politica dichiarata accanto al limite. Marcatore
+cercabile nei log: `[rate-limit:unavailable]`.
+
+### Consumi AI
+
+- **Prompt caching** su chat e agent. VERIFICATO sui log:
+  `cacheWrite=1333 → cacheRead=1333 → cacheRead=2264` su tre messaggi
+  consecutivi. NON applicato a insight e analisi alert: contesto sotto la soglia
+  minima e chiamate isolate, costerebbe il 25% in più senza benefici.
+- **Modelli per superficie** (`src/lib/ai/models.ts`): chat, agent e insight
+  restano su `claude-sonnet-5`; l'analisi alert passa a `claude-haiku-4-5` —
+  è l'unica superficie che non riceve il contesto business, quindi un modello
+  grande non avrebbe nulla in più su cui lavorare. VERIFICATO nel log:
+  `model=claude-haiku-4-5`.
+  TRAPPOLA EVITATA: Haiku ha una soglia di caching di 4096 token contro i 1024
+  di Sonnet. Se gli alert avessero usato la cache, il declassamento l'avrebbe
+  disattivata in silenzio. Verificato che non era il caso.
+- Il log `[ai:usage]` ora riporta anche il modello: senza, dagli stessi token non
+  si può risalire al costo.
+- ONESTÀ SUL RISPARMIO: circa 0,2 centesimi per clic sugli alert. Il grosso della
+  spesa sta nelle tre superfici NON toccate (chat, agent, insight), dove l'input
+  è grande e l'output lungo. Lì il risparmio si fa col caching, già attivo.
+- **Funzioni automatiche: non ce n'è nessuna.** Cercato e dimostrato: tutte e 4
+  le chiamate AI sono dietro un clic esplicito, nessun cron tocca il modello,
+  nessun refresh periodico. Il principio "nulla consuma crediti senza che
+  l'utente lo chieda" era già rispettato.
+
+### Sistema crediti — era rotto in tre modi (ora corretto)
+
+- I crediti erano un default fisso di 100 indipendente dal piano. La causa radice
+  era la registrazione: il codice che crea un'organizzazione non li impostava
+  mai, quindi ogni nuovo cliente ereditava il default in silenzio. Ora seguono il
+  piano (PRO 200, ADVANCED 700).
+- Nessun rinnovo mensile funzionante. Ora agganciato al cron `trial-check`
+  (Vercel Hobby consente 2 cron, entrambi occupati), con azzeramento e non
+  accumulo. VERIFICATO: `renewed:1` al primo giro, `skippedAlreadyRenewed:1` al
+  secondo.
+- L'acquisto di pacchetti scriveva solo nel registro senza incrementare il saldo
+  vero: **un cliente avrebbe pagato senza ricevere crediti**. Corretto. Il flusso
+  non è mai stato esposto in UI, nessun cliente coinvolto.
+- Default nello schema lasciato a 100 di proposito: se un percorso futuro
+  dimenticasse di impostarli, il danno è "troppo pochi crediti" (visibile) invece
+  di un regalo silenzioso.
+
+### Alert e dati finti — censimento (VERIFICATO)
+
+L'alert "churn 6.9%, 17 clienti persi su 247" non è un difetto del motore: il
+seed è stato costruito apposta per farlo scattare (commento esplicito in
+`prisma/seed.ts:152-166`). Le 6 regole leggono tutte tabelle che un cliente vero
+può popolare: 4 da `FinancialRecord` (import e inserimento manuale), 2 da
+`CustomerStat` (stessi percorsi). **Nessuna regola è finta in sé.**
+
+**Un cliente nuovo non vede nessun alert inventato**: verificato guardia per
+guardia, con tabelle vuote nessuna regola scatta e nessuna inventa un default.
+Il difetto è confinato a `demo-org`.
+
+TROVATO — stesso difetto, pagina ATTIVA nel menu: **Custom Dashboards**
+(`src/lib/widgets/data.ts`) è interamente sintetica. Tutti i 9 widget leggono da
+un generatore hardcoded (revenue 48.000, churn 4,2, seno/coseno) che non tocca
+mai il database, con la data congelata al 26 aprile 2026. Peggio degli alert: qui
+non c'è nemmeno una query. DECISIONE DEL FONDATORE: collegarla ai dati veri
+(lavoro grosso, sessione dedicata).
+
+`seedKpis()` gira a RUNTIME dentro `getDemoContext()`, non è uno script: i KPI
+finti (churn 4.2, NPS 42) si riscrivono da soli a ogni apertura anonima della
+dashboard.
+
+### Demo — lavoro fatto ma NON mergiato
+
+Branch `claude/explicit-demo` (commit `016a94f`): visitatore anonimo → login,
+pulsante esplicito "prova la demo", sola lettura lato server, banner "dati
+dimostrativi". Include anche la chiusura di un buco nel middleware
+(`/scadenzario`, `/situazione`, `/spese-ricorrenti` non erano protette).
+
+**NON mergiato per decisione del fondatore.** Motivo: renderebbe `demo@pro.app`
+in sola lettura, e quello è l'account usato per le prove quotidiane. Da
+riprendere insieme al lavoro deciso: nella demo le funzioni AI devono **dare
+risposte finte ma realistiche** invece di essere disabilitate, così il visitatore
+prova il prodotto senza costi reali. Quelle risposte andranno etichettate come
+esempi (stesso principio AI Act già applicato altrove).
+
+### Altro fatto in questo giro
+
+- Paginazione insight (12 per pagina), e **corretto un bug**: il filtro per stato
+  veniva inviato dalla pagina ma la route non lo leggeva mai.
+- `contact@anlyra.com` era ripetuto in **38 punti**, non 8 (26 dentro i testi
+  legali). Ora c'è `src/lib/company.ts` più uno script di verifica
+  (`npm run check:company`) per la parte che una costante non può raggiungere.
+- I dati strutturati per Google dichiaravano `addressLocality: 'Bologna'` — un
+  segnaposto rimasto. Ora è San Prospero.
+- 7 file di codice morto eliminati, inclusa una tabella prezzi orfana con prezzi
+  falsi (€29/79/199 e un piano "starter" inesistente).
+- Errori dei moduli mostrati dove l'utente guarda. Scoperto che nello Scadenzario
+  e nelle Spese ricorrenti l'errore era **invisibile**: veniva disegnato dietro
+  il dialogo.
+- Report pianificati funzionanti (PDF + email). VERIFICATO: `due:1 sent:1`, poi
+  `due:0`. Aggiunta validazione destinatari: il campo era libero, si poteva far
+  spedire i conti dell'azienda a un indirizzo qualsiasi.
+- Pulsante "Segnala un problema" in topbar, email a contact@. VERIFICATO.
+- Pannello admin locale (`npm run admin`, porta 3001, fuori da `src/`, escluso
+  dal deploy). Funzionante nel browser dopo aver inoltrato la porta.
+
+### Difetti noti, non ancora affrontati
+
+- **Custom Dashboards interamente sintetica** (menu attivo) — il più grave.
+- Il pulsante "Genera con AI (3 crediti)" in cima alla pagina Alert mostra sempre
+  "crediti insufficienti": non esiste nessun endpoint dietro, è una funzione mai
+  finita.
+- `Organization.plan` (legacy, default "STARTER" che non è un piano valido) e
+  `BillingSubscription.plan` (quello vero) possono divergere. Il secondo decide
+  funzionalità, limiti e crediti; il primo serve solo al nome del piano nelle
+  email di fine prova.
+- `/api/ai/alerts/check` è un duplicato byte-identico di `/refresh`, mai chiamato.
+- Il refresh degli alert riporta a NEW quelli già archiviati.
+- `benchmarks/route.ts:84` confronta un LTV in euro con un rapporto LTV/CAC.
+- L'anteprima del report builder usa dati d'esempio senza dichiararlo.
+- Le email sono tutte in italiano fisso, nessuna localizzata.
+- Interfaccia acquisto crediti mai collegata (secondo impianto billing orfano).
+- CSP in sola osservazione: nessuna violazione rilevata sul sito vero, va accesa
+  con `CSP_ENFORCE=true` su Vercel dopo qualche giorno di traffico.
+- Stripe ancora in modalità test.
+- Pagine legali da far validare da un professionista.
+## §29 — Aggiornamento 2026-09-01
+
+### Fatto amministrativo: via libera
+
+Il 01/09/2026 è arrivato il via libera della Camera di Commercio e la delega al
+commercialista (Fiscozen) è stata conferita. **Anlyra è un'attività operativa a
+tutti gli effetti.** Da qui il piano deciso dal fondatore, in quest'ordine:
+pulizia del codice → sicurezza → configurazione Stripe in produzione →
+fatturazione. Toccare i pagamenti su codice non ancora ripulito significherebbe
+scoprire i problemi quando ci sono soldi di mezzo.
+
+### Custom Dashboards — il difetto non era quello che sembrava (VERIFICATO)
+
+Il censimento ha rivelato **due sistemi separati**, non uno:
+- **Sistema A** (attivo, raggiungibile dal menu): salvava su `CustomDashboard_b8`
+  ma **nessuna pagina disegnava i widget**. Un cliente non vedeva numeri
+  inventati: non vedeva numeri e basta.
+- **Sistema B** (irraggiungibile): 14 tipi, 11 componenti, generatore interamente
+  sintetico con data congelata al 26 aprile 2026, salvataggio in localStorage.
+  Due file di codice morto e una pagina non linkata che cercava le dashboard in
+  un archivio diverso da dove venivano salvate.
+
+Il sistema B conteneva un widget "ai" che **dichiarava `generatedBy: 'Claude
+Sonnet 4'` mentre i testi erano stringhe fisse nel codice** — una dichiarazione
+AI falsa, contraria all'AI Act già applicato altrove.
+
+LAVORO FATTO (branch `claude/real-custom-dashboards`, commit `f16d780`):
+- Sistema B cancellato per intero: 19 file, ~1.900 righe. Prova documentata che
+  nessuno lo importava. Falsa dichiarazione AI eliminata.
+- Catalogo ridotto ai 9 tipi con una fonte vera. `list_top_customers` rimosso per
+  decisione del fondatore: l'unica fonte con nomi veri sarebbe lo scadenzario, e
+  sarebbe diventato "top clienti per crediti" — un'altra cosa rispetto al titolo.
+- Tutti e 9 i widget collegati a dati reali, riusando le route `/api/analysis/*`
+  già esistenti: nessun endpoint dati nuovo. Sei widget sullo stesso periodo
+  fanno UNA sola richiesta HTTP.
+- Ogni widget ha uno stato vuoto **obbligatorio per tipo** (lo impone il
+  compilatore) che spiega cosa fare per popolarlo, mai un numero inventato.
+- Il builder ora salva periodo e metrica in `config`; le dashboard già salvate
+  continuano a funzionare con i default (retrocompatibilità provata).
+- `/custom-dashboards/[id]` rifatta sul database e spostata DENTRO il gruppo
+  `(dashboard)`: prima si apriva senza barra laterale, senza topbar e senza il
+  banner della demo.
+- Le dashboard sono finalmente apribili dalla lista: prima l'unico comando su una
+  card era il cestino.
+
+BUG TROVATO NELLA PROVA E CORRETTO — il periodo scelto non veniva rispettato. La
+causa NON era dove la cercavamo: salvataggio, schema API, scrittura e lettura
+erano tutti corretti. Il difetto era che `kpis.totalRevenue` **non è mai stato la
+somma del periodo**: per costruzione è il ricavo dell'ULTIMO MESE, quindi il
+numero non si sarebbe mosso comunque. Corretto sommando le categorie, che nella
+stessa risposta sono già filtrate per periodo.
+Rimossa anche l'opzione "periodo" da `chart_revenue_trend`: non filtrava nulla
+(il grafico storico mostra sempre tutta la storia, ed è la convenzione dell'app),
+quindi era una promessa non mantenuta nell'interfaccia.
+
+NON FATTO, dichiarato: il builder resta una lista con frecce su/giù, non una
+griglia trascinabile — quel pezzo apparteneva al sistema B cancellato. E non
+esiste la modifica di una dashboard già salvata (non esisteva nemmeno prima).
+
+### Segnalato e NON corretto: stesso difetto in Finanza → Panoramica
+
+`finance/page.tsx:72` mostra `data.kpis.totalRevenue` accanto a un selettore di
+periodo che non lo influenza — stesso difetto strutturale appena corretto nei
+widget, ma su una pagina preesistente e non toccata. **Da affrontare nella
+sessione di pulizia.**
+
+### Stato dei branch
+
+- `claude/real-custom-dashboards` (`f16d780`) — da provare e mergiare.
+- `claude/explicit-demo` (`016a94f`) — pronto ma NON mergiato per decisione del
+  fondatore: renderebbe `demo@pro.app` in sola lettura, ed è l'account usato per
+  le prove quotidiane. Da riprendere insieme al lavoro deciso: nella demo le
+  funzioni AI devono **dare risposte finte ma realistiche** invece di essere
+  disabilitate, così il visitatore prova il prodotto senza costi reali. Quelle
+  risposte andranno etichettate come esempi (stesso principio AI Act).
+
+### Valutato e scartato: Graphify
+
+Proposto come strumento per ridurre i costi. Verificato: **non riduce i costi API
+di Anlyra** — è uno strumento di sviluppo che costruisce un grafo del codice
+perché l'assistente lo interroghi invece di leggere i file. Il 70% di risparmio
+citato non risulta dalla loro documentazione.
+Scartato per una ragione di metodo: un grafo è un livello di riassunto, e la
+regola d'oro di questo documento è che **la verità è nel codice**. Tutte le cose
+trovate in queste sessioni — i 38 indirizzi email invece di 8, il campo
+destinatari che spediva a chiunque, il seed che colpiva l'organizzazione
+sbagliata — sono emerse leggendo il codice vero, non una mappa. STATO-REALE e
+CLAUDE.md svolgono già la funzione di mappa scritta.
+
+### Prossimi passi decisi
+
+1. **Pulizia del codice** (sessione nuova, con lista di controlli del fondatore)
+2. **Sicurezza**
+3. **Stripe in produzione**
+4. **Fatturazione**
+## §30 — Lavori incompiuti (aperta 2026-09-02)
+
+Codice che ESISTE ma non è finito. Diverso dal codice morto (archiviato nei lotti
+1 e 2): questo va completato, non cancellato.
+
+1. **Interfaccia 2FA e log accessi** — `src/components/security/*.tsx` (4 file).
+   Le API `/api/auth/2fa/*` sono vive e funzionanti; manca la schermata collegata.
+   Dipendenza da ricordare: `audit-log.tsx` importa `src/components/feature-gate.tsx`
+   — per questo quel file NON è stato cancellato nel lotto 2.
+2. **I due campi `plan` divergono** — il webhook Stripe scrive
+   `BillingSubscription.plan` ma NON `Organization.plan`, che però decide l'accesso
+   alla pagina Integrazioni (`planMeets`). Oggi invisibile grazie ai valori di
+   default. **DA CHIUDERE PRIMA DI STRIPE LIVE.**
+3. **`/api/market/exchange-rates`** — pubblica, senza autenticazione, nessun
+   chiamante interno. Da valutare nella fase sicurezza.
+4. **`/api/ai/alerts/check`** — nessun chiamante, non è nei cron di vercel.json.
+   Sembra il gemello vecchio di `/refresh`. Da capire prima di toccarla.
+5. **Tre implementazioni di `ok/fail`** — `@/lib/api` (49 file), `@/lib/api/response`
+   (15), `@/lib/api-response` (0 dopo il lotto 1). Da unificare: tocca 65 file,
+   rumoroso, non urgente.
+6. **14 modelli Prisma a zero usi** — 13 legati da chiavi esterne: serve una
+   migration dedicata col backup del DB. Ultimo della coda.
+7. **Decisione su `main`** — resta il tronco vecchio e il default branch su GitHub.
+8. **9 errori eslint preesistenti** in `src/` — mai guardati.
+9. **Finanza → Panoramica**: un totale accanto a un selettore di periodo che non lo
+   influenza (stesso difetto già corretto in Custom Dashboards).
