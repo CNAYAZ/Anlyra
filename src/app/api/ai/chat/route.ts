@@ -158,9 +158,13 @@ export async function POST(req: NextRequest) {
     tokensIn = result.tokensIn;
     tokensOut = result.tokensOut;
   } catch (err) {
-    console.error('Anthropic API error:', err);
-    const msg = err instanceof Error ? err.message : 'AI request failed';
-    return fail(msg, 502);
+    // L'errore VERO resta nei log del server, per intero, con il marcatore
+    // [ai:error] per ritrovarlo. Al browser va solo un messaggio generico: il
+    // testo di un errore Anthropic puo' contenere dettagli sulla nostra
+    // configurazione (modello, quote, forma della richiesta) che non hanno
+    // motivo di uscire. Lo status 502 non cambia.
+    console.error('[ai:error] surface=chat', err);
+    return fail('AI_REQUEST_FAILED', 502);
   }
 
   await prisma.aIMessage.create({

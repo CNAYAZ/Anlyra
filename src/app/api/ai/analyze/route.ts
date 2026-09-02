@@ -191,8 +191,10 @@ export async function POST(req: NextRequest) {
       creditsRemaining,
     });
   } catch (err) {
-    console.error('[ai/analyze] Anthropic API error:', err);
-    const msg = err instanceof Error ? err.message : 'AI request failed';
-    return fail(msg, 502);
+    // Errore vero nei log (marcatore [ai:error]), messaggio generico al
+    // browser: il testo di un errore Anthropic puo' contenere dettagli sulla
+    // configurazione che non devono uscire. Status 502 invariato.
+    console.error('[ai:error] surface=analyze', err);
+    return fail('AI_REQUEST_FAILED', 502);
   }
 }

@@ -128,9 +128,11 @@ export async function POST(req: NextRequest) {
         }
         return fail('INVALID_AI_RESPONSE', 502);
       }
-      console.error('[ai/insights/generate] Anthropic API error:', err);
-      const msg = err instanceof Error ? err.message : 'AI request failed';
-      return fail(msg, 502);
+      // Errore vero nei log (marcatore [ai:error]), messaggio generico al
+      // browser: il testo di un errore Anthropic puo' contenere dettagli sulla
+      // configurazione che non devono uscire. Status 502 invariato.
+      console.error('[ai:error] surface=insights-generate', err);
+      return fail('AI_REQUEST_FAILED', 502);
     }
 
     // 10. Persist. Added to the existing ones, never replacing them: an insight
