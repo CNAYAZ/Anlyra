@@ -12,7 +12,18 @@ import { apiFetch } from '@/lib/api/fetcher';
 import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { WIDGET_CATALOG, type WidgetType, type WidgetConfig } from '@/lib/dashboard-widgets';
+import {
+  WIDGET_CATALOG,
+  WIDGET_PERIODS,
+  WIDGET_METRICS,
+  DEFAULT_PERIOD,
+  DEFAULT_METRIC,
+  catalogEntry,
+  type WidgetType,
+  type WidgetConfig,
+  type WidgetPeriod,
+  type WidgetMetric,
+} from '@/lib/dashboard-widgets';
 import { cn } from '@/lib/utils';
 
 function uid() {
@@ -45,10 +56,22 @@ export default function CustomDashboardsBuilderPage() {
   });
 
   function addWidget(type: WidgetType, defaultLabelKey: string) {
+    const entry = catalogEntry(type);
+    // Seed only the options this type offers, so a widget never carries a
+    // setting its renderer ignores.
+    const config: { period?: WidgetPeriod; metric?: WidgetMetric } = {};
+    if (entry?.options.includes('period')) config.period = DEFAULT_PERIOD;
+    if (entry?.options.includes('metric')) config.metric = DEFAULT_METRIC;
     setWidgets((prev) => [
       ...prev,
-      { id: uid(), type, title: t(defaultLabelKey as 'widgetKpiRevenue') },
+      { id: uid(), type, title: t(defaultLabelKey as 'widgetKpiRevenue'), config },
     ]);
+  }
+
+  function updateOption(id: string, patch: { period?: WidgetPeriod; metric?: WidgetMetric }) {
+    setWidgets((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, config: { ...w.config, ...patch } } : w)),
+    );
   }
 
   function updateTitle(id: string, title: string) {
@@ -177,6 +200,34 @@ export default function CustomDashboardsBuilderPage() {
                       onChange={(e) => updateTitle(w.id, e.target.value)}
                       className="flex-1"
                     />
+                    {/* Only the options this widget type actually uses are
+                        offered — a KPI has no metric to pick, a forecast has
+                        no period. Saved into `config`, which the API schema
+                        already accepted before this change. */}
+                    {catalogEntry(w.type)?.options.includes('period') && (
+                      <select
+                        value={w.config?.period ?? DEFAULT_PERIOD}
+                        onChange={(e) => updateOption(w.id, { period: e.target.value as WidgetPeriod })}
+                        aria-label={t('builderPeriod')}
+                        className="rounded-md border border-border bg-card px-2 py-1 text-xs"
+                      >
+                        {WIDGET_PERIODS.map((p) => (
+                          <option key={p} value={p}>{t(`period_${p}` as 'period_12m')}</option>
+                        ))}
+                      </select>
+                    )}
+                    {catalogEntry(w.type)?.options.includes('metric') && (
+                      <select
+                        value={w.config?.metric ?? DEFAULT_METRIC}
+                        onChange={(e) => updateOption(w.id, { metric: e.target.value as WidgetMetric })}
+                        aria-label={t('builderMetric')}
+                        className="rounded-md border border-border bg-card px-2 py-1 text-xs"
+                      >
+                        {WIDGET_METRICS.map((m) => (
+                          <option key={m} value={m}>{t(`metric_${m}` as 'metric_revenue')}</option>
+                        ))}
+                      </select>
+                    )}
                     <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
                       {w.type}
                     </span>
