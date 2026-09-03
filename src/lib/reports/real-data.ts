@@ -154,7 +154,10 @@ export async function buildRealPayload(
     },
     kpis: {
       revenue: totalRevenue,
-      revenueGrowth: revenueGrowth ?? 0,
+      // Null passes through honestly instead of being coerced to a false "0%
+      // growth" — same schema as grossMargin/cashRunwayMonths below. See the
+      // comment on computeGrowth() at the bottom of this file.
+      revenueGrowth,
       grossMargin,
       netMargin,
       // Runway needs a cash balance, which this schema does not hold anywhere.

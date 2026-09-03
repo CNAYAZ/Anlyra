@@ -10,7 +10,14 @@ export interface ReportPayload {
   };
   kpis: {
     revenue: number;
-    revenueGrowth: number;
+    /**
+     * Null when there are fewer than two months of data, or the earlier half
+     * of the window averaged <= 0 revenue — see computeGrowth() in
+     * real-data.ts. A "0% growth" figure would claim stagnation when the
+     * comparison is not actually possible. The PDF omits the card when null
+     * instead of printing an invented number. buildSamplePayload still fills it.
+     */
+    revenueGrowth: number | null;
     /**
      * Null when the figure is NOT derivable from the organization's real data —
      * gross margin needs costs tagged as COGS, cash runway needs a cash balance

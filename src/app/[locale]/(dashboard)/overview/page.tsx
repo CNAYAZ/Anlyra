@@ -73,6 +73,7 @@ const QUICK_ACTIONS: { href: string; labelKey: string; icon: typeof BarChart3; t
 export default function OverviewPage() {
   const locale = useAppLocale();
   const t = useTranslations('overview');
+  const tc = useTranslations('common');
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['overview'],
@@ -105,7 +106,7 @@ export default function OverviewPage() {
 
   const lastSeries = data?.series.slice(-1)[0];
   const aiSpotlight =
-    data && data.kpis.netMargin > 0
+    data && data.kpis.netMargin !== null && data.kpis.netMargin > 0
       ? t('aiSpotlightSummary', {
           margin: formatPercent(data.kpis.netMargin, locale),
           burnRate: formatCurrency(data.kpis.burnRate, locale),
@@ -136,7 +137,9 @@ export default function OverviewPage() {
             />
             <KpiCard
               label={t('kpi.netMargin')}
-              value={formatPercent(data.kpis.netMargin, locale)}
+              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
+              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
               delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
             <KpiCard

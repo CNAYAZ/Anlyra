@@ -1,8 +1,19 @@
-import { format } from 'date-fns';
+import { toAppDateString } from '@/lib/timezone';
 import type { DemoCashflow, DemoCustomerStat, DemoSubscription, DemoTransaction } from '@/lib/demo/data';
 
 const COGS_CATEGORIES = new Set(['cogs']);
 const MARKETING_CATEGORIES = new Set(['marketing']);
+
+// Monthly bucket key in Europe/Rome, not the server's own timezone (UTC on
+// Vercel). date-fns' format() reads the JS Date through the RUNTIME'S local
+// timezone, so a transaction at 31/08 23:30 UTC (= 01/09 01:30 in Italy) used
+// to land in the August bucket here while the rest of the app — and the AI
+// context built from the same organization's data — already read it as
+// September (see src/lib/ai-context.ts and CLAUDE.md §7). Same day, two
+// different months shown to the same user.
+function monthKey(d: Date): string {
+  return toAppDateString(d).slice(0, 7);
+}
 
 export type MonthlySeriesPoint = {
   period: string;
@@ -16,9 +27,12 @@ export type MonthlySeriesPoint = {
 export type KpiSummary = {
   totalRevenue: number;
   totalCosts: number;
-  grossMargin: number;
-  operatingMargin: number;
-  netMargin: number;
+  // null when there is no revenue to divide by (no data for the period, or
+  // revenue <= 0): a margin of "0%" would claim break-even when the figure is
+  // actually not derivable. See computeKpis below.
+  grossMargin: number | null;
+  operatingMargin: number | null;
+  netMargin: number | null;
   burnRate: number;
   cashRunway: number;
   cashAvailable: number;
@@ -28,9 +42,12 @@ export type KpiSummary = {
   arpu: number;
   cac: number;
   ltv: number;
-  momRevenueGrowth: number;
-  momCostGrowth: number;
-  momNetMarginDelta: number;
+  // null when there is no prior period to compare against, or the prior
+  // period's base value was <= 0: "0% growth" would claim stagnation when the
+  // comparison is actually impossible.
+  momRevenueGrowth: number | null;
+  momCostGrowth: number | null;
+  momNetMarginDelta: number | null;
   momCustomersDelta: number;
   momMrrDelta: number;
 };
@@ -44,7 +61,7 @@ export type CategoryBreakdown = {
 function groupByMonth(transactions: DemoTransaction[]): MonthlySeriesPoint[] {
   const buckets = new Map<string, { revenue: number; cogs: number; opex: number }>();
   for (const t of transactions) {
-    const period = format(t.date, 'yyyy-MM');
+    const period = monthKey(t.date);
     if (!buckets.has(period)) buckets.set(period, { revenue: 0, cogs: 0, opex: 0 });
     const b = buckets.get(period)!;
     if (t.kind === 'REVENUE') b.revenue += t.amount;
@@ -71,8 +88,13 @@ export function monthlySeries(transactions: DemoTransaction[]): MonthlySeriesPoi
   return groupByMonth(transactions);
 }
 
-function safeDiv(a: number, b: number) {
-  return b === 0 ? 0 : a / b;
+// null on a zero denominator: growth "from zero" is not a percentage, it is
+// unmeasurable (going from €0 to €50,000 is not "0% growth"). Used only by the
+// two mom growth figures below — every other caller of division-by-count in
+// this file (share, arpu, cac, …) is untouched, see the audit report this
+// change was requested from for why those are out of scope here.
+function safeDiv(a: number, b: number): number | null {
+  return b === 0 ? null : a / b;
 }
 
 export function categoryBreakdown(
@@ -98,7 +120,7 @@ export function categoryBreakdown(
 export function cumulativeCashflow(cashflow: DemoCashflow[]) {
   const byMonth = new Map<string, { inflow: number; outflow: number }>();
   for (const c of cashflow) {
-    const period = format(c.date, 'yyyy-MM');
+    const period = monthKey(c.date);
     if (!byMonth.has(period)) byMonth.set(period, { inflow: 0, outflow: 0 });
     const b = byMonth.get(period)!;
     if (c.direction === 'INFLOW') b.inflow += c.amount;
@@ -146,9 +168,11 @@ export function computeKpis(args: {
 
   const totalRevenue = last?.revenue ?? 0;
   const totalCosts = last?.costs ?? 0;
-  const grossMargin = last ? (last.grossProfit / Math.max(1, last.revenue)) * 100 : 0;
-  const operatingMargin = last ? (last.operatingProfit / Math.max(1, last.revenue)) * 100 : 0;
-  const netMargin = last ? (last.netProfit / Math.max(1, last.revenue)) * 100 : 0;
+  // No data for the period (last undefined) is the same "not derivable" case
+  // as revenue <= 0: there is no honest margin to report in either case.
+  const grossMargin = last && last.revenue > 0 ? (last.grossProfit / last.revenue) * 100 : null;
+  const operatingMargin = last && last.revenue > 0 ? (last.operatingProfit / last.revenue) * 100 : null;
+  const netMargin = last && last.revenue > 0 ? (last.netProfit / last.revenue) * 100 : null;
 
   const cashSeries = cumulativeCashflow(cashflow);
   const cashAvailable = cashSeries.at(-1)?.cumulative ?? 0;
@@ -167,7 +191,7 @@ export function computeKpis(args: {
 
   const marketingLastMonth = transactions
     .filter((t) => t.kind === 'COST' && MARKETING_CATEGORIES.has(t.category))
-    .filter((t) => format(t.date, 'yyyy-MM') === last?.period)
+    .filter((t) => monthKey(t.date) === last?.period)
     .reduce((s, t) => s + t.amount, 0);
   const newCustomers = lastCustomer?.newCustomers ?? 0;
   const cac = newCustomers > 0 ? marketingLastMonth / newCustomers : 0;
@@ -176,10 +200,18 @@ export function computeKpis(args: {
   const churnRate = activeCustomers > 0 ? churned / activeCustomers : 0.05;
   const ltv = churnRate > 0 ? arpu * (1 / churnRate) : arpu * 24;
 
-  const momRevenueGrowth = prev ? safeDiv(last!.revenue - prev.revenue, prev.revenue) * 100 : 0;
-  const momCostGrowth = prev ? safeDiv(last!.costs - prev.costs, prev.costs) * 100 : 0;
-  const prevNet = prev ? (prev.netProfit / Math.max(1, prev.revenue)) * 100 : 0;
-  const momNetMarginDelta = netMargin - prevNet;
+  // "No previous period" is the same unmeasurable case as safeDiv's own
+  // zero-denominator guard (there is nothing to compare against either way),
+  // so both fold to null instead of the previous fallback of 0.
+  const rawRevenueGrowth = prev ? safeDiv(last!.revenue - prev.revenue, prev.revenue) : null;
+  const momRevenueGrowth = rawRevenueGrowth === null ? null : rawRevenueGrowth * 100;
+  const rawCostGrowth = prev ? safeDiv(last!.costs - prev.costs, prev.costs) : null;
+  const momCostGrowth = rawCostGrowth === null ? null : rawCostGrowth * 100;
+  // Same revenue<=0 rule as netMargin above, applied to the PRIOR period, so
+  // the delta below never subtracts a real number from a period that in fact
+  // had no derivable margin.
+  const prevNet = prev && prev.revenue > 0 ? (prev.netProfit / prev.revenue) * 100 : null;
+  const momNetMarginDelta = netMargin === null || prevNet === null ? null : netMargin - prevNet;
 
   const prevMrr = subscriptions
     .filter((s) => s.startedAt <= new Date(new Date(now).setMonth(now.getMonth() - 1)))

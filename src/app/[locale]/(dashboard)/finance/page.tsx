@@ -40,6 +40,7 @@ function toDelta(
 export default function FinancePage() {
   const locale = useAppLocale();
   const t = useTranslations('finance');
+  const tc = useTranslations('common');
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
 
   const params = new URLSearchParams({
@@ -77,11 +78,23 @@ export default function FinancePage() {
               value={formatCurrency(data.kpis.totalCosts, locale)}
               delta={toDelta(data.kpis.momCostGrowth, locale, true)}
             />
-            <KpiCard label={t('kpi.grossMargin')} value={formatPercent(data.kpis.grossMargin, locale)} />
-            <KpiCard label={t('kpi.operatingMargin')} value={formatPercent(data.kpis.operatingMargin, locale)} />
+            <KpiCard
+              label={t('kpi.grossMargin')}
+              value={data.kpis.grossMargin !== null ? formatPercent(data.kpis.grossMargin, locale) : ''}
+              state={data.kpis.grossMargin === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
+            />
+            <KpiCard
+              label={t('kpi.operatingMargin')}
+              value={data.kpis.operatingMargin !== null ? formatPercent(data.kpis.operatingMargin, locale) : ''}
+              state={data.kpis.operatingMargin === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
+            />
             <KpiCard
               label={t('kpi.netMargin')}
-              value={formatPercent(data.kpis.netMargin, locale)}
+              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
+              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
               delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
           </>

@@ -351,10 +351,15 @@ function SectionContent({
           <Text style={styles.paragraph}>{s.summaryIntro}</Text>
           <View style={styles.kpiGrid}>
             <KpiCard label={s.kpi.revenue} value={fmtCurrency(payload.kpis.revenue)} />
-            <KpiCard
-              label={s.kpi.revenueGrowth}
-              value={fmtPct(payload.kpis.revenueGrowth)}
-            />
+            {/* Null = not derivable from this org's real data (fewer than two
+                months, or nothing to compare against): the card is left out
+                rather than printing an invented "0% growth". */}
+            {payload.kpis.revenueGrowth !== null && (
+              <KpiCard
+                label={s.kpi.revenueGrowth}
+                value={fmtPct(payload.kpis.revenueGrowth)}
+              />
+            )}
             {/* Null = not derivable from this org's real data: the card is left
                 out rather than printing an invented figure. */}
             {payload.kpis.grossMargin !== null && (
