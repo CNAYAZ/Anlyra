@@ -64,7 +64,6 @@
     "features": "Features",
     "howItWorks": "How it works",
     "pricing": "Pricing",
-    "testimonials": "Testimonials",
     "contact": "Contact"
   },
   "breadcrumb": {
@@ -1912,7 +1911,6 @@
         "billedNote": "billed annually",
         "features": [
           "200 AI credits / month",
-          "Up to 5 users per organization",
           "All analytics (Finance, Market, Operations)",
           "Unlimited PDF reports",
           "Unlimited Custom Dashboards",
@@ -1935,7 +1933,6 @@
         "featuresPrefix": "Everything in Pro, plus:",
         "features": [
           "700 AI credits / month (3.5x vs Pro)",
-          "Up to 15 users",
           "36 months data history",
           "Advanced industry benchmarks",
           "Extended forecasting (12+ months)",
@@ -2249,8 +2246,8 @@
           "desc": "Personalized strategic recommendations. Our AI reads your data and proposes concrete actions."
         },
         {
-          "title": "Automatic alerts",
-          "desc": "Notifications when something changes. Margin dropping? Customer at churn risk? You know first."
+          "title": "One-click alert check",
+          "desc": "Check cash flow, margins, customer churn risk and other critical signals on your real data — whenever you want."
         },
         {
           "title": "Forecasting",
@@ -2297,30 +2294,6 @@
         "Anonymous aggregates only for benchmarks and product improvement",
         "GDPR-compliant, European compliance built-in",
         "Account deletion: data removed within 30 days, guaranteed"
-      ]
-    },
-    "testimonials": {
-      "title": "People are talking about Anlyra",
-      "subtitle": "Companies and consultants who use Anlyra every day to decide faster.",
-      "items": [
-        {
-          "initials": "MC",
-          "name": "Marco C.",
-          "role": "CEO, SaaS Startup",
-          "quote": "Anlyra reduced the time I spend on reporting from 8 hours a week to 30 minutes. Game-changing for a startup."
-        },
-        {
-          "initials": "GR",
-          "name": "Giulia R.",
-          "role": "Finance Consultant",
-          "quote": "I use it with 12 of my SMB clients. The AI catches patterns I was missing. Indispensable."
-        },
-        {
-          "initials": "AT",
-          "name": "Andrea T.",
-          "role": "CFO, B2B Scaleup",
-          "quote": "Privacy-first and affordable pricing. We didn't need another tool sharing our numbers with OpenAI."
-        }
       ]
     },
     "pricing": {

@@ -64,7 +64,6 @@
     "features": "Funzionalità",
     "howItWorks": "Come Funziona",
     "pricing": "Prezzi",
-    "testimonials": "Testimonianze",
     "contact": "Contatti"
   },
   "breadcrumb": {
@@ -1912,7 +1911,6 @@
         "billedNote": "fatturato annualmente",
         "features": [
           "200 crediti AI / mese",
-          "Fino a 5 utenti per organizzazione",
           "Tutte le analisi (Finance, Market, Operations)",
           "Report PDF illimitati",
           "Custom Dashboards illimitate",
@@ -1935,7 +1933,6 @@
         "featuresPrefix": "Tutto del piano Pro, più:",
         "features": [
           "700 crediti AI / mese (3,5x rispetto a Pro)",
-          "Fino a 15 utenti",
           "Storia dati 36 mesi",
           "Benchmark settore avanzato",
           "Forecasting esteso (12+ mesi)",
@@ -2249,8 +2246,8 @@
           "desc": "Suggerimenti strategici personalizzati. La nostra AI legge i tuoi dati e propone azioni concrete."
         },
         {
-          "title": "Alert automatici",
-          "desc": "Notifiche quando qualcosa cambia. Margine in calo? Cliente a rischio churn? Lo sai prima."
+          "title": "Controllo alert in un click",
+          "desc": "Verifica quando vuoi cashflow negativo, margini in calo, clienti a rischio churn e altri segnali critici sui tuoi dati reali."
         },
         {
           "title": "Forecasting",
@@ -2297,30 +2294,6 @@
         "Aggregati anonimi solo per benchmark e miglioramento prodotto",
         "GDPR-compliant, conformità europea integrata",
         "Cancellazione account: dati eliminati entro 30 giorni, garantito"
-      ]
-    },
-    "testimonials": {
-      "title": "Stanno parlando di Anlyra",
-      "subtitle": "Aziende e consulenti che usano Anlyra ogni giorno per decidere più in fretta.",
-      "items": [
-        {
-          "initials": "MC",
-          "name": "Marco C.",
-          "role": "CEO, Startup SaaS",
-          "quote": "Anlyra ha ridotto il tempo che dedico al reporting da 8 ore a settimana a 30 minuti. Decisivo per una startup."
-        },
-        {
-          "initials": "GR",
-          "name": "Giulia R.",
-          "role": "Consulente Finance",
-          "quote": "Lo uso con 12 dei miei clienti PMI. L'AI cattura pattern che mi sfuggivano. Indispensabile."
-        },
-        {
-          "initials": "AT",
-          "name": "Andrea T.",
-          "role": "CFO, Scaleup B2B",
-          "quote": "Privacy-first e prezzo accessibile. Non ci voleva un altro tool che condividesse i nostri numeri con OpenAI."
-        }
       ]
     },
     "pricing": {

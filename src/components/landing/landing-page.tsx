@@ -17,9 +17,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { contactMailto } from '@/lib/company';
-import { cn } from '@/lib/utils';
 
-export type TestimonialItem = { initials: string; name: string; role: string; quote: string };
 export type HowItWorksStep = { number: string; title: string; desc: string };
 export type FeatureItem = { title: string; desc: string };
 export type ProblemPoint = { title: string; desc: string };
@@ -40,8 +38,6 @@ export type LandingPageProps = {
   trustTitle: string;
   trustParagraph: string;
   trustPromises: string[];
-  testimonialsTitle: string;
-  testimonialItems: TestimonialItem[];
   finalCtaTitle: string;
   finalCtaSubtitle: string;
   finalCtaPrimary: string;
@@ -67,8 +63,6 @@ export function LandingPage({
   trustTitle,
   trustParagraph,
   trustPromises,
-  testimonialsTitle,
-  testimonialItems,
   finalCtaTitle,
   finalCtaSubtitle,
   finalCtaPrimary,
@@ -197,40 +191,6 @@ export function LandingPage({
                 ))}
               </ul>
             </div>
-          </div>
-        </section>
-
-        {/* ── TESTIMONIALS (placeholder) ── */}
-        {/* Testimonial placeholder. Sostituire con feedback reali quando disponibili. */}
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="text-center font-heading text-3xl font-bold text-foreground">
-            {testimonialsTitle}
-          </h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {testimonialItems.map((t, i) => (
-              <figure
-                key={i}
-                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6"
-              >
-                <blockquote className="flex-1 text-sm leading-relaxed text-muted-foreground">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
-                <figcaption className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                      'bg-primary-accent/10 font-heading text-xs font-bold text-primary-accent',
-                    )}
-                  >
-                    {t.initials}
-                  </span>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.role}</div>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
           </div>
         </section>
 
