@@ -355,7 +355,11 @@
     "settings": "Impostazioni",
     "rateLimitUnavailable": "Non riusciamo a completare la richiesta in questo momento. Riprova tra qualche minuto.",
     "kpiNotAvailable": "Non disponibile",
-    "kpiNotAvailableNoRevenue": "Servono ricavi maggiori di zero"
+    "kpiNotAvailableNoRevenue": "Servono ricavi maggiori di zero",
+    "kpiNotAvailableNoBalance": "Non conosciamo il saldo del tuo conto",
+    "kpiNotAvailableNoCustomers": "Nessun cliente attivo nel periodo",
+    "notBurningCash": "Non stai bruciando cassa",
+    "notBurningCashHint": "Ricavi medi pari o superiori ai costi medi negli ultimi mesi"
   },
   "periods": {
     "1m": "Ultimo mese",
@@ -410,7 +414,7 @@
       "aiChat": "Chat con l'AI"
     },
     "aiSpotlightBadge": "Insight automatico",
-    "aiSpotlightSummary": "Margine netto al {margin} nell'ultimo mese disponibile. Burn rate {burnRate}/mese, runway {runway} mesi.",
+    "aiSpotlightSummary": "Margine netto al {margin} nell'ultimo mese disponibile. Burn rate {burnRate}/mese.",
     "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
     "lastMonthRevenue": "Ultimo mese — Ricavi",
     "lastMonthCosts": "Ultimo mese — Costi",

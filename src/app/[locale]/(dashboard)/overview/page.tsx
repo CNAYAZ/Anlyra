@@ -110,7 +110,6 @@ export default function OverviewPage() {
       ? t('aiSpotlightSummary', {
           margin: formatPercent(data.kpis.netMargin, locale),
           burnRate: formatCurrency(data.kpis.burnRate, locale),
-          runway: formatNumber(data.kpis.cashRunway, locale, 1),
         })
       : t('aiSpotlightLoading');
 
@@ -233,10 +232,22 @@ export default function OverviewPage() {
               delta={toDelta(data.kpis.momCustomersDelta, locale)}
               icon={Users}
             />
-            <KpiCard label="ARPU" value={formatCurrency(data.kpis.arpu, locale)} icon={Brain} />
+            <KpiCard
+              label="ARPU"
+              value={data.kpis.arpu !== null ? formatCurrency(data.kpis.arpu, locale) : ''}
+              state={data.kpis.arpu === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoCustomers') }}
+              icon={Brain}
+            />
             <KpiCard
               label={t('kpi.runwayLabel')}
-              value={`${formatNumber(data.kpis.cashRunway, locale, 1)} ${t('kpi.months')}`}
+              value=""
+              state="empty"
+              empty={
+                data.kpis.isBurningCash
+                  ? { message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoBalance') }
+                  : { message: tc('notBurningCash'), hint: tc('notBurningCashHint') }
+              }
               icon={PiggyBank}
             />
           </>

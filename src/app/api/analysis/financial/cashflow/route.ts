@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
         available: kpis.cashAvailable,
         workingCapital: kpis.workingCapital,
         runway: kpis.cashRunway,
+        isBurningCash: kpis.isBurningCash,
       },
       monthly: cumulativeCashflow(data.cashflow),
       byCategory: cashflowByCategory(data.cashflow),

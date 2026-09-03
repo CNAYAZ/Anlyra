@@ -355,7 +355,11 @@
     "settings": "Settings",
     "rateLimitUnavailable": "We cannot complete this request right now. Please try again in a few minutes.",
     "kpiNotAvailable": "Not available",
-    "kpiNotAvailableNoRevenue": "Requires revenue greater than zero"
+    "kpiNotAvailableNoRevenue": "Requires revenue greater than zero",
+    "kpiNotAvailableNoBalance": "We don't know your account balance",
+    "kpiNotAvailableNoCustomers": "No active customers this period",
+    "notBurningCash": "You're not burning cash",
+    "notBurningCashHint": "Average revenue at or above average costs over the last months"
   },
   "periods": {
     "1m": "Last month",
@@ -410,7 +414,7 @@
       "aiChat": "Chat with AI"
     },
     "aiSpotlightBadge": "Automated insight",
-    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Burn rate {burnRate}/month, runway {runway} months.",
+    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Burn rate {burnRate}/month.",
     "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
     "lastMonthRevenue": "Last month — Revenue",
     "lastMonthCosts": "Last month — Costs",

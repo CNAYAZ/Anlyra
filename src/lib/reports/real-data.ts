@@ -101,7 +101,9 @@ export async function buildRealPayload(
     .reduce((s, t) => s + t.amount, 0);
   const grossMargin = cogs > 0 && totalRevenue > 0 ? (totalRevenue - cogs) / totalRevenue : null;
 
-  const netMargin = totalRevenue > 0 ? (totalRevenue - totalCosts) / totalRevenue : 0;
+  // Same schema as grossMargin/revenueGrowth above: null instead of a false
+  // "0% margin" when there is no revenue to divide by.
+  const netMargin = totalRevenue > 0 ? (totalRevenue - totalCosts) / totalRevenue : null;
 
   // ── Cashflow: real CashflowEntry rows inside the window ──
   const cfInPeriod = data.cashflow.filter((c) => c.date >= from && c.date <= to);

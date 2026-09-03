@@ -21,7 +21,7 @@ type SharedReport = {
     revenue: number;
     revenueGrowth: number;
     grossMargin: number | null;
-    netMargin: number;
+    netMargin: number | null;
     cashRunwayMonths: number | null;
     headcount: number;
   };
@@ -188,12 +188,17 @@ export default function PublicSharePage() {
               {nf.format(report.kpis.revenue)}
             </p>
           </div>
-          <div className="card">
-            <p className="text-xs text-muted-foreground">{t('netMargin')}</p>
-            <p className="font-heading text-xl font-semibold tabular-nums">
-              {pf.format(report.kpis.netMargin)}
-            </p>
-          </div>
+          {/* Null = no revenue for the period to divide by: the card is
+              omitted rather than printing an invented "0% margin" — same
+              rule as the PDF this page mirrors (ReportDocument.tsx). */}
+          {report.kpis.netMargin !== null && (
+            <div className="card">
+              <p className="text-xs text-muted-foreground">{t('netMargin')}</p>
+              <p className="font-heading text-xl font-semibold tabular-nums">
+                {pf.format(report.kpis.netMargin)}
+              </p>
+            </div>
+          )}
           <div className="card">
             <p className="text-xs text-muted-foreground">{t('headcount')}</p>
             <p className="font-heading text-xl font-semibold tabular-nums">

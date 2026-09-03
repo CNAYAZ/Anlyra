@@ -25,7 +25,9 @@ export interface ReportPayload {
      * printing an invented number. buildSamplePayload still fills both.
      */
     grossMargin: number | null;
-    netMargin: number;
+    // Null when there is no revenue for the period to divide by — same
+    // reasoning as grossMargin/revenueGrowth above. See real-data.ts.
+    netMargin: number | null;
     cashRunwayMonths: number | null;
     headcount: number;
   };

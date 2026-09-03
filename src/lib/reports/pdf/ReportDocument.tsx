@@ -368,10 +368,14 @@ function SectionContent({
                 value={fmtPct(payload.kpis.grossMargin)}
               />
             )}
-            <KpiCard
-              label={s.kpi.netMargin}
-              value={fmtPct(payload.kpis.netMargin)}
-            />
+            {/* Null = no revenue for the period to divide by: the card is
+                left out rather than printing an invented "0% margin". */}
+            {payload.kpis.netMargin !== null && (
+              <KpiCard
+                label={s.kpi.netMargin}
+                value={fmtPct(payload.kpis.netMargin)}
+              />
+            )}
             {payload.kpis.cashRunwayMonths !== null && (
               <KpiCard
                 label={s.kpi.cashRunway}
