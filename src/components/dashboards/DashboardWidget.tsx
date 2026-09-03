@@ -181,21 +181,20 @@ export function DashboardWidget({ widget }: { widget: WidgetConfig }) {
     const d = financial.data;
     if (!d) return <Frame title={widget.title}><EmptyHint hint={hint} /></Frame>;
 
-    // "No movements at all" gates chart_revenue_trend below, which — like the
-    // Finance → Revenue page's own trend chart — always shows the FULL
-    // available history regardless of the period picked. `series` is that
-    // unfiltered history, so it is the right check for that one case only.
+    // /api/analysis/financial now builds series, kpis AND the two category
+    // breakdowns from the same period-filtered transaction set (previously
+    // series/kpis ignored the period entirely and always reflected the org's
+    // full history — the bug a later fix addressed). "No movements at all
+    // for the selected period" therefore reads correctly off d.series too.
     const hasMovements = d.series.length > 0;
 
-    // The three kpi_* widgets must NOT read d.kpis: that object is computed
-    // from the single most recent month (`series.at(-1)`, see computeKpis in
-    // lib/analysis/financial.ts) and is therefore the SAME number whatever
-    // `period` is requested — the bug this fix addresses. revenueByCategory /
-    // costsByCategory, by contrast, are built from the period-filtered
-    // transaction set, so summing their categories gives the real total for
-    // the selected window. Their presence is also the correct "any data this
-    // period?" check — d.series being non-empty only proves history exists
-    // SOMEWHERE, not within the chosen period.
+    // The three kpi_* widgets still compute their own periodRevenue/
+    // periodCosts from revenueByCategory/costsByCategory rather than reading
+    // d.kpis directly — not because d.kpis is stale (it isn't, see above),
+    // but because kpis.totalRevenue/totalCosts reflect only the LAST month
+    // inside the filtered window (see computeKpis in lib/analysis/financial.ts),
+    // while summing the category breakdowns gives the total across the whole
+    // selected period, which is what these widgets are meant to show.
     const periodRevenue = d.revenueByCategory.reduce((sum, c) => sum + c.total, 0);
     const periodCosts = d.costsByCategory.reduce((sum, c) => sum + c.total, 0);
     const periodMargin = periodRevenue > 0 ? ((periodRevenue - periodCosts) / periodRevenue) * 100 : 0;

@@ -18,7 +18,7 @@ import { formatCurrency, formatPercent } from '@/lib/utils';
 import type { CategoryBreakdown, MonthlySeriesPoint } from '@/lib/analysis/financial';
 
 type RevenueResponse = {
-  kpis: { totalRevenue: number; mom: number; yoy: number; arpu: number };
+  kpis: { totalRevenue: number; mom: number | null; yoy: number | null; arpu: number | null };
   series: MonthlySeriesPoint[];
   byCategory: CategoryBreakdown[];
   categories: string[];
@@ -43,6 +43,7 @@ function toDelta(
 export default function RevenuePage() {
   const locale = useAppLocale();
   const t = useTranslations('revenue');
+  const tc = useTranslations('common');
 
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
   const [category, setCategory] = useState('');
@@ -94,9 +95,26 @@ export default function RevenuePage() {
               value={formatCurrency(data.kpis.totalRevenue, locale)}
               icon={TrendingUp}
             />
-            <KpiCard label={t('kpi.mom')} value={formatPercent(data.kpis.mom, locale)} delta={toDelta(data.kpis.mom, locale)} />
-            <KpiCard label={t('kpi.yoy')} value={formatPercent(data.kpis.yoy, locale)} delta={toDelta(data.kpis.yoy, locale)} />
-            <KpiCard label={t('kpi.arpu')} value={formatCurrency(data.kpis.arpu, locale)} />
+            <KpiCard
+              label={t('kpi.mom')}
+              value={data.kpis.mom !== null ? formatPercent(data.kpis.mom, locale) : ''}
+              state={data.kpis.mom === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoPreviousPeriod') }}
+              delta={toDelta(data.kpis.mom, locale)}
+            />
+            <KpiCard
+              label={t('kpi.yoy')}
+              value={data.kpis.yoy !== null ? formatPercent(data.kpis.yoy, locale) : ''}
+              state={data.kpis.yoy === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoYearHistory') }}
+              delta={toDelta(data.kpis.yoy, locale)}
+            />
+            <KpiCard
+              label={t('kpi.arpu')}
+              value={data.kpis.arpu !== null ? formatCurrency(data.kpis.arpu, locale) : ''}
+              state={data.kpis.arpu === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoCustomers') }}
+            />
           </>
         )}
       </div>

@@ -100,11 +100,10 @@ export function monthlySeries(transactions: DemoTransaction[]): MonthlySeriesPoi
 }
 
 // null on a zero denominator: growth "from zero" is not a percentage, it is
-// unmeasurable (going from €0 to €50,000 is not "0% growth"). Used only by the
-// two mom growth figures below — every other caller of division-by-count in
-// this file (share, arpu, cac, …) is untouched, see the audit report this
-// change was requested from for why those are out of scope here.
-function safeDiv(a: number, b: number): number | null {
+// unmeasurable (going from €0 to €50,000 is not "0% growth"). Exported so the
+// revenue/costs routes can apply the same rule to their own parallel mom/yoy/
+// ratio figures instead of each hand-rolling a fallback to 0.
+export function safeDiv(a: number, b: number): number | null {
   return b === 0 ? null : a / b;
 }
 
@@ -278,12 +277,15 @@ export function computeKpis(args: {
   };
 }
 
-export function filterTransactionsByPeriod(
-  transactions: DemoTransaction[],
+// Generic over anything date-stamped (DemoTransaction or DemoCashflow): same
+// exact window logic either way, so the routes can filter cashflow entries
+// with this instead of hand-rolling a second copy of the same date math.
+export function filterTransactionsByPeriod<T extends { date: Date }>(
+  transactions: T[],
   period: '1m' | '3m' | '6m' | '12m' | 'custom',
   customFrom?: string,
   customTo?: string,
-) {
+): T[] {
   const now = new Date();
   let fromDate = new Date(0);
   switch (period) {
@@ -307,9 +309,20 @@ export function filterTransactionsByPeriod(
   return transactions.filter((t) => t.date >= fromDate && t.date <= toDate);
 }
 
-export function yoyGrowth(series: MonthlySeriesPoint[]) {
-  if (series.length < 2) return 0;
-  const last = series.at(-1)!;
-  const oldest = series[0];
-  return oldest.revenue > 0 ? ((last.revenue - oldest.revenue) / oldest.revenue) * 100 : 0;
+// True year-over-year: the SAME calendar month twelve months before the
+// latest one, addressed by its own period key — not "whatever happens to be
+// first in the array passed in", which compared against an arbitrary-length
+// window and called it "year over year" regardless of how much history was
+// actually available. null when that month isn't in the series (fewer than
+// twelve months of history, or a shorter period filter cut it out) or had no
+// revenue to compare against.
+export function yoyGrowth(series: MonthlySeriesPoint[]): number | null {
+  const last = series.at(-1);
+  if (!last) return null;
+  const [year, month] = last.period.split('-').map(Number);
+  const targetPeriod = `${year - 1}-${String(month).padStart(2, '0')}`;
+  const yearAgo = series.find((s) => s.period === targetPeriod);
+  if (!yearAgo) return null;
+  const raw = safeDiv(last.revenue - yearAgo.revenue, yearAgo.revenue);
+  return raw === null ? null : raw * 100;
 }

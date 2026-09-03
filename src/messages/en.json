@@ -359,7 +359,9 @@
     "kpiNotAvailableNoBalance": "We don't know your account balance",
     "kpiNotAvailableNoCustomers": "No active customers this period",
     "notBurningCash": "You're not burning cash",
-    "notBurningCashHint": "Average revenue at or above average costs over the last months"
+    "notBurningCashHint": "Average revenue at or above average costs over the last months",
+    "kpiNotAvailableNoPreviousPeriod": "No previous period to compare against",
+    "kpiNotAvailableNoYearHistory": "Requires at least 12 months of history in the selected period"
   },
   "periods": {
     "1m": "Last month",
@@ -414,7 +416,7 @@
       "aiChat": "Chat with AI"
     },
     "aiSpotlightBadge": "Automated insight",
-    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Burn rate {burnRate}/month.",
+    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Average costs {burnRate}/month.",
     "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
     "lastMonthRevenue": "Last month — Revenue",
     "lastMonthCosts": "Last month — Costs",
@@ -456,10 +458,10 @@
   },
   "costs": {
     "title": "Costs",
-    "subtitle": "Cost analysis and burn rate",
+    "subtitle": "Cost analysis and monthly average",
     "kpi": {
       "total": "Total costs",
-      "burnRate": "Burn Rate",
+      "burnRate": "Average monthly costs",
       "ratio": "Costs / Revenue ratio"
     },
     "chart": {

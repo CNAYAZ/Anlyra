@@ -359,7 +359,9 @@
     "kpiNotAvailableNoBalance": "Non conosciamo il saldo del tuo conto",
     "kpiNotAvailableNoCustomers": "Nessun cliente attivo nel periodo",
     "notBurningCash": "Non stai bruciando cassa",
-    "notBurningCashHint": "Ricavi medi pari o superiori ai costi medi negli ultimi mesi"
+    "notBurningCashHint": "Ricavi medi pari o superiori ai costi medi negli ultimi mesi",
+    "kpiNotAvailableNoPreviousPeriod": "Nessun periodo precedente con cui confrontare",
+    "kpiNotAvailableNoYearHistory": "Servono almeno 12 mesi di storico nel periodo selezionato"
   },
   "periods": {
     "1m": "Ultimo mese",
@@ -414,7 +416,7 @@
       "aiChat": "Chat con l'AI"
     },
     "aiSpotlightBadge": "Insight automatico",
-    "aiSpotlightSummary": "Margine netto al {margin} nell'ultimo mese disponibile. Burn rate {burnRate}/mese.",
+    "aiSpotlightSummary": "Margine netto al {margin} nell'ultimo mese disponibile. Costi medi {burnRate}/mese.",
     "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
     "lastMonthRevenue": "Ultimo mese — Ricavi",
     "lastMonthCosts": "Ultimo mese — Costi",
@@ -456,10 +458,10 @@
   },
   "costs": {
     "title": "Costi",
-    "subtitle": "Analisi costi e burn rate",
+    "subtitle": "Analisi costi e media mensile",
     "kpi": {
       "total": "Costi totali",
-      "burnRate": "Burn Rate",
+      "burnRate": "Costi medi mensili",
       "ratio": "Rapporto Costi/Ricavi"
     },
     "chart": {
