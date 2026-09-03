@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
 import { ok, fail } from "@/lib/api/response";
 import { getAuthContext } from "@/lib/session";
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { getStripe } from "@/lib/stripe/client";
 import { getSubscription } from "@/lib/billing/repository";
 
 export async function POST(req: NextRequest) {
   const ctx = await getAuthContext();
   if (!ctx) return fail("Unauthenticated", 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
 
   const sub = await getSubscription(ctx.organizationId);
   if (!sub.stripeCustomerId) return fail("No Stripe customer for this organization", 400);

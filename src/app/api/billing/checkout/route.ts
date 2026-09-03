@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, fail } from "@/lib/api/response";
 import { getAuthContext } from "@/lib/session";
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { getStripe } from "@/lib/stripe/client";
 import { getStripePriceId } from "@/lib/stripe/prices";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
@@ -14,6 +15,9 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   const ctx = await getAuthContext();
   if (!ctx) return fail("Unauthenticated", 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
 
   let parsed;
   try {

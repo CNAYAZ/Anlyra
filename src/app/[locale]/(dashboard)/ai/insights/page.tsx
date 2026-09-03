@@ -17,6 +17,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Link } from '@/i18n/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
+import { useIsDemo } from '@/lib/demo/context';
 import type { InsightDTO } from '@/types/ai';
 
 type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
@@ -30,6 +31,7 @@ const GENERATION_CREDIT_COST = 3;
 export default function InsightsPage() {
   const t = useTranslations('insights');
   const tCommon = useTranslations('common');
+  const tDemo = useTranslations('demo');
   const locale = useLocale();
   const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
@@ -49,7 +51,10 @@ export default function InsightsPage() {
   // codes (rate limit, bad AI response, missing data) aren't fixed by upgrading.
   const [generateErrorIsCredits, setGenerateErrorIsCredits] = useState(false);
 
-  const canGenerate = aiCreditsBalance >= GENERATION_CREDIT_COST;
+  // In the demo the server refuses this (requireWritableOrg → 403 DEMO_READ_ONLY);
+  // disabling the button here just means the user is told BEFORE clicking.
+  const isDemo = useIsDemo();
+  const canGenerate = !isDemo && aiCreditsBalance >= GENERATION_CREDIT_COST;
 
   const { data, isLoading, isError, refetch } = useQuery({
     // `page` is part of the key: changing page is a different server request,
@@ -170,7 +175,7 @@ export default function InsightsPage() {
             size="sm"
             disabled={!canGenerate || generateMutation.isPending}
             onClick={() => generateMutation.mutate()}
-            title={!canGenerate ? t('creditsRequired') : undefined}
+            title={isDemo ? tDemo('readOnlyShort') : !canGenerate ? t('creditsRequired') : undefined}
           >
             {generateMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

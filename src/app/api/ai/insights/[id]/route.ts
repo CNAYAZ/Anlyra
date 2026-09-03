@@ -1,6 +1,7 @@
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
 
     const body = await req.json().catch(() => null);

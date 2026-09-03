@@ -9,8 +9,26 @@ import { auth } from '@/auth';
 import { signupCredits } from '@/lib/billing/plan-credits';
 
 const DEMO_EMAIL = 'demo@pro.app';
-const DEMO_ORG_ID = 'demo-org';
+export const DEMO_ORG_ID = 'demo-org';
 const ORG_COOKIE = 'current_org_id';
+
+/**
+ * Cookie that marks an EXPLICIT demo visit, set only by POST /api/demo/start
+ * (the "try the demo" button). Its mere presence is what lets an anonymous
+ * visitor resolve to the demo organization.
+ *
+ * ── WHY A COOKIE IS SAFE HERE ──
+ * It is client-controlled, so a visitor can forge it. That grants exactly
+ * nothing they could not already get by clicking the public button: the value
+ * is never read as an identifier, it only flips a boolean, and the organization
+ * it unlocks is hardcoded to DEMO_ORG_ID. There is no path from this cookie to
+ * another tenant's data — unlike ORG_COOKIE above, which IS an id and is
+ * therefore always validated against a Membership row.
+ *
+ * It also cannot affect a signed-in user: getCurrentContext returns the real
+ * organization for status 'ok' before this cookie is ever consulted.
+ */
+export const DEMO_COOKIE = 'anlyra_demo';
 
 /**
  * Three distinct session states, so callers can tell "anonymous visitor" apart
@@ -34,6 +52,38 @@ export class NoOrganizationError extends Error {
     super('Signed-in user has no organization');
     this.name = 'NoOrganizationError';
   }
+}
+
+/**
+ * Thrown when an anonymous visitor reaches a surface that needs an organization
+ * WITHOUT having explicitly started a demo session.
+ *
+ * This replaces the old silent fallback, where any unauthenticated request was
+ * quietly answered with the demo organization's data. That data is invented
+ * (see prisma/seed.ts — a churn rate computed from 247 customers that do not
+ * exist), so serving it unannounced meant a visitor could read fabricated
+ * figures as if they were a real company's.
+ */
+export class NotAuthenticatedError extends Error {
+  constructor() {
+    super('Anonymous visitor without an explicit demo session');
+    this.name = 'NotAuthenticatedError';
+  }
+}
+
+/** True when the explicit demo cookie is present on this request. */
+export async function hasDemoSession(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return cookieStore.get(DEMO_COOKIE)?.value === '1';
+}
+
+/**
+ * True when `organizationId` is the demo organization — the single check behind
+ * every read-only guard. Exported so route guards and UI both agree on what
+ * "in the demo" means, instead of each comparing strings on their own.
+ */
+export function isDemoOrganization(organizationId: string): boolean {
+  return organizationId === DEMO_ORG_ID;
 }
 
 async function resolveSessionContext(): Promise<SessionState> {
@@ -136,8 +186,15 @@ export async function getCurrentContext() {
   if (state.status === 'no-org') {
     throw new NoOrganizationError();
   }
-  // Anonymous visitor → read-only demo showcase (public preview), as before.
-  return getDemoContext();
+
+  // Anonymous visitor. The demo is now an EXPLICIT choice, not the default:
+  // only a visitor who pressed "try the demo" (and so carries DEMO_COOKIE)
+  // resolves to the demo organization. Everyone else gets an error the caller
+  // turns into a redirect to /login or a 401 — never someone else's numbers.
+  if (await hasDemoSession()) {
+    return getDemoContext();
+  }
+  throw new NotAuthenticatedError();
 }
 
 export type AuthContext = {

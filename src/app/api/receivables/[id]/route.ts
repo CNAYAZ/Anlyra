@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
 import { toReceivableDTO } from '@/lib/receivables/dto';
@@ -28,6 +29,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
     const json = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(json);
@@ -72,6 +76,9 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly1 = requireWritableOrg(authCtx.organizationId);
+    if (readOnly1) return readOnly1;
     const denied = requireManagerRole(authCtx);
     if (denied) return denied;
     const { organizationId } = authCtx;

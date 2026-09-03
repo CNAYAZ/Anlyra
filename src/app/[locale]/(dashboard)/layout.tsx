@@ -4,7 +4,14 @@ import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { CreditsHydrator } from '@/components/dashboard/CreditsHydrator';
 import { TrialExpiredBanner } from '@/components/billing/TrialExpiredBanner';
-import { getCurrentOrganization, getSessionState } from '@/lib/session';
+import {
+  getCurrentOrganization,
+  getSessionState,
+  hasDemoSession,
+  isDemoOrganization,
+} from '@/lib/session';
+import { DemoBanner } from '@/components/demo/DemoBanner';
+import { DemoProvider } from '@/lib/demo/context';
 import { getCreditBalance, getBillingState } from '@/lib/billing/repository';
 import { BillingProvider } from '@/lib/billing/context';
 import { PLANS } from '@/lib/billing/plans';
@@ -34,10 +41,22 @@ export default async function DashboardLayout({
     redirect(`/${locale}/onboarding`);
   }
 
-  // 'ok' → the real signed-in org; 'anonymous' → the read-only demo showcase
-  // (public preview). getCurrentOrganization resolves both; the plan comes from
-  // the real Organization record, never from a client cookie.
+  // An anonymous visitor is sent to the login page unless they explicitly
+  // started a demo. Previously this same branch silently served the demo
+  // organization's invented data to anyone who happened to open a dashboard
+  // URL; the demo is now something you choose, not something you land in.
+  const inDemo = await hasDemoSession();
+  if (state.status === 'anonymous' && !inDemo) {
+    redirect(`/${locale}/login`);
+  }
+
+  // 'ok' → the real signed-in org; anonymous WITH the demo cookie → the demo org.
+  // The plan comes from the real Organization record, never from a client cookie.
   const { id: orgId } = await getCurrentOrganization();
+
+  // Read-only applies to the demo organization however it was reached: an
+  // anonymous demo visit, or someone signed in as the demo account.
+  const isDemo = isDemoOrganization(orgId);
 
   // Real subscription state from the DB (BillingSubscription via repository).
   // getBillingState returns the org's actual plan/status/period — falling back to
@@ -52,19 +71,26 @@ export default async function DashboardLayout({
 
   return (
     <BillingProvider initialState={billingState}>
-      <div className="flex min-h-screen bg-background">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Topbar />
-          {/* Read-only strip for expired trials (renders null for active/trialing).
-              A strip that pushes content down, never an overlay — data stays visible. */}
-          <TrialExpiredBanner />
-          <main className="flex-1 p-6">
-            <div className="mx-auto w-full max-w-[1440px]">{children}</div>
-          </main>
+      {/* Makes `isDemo` available to every client component below, so the UI can
+          disable the controls that the server would refuse anyway. */}
+      <DemoProvider isDemo={isDemo}>
+        <div className="flex min-h-screen bg-background">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <Topbar />
+            {/* Demo notice first: it explains what the whole page is. Like the
+                trial strip it pushes content down instead of covering it. */}
+            <DemoBanner />
+            {/* Read-only strip for expired trials (renders null for active/trialing).
+                A strip that pushes content down, never an overlay — data stays visible. */}
+            <TrialExpiredBanner />
+            <main className="flex-1 p-6">
+              <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+            </main>
+          </div>
+          <CreditsHydrator credits={credits} max={planMax} />
         </div>
-        <CreditsHydrator credits={credits} max={planMax} />
-      </div>
+      </DemoProvider>
     </BillingProvider>
   );
 }

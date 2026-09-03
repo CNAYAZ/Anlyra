@@ -18,6 +18,7 @@ import { Link } from '@/i18n/navigation';
 import { formatDate } from '@/lib/format';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
+import { useIsDemo } from '@/lib/demo/context';
 import type {
   AlertDTO,
   AlertSeverity,
@@ -60,6 +61,8 @@ function analyzeErrorKey(
 export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending }: Props) {
   const t = useTranslations('alerts');
   const tCommon = useTranslations('common');
+  const tDemo = useTranslations('demo');
+  const isDemo = useIsDemo();
   const locale = useLocale() as Locale;
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
@@ -89,7 +92,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
   if (!alert) return null;
 
-  const hasCredits = credits >= ANALYSIS_CREDIT_COST;
+  const hasCredits = !isDemo && credits >= ANALYSIS_CREDIT_COST;
   const isAnalyzing = analyzeMutation.isPending;
 
   return (
@@ -132,7 +135,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                   variant="secondary"
                   disabled={isAnalyzing || !hasCredits}
                   onClick={() => analyzeMutation.mutate(alert.id)}
-                  title={!hasCredits ? t('analyzeErrorCredits') : undefined}
+                  title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('analyzeErrorCredits') : undefined}
                 >
                   {isAnalyzing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

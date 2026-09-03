@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
     // 1. Auth (strict): a real logged-in user with an org, no demo fallback.
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { userId, organizationId } = authCtx;
 
     // 2. Trial/subscription gate, as on every other credit-consuming AI route.

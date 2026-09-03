@@ -9,3 +9,4 @@ export function ok<T>(data: T, init?: ResponseInit) {
 export function fail(error: string, status = 400) {
   return NextResponse.json<ApiResponse<never>>({ success: false, error }, { status });
 }
+

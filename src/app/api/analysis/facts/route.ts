@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { getCurrentContext } from '@/lib/session';
 import { getFinancialFacts } from '@/lib/facts/financial-facts';
 import { locales, defaultLocale, type Locale } from '@/i18n/config';
@@ -27,6 +27,6 @@ export async function GET(req: NextRequest) {
     const facts = await getFinancialFacts(organizationId, localeFrom(req));
     return ok({ facts });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
