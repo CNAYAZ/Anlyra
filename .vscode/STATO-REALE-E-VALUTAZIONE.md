@@ -1519,3 +1519,119 @@ non è quello in produzione. Da allineare PRIMA di toccare Stripe.
 
 **Nota di metodo:** `git branch -r` apre un visore a pagine e "mangia" il comando
 successivo. Usare `| cat` in fondo. Si esce dal visore con `q`.
+## §32 — LISTA LAVORI APERTI (aggiornata 2026-09-02, sostituisce §30)
+
+Raccolta da: censimento codice morto, audit prompt injection, audit del denaro, audit
+branch explicit-demo. Ordinata per costo reale, non per categoria.
+METODO DECISO DAL FONDATORE: questa lista si costruisce leggendo; le correzioni si
+fanno in sessioni dedicate, una alla volta, con la lista in mano. Si interrompe la
+lettura solo per cose urgenti.
+
+### A — SOLDI (prima di accendere Stripe)
+1. **Il trial non scade mai per chi apre il checkout e non paga.** [il più costoso]
+   `setSubscription` viene chiamato quando l'utente clicca "Passa a PRO"
+   (checkout/route.ts:38, credits/checkout/route.ts:41), non quando paga. La riga creata
+   fotografa lo stato "trialing" e da lì niente lo fa più scadere: `getSubscription`
+   ricalcola solo se la riga NON esiste (repository.ts:68-72), il cron manda solo email
+   e non scrive, `requireActiveAccess` guarda solo lo stato. Chi esita davanti al prezzo
+   tiene l'accesso completo gratis per sempre.
+2. **Il pacco crediti comprato viene cancellato dal rinnovo mensile.**
+   L'acquisto somma (`increment`, repository.ts:196), il rinnovo imposta
+   (`set: allowance`, credit-renewal.ts:142). Stesso campo. Chi compra 500 crediti a 59 €
+   il 28 del mese li perde al primo cron del mese nuovo. Fino a 59 € di rimborso a mano.
+3. **L'email di fine prova promette un addebito che non esiste.** trial-1day.ts:23-24
+   annuncia data e importo dell'addebito, con tabella e link per disdire. Nessun addebito
+   automatico esiste nel codice. → RISOLTO DALLA DECISIONE 5: è il prodotto a dover
+   raggiungere l'email.
+4. **DECISIONE PRESA — prova con carta e addebito automatico.** Il fondatore vuole:
+   carta richiesta alla registrazione, 7 giorni di prova, addebito automatico all'ottavo.
+   Oggi NON esiste: nessuna carta raccolta all'iscrizione, le uniche sessioni di
+   pagamento sono avviate a mano dal pannello. **È una funzione da costruire**, non un
+   fix. Stripe ha la prova integrata: gran parte della logica in casa (conteggio giorni,
+   cron) diventa sua. Sulle carte usa e getta: bloccarle taglia anche clienti onesti
+   (Revolut/N26 le danno a tutti); il filtro efficace è **una prova per partita IVA**,
+   che stai già chiedendo.
+5. `alerts/[id]/analyze` è la route dimenticata: nessun gate trial, crediti scalati DOPO
+   la chiamata ad Anthropic (riga 62 chiama, riga 79 scala → se muore in mezzo paghiamo
+   e non scaliamo), controllo crediti non atomico (due richieste con 1 credito passano
+   entrambe), errore grezzo al browser (riga 92).
+6. `Organization.plan` è di fatto un campo morto: resta "STARTER" su ogni cliente reale
+   perché né l'onboarding né il webhook lo scrivono. Conseguenza concreta: trial-check.ts:55
+   cade sempre sul fallback e **ogni email di fine prova dice 49 € anche a chi sta su
+   Avanzato**. (Correzione all'audit precedente: NON decide l'accesso alle integrazioni —
+   quel controllo usa `plan: 'PRO'` scritto a mano in 5 file, quindi è decorativo.)
+7. Nessuna riconciliazione con Stripe: se il webhook non arriva mai, il cliente ha pagato
+   e da noi non risulta nulla. Nessun job interroga Stripe (`subscriptions.list` assente).
+8. Registro crediti: scrive solo "purchase", mai i consumi (repository.ts:202). Un cliente
+   che chiede "dove sono finiti i miei crediti" non ha risposta, e nemmeno tu.
+9. `getMonthlyUsage` (repository.ts:219-228) restituisce zeri finti, con commento
+   "Placeholder".
+10. Costo reale mai confrontato con i crediti: la chat rimanda TUTTA la conversazione a
+    ogni messaggio (chat/route.ts:122-125, nessun `take`) a prezzo fisso di 1 credito.
+    Una chat lunga può costare più di quanto incassa.
+11. Due file di piani con numeri diversi: `lib/billing/plans.ts` (vivo) e `lib/plans.ts`
+    (raggiungibile solo da file morti). Mina per chi cercherà "dove cambio i crediti".
+12. `aiCreditsBalance @default(100)` nello schema: secondo campo crediti che nessuno usa.
+
+### B — DEMO E VETRINA
+13. **Pulsante demo sulla landing.** Dopo il merge di explicit-demo la demo è raggiungibile
+    SOLO dal pulsante su /login, che è l'ultimo posto dove va un curioso. Senza questo la
+    vetrina non esiste — ed è la vetrina che rende accettabile chiedere la carta.
+    File: `src/components/landing/landing-page.tsx`.
+14. **AI scollegata in demo**: risposte preregistrate invece di chiamare Anthropic,
+    dichiarate esplicitamente come demo. Con la demo in vetrina ogni clic su "genera"
+    costa. STATO-REALE segnala un branch già pronto: da verificare col metodo dei branch
+    (vedi §31b) prima di mergiare.
+15. Il generatore di dati finti scrive ancora nel DB di produzione: chi clicca "Prova la
+    demo" innesca `getDemoContext()` → upsert + `seedDemoData()` (18 mesi di movimenti,
+    session.ts:274-330). explicit-demo lo mette dietro una scelta esplicita, non lo
+    disinnesca. In contraddizione con CLAUDE.md §7 "Non reintrodurre generatori di dati finti".
+
+### C — SICUREZZA
+16. **Delimitazione anti-iniezione dei prompt**: solo la superficie ALERT ha una difesa
+    (marcatori `<dati_utente>`), con 2 buchi (nome azienda e settore prima dei marcatori,
+    marcatore di chiusura senza escape). Chat, analyze e insight non ne hanno nessuna.
+17. **CSP spenta**: header `Content-Security-Policy-Report-Only` verificato in produzione.
+    Da accendere INSIEME a Stripe, mai prima: `script-src 'self' 'unsafe-inline'` non
+    prevede domini esterni e Stripe carica da fuori.
+18. Interfaccia 2FA e log accessi mai collegata (`src/components/security/*`, 4 file). Le
+    API dietro sono vive. Dipende da `src/components/feature-gate.tsx`, tenuto apposta.
+19. Sei route rimandano ancora l'errore grezzo al browser: alerts/refresh:45,
+    alerts/[id]:51, alerts/[id]/analyze:96, alerts/check:45, insights/[id]:69,
+    insights/generate:163.
+20. Sei route rispondono 500 invece di 401 all'anonimo (chat/conversations,
+    chat/conversations/[id], auth/change-password, custom-dashboards/[id],
+    receivables/[id]/reminder, integrations/[provider]). Nessuna scrive, è qualità.
+21. `ignoreBuildErrors: true` in next.config.mjs: il deploy passa anche con errori di tipo.
+22. Cancellare `.env.BACKUP-prod` e `.env.local.BACKUP-prod` dal Codespace quando non servono.
+
+### D — INFRASTRUTTURA E DOCUMENTI
+23. **Due domini si contraddicono**: il codice ripiega su `anlyra.com` (5 file) e il sito
+    vero risponde lì; `.env.example`, README e tutta `docs/` (30+ file, inclusi DEPLOY.md e
+    stripe-setup.md con gli esempi di RESEND_FROM, AUTH_URL e webhook) dicono `anlyra.it`.
+    Sono le istruzioni che seguirai per configurare Stripe. **Da allineare PRIMA di Stripe.**
+24. Stripe non riceve oggi il nome legale (`business_profile`/`statement_descriptor` mai
+    impostati). Da verificare prima del collegamento reale.
+25. `main` resta il tronco vecchio (3 maggio) ed è il branch predefinito su GitHub.
+    Lasciato così per decisione del fondatore, da riprendere al deploy definitivo.
+26. Due branch di luglio da valutare col metodo §31b (NON mergiare a scatola chiusa):
+    `fix-credit-consumption` — verificato [GIÀ RISOLTO nel tronco], probabilmente da cancellare;
+    `trial-expired-gating` — da verificare.
+27. CLAUDE.md da correggere: §10 righe 283-284 danno per aperte due voci già risolte
+    (idempotenza webhook, analyze che non consuma crediti); riga 64 chiama l'organizzazione
+    demo "Acme Analytics" mentre il codice la crea come "Anlyra Demo" (e l'upsert non la
+    rinomina, quindi in produzione è probabilmente ancora il nome vecchio).
+28. Tre implementazioni di `ok/fail` da unificare (65 file, rumoroso, non urgente).
+29. 14 modelli Prisma a zero usi, 13 legati da chiavi esterne: serve una migration dedicata
+    col backup del DB. Ultimo della coda.
+30. 9 errori eslint preesistenti in `src/`, mai guardati.
+31. Finanza → Panoramica: totale accanto a un selettore di periodo che non lo influenza.
+
+### BLOCCHI DI CODICE ANCORA DA LEGGERE
+Fatti: soldi (billing/crediti/Stripe), percorso AI, demo.
+Da fare: **dati in ingresso** (import CSV, parsing, validazione, scadenzario, spese
+ricorrenti) ← prossimo · numeri mostrati (dashboard, finanza, KPI, previsioni) · report e
+condivisione (PDF, link pubblici) · ingresso e permessi (registrazione, onboarding, inviti,
+ruoli) · integrazioni (5 provider su 6 falliscono in silenzio).
+Ogni blocco con Opus, sempre con la domanda finale "dimmi cosa non ti aspettavi": è quella
+che ha pescato le scoperte più gravi.
