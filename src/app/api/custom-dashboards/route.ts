@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ export async function GET() {
     }));
     return ok({ dashboards: data });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
 
@@ -43,6 +44,9 @@ export async function POST(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { organizationId } = authCtx;
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);
@@ -56,6 +60,6 @@ export async function POST(req: NextRequest) {
     });
     return ok({ id: created.id });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }

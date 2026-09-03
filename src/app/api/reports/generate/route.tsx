@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { reportConfigSchema } from '@/lib/reports/types';
 import { renderReportPdf, pdfResponse } from '@/lib/reports/render';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest) {
   // carries the report options, never an organization id.
   const ctx = await getAuthContext();
   if (!ctx) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
 
   // Rate limit kept as it was: PDF rendering is CPU-heavy. Now keyed by
   // IP + organization, so one tenant cannot exhaust the budget of another.

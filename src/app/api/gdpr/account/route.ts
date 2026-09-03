@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { isManagerRole } from '@/lib/auth/require-role';
 import { getStripe } from '@/lib/stripe/client';
 import { DELETION_GRACE_DAYS } from '@/lib/gdpr/constants';
@@ -55,6 +56,9 @@ export async function GET() {
 export async function POST(req: Request) {
   const ctx = await getAuthContext();
   if (!ctx) return fail('UNAUTHORIZED', 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly1 = requireWritableOrg(ctx.organizationId);
+  if (readOnly1) return readOnly1;
   const { userId, organizationId, role } = ctx;
 
   let body: { password?: string };

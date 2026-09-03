@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import {
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
   // Auth (strict): a real logged-in user with an org, no demo fallback.
   const ctx = await getAuthContext();
   if (!ctx) return fail('Unauthorized', 401);
+  // Demo organization: read-only. See requireWritableOrg.
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
   const { organizationId } = ctx;
 
   // Trial/subscription gate: an expired trial (or past_due) is read-only and may

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import {
@@ -98,6 +98,6 @@ export async function GET(req: NextRequest) {
 
     return ok({ historical, forecast, summary, insufficientData: false });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }

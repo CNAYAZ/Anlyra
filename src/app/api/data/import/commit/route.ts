@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
@@ -128,6 +129,9 @@ export async function POST(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const { userId, organizationId } = authCtx;
 
     // Expired trial (or past_due) is read-only: block committing an import.

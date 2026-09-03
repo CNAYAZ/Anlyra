@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
 
@@ -24,7 +25,7 @@ export async function GET() {
     if (!org) return fail('NOT_FOUND', 404);
     return ok(org);
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
 
@@ -32,6 +33,9 @@ export async function PATCH(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
     if (!authCtx) return fail('Unauthorized', 401);
+    // Demo organization: read-only. See requireWritableOrg.
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
     const denied = requireManagerRole(authCtx);
     if (denied) return denied;
     const { organizationId } = authCtx;
@@ -50,6 +54,6 @@ export async function PATCH(req: NextRequest) {
     });
     return ok(updated);
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }
