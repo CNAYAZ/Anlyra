@@ -5,6 +5,7 @@ import {
   categoryBreakdown,
   comparisonWindow,
   filterTransactionsByWindow,
+  monthKey,
   monthlySeries,
   periodWindow,
   safeDiv,
@@ -44,16 +45,28 @@ export async function GET(req: NextRequest) {
     const last = series.at(-1);
     const totalRevenue = filtered.reduce((s, t) => s + t.amount, 0);
 
-    // mom: the SAME day-count window exactly one month earlier — not the
-    // whole previous calendar month (series.at(-2)), which would compare a
-    // handful of days in the current month against a full prior month
-    // whenever the current one is still in progress (it always is: "last"
-    // is always the current, possibly-partial month, see periodWindow).
+    // mom: the current month against the SAME stretch of days and hours
+    // exactly one month earlier. Both months are addressed BY KEY, out of
+    // their own window's monthly series — never by position and never as a
+    // window total. Two bugs lived here:
+    //  - `last` was series.at(-1), "the most recent month with any movement",
+    //    so an org with nothing recorded so far this month compared LAST
+    //    month against the month before it and called it month-over-month;
+    //  - `momRevenue` summed the comparison window WHOLE, which for any
+    //    period above 1m is more than two months of revenue (for "3 months"
+    //    on 4 September: the entirety of 1 June - 4 August) held up against
+    //    four days of September. The longer the period selected, the more
+    //    catastrophic the percentage, for reasons that had nothing to do
+    //    with the business.
+    // Either month missing its bucket => null, and the page shows "not
+    // available" rather than another month's number.
+    const currentMonth = series.find((m) => m.period === monthKey(window.to));
     const momWindow = comparisonWindow(window, 1);
-    const momRevenue = filterTransactionsByWindow(data.transactions, momWindow)
-      .filter((t) => t.kind === 'REVENUE')
-      .reduce((s, t) => s + t.amount, 0);
-    const rawMom = last ? safeDiv(last.revenue - momRevenue, momRevenue) : null;
+    const momMonth = monthlySeries(filterTransactionsByWindow(data.transactions, momWindow)).find(
+      (m) => m.period === monthKey(momWindow.to),
+    );
+    const rawMom =
+      currentMonth && momMonth ? safeDiv(currentMonth.revenue - momMonth.revenue, momMonth.revenue) : null;
     const mom = rawMom === null ? null : rawMom * 100;
 
     // yoy: same day-parity idea twelve months back. Built as the union of

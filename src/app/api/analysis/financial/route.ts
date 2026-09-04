@@ -41,7 +41,9 @@ export async function GET(req: NextRequest) {
     // shift, regardless of the overall period selected (1m/3m/6m/12m) —
     // these are month-over-month figures, not "whole period vs whole prior
     // period" ones, the same rule finance/revenue/page.tsx's mom already
-    // applies (fc83e9e).
+    // applies (fc83e9e). The two windows deliberately overlap for any period
+    // longer than 1m; that is harmless because computeKpis reads ONE NAMED
+    // MONTH out of each of them (addressed by key), never the window total.
     const compWindow = comparisonWindow(window, 1);
     const compMonthKey = `${compWindow.to.getFullYear()}-${String(compWindow.to.getMonth() + 1).padStart(2, '0')}`;
     const kpis = computeKpis({
@@ -58,6 +60,12 @@ export async function GET(req: NextRequest) {
         // for the current period's customers.
         customers: data.customers.filter((c) => c.period <= compMonthKey),
         asOf: compWindow.to,
+        // Names the CURRENT month for computeKpis, so it addresses that
+        // month's bucket by key instead of taking "the last bucket that
+        // exists" — which for an org with no movements in the first days of
+        // the comparison month meant comparing against a month further back
+        // still (verified on fixture: a doubling shown as -74%).
+        currentAsOf: window.to,
       },
     });
 

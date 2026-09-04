@@ -1,4 +1,10 @@
-import { toAppDateString } from '@/lib/timezone';
+import {
+  daysInAppMonth,
+  fromAppWallClock,
+  shiftAppMonth,
+  toAppDateString,
+  toAppWallClock,
+} from '@/lib/timezone';
 import type { DemoCashflow, DemoCustomerStat, DemoSubscription, DemoTransaction } from '@/lib/demo/data';
 
 const COGS_CATEGORIES = new Set(['cogs']);
@@ -11,7 +17,7 @@ const MARKETING_CATEGORIES = new Set(['marketing']);
 // context built from the same organization's data — already read it as
 // September (see src/lib/ai-context.ts and CLAUDE.md §7). Same day, two
 // different months shown to the same user.
-function monthKey(d: Date): string {
+export function monthKey(d: Date): string {
   return toAppDateString(d).slice(0, 7);
 }
 
@@ -174,17 +180,21 @@ export function computeKpis(args: {
    * day-parity rule the caller applies to its own primary window, so a
    * partial current month is never held up against a full prior one.
    *
-   * `asOf` is the comparison window's own "now" — the moment subscriptions
-   * are evaluated as active/cancelled at, mirroring how `subscriptions` is
-   * evaluated against the real `now` for the CURRENT period below. Omit the
-   * whole `comparison` object when the caller has no fair comparison period
-   * to offer (e.g. it does not expose any mom/delta figure to the user):
-   * every comparison field then comes back null, never guessed.
+   * `asOf` and `currentAsOf` are the two windows' own ends — the moments
+   * subscriptions are evaluated as active/cancelled at, and, crucially, what
+   * NAMES the two months being compared: every mom* figure below addresses
+   * its monthly bucket by that month's key, never by position in the series.
+   * Omit the whole `comparison` object when the caller has no fair comparison
+   * period to offer (e.g. it does not expose any mom/delta figure to the
+   * user): every comparison field then comes back null, never guessed.
    */
   comparison?: {
     transactions: DemoTransaction[];
     customers: DemoCustomerStat[];
+    /** End of the COMPARISON window: names the earlier of the two months. */
     asOf: Date;
+    /** End of the CURRENT window: names the later of the two months. */
+    currentAsOf: Date;
   };
 }): KpiSummary {
   const { transactions, cashflow, customers, subscriptions, comparison } = args;
@@ -252,17 +262,38 @@ export function computeKpis(args: {
   // undefined and every field below is null, the same "not calculable" path
   // as an unfair (zero-denominator) comparison — never a guessed number.
   const compSeries = comparison ? groupByMonth(comparison.transactions) : [];
-  const prev = compSeries.at(-1);
 
-  const rawRevenueGrowth = prev ? safeDiv(last!.revenue - prev.revenue, prev.revenue) : null;
+  // Both sides are addressed BY MONTH KEY, never by position. groupByMonth
+  // creates a bucket only for months that actually contain movements, so
+  // .at(-1) meant "the most recent month that happens to have data", not "the
+  // month being asked about": an organization with no takings between the 1st
+  // and the 4th of August had its September held up against the WHOLE of
+  // July, and a doubling of revenue was displayed as -74% (verified on
+  // fixture). When either month has no bucket, every figure below is null and
+  // the interface says "not available" — never another month's bucket.
+  const currentKey = comparison ? monthKey(comparison.currentAsOf) : null;
+  const comparisonKey = comparison ? monthKey(comparison.asOf) : null;
+  const currentMonth = currentKey ? series.find((m) => m.period === currentKey) : undefined;
+  const prev = comparisonKey ? compSeries.find((m) => m.period === comparisonKey) : undefined;
+  const comparable = currentMonth && prev ? { currentMonth, prev } : null;
+
+  const rawRevenueGrowth = comparable
+    ? safeDiv(comparable.currentMonth.revenue - comparable.prev.revenue, comparable.prev.revenue)
+    : null;
   const momRevenueGrowth = rawRevenueGrowth === null ? null : rawRevenueGrowth * 100;
-  const rawCostGrowth = prev ? safeDiv(last!.costs - prev.costs, prev.costs) : null;
+  const rawCostGrowth = comparable
+    ? safeDiv(comparable.currentMonth.costs - comparable.prev.costs, comparable.prev.costs)
+    : null;
   const momCostGrowth = rawCostGrowth === null ? null : rawCostGrowth * 100;
-  // Same revenue<=0 rule as netMargin above, applied to the COMPARISON
-  // period, so the delta below never subtracts a real number from a period
-  // that in fact had no derivable margin.
+  // Same revenue<=0 rule as netMargin above, applied to BOTH months, so the
+  // delta never subtracts a real number from a month that in fact had no
+  // derivable margin. Read off currentMonth rather than the netMargin field
+  // above for the same reason as everything else here: netMargin comes from
+  // `last`, which is a position, not the month being named.
+  const currentNet =
+    currentMonth && currentMonth.revenue > 0 ? (currentMonth.netProfit / currentMonth.revenue) * 100 : null;
   const prevNet = prev && prev.revenue > 0 ? (prev.netProfit / prev.revenue) * 100 : null;
-  const momNetMarginDelta = netMargin === null || prevNet === null ? null : netMargin - prevNet;
+  const momNetMarginDelta = currentNet === null || prevNet === null ? null : currentNet - prevNet;
 
   // MRR and active-customer deltas: comparison.asOf is the ONE moment
   // subscriptions are evaluated at for the comparison side — mirroring how
@@ -280,8 +311,18 @@ export function computeKpis(args: {
   const rawMrrDelta = safeDiv(mrr - prevMrr, prevMrr);
   const momMrrDelta = rawMrrDelta === null ? null : rawMrrDelta * 100;
 
-  const prevActive = comparison?.customers.at(-1)?.activeCustomers ?? 0;
-  const rawCustomersDelta = safeDiv(activeCustomers - prevActive, prevActive);
+  // CustomerStat is a monthly snapshot keyed "YYYY-MM", so it has exactly the
+  // same "bucket only where there is data" problem as the transaction series
+  // above, and gets exactly the same treatment: both snapshots are looked up
+  // by their month's key. .at(-1) on either side meant "the most recent
+  // snapshot that exists", which for an organization that skipped a month
+  // silently compared two months that were not one month apart.
+  const currentStat = currentKey ? customers.find((c) => c.period === currentKey) : undefined;
+  const prevStat = comparisonKey ? comparison?.customers.find((c) => c.period === comparisonKey) : undefined;
+  const rawCustomersDelta =
+    currentStat && prevStat
+      ? safeDiv(currentStat.activeCustomers - prevStat.activeCustomers, prevStat.activeCustomers)
+      : null;
   const momCustomersDelta = rawCustomersDelta === null ? null : rawCustomersDelta * 100;
 
   const workingCapital = cashAvailable - (last?.costs ?? 0);
@@ -312,28 +353,20 @@ export function computeKpis(args: {
 
 const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 } as const;
 
-/** Last day of `monthIndex` (0-based) in `year`. Day 0 of the next month is,
- * by definition, the last day of this one — no day-of-month is ever read
- * back off an existing Date here, so this cannot suffer the classic
- * setMonth() overflow ("Feb 31" silently becoming "Mar 3") that
- * alerts/rules.ts and the AI benchmark/forecasting routes have. */
-function daysInMonth(year: number, monthIndex: number): number {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
 /**
  * Boundaries of "N months", per the founder's definition: the CURRENT month
  * (day 1 through today, declared partial) plus the N-1 preceding COMPLETE
- * calendar months. "Today" is read in Europe/Rome (toAppDateString), not the
- * server's own timezone (UTC on Vercel) — near midnight Rome time the server
- * can still be on yesterday's date, which would anchor the whole window one
- * day (and sometimes one month) too early. Same fix as monthKey() above, for
- * the same reason (CLAUDE.md §7).
+ * calendar months. Every boundary is an ITALIAN wall-clock instant, built
+ * with fromAppWallClock — never `new Date(year, monthIndex, 1)`, which reads
+ * the SERVER's timezone (UTC on Vercel) and therefore placed the start of the
+ * month at 02:00 Italian time, silently dropping anything recorded in the
+ * first two hours of day 1 while monthKey() (Rome-based, above) still counted
+ * it as part of that month. Same rule, same reason, as CLAUDE.md §7.
  *
- * fromDate is always the 1st of some month, constructed directly via
- * `new Date(year, monthIndex, 1)` — day 1 exists in every month, and a
- * negative monthIndex correctly rolls the year back (verified: Date(2026,
- * -11, 1) => 2025-02-01), so this half has no overflow risk either.
+ * The month shift goes through shiftAppMonth, which never carries a
+ * day-of-month across the shift, so it cannot suffer the setMonth() overflow
+ * ("Feb 31" silently becoming "Mar 3") that alerts/rules.ts and the AI
+ * benchmark/forecasting routes have.
  */
 export function periodWindow(
   period: '1m' | '3m' | '6m' | '12m' | 'custom',
@@ -347,39 +380,56 @@ export function periodWindow(
       to: customTo ? new Date(customTo) : now,
     };
   }
-  const [romeYear, romeMonth] = toAppDateString(now).split('-').map(Number);
-  const currentMonthIndex = romeMonth - 1; // toAppDateString's month is 1-based
-  const n = PERIOD_MONTHS[period];
+  const today = toAppWallClock(now);
+  const first = shiftAppMonth(today.year, today.month, PERIOD_MONTHS[period] - 1);
   return {
-    from: new Date(romeYear, currentMonthIndex - (n - 1), 1),
+    from: fromAppWallClock({ ...first, day: 1, hour: 0, minute: 0, second: 0, ms: 0 }),
     to: now,
   };
 }
 
 /**
  * The comparison window for a period, per the founder's day-parity rule: the
- * SAME shape (same count of complete months, same number of days in the
- * partial month) shifted back by `monthsShift` months — never the naive
- * "whole calendar month before", which would compare a handful of days in
- * the current month against a full prior month.
+ * SAME shape (same count of complete months, same day-of-month AND same time
+ * of day in the partial month) shifted back by `monthsShift` months — never
+ * the naive "whole calendar month before", which would compare a handful of
+ * days in the current month against a full prior month.
  *
- * `to`'s day-of-month is explicitly clamped to the comparison month's real
- * length (via daysInMonth) rather than read off a shifted Date — shifting
- * "Oct 31" back one month via setMonth() would silently ask for "Sept 31",
- * which does not exist, and roll over into October. Same bug class as
- * alerts/rules.ts, avoided the same way daysInMonth avoids it above: no
- * day-of-month is ever carried across a setMonth() call.
+ * `to` matches the primary window's Italian wall-clock time down to the
+ * millisecond, not just the calendar day. It used to end at 23:59:59.999
+ * while the primary window ended at the current hour: an organization that
+ * records its takings during office hours, looked at in the morning, held
+ * three elapsed days of this month against four complete days of last month
+ * and read as a collapse — a number that then "recovered" on its own as the
+ * day went by. Verified on fixture: a company that had doubled its revenue
+ * showed +50% at 08:34, and +100% only once the day was over.
+ *
+ * `to`'s day-of-month is clamped to the comparison month's real length (via
+ * daysInAppMonth) rather than read off a shifted Date — asking for "Sept 31"
+ * would roll over into October.
  */
 export function comparisonWindow(
   window: { from: Date; to: Date },
   monthsShift: number,
 ): { from: Date; to: Date } {
-  const from = new Date(window.from.getFullYear(), window.from.getMonth() - monthsShift, 1);
-  const toYear = window.to.getFullYear();
-  const toMonthIndex = window.to.getMonth() - monthsShift;
-  const clampedDay = Math.min(window.to.getDate(), daysInMonth(toYear, toMonthIndex));
-  const to = new Date(toYear, toMonthIndex, clampedDay, 23, 59, 59, 999);
-  return { from, to };
+  const fromClock = toAppWallClock(window.from);
+  const shiftedFrom = shiftAppMonth(fromClock.year, fromClock.month, monthsShift);
+
+  const toClock = toAppWallClock(window.to);
+  const shiftedTo = shiftAppMonth(toClock.year, toClock.month, monthsShift);
+  const day = Math.min(toClock.day, daysInAppMonth(shiftedTo.year, shiftedTo.month));
+
+  return {
+    from: fromAppWallClock({ ...shiftedFrom, day: 1, hour: 0, minute: 0, second: 0, ms: 0 }),
+    to: fromAppWallClock({
+      ...shiftedTo,
+      day,
+      hour: toClock.hour,
+      minute: toClock.minute,
+      second: toClock.second,
+      ms: toClock.ms,
+    }),
+  };
 }
 
 // Generic over anything date-stamped (DemoTransaction or DemoCashflow): same
