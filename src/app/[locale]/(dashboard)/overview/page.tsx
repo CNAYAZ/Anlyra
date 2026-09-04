@@ -156,10 +156,19 @@ export default function OverviewPage() {
               icon={TrendingDown}
             />
             <KpiCard
-              label={t('kpi.netMargin')}
-              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
-              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              label={t('kpi.operatingMargin')}
+              value={data.kpis.operatingMargin !== null ? formatPercent(data.kpis.operatingMargin, locale) : ''}
+              state={data.kpis.operatingMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
+              // momNetMarginDelta, not renamed: financial.ts sets
+              // netProfit = operatingProfit (no fiscal category in the data
+              // model — see computeKpis), so netMargin and operatingMargin
+              // are the same number at every point in time and this delta is
+              // numerically the operating margin's own change too. There is
+              // no momOperatingMarginDelta field and none was added: the only
+              // ask here was to make the VALUE match the label. If a fiscal
+              // category is ever introduced, netMargin and operatingMargin
+              // will diverge and this delta will need its own field then.
               delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
             <KpiCard

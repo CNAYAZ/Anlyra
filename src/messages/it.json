@@ -383,7 +383,7 @@
     "subtitle": "Riepilogo finanziario dell'organizzazione",
     "kpi": {
       "revenue": "Ricavi Totali",
-      "netMargin": "Margine Operativo",
+      "operatingMargin": "Margine Operativo",
       "runway": "Cash Runway",
       "mrr": "MRR",
       "customers": "Clienti Attivi",

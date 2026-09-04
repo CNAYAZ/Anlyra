@@ -383,7 +383,7 @@
     "subtitle": "Organization financial summary",
     "kpi": {
       "revenue": "Total Revenue",
-      "netMargin": "Operating Margin",
+      "operatingMargin": "Operating Margin",
       "runway": "Cash Runway",
       "mrr": "MRR",
       "customers": "Active Customers",
