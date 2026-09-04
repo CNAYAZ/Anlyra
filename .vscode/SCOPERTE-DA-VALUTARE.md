@@ -7,6 +7,44 @@ sul codice alla data indicata; se una voce smette di essere vera, va aggiornata 
 (non cancellata), così la storia resta leggibile. Vedi anche CLAUDE.md §9 e §10 per i
 debiti già classificati come tali.
 
+## Email di prova / abbonamenti (aggiunto 2026-09-04)
+
+- **Un cliente che si abbona e poi disdice non riceve più NESSUNA email da
+  questo cron, nemmeno di riattivazione.** Conseguenza diretta della
+  correzione che azzera `Organization.trialEndsAt` nel momento in cui un
+  abbonamento diventa attivo (`src/app/api/webhooks/stripe/route.ts`,
+  `handleCheckoutCompleted` e `handleSubscriptionUpdated`; `admin/actions.ts`,
+  `setPlan`): una volta azzerato, trialEndsAt resta null per sempre — niente
+  nel codice lo rimette a una data. Il cron di prova
+  (`src/lib/cron/trial-check.ts`) seleziona le organizzazioni candidate solo
+  su `trialEndsAt: { not: null }`, quindi un'organizzazione disdetta
+  (BillingSubscription.status passa a "canceled" via
+  `handleSubscriptionDeleted`) non rientra mai più fra i destinatari.
+  È una scelta corretta per lo scopo di QUESTO cron (non deve mai dire "sei
+  ancora in prova" a chi ha già pagato), ma lascia scoperto un caso diverso:
+  nessuna email di "win-back" per un cliente perso. Se il fondatore vuole
+  un flusso di riattivazione per chi ha disdetto, serve un meccanismo
+  apposta — non trialEndsAt, che ha un significato diverso. Segnalato, non
+  deciso qui. (VERIFICATO su codice, 2026-09-04.)
+- **`admin/actions.ts`, `setPlan()`: il ramo `update: { plan }` dell'upsert
+  su BillingSubscription non tocca mai `status`.** Se un'organizzazione ha
+  una riga con status "canceled" (abbonamento reale, disdetto) e il
+  fondatore le riassegna un piano dal pannello per riattivarla a mano, il
+  piano cambia ma lo stato resta "canceled" — l'organizzazione continua a
+  essere trattata come non pagante ovunque nel codice legga lo status
+  (`requireActiveAccess`, il cron dei crediti). Notato mentre si
+  verificava dove un abbonamento "diventa attivo" per azzerare
+  trialEndsAt: quel ramo NON è un'attivazione (per questo non azzera
+  trialEndsAt), ma probabilmente dovrebbe esserlo se lo scopo è
+  riattivare un cliente. Non corretto: fuori dallo scope del lavoro che
+  l'ha notato. (VERIFICATO su codice, 2026-09-04.)
+- **Le email transazionali (prova, pagamento, ecc.) sono tutte in italiano
+  fisso, con link costruiti a mano su `/it/`** (es. `trial-check.ts`:
+  `` `${siteUrl()}/it/settings/billing` ``). Un utente con `locale: 'en'`
+  riceve comunque testo e link italiani. Incontrato di nuovo lavorando su
+  `trial-check.ts`, già segnalato come fuori scope dal compito stesso che
+  l'ha incontrato: non è stato toccato. (VERIFICATO su codice, 2026-09-04.)
+
 ## Crediti
 
 - **Nessun cliente può comprare un pacchetto di crediti, oggi.** Il componente che un
