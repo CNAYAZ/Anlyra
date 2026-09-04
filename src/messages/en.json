@@ -364,7 +364,8 @@
     "kpiNotAvailableNoYearHistory": "Requires at least 12 months of history in the selected period",
     "partialMonth": "partial",
     "partialMonthNote": "The current month is included as partial, updated through today.",
-    "dayParityComparisonNote": "Comparisons shown are calculated on a like-for-like day basis."
+    "dayParityComparisonNote": "Comparisons shown are calculated on a like-for-like day basis.",
+    "periodComparisonNote": "Changes compare the selected period with the previous period of equal length, on a like-for-like day basis."
   },
   "periods": {
     "1m": "Last month",
@@ -430,8 +431,8 @@
     "title": "Finance",
     "subtitle": "Full view of financial metrics",
     "kpi": {
-      "revenue": "Revenue",
-      "costs": "Costs",
+      "revenue": "Period revenue",
+      "costs": "Period costs",
       "grossMargin": "Gross Margin",
       "operatingMargin": "Operating Margin",
       "netMargin": "Operating Margin"
