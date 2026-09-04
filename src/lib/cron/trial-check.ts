@@ -15,6 +15,36 @@ const PLAN_LABEL: Record<string, { name: string; amount: string }> = {
   ENTERPRISE: { name: 'Enterprise', amount: '—' },
 };
 
+/**
+ * BillingSubscription statuses that mean "this organization has ALREADY
+ * converted to a paid plan". Nothing below this must ever send a trial email
+ * to one of these orgs, no matter what Organization.trialEndsAt still says —
+ * trialEndsAt is written once at onboarding and nothing resets it today (see
+ * COMMIT 2 in the branch history for the fix to that), so it can be stale and
+ * still non-null for an organization that subscribed days or weeks ago.
+ *
+ *   • "active"   — converted and currently paying. The direct case this bug
+ *     report is about: someone who subscribes mid-trial keeps getting "3 days
+ *     left", "domani ti addebitiamo 49€", "prova scaduta" regardless.
+ *   • "past_due" — ALSO already converted: a real BillingSubscription row
+ *     exists, they went through checkout once. Stripe's own dunning flow
+ *     already emails them about the failed charge; layering "your trial is
+ *     ending, upgrade now" on top would contradict what Stripe just told the
+ *     same person and imply Anlyra doesn't know they already subscribed.
+ *
+ * Deliberately NOT included: "canceled". That status is ALSO what
+ * defaultSubscription() (src/lib/billing/repository.ts) synthesizes for an
+ * organization with NO BillingSubscription row at all, once its trial has run
+ * out without ever paying — i.e. exactly the intended audience for
+ * "prova scaduta — riattiva". Treating "canceled" as "has paid" here would
+ * silence that email for the population it exists to reach. A genuinely
+ * canceled real subscription (one that WAS active and then churned) is a
+ * narrower, separate case, addressed by nulling trialEndsAt the moment an
+ * organization first goes active (see COMMIT 2) rather than by adding
+ * "canceled" to this list.
+ */
+const PAID_STATUSES = ['active', 'past_due'];
+
 function fmtDate(d: Date, locale = 'it-IT'): string {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
@@ -43,12 +73,30 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     select: { id: true, name: true, plan: true, trialEndsAt: true },
   });
 
+  // Bulk lookup, not one query per org: which of these candidates already have
+  // a paying (or paying-but-failing) subscription. See PAID_STATUSES above for
+  // exactly which statuses count and why "canceled" is deliberately excluded.
+  const paidOrgIds = new Set(
+    (
+      await prisma.billingSubscription.findMany({
+        where: { organizationId: { in: orgs.map((o) => o.id) }, status: { in: PAID_STATUSES } },
+        select: { organizationId: true },
+      })
+    ).map((s) => s.organizationId),
+  );
+
   const upgradeUrl = `${siteUrl()}/it/settings/billing`;
   const reactivateUrl = upgradeUrl;
   const cancelUrl = upgradeUrl;
   const exportUrl = `${siteUrl()}/it/settings/billing`;
 
   for (const org of orgs) {
+    // Already converted (or converted-but-currently-failing) — no trial email,
+    // ever, whatever a stale trialEndsAt still says. This alone is the fix for
+    // the bug: an organization that subscribes mid-trial stops receiving
+    // trial-ending/trial-expired emails from the very next cron run, with no
+    // dependency on trialEndsAt ever being corrected.
+    if (paidOrgIds.has(org.id)) continue;
     if (!org.trialEndsAt) continue;
     const msLeft = org.trialEndsAt.getTime() - now.getTime();
     const daysLeft = Math.ceil(msLeft / DAY_MS);
