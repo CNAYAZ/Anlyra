@@ -420,7 +420,7 @@
       "aiChat": "Chat con l'AI"
     },
     "aiSpotlightBadge": "Insight automatico",
-    "aiSpotlightSummary": "Margine netto al {margin}, calcolato su {monthsCount, plural, one {# mese} other {# mesi}} di dati. Costi medi {burnRate}/mese.",
+    "aiSpotlightSummary": "Margine operativo al {margin}, calcolato su {monthsCount, plural, one {# mese} other {# mesi}} di dati. Costi medi {burnRate}/mese.",
     "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
     "lastMonthRevenue": "Ultimo mese — Ricavi",
     "lastMonthCosts": "Ultimo mese — Costi",
@@ -434,8 +434,7 @@
       "revenue": "Ricavi del periodo",
       "costs": "Costi del periodo",
       "grossMargin": "Margine Lordo",
-      "operatingMargin": "Margine Operativo",
-      "netMargin": "Margine Operativo"
+      "operatingMargin": "Margine Operativo"
     },
     "chart": {
       "trend": "Trend mensile ricavi e costi",
@@ -2988,7 +2987,6 @@
     "expiresOn": "Il link scade il {date}",
     "period": "Periodo",
     "revenue": "Ricavi",
-    "netMargin": "Margine netto",
     "headcount": "Dipendenti",
     "monthlyTable": "Andamento mensile",
     "colMonth": "Mese",
