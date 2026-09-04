@@ -1,5 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { siteUrl } from '@/lib/auth/tokens';
+import { getSubscription } from '@/lib/billing/repository';
+import { PLANS, type PlanId } from '@/lib/billing/plans';
+import { formatCurrency } from '@/lib/format';
+import itMessages from '@/messages/it.json';
 import {
   sendEmail,
   trialThreeDaysTemplate,
@@ -9,11 +13,37 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const PLAN_LABEL: Record<string, { name: string; amount: string }> = {
-  PRO: { name: 'PRO', amount: '€49' },
-  ADVANCED: { name: 'Avanzato', amount: '€149' },
-  ENTERPRISE: { name: 'Enterprise', amount: '—' },
-};
+type PlanEmailInfo = { name: string; amount: string };
+
+/**
+ * The plan's real display name and monthly price, in Italian — matching the
+ * hardcoded 'it-IT' already used throughout this file (fmtDate, every email
+ * subject below). Sourced from the same listing the rest of the app uses
+ * (PLANS in src/lib/billing/plans.ts, prices in cents) and the same message
+ * catalog the billing page reads plan names from
+ * (billing.plans.<id>.name in src/messages/it.json) — not a hand-typed copy
+ * that can drift from either, which is what this replaces.
+ *
+ * Returns null — never a guessed name or an invented price — when:
+ *   • `planId` is not a known PlanId (an unexpected value on
+ *     BillingSubscription.plan), or
+ *   • the plan has no real self-serve monthly price (ENTERPRISE is priced at
+ *     0 cents in PLANS as a "contact us" placeholder, not a recoverable
+ *     amount to put in a "you will be charged X" email).
+ * The caller must not send an email in either case — the same rule
+ * credit-renewal.ts already follows for an unknown plan string
+ * (skippedUnknownPlan), applied here so a bad or unpriced plan value can
+ * never put a wrong number in front of a customer.
+ */
+function resolvePlanEmailInfo(planId: string): PlanEmailInfo | null {
+  const plan = PLANS[planId as PlanId];
+  if (!plan) return null;
+  if (plan.pricing.monthlyCents <= 0) return null;
+  const key = planId.toLowerCase() as 'pro' | 'advanced' | 'enterprise';
+  const name = itMessages.billing.plans[key]?.name;
+  if (!name) return null;
+  return { name, amount: formatCurrency(plan.pricing.monthlyCents / 100, 'it') };
+}
 
 /**
  * BillingSubscription statuses that mean "this organization has ALREADY
@@ -63,10 +93,12 @@ export interface TrialCheckResult {
   threeDays: number;
   oneDay: number;
   expired: number;
+  /** Plan string on BillingSubscription had no recoverable name/price — see resolvePlanEmailInfo. */
+  skippedUnknownPlan: number;
 }
 
 export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult> {
-  const result: TrialCheckResult = { threeDays: 0, oneDay: 0, expired: 0 };
+  const result: TrialCheckResult = { threeDays: 0, oneDay: 0, expired: 0, skippedUnknownPlan: 0 };
 
   const orgs = await prisma.organization.findMany({
     where: { trialEndsAt: { not: null } },
@@ -100,7 +132,26 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     if (!org.trialEndsAt) continue;
     const msLeft = org.trialEndsAt.getTime() - now.getTime();
     const daysLeft = Math.ceil(msLeft / DAY_MS);
-    const plan = PLAN_LABEL[org.plan] || PLAN_LABEL.PRO;
+
+    // Real plan name/price, from BillingSubscription — never Organization.plan
+    // (the legacy column, default "STARTER", not a valid plan id). getSubscription()
+    // also covers "no subscription row yet" (a genuinely still-trialing org): it
+    // synthesizes plan "PRO" there (src/lib/billing/repository.ts,
+    // defaultSubscription) — the SAME fallback getBillingState() and
+    // requireActiveAccess already use everywhere else in the app, not a new one
+    // invented for this file.
+    const sub = await getSubscription(org.id);
+    const plan = resolvePlanEmailInfo(sub.plan);
+    if (!plan) {
+      // Unknown or unpriced plan value — mirrors credit-renewal.ts's handling of
+      // an unknown plan string: skip loudly, never guess a name or a price.
+      result.skippedUnknownPlan++;
+      console.warn(
+        `[trial-check] org ${org.id}: plan "${sub.plan}" has no recoverable name/price — trial email skipped.`,
+      );
+      continue;
+    }
+
     const recipients = await orgAdminEmails(org.id);
     if (recipients.length === 0) continue;
 
