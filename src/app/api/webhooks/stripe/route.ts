@@ -94,6 +94,20 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     stripeSubscriptionId: subscriptionId,
     currentPeriodEnd,
   });
+
+  // The trial-ending email cron (src/lib/cron/trial-check.ts) reads
+  // Organization.trialEndsAt, and nothing else in the app ever resets it — so
+  // without this, an organization that just subscribed keeps being a candidate
+  // for "3 days left in your trial" for the rest of its now-meaningless trial
+  // window. updateMany (not update): a garbage/missing orgId should never reach
+  // here, but nothing upstream guarantees it, and setSubscription() above
+  // already tolerates that case silently — this must not be the one write that
+  // throws, fails the whole webhook, and makes Stripe retry an event that will
+  // never succeed.
+  await prisma.organization.updateMany({
+    where: { id: orgId, trialEndsAt: { not: null } },
+    data: { trialEndsAt: null },
+  });
 }
 
 async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
@@ -103,25 +117,41 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const plan = planFromMetadata(sub.metadata as Record<string, string>);
   const existing = await getSubscription(orgId);
 
+  const status =
+    sub.status === "active"
+      ? "active"
+      : sub.status === "trialing"
+        ? "trialing"
+        : sub.status === "past_due"
+          ? "past_due"
+          : sub.status === "canceled"
+            ? "canceled"
+            : existing.status;
+
   await setSubscription({
     ...existing,
     plan: plan ?? existing.plan,
-    status:
-      sub.status === "active"
-        ? "active"
-        : sub.status === "trialing"
-          ? "trialing"
-          : sub.status === "past_due"
-            ? "past_due"
-            : sub.status === "canceled"
-              ? "canceled"
-              : existing.status,
+    status,
     stripeSubscriptionId: sub.id,
     // Populate from the subscription's UNIX timestamp (seconds → ms). Never wipe
     // a previously-good date to null if the field is momentarily absent.
     currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000) : existing.currentPeriodEnd,
     cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
   });
+
+  // Same reasoning as handleCheckoutCompleted: this event is not only fired at
+  // first checkout — it can ALSO be the moment a subscription becomes active
+  // again (e.g. a past_due subscription's retried charge finally succeeding).
+  // Gated on the resulting status being "active" specifically, so a metadata
+  // change on an already-active subscription (trialEndsAt already null) does
+  // not needlessly rewrite the row, and neither "trialing", "past_due" nor
+  // "canceled" ever touch it here.
+  if (status === "active") {
+    await prisma.organization.updateMany({
+      where: { id: orgId, trialEndsAt: { not: null } },
+      data: { trialEndsAt: null },
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {

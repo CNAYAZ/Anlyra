@@ -132,7 +132,22 @@ export async function setPlan(organizationId: string, plan: ValidPlan) {
   await prisma.$transaction([
     prisma.organization.update({
       where: { id: organizationId },
-      data: { plan },
+      data: {
+        plan,
+        // A subscription CREATED right here (no prior row — `sub === null`)
+        // lands on the schema's own default, BillingSubscription.status
+        // @default("active"), with no Stripe checkout involved at all: for
+        // trial-email purposes the founder granting a plan by hand is exactly
+        // as much a "this org now pays" event as the webhook is (see
+        // src/app/api/webhooks/stripe/route.ts). Without this, an org
+        // activated from here would still be a candidate for "3 days left in
+        // your trial" — the same bug this whole change fixes, reached through
+        // a different door.
+        // Only on the CREATE path: `update: { plan }` below changes the plan
+        // of an EXISTING row without touching its status, so it is NOT a
+        // "becomes active" event and must not clear trialEndsAt.
+        ...(sub === null ? { trialEndsAt: null } : {}),
+      },
     }),
     prisma.billingSubscription.upsert({
       where: { organizationId },
