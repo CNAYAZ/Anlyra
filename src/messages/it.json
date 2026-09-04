@@ -364,7 +364,8 @@
     "kpiNotAvailableNoYearHistory": "Servono almeno 12 mesi di storico nel periodo selezionato",
     "partialMonth": "parziale",
     "partialMonthNote": "Il mese in corso è incluso come parziale, aggiornato a oggi.",
-    "dayParityComparisonNote": "I confronti mostrati sono calcolati a parità di giorni."
+    "dayParityComparisonNote": "I confronti mostrati sono calcolati a parità di giorni.",
+    "periodComparisonNote": "Le variazioni confrontano il periodo scelto con quello precedente di pari durata, a parità di giorni."
   },
   "periods": {
     "1m": "Ultimo mese",
@@ -430,8 +431,8 @@
     "title": "Finanza",
     "subtitle": "Vista completa delle metriche finanziarie",
     "kpi": {
-      "revenue": "Ricavi",
-      "costs": "Costi",
+      "revenue": "Ricavi del periodo",
+      "costs": "Costi del periodo",
       "grossMargin": "Margine Lordo",
       "operatingMargin": "Margine Operativo",
       "netMargin": "Margine Operativo"

@@ -3,11 +3,14 @@ import { fail, ok } from '@/lib/api/response';
 import { financialQuerySchema, getOrgData } from '@/lib/api/financial-query';
 import {
   categoryBreakdown,
+  comparePeriodTotals,
   comparisonWindow,
   computeKpis,
   cumulativeCashflow,
   filterTransactionsByWindow,
   monthlySeries,
+  periodMonths,
+  periodTotals,
   periodWindow,
 } from '@/lib/analysis/financial';
 
@@ -69,8 +72,29 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Totals for the WHOLE selected period, plus the equivalent period before
+    // it. The finance page carries a PeriodFilter, but its Ricavi/Costi cards
+    // read kpis.totalRevenue/totalCosts — the latest month alone — so they did
+    // not move when the customer moved the filter, and the three margins next
+    // to them described that same single month. `kpis` is untouched: the
+    // Overview has no filter, shows the latest month on purpose, and its mom*
+    // badges are built on it.
+    //
+    // The comparison shifts the window back by the period's OWN length (3
+    // months for "3 months", 12 for "12 months"), not by one month: a total
+    // that speaks of a year cannot carry a badge that speaks of September.
+    // comparisonWindow keeps the day-and-hour parity rule from 98ad8b5, so
+    // the partial current month is held against an equally partial one.
+    const months = periodMonths(parsed.data.period);
+    const previousWindow = months === null ? null : comparisonWindow(window, months);
+    const totals = periodTotals(filtered);
+    const previousTotals = previousWindow
+      ? periodTotals(filterTransactionsByWindow(data.transactions, previousWindow))
+      : null;
+
     return ok({
       kpis,
+      periodKpis: { ...totals, ...comparePeriodTotals(totals, previousTotals) },
       series: monthlySeries(filtered),
       revenueByCategory: categoryBreakdown(filtered, 'REVENUE'),
       costsByCategory: categoryBreakdown(filtered, 'COST'),

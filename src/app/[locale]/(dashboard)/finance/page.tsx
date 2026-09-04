@@ -13,10 +13,21 @@ import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatPercent } from '@/lib/utils';
-import type { CategoryBreakdown, KpiSummary, MonthlySeriesPoint } from '@/lib/analysis/financial';
+import type {
+  CategoryBreakdown,
+  KpiSummary,
+  MonthlySeriesPoint,
+  PeriodComparison,
+  PeriodTotals,
+} from '@/lib/analysis/financial';
 
 type FinanceResponse = {
   kpis: KpiSummary;
+  // Totals for the period the PeriodFilter above is set to, with the
+  // equivalent period before it. Every card below reads these, never `kpis`
+  // (which is the latest month alone — right for the Overview, which has no
+  // filter, wrong for a page where the customer picks the range).
+  periodKpis: PeriodTotals & PeriodComparison;
   series: MonthlySeriesPoint[];
   revenueByCategory: CategoryBreakdown[];
   costsByCategory: CategoryBreakdown[];
@@ -41,6 +52,12 @@ export default function FinancePage() {
   const locale = useAppLocale();
   const t = useTranslations('finance');
   const tc = useTranslations('common');
+  // A missing comparison is stated, not hidden and not faked as 0%. It goes in
+  // the subtitle rather than KpiCard's `empty` state because the value itself
+  // IS available — `empty` blanks the whole card, which would throw away a
+  // real total just because the period before it has nothing to compare with.
+  const noComparison = (pct: number | null) =>
+    pct === null ? tc('kpiNotAvailableNoPreviousPeriod') : undefined;
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
 
   const params = new URLSearchParams({
@@ -63,7 +80,7 @@ export default function FinancePage() {
         actions={<PeriodFilter value={range} onChange={setRange} />}
       />
       <p className="-mt-4 text-xs text-muted-foreground">
-        {tc('partialMonthNote')} {tc('dayParityComparisonNote')}
+        {tc('partialMonthNote')} {tc('periodComparisonNote')}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -73,32 +90,39 @@ export default function FinancePage() {
           <>
             <KpiCard
               label={t('kpi.revenue')}
-              value={formatCurrency(data.kpis.totalRevenue, locale)}
-              delta={toDelta(data.kpis.momRevenueGrowth, locale)}
+              value={formatCurrency(data.periodKpis.revenue, locale)}
+              delta={toDelta(data.periodKpis.revenueGrowth, locale)}
+              subtitle={noComparison(data.periodKpis.revenueGrowth)}
             />
             <KpiCard
               label={t('kpi.costs')}
-              value={formatCurrency(data.kpis.totalCosts, locale)}
-              delta={toDelta(data.kpis.momCostGrowth, locale, true)}
+              value={formatCurrency(data.periodKpis.costs, locale)}
+              delta={toDelta(data.periodKpis.costGrowth, locale, true)}
+              subtitle={noComparison(data.periodKpis.costGrowth)}
             />
             <KpiCard
               label={t('kpi.grossMargin')}
-              value={data.kpis.grossMargin !== null ? formatPercent(data.kpis.grossMargin, locale) : ''}
-              state={data.kpis.grossMargin === null ? 'empty' : 'idle'}
+              value={data.periodKpis.grossMargin !== null ? formatPercent(data.periodKpis.grossMargin, locale) : ''}
+              state={data.periodKpis.grossMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
             />
             <KpiCard
               label={t('kpi.operatingMargin')}
-              value={data.kpis.operatingMargin !== null ? formatPercent(data.kpis.operatingMargin, locale) : ''}
-              state={data.kpis.operatingMargin === null ? 'empty' : 'idle'}
+              value={
+                data.periodKpis.operatingMargin !== null
+                  ? formatPercent(data.periodKpis.operatingMargin, locale)
+                  : ''
+              }
+              state={data.periodKpis.operatingMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
             />
             <KpiCard
               label={t('kpi.netMargin')}
-              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
-              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              value={data.periodKpis.netMargin !== null ? formatPercent(data.periodKpis.netMargin, locale) : ''}
+              state={data.periodKpis.netMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
-              delta={toDelta(data.kpis.momNetMarginDelta, locale)}
+              delta={toDelta(data.periodKpis.netMarginDelta, locale)}
+              subtitle={data.periodKpis.netMargin === null ? undefined : noComparison(data.periodKpis.netMarginDelta)}
             />
           </>
         )}

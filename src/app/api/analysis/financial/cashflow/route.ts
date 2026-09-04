@@ -6,6 +6,7 @@ import {
   computeKpis,
   cumulativeCashflow,
   filterTransactionsByPeriod,
+  periodTotals,
 } from '@/lib/analysis/financial';
 
 export async function GET(req: NextRequest) {
@@ -25,9 +26,10 @@ export async function GET(req: NextRequest) {
     // to compute momRevenueGrowth/momCostGrowth/momNetMarginDelta/
     // momMrrDelta/momCustomersDelta (see the main /api/analysis/financial
     // route), but none of those are among the fields this route exposes
-    // below (operating/available/workingCapital/runway/isBurningCash are all
-    // "as of the current period", not comparisons) — they simply come back
-    // null, which is correct here since nothing reads them.
+    // below (available/workingCapital/runway/isBurningCash are all "as of the
+    // current period", not comparisons) — they simply come back null, which
+    // is correct here since nothing reads them. `operating` no longer comes
+    // from computeKpis at all; see periodTotals below.
     const kpis = computeKpis({
       transactions: periodTransactions,
       cashflow: filteredCashflow,
@@ -35,9 +37,16 @@ export async function GET(req: NextRequest) {
       subscriptions: data.subscriptions,
     });
 
+    // Operating cash flow across the WHOLE selected period. It used to be
+    // kpis.totalRevenue - kpis.totalCosts, i.e. the latest month alone, on a
+    // page that carries a PeriodFilter: the number did not move when the
+    // customer moved the filter. `available` below is already cumulative over
+    // the filtered cashflow, so it always followed the period.
+    const totals = periodTotals(periodTransactions);
+
     return ok({
       kpis: {
-        operating: kpis.totalRevenue - kpis.totalCosts,
+        operating: totals.revenue - totals.costs,
         available: kpis.cashAvailable,
         workingCapital: kpis.workingCapital,
         runway: kpis.cashRunway,

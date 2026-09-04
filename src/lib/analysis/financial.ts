@@ -168,6 +168,92 @@ export function cashflowByCategory(cashflow: DemoCashflow[]) {
   }));
 }
 
+/**
+ * Totals for a WHOLE set of transactions — the sum across every month it
+ * contains, not the latest month inside it.
+ *
+ * This exists next to computeKpis rather than inside it because the two
+ * answer different questions and both are needed at once. computeKpis'
+ * totalRevenue/totalCosts are `last?.revenue`/`last?.costs`, i.e. the most
+ * recent month alone, which is what the Overview (fixed period, no filter)
+ * shows and what its mom* figures are built on. Every page that carries a
+ * PeriodFilter needs the other answer: the total of the period the customer
+ * actually selected, which otherwise did not move when they moved the filter.
+ *
+ * Built on groupByMonth so the COGS/opex classification, and therefore the
+ * three margins, are derived exactly the same way as everywhere else — never
+ * a second, parallel definition of what a cost is.
+ */
+export type PeriodTotals = {
+  revenue: number;
+  costs: number;
+  /** null when the period has no revenue to divide by: a "0%" margin would
+   * claim break-even where the figure is simply not derivable. Same rule as
+   * computeKpis' own margins. */
+  grossMargin: number | null;
+  operatingMargin: number | null;
+  netMargin: number | null;
+};
+
+export function periodTotals(transactions: DemoTransaction[]): PeriodTotals {
+  const months = groupByMonth(transactions);
+  const sum = (pick: (m: MonthlySeriesPoint) => number) => months.reduce((s, m) => s + pick(m), 0);
+  const revenue = sum((m) => m.revenue);
+  const share = (profit: number) => (revenue > 0 ? (profit / revenue) * 100 : null);
+  return {
+    revenue,
+    costs: sum((m) => m.costs),
+    grossMargin: share(sum((m) => m.grossProfit)),
+    operatingMargin: share(sum((m) => m.operatingProfit)),
+    netMargin: share(sum((m) => m.netProfit)),
+  };
+}
+
+/**
+ * The selected period against the equivalent period before it — NOT the
+ * month-over-month figures computeKpis produces. A page whose headline number
+ * is "the total of the last twelve months" cannot carry a badge that talks
+ * about September: the big number and the small one would be describing
+ * different stretches of time.
+ *
+ * `previous` is null when there is no equivalent previous period to build
+ * (see periodMonths: a custom date range has no defined "one before it"), and
+ * every figure is null when the previous period had nothing to divide by.
+ * Null, never zero: "0% growth" claims stagnation where the comparison was in
+ * fact impossible.
+ */
+export type PeriodComparison = {
+  revenueGrowth: number | null;
+  costGrowth: number | null;
+  netMarginDelta: number | null;
+};
+
+export function comparePeriodTotals(
+  current: PeriodTotals,
+  previous: PeriodTotals | null,
+): PeriodComparison {
+  if (!previous) return { revenueGrowth: null, costGrowth: null, netMarginDelta: null };
+  const pct = (raw: number | null) => (raw === null ? null : raw * 100);
+  return {
+    revenueGrowth: pct(safeDiv(current.revenue - previous.revenue, previous.revenue)),
+    costGrowth: pct(safeDiv(current.costs - previous.costs, previous.costs)),
+    netMarginDelta:
+      current.netMargin === null || previous.netMargin === null
+        ? null
+        : current.netMargin - previous.netMargin,
+  };
+}
+
+/**
+ * How many months a named period covers, for shifting a window back by a
+ * whole equivalent period with comparisonWindow(). null for 'custom': an
+ * arbitrary date range has no defined "equivalent period before it", so the
+ * callers show "not available" with the reason rather than inventing one.
+ */
+export function periodMonths(period: '1m' | '3m' | '6m' | '12m' | 'custom'): number | null {
+  return period === 'custom' ? null : PERIOD_MONTHS[period];
+}
+
 export function computeKpis(args: {
   transactions: DemoTransaction[];
   cashflow: DemoCashflow[];
@@ -353,6 +439,14 @@ export function computeKpis(args: {
 
 const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 } as const;
 
+/** First or last instant of a "YYYY-MM-DD" calendar day as lived in Italy. */
+function dayBoundary(isoDate: string, edge: 'start' | 'end'): Date {
+  const [year, month, day] = isoDate.slice(0, 10).split('-').map(Number);
+  return edge === 'start'
+    ? fromAppWallClock({ year, month, day, hour: 0, minute: 0, second: 0, ms: 0 })
+    : fromAppWallClock({ year, month, day, hour: 23, minute: 59, second: 59, ms: 999 });
+}
+
 /**
  * Boundaries of "N months", per the founder's definition: the CURRENT month
  * (day 1 through today, declared partial) plus the N-1 preceding COMPLETE
@@ -375,9 +469,15 @@ export function periodWindow(
 ): { from: Date; to: Date } {
   const now = new Date();
   if (period === 'custom') {
+    // A custom range is inclusive of both days the customer picked, read in
+    // Italy. `new Date('2026-08-31')` is midnight UTC, i.e. 02:00 in Italy, so
+    // the range "1 to 31 August" used to start two hours into the 1st and end
+    // at the very start of the 31st — silently dropping that whole last day
+    // (verified: a movement on 31 August at 09:00 fell outside the range that
+    // named it). Same Rome-anchoring rule as the named periods below.
     return {
-      from: customFrom ? new Date(customFrom) : new Date(0),
-      to: customTo ? new Date(customTo) : now,
+      from: customFrom ? dayBoundary(customFrom, 'start') : new Date(0),
+      to: customTo ? dayBoundary(customTo, 'end') : now,
     };
   }
   const today = toAppWallClock(now);
