@@ -18,7 +18,7 @@ import { formatCurrency, formatPercent } from '@/lib/utils';
 import type { CategoryBreakdown, MonthlySeriesPoint } from '@/lib/analysis/financial';
 
 type CostsResponse = {
-  kpis: { totalCosts: number; burnRate: number; ratio: number };
+  kpis: { totalCosts: number; burnRate: number; ratio: number | null };
   series: MonthlySeriesPoint[];
   byCategory: CategoryBreakdown[];
   categories: string[];
@@ -29,6 +29,7 @@ type CostsResponse = {
 export default function CostsPage() {
   const locale = useAppLocale();
   const t = useTranslations('costs');
+  const tc = useTranslations('common');
 
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
   const [category, setCategory] = useState('');
@@ -69,6 +70,7 @@ export default function CostsPage() {
         subtitle={t('subtitle')}
         actions={<PeriodFilter value={range} onChange={(v) => { setRange(v); setPage(1); }} />}
       />
+      <p className="-mt-4 text-xs text-muted-foreground">{tc('partialMonthNote')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {isLoading || !data ? (
@@ -83,7 +85,9 @@ export default function CostsPage() {
             <KpiCard label={t('kpi.burnRate')} value={formatCurrency(data.kpis.burnRate, locale)} />
             <KpiCard
               label={t('kpi.ratio')}
-              value={formatPercent(data.kpis.ratio, locale)}
+              value={data.kpis.ratio !== null ? formatPercent(data.kpis.ratio, locale) : ''}
+              state={data.kpis.ratio === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
             />
           </>
         )}

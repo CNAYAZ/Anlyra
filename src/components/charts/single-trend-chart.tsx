@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { formatCurrencyCompact, formatMonth, type Locale } from '@/lib/utils';
 
 export type TrendPoint = { period: string; value: number };
@@ -24,7 +25,17 @@ export function SingleTrendChart({
   label: string;
   color?: string;
 }) {
-  const formatted = data.map((p) => ({ label: formatMonth(`${p.period}-01`, locale), value: p.value }));
+  const tc = useTranslations('common');
+  // The LAST point is always the current, possibly-partial month (see
+  // periodWindow in lib/analysis/financial.ts) — marked hollow instead of
+  // filled, and called out in the tooltip, rather than letting it read as a
+  // real decline just because it covers fewer days than the months before it.
+  const lastIndex = data.length - 1;
+  const formatted = data.map((p, i) => ({
+    label: formatMonth(`${p.period}-01`, locale),
+    value: p.value,
+    isPartial: i === lastIndex,
+  }));
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={formatted} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -38,6 +49,9 @@ export function SingleTrendChart({
         />
         <Tooltip
           formatter={(v: number) => [formatCurrencyCompact(v, locale), label]}
+          labelFormatter={(lbl: string, payload) =>
+            payload?.[0]?.payload?.isPartial ? `${lbl} (${tc('partialMonth')})` : lbl
+          }
           contentStyle={{ borderRadius: 8, fontSize: 12 }}
         />
         <Line
@@ -45,7 +59,15 @@ export function SingleTrendChart({
           dataKey="value"
           stroke={color}
           strokeWidth={2.5}
-          dot={{ r: 3, fill: color }}
+          dot={(props: { cx?: number; cy?: number; index?: number }) => {
+            const { cx, cy, index } = props;
+            if (cx === undefined || cy === undefined || index === undefined) return <g key="dot-empty" />;
+            return formatted[index]?.isPartial ? (
+              <circle key={`dot-${index}`} cx={cx} cy={cy} r={4} fill="white" stroke={color} strokeWidth={2} />
+            ) : (
+              <circle key={`dot-${index}`} cx={cx} cy={cy} r={3} fill={color} />
+            );
+          }}
           activeDot={{ r: 5 }}
           name={label}
         />

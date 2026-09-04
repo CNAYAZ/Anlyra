@@ -64,7 +64,6 @@
     "features": "Features",
     "howItWorks": "How it works",
     "pricing": "Pricing",
-    "testimonials": "Testimonials",
     "contact": "Contact"
   },
   "breadcrumb": {
@@ -354,7 +353,18 @@
     "logout": "Sign out",
     "dashboard": "Dashboard",
     "settings": "Settings",
-    "rateLimitUnavailable": "We cannot complete this request right now. Please try again in a few minutes."
+    "rateLimitUnavailable": "We cannot complete this request right now. Please try again in a few minutes.",
+    "kpiNotAvailable": "Not available",
+    "kpiNotAvailableNoRevenue": "Requires revenue greater than zero",
+    "kpiNotAvailableNoBalance": "We don't know your account balance",
+    "kpiNotAvailableNoCustomers": "No active customers this period",
+    "notBurningCash": "You're not burning cash",
+    "notBurningCashHint": "Average revenue at or above average costs over the last months",
+    "kpiNotAvailableNoPreviousPeriod": "No previous period to compare against",
+    "kpiNotAvailableNoYearHistory": "Requires at least 12 months of history in the selected period",
+    "partialMonth": "partial",
+    "partialMonthNote": "The current month is included as partial, updated through today.",
+    "dayParityComparisonNote": "Comparisons shown are calculated on a like-for-like day basis."
   },
   "periods": {
     "1m": "Last month",
@@ -378,8 +388,8 @@
       "customers": "Active Customers",
       "vsPrev": "vs previous month",
       "months": "months",
-      "revenue12m": "Revenue 12m",
-      "costs12m": "Costs 12m",
+      "revenue12m": "Latest month revenue",
+      "costs12m": "Latest month costs",
       "cashAvailable": "Available cash",
       "activeCustomers": "Active customers",
       "runwayLabel": "Runway",
@@ -409,7 +419,7 @@
       "aiChat": "Chat with AI"
     },
     "aiSpotlightBadge": "Automated insight",
-    "aiSpotlightSummary": "Operating margin at {margin} over the last 12 months. Burn rate {burnRate}/month, runway {runway} months.",
+    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Average costs {burnRate}/month.",
     "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
     "lastMonthRevenue": "Last month — Revenue",
     "lastMonthCosts": "Last month — Costs",
@@ -451,10 +461,10 @@
   },
   "costs": {
     "title": "Costs",
-    "subtitle": "Cost analysis and burn rate",
+    "subtitle": "Cost analysis and monthly average",
     "kpi": {
       "total": "Total costs",
-      "burnRate": "Burn Rate",
+      "burnRate": "Average monthly costs",
       "ratio": "Costs / Revenue ratio"
     },
     "chart": {
@@ -1910,7 +1920,6 @@
         "billedNote": "billed annually",
         "features": [
           "200 AI credits / month",
-          "Up to 5 users per organization",
           "All analytics (Finance, Market, Operations)",
           "Unlimited PDF reports",
           "Unlimited Custom Dashboards",
@@ -1933,7 +1942,6 @@
         "featuresPrefix": "Everything in Pro, plus:",
         "features": [
           "700 AI credits / month (3.5x vs Pro)",
-          "Up to 15 users",
           "36 months data history",
           "Advanced industry benchmarks",
           "Extended forecasting (12+ months)",
@@ -2247,8 +2255,8 @@
           "desc": "Personalized strategic recommendations. Our AI reads your data and proposes concrete actions."
         },
         {
-          "title": "Automatic alerts",
-          "desc": "Notifications when something changes. Margin dropping? Customer at churn risk? You know first."
+          "title": "One-click alert check",
+          "desc": "Check cash flow, margins, customer churn risk and other critical signals on your real data — whenever you want."
         },
         {
           "title": "Forecasting",
@@ -2295,30 +2303,6 @@
         "Anonymous aggregates only for benchmarks and product improvement",
         "GDPR-compliant, European compliance built-in",
         "Account deletion: data removed within 30 days, guaranteed"
-      ]
-    },
-    "testimonials": {
-      "title": "People are talking about Anlyra",
-      "subtitle": "Companies and consultants who use Anlyra every day to decide faster.",
-      "items": [
-        {
-          "initials": "MC",
-          "name": "Marco C.",
-          "role": "CEO, SaaS Startup",
-          "quote": "Anlyra reduced the time I spend on reporting from 8 hours a week to 30 minutes. Game-changing for a startup."
-        },
-        {
-          "initials": "GR",
-          "name": "Giulia R.",
-          "role": "Finance Consultant",
-          "quote": "I use it with 12 of my SMB clients. The AI catches patterns I was missing. Indispensable."
-        },
-        {
-          "initials": "AT",
-          "name": "Andrea T.",
-          "role": "CFO, B2B Scaleup",
-          "quote": "Privacy-first and affordable pricing. We didn't need another tool sharing our numbers with OpenAI."
-        }
       ]
     },
     "pricing": {

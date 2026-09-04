@@ -73,6 +73,7 @@ const QUICK_ACTIONS: { href: string; labelKey: string; icon: typeof BarChart3; t
 export default function OverviewPage() {
   const locale = useAppLocale();
   const t = useTranslations('overview');
+  const tc = useTranslations('common');
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['overview'],
@@ -105,17 +106,19 @@ export default function OverviewPage() {
 
   const lastSeries = data?.series.slice(-1)[0];
   const aiSpotlight =
-    data && data.kpis.netMargin > 0
+    data && data.kpis.netMargin !== null && data.kpis.netMargin > 0
       ? t('aiSpotlightSummary', {
           margin: formatPercent(data.kpis.netMargin, locale),
           burnRate: formatCurrency(data.kpis.burnRate, locale),
-          runway: formatNumber(data.kpis.cashRunway, locale, 1),
         })
       : t('aiSpotlightLoading');
 
   return (
     <div className="space-y-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <p className="-mt-4 text-xs text-muted-foreground">
+        {tc('partialMonthNote')} {tc('dayParityComparisonNote')}
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
@@ -136,7 +139,9 @@ export default function OverviewPage() {
             />
             <KpiCard
               label={t('kpi.netMargin')}
-              value={formatPercent(data.kpis.netMargin, locale)}
+              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
+              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
               delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
             <KpiCard
@@ -230,10 +235,22 @@ export default function OverviewPage() {
               delta={toDelta(data.kpis.momCustomersDelta, locale)}
               icon={Users}
             />
-            <KpiCard label="ARPU" value={formatCurrency(data.kpis.arpu, locale)} icon={Brain} />
+            <KpiCard
+              label="ARPU"
+              value={data.kpis.arpu !== null ? formatCurrency(data.kpis.arpu, locale) : ''}
+              state={data.kpis.arpu === null ? 'empty' : 'idle'}
+              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoCustomers') }}
+              icon={Brain}
+            />
             <KpiCard
               label={t('kpi.runwayLabel')}
-              value={`${formatNumber(data.kpis.cashRunway, locale, 1)} ${t('kpi.months')}`}
+              value=""
+              state="empty"
+              empty={
+                data.kpis.isBurningCash
+                  ? { message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoBalance') }
+                  : { message: tc('notBurningCash'), hint: tc('notBurningCashHint') }
+              }
               icon={PiggyBank}
             />
           </>

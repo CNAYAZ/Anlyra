@@ -6,7 +6,6 @@ import {
   type FeatureItem,
   type HowItWorksStep,
   type ProblemPoint,
-  type TestimonialItem,
 } from '@/components/landing/landing-page';
 import { softwareApplicationSchema } from '@/lib/seo/json-ld';
 
@@ -57,8 +56,6 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
       trustTitle={t('trust.title')}
       trustParagraph={t('trust.paragraph')}
       trustPromises={t.raw('trust.promises') as string[]}
-      testimonialsTitle={t('testimonials.title')}
-      testimonialItems={t.raw('testimonials.items') as TestimonialItem[]}
       finalCtaTitle={t('finalCta.title')}
       finalCtaSubtitle={t('finalCta.subtitle')}
       finalCtaPrimary={t('finalCta.ctaPrimary')}

@@ -6,6 +6,7 @@ import {
   computeKpis,
   filterTransactionsByPeriod,
   monthlySeries,
+  safeDiv,
 } from '@/lib/analysis/financial';
 
 export async function GET(req: NextRequest) {
@@ -15,7 +16,11 @@ export async function GET(req: NextRequest) {
     const { period, from, to, category, page, pageSize, sortBy, sortOrder } = parsed.data;
 
     const data = await getOrgData();
-    const filtered = filterTransactionsByPeriod(data.transactions, period, from, to).filter((t) => t.kind === 'COST');
+    // Period-filtered but BOTH kinds — computeKpis needs revenue too (for
+    // totalRevenue, used by ratio below). `filtered` (costs only) is derived
+    // from it for everything specifically about costs.
+    const periodTransactions = filterTransactionsByPeriod(data.transactions, period, from, to);
+    const filtered = periodTransactions.filter((t) => t.kind === 'COST');
     const inCategory = category ? filtered.filter((t) => t.category === category) : filtered;
 
     const sorted = [...inCategory].sort((a, b) => {
@@ -29,19 +34,36 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * pageSize;
     const items = sorted.slice(start, start + pageSize);
 
+    // Previously built from data.transactions/data.cashflow (the org's full,
+    // unfiltered history) regardless of the requested period — the same bug
+    // fixed in the main /api/analysis/financial route.
+    //
+    // No `comparison` is passed: computeKpis now needs one supplied by the
+    // caller to compute momRevenueGrowth/momCostGrowth/momNetMarginDelta/
+    // momMrrDelta/momCustomersDelta (see the main route), but this route
+    // never reads any of them — only totalCosts/totalRevenue (via ratio
+    // below) and burnRate, none of which are comparison figures. Without
+    // `comparison` those five fields simply come back null, which is
+    // correct here: nothing shows them, so there is nothing to get wrong.
     const kpis = computeKpis({
-      transactions: data.transactions,
-      cashflow: data.cashflow,
+      transactions: periodTransactions,
+      cashflow: filterTransactionsByPeriod(data.cashflow, period, from, to),
       customers: data.customers,
       subscriptions: data.subscriptions,
     });
     const totalCosts = filtered.reduce((s, t) => s + t.amount, 0);
-    const ratio = kpis.totalRevenue > 0 ? (kpis.totalCosts / kpis.totalRevenue) * 100 : 0;
+    // null instead of 0 when the period has no revenue to divide by — a
+    // fallback 0% here would claim "costs are 0% of revenue" when the ratio
+    // was never actually derivable.
+    const rawRatio = safeDiv(kpis.totalCosts, kpis.totalRevenue);
+    const ratio = rawRatio === null ? null : rawRatio * 100;
 
     return ok({
       kpis: { totalCosts, burnRate: kpis.burnRate, ratio },
-      series: monthlySeries(data.transactions),
+      series: monthlySeries(periodTransactions),
       byCategory: categoryBreakdown(filtered, 'COST'),
+      // Left unfiltered on purpose: this feeds the category filter dropdown,
+      // not a displayed total — same reasoning as the /revenue route.
       categories: Array.from(new Set(data.transactions.filter((t) => t.kind === 'COST').map((t) => t.category))),
       items,
       pagination: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },

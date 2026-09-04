@@ -101,7 +101,9 @@ export async function buildRealPayload(
     .reduce((s, t) => s + t.amount, 0);
   const grossMargin = cogs > 0 && totalRevenue > 0 ? (totalRevenue - cogs) / totalRevenue : null;
 
-  const netMargin = totalRevenue > 0 ? (totalRevenue - totalCosts) / totalRevenue : 0;
+  // Same schema as grossMargin/revenueGrowth above: null instead of a false
+  // "0% margin" when there is no revenue to divide by.
+  const netMargin = totalRevenue > 0 ? (totalRevenue - totalCosts) / totalRevenue : null;
 
   // ── Cashflow: real CashflowEntry rows inside the window ──
   const cfInPeriod = data.cashflow.filter((c) => c.date >= from && c.date <= to);
@@ -154,7 +156,10 @@ export async function buildRealPayload(
     },
     kpis: {
       revenue: totalRevenue,
-      revenueGrowth: revenueGrowth ?? 0,
+      // Null passes through honestly instead of being coerced to a false "0%
+      // growth" — same schema as grossMargin/cashRunwayMonths below. See the
+      // comment on computeGrowth() at the bottom of this file.
+      revenueGrowth,
       grossMargin,
       netMargin,
       // Runway needs a cash balance, which this schema does not hold anywhere.

@@ -11,10 +11,14 @@ import { PageHeader, Card, CardHeader } from '@/components/ui/section';
 import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 type CashflowResponse = {
-  kpis: { operating: number; available: number; workingCapital: number; runway: number };
+  // runway is always null now — a "months of runway" figure needs the
+  // organization's real account balance, which this schema does not hold.
+  // isBurningCash is the honest, calculable alternative. See computeKpis in
+  // lib/analysis/financial.ts.
+  kpis: { operating: number; available: number; workingCapital: number; runway: null; isBurningCash: boolean };
   monthly: { period: string; inflow: number; outflow: number; net: number; cumulative: number }[];
   byCategory: { category: string; inflow: number; outflow: number; net: number }[];
 };
@@ -22,7 +26,7 @@ type CashflowResponse = {
 export default function CashflowPage() {
   const locale = useAppLocale();
   const t = useTranslations('cashflow');
-  const tUnits = useTranslations('units');
+  const tc = useTranslations('common');
 
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
 
@@ -45,6 +49,7 @@ export default function CashflowPage() {
         subtitle={t('subtitle')}
         actions={<PeriodFilter value={range} onChange={setRange} />}
       />
+      <p className="-mt-4 text-xs text-muted-foreground">{tc('partialMonthNote')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
@@ -59,8 +64,13 @@ export default function CashflowPage() {
             <KpiCard label={t('kpi.workingCapital')} value={formatCurrency(data.kpis.workingCapital, locale)} />
             <KpiCard
               label={t('kpi.runway')}
-              value={formatNumber(data.kpis.runway, locale, 1)}
-              unit={{ suffix: tUnits('months') }}
+              value=""
+              state="empty"
+              empty={
+                data.kpis.isBurningCash
+                  ? { message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoBalance') }
+                  : { message: tc('notBurningCash'), hint: tc('notBurningCashHint') }
+              }
             />
           </>
         )}
