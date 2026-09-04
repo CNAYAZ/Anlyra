@@ -1635,3 +1635,309 @@ condivisione (PDF, link pubblici) · ingresso e permessi (registrazione, onboard
 ruoli) · integrazioni (5 provider su 6 falliscono in silenzio).
 Ogni blocco con Opus, sempre con la domanda finale "dimmi cosa non ti aspettavi": è quella
 che ha pescato le scoperte più gravi.
+### E — DATI IN INGRESSO (audit 2026-09-02, blocco 2)
+Errori silenziosi: entrano numeri plausibili e sbagliati, l'AI ci costruisce sopra
+un consiglio, e non c'è modo di accorgersene senza confronto manuale.
+
+32. **DATE ALL'AMERICANA IMPORTATE AL CONTRARIO** [il più grave del progetto]
+    import-targets.ts:77-84 assume sempre giorno-mese. `'09/03/2026'` → 9 marzo, entra
+    senza errori. Solo i giorni oltre il 12 vengono rifiutati, quindi l'utente vede
+    "qualche riga sporca" e non sospetta il resto. ~40% delle righe con la data spostata
+    anche di mesi. Serve: rilevare il formato dal file o chiederlo all'utente.
+33. **LA VALUTA VIENE IGNORATA.** amount.ts:11 toglie i simboli `€ $ £` e tiene il numero;
+    commit/route.ts:30-38 non salva nessuna valuta → default EUR. 100 $ = 100 €. E i totali
+    sommano valute diverse (receivables/route.ts:43-46, con commento che lo ammette).
+34. **IMPORT NON TRANSAZIONALE + STATO "FALLITO" FUORVIANTE + ZERO CONTROLLO DUPLICATI.**
+    commit/route.ts: nessun `$transaction`; oltre il 10% di errori il batch è FAILED
+    anche se il 90% è già scritto (righe 200-208); ricaricare inserisce tutto una seconda
+    volta. Il prodotto invita a ripetere un'operazione che raddoppia i dati.
+    Attenuante: si può annullare il batch (batches/[id]/route.ts:87-90), se si sa che esiste.
+    Incoerenza: l'inserimento MANUALE è transazionale (manual/route.ts:64-65).
+35. **TRE DECIMALI CON IL PUNTO → ×1000.** amount.ts:41: `'0.500'` → 500. Scelta consapevole
+    per i file italiani, ma un export inglese con 3 decimali entra 1000 volte sbagliato.
+36. **[DA VERIFICARE A MANO] Estratti conto a due colonne: il segno non è normalizzato.**
+    parse.ts:88 prende l'importo com'è (il caso a colonna singola usa `Math.abs()`, riga 114).
+    Le banche che esportano le uscite già negative produrrebbero costi negativi, che nei
+    totali si comportano da ricavi. Non provato su un estratto conto reale.
+    **AZIONE FONDATORE: esportare un movimento dalla propria banca e provare l'import.**
+37. File senza colonna "tipo" e tutti importi positivi → ogni riga rifiutata con "Tipo non
+    riconosciuto", senza spiegazione utile (parse.ts:101).
+38. Il salvataggio si fida del browser: commit/route.ts non rilegge il file e non ha tetto
+    al numero di righe (il limite di 10 MB vale solo sull'anteprima).
+39. Testo libero senza limiti dall'import: 50.000 caratteri accettati in una categoria
+    (dalle pagine il limite è 200/2000). Finisce in `description` → alerts/rules.ts:75 →
+    prompt AI. Si somma al punto 16 (nessuna delimitazione anti-iniezione).
+40. Solo il PRIMO foglio di un Excel viene importato (parse.ts:226-227), in silenzio.
+41. La causale del movimento non viene mai importata: in `description` finisce solo
+    "categoria/sottocategoria" (import-targets.ts:112-114, nota DATA-001). Scelta
+    documentata, ma il cliente non ritrova la descrizione della sua banca.
+42. Qualsiasi estensione non riconosciuta finisce nel parser CSV (parse.ts:273): un PDF
+    caricato per sbaglio non dà "formato non supportato" ma colonne senza senso.
+43. `assertWithinLimit` (server-gate.ts:54) è codice morto: nessun piano ha limiti di
+    import, tutti a `imports: -1`.
+44. Totali calcolati in due punti separati (receivables/route.ts:45-46 e ai-context.ts:107-108).
+    OGGI coincidono, ma non c'è una funzione unica: chi ne cambia una deve ricordarsi dell'altra.
+45. `optionalInt` toglie i punti anche dai decimali: "1.5" → 15.
+46. preview/route.ts:93 restituisce ancora l'errore grezzo al browser.
+
+BUONO, verificato: righe illeggibili scartate e segnalate, mai inventate · fuso orario
+corretto (mezzanotte UTC, nessuno sfasamento) · formule Excel non eseguite, si legge il
+risultato · limite 10 MB prima di leggere i byte · l'anteprima mostra ciò che verrà salvato ·
+nessun export tabellare, quindi nessun rischio CSV injection in uscita.
+### F — NUMERI CALCOLATI E MOSTRATI (audit 2026-09-02, blocco 3)
+PREMESSA CHE SPIEGA TUTTO: esistono DUE motori di calcolo. Quello per l'AI
+(`lib/facts/financial-facts.ts`) è prudente — pretende 6 mesi di storico, restituisce
+null se il denominatore è zero. Quello per LO SCHERMO (`lib/analysis/financial.ts`,
+usato da 9 file) non ha quelle cautele. **Il codice prudente è quello che il cliente
+non vede.**
+
+47. **"RUNWAY 2 MESI" A UN'AZIENDA IN UTILE** [il più pericoloso del progetto]
+    financial.ts:146 `burnRate` = media dei COSTI TOTALI, non del consumo netto di cassa.
+    financial.ts:155 `runway = cassa / burnRate`. Eseguito: ricavi 100k, costi 30k
+    (utile 70k), cassa 60k → "runway 2,0 mesi". Un'azienda SENZA costi vede "runway 0".
+    Etichetta "Cash Runway" su Panoramica e Cashflow. Può indurre a tagliare personale
+    o chiedere un prestito d'emergenza senza motivo.
+48. **IL SELETTORE DI PERIODO NON CAMBIA I NUMERI PRINCIPALI.**
+    api/analysis/financial/route.ts: riga 18 calcola `filtered`, ma riga 21 passa
+    `data.transactions` NON filtrati a computeKpis e riga 29 anche al grafico. Solo le
+    due torte per categoria rispettano il periodo. Stesso schema in /revenue (riga 32),
+    /costs (32-33, 43), /cashflow (nessun periodo). Sulla stessa pagina il totale dice
+    una cosa e il grafico un'altra.
+49. **"MARGINE NETTO -500.000%".** financial.ts:149-151, 181 dividono per
+    `Math.max(1, revenue)`. Con 5.000 di costi e 0 ricavi esce -500.000%. Peggio: con
+    ricavi piccoli produce numeri PLAUSIBILI e sbagliati (50 € di ricavi → -9.900%).
+50. **L'ETICHETTA DI PRIMA PAGINA MENTE SU DUE COSE.** it.json overview.aiSpotlightSummary
+    dice "Margine OPERATIVO negli ultimi 12 MESI", ma overview/page.tsx:111 passa
+    `netMargin` calcolato su `series.at(-1)`, cioè UN SOLO MESE.
+51. **CRESCITA DA 0 A 50.000 € = "0%".** financial.ts:178 usa `safeDiv` che restituisce 0
+    col denominatore a zero. Il primo fatturato o la ripresa dopo una pausa appaiono come
+    "nessuna crescita".
+52. **SCHERMO E AI POSSONO METTERE LO STESSO MOVIMENTO IN DUE MESI DIVERSI.**
+    financial.ts:47 usa `format()` di date-fns → fuso del SERVER (UTC su Vercel);
+    ai-context.ts:43 usa `toAppDateString` → Europe/Rome. Un movimento del
+    2026-08-31T23:30Z è agosto sullo schermo e settembre per l'AI. **Raggiungibile con
+    dati veri**: se il CSV della banca contiene anche l'ora, viene salvata intatta.
+    Viola CLAUDE.md §7, che prescrive gli helper di timezone.ts.
+53. **Il margine mensile è calcolato due volte con guardie opposte**: schermo
+    `Math.max(1, revenue)`, AI `revenue > 0 ? ... : 0`. Divergono esattamente nel caso
+    rotto. Inoltre l'AI riceve solo gli ULTIMI 3 MESI (ai-context.ts:76 `.slice(0,3)`)
+    mentre lo schermo mostra tutta la serie.
+54. **Numeri inventati ancora presenti**: `churnRate` = 5% fisso se non ci sono clienti
+    (financial.ts:174); `LTV` = ARPU × 24 mesi inventati quando nessuno ha abbandonato
+    (175) — colpisce proprio le aziende che non perdono clienti; `workingCapital` (194)
+    è cassa meno i costi di un mese, non il capitale circolante contabile, ma ha
+    quell'etichetta.
+55. **Il filtro periodo copre più giorni della sua etichetta**: financial.ts:222-236 parte
+    dal primo giorno del mese di N mesi prima. Misurato: "1 mese" = 34 giorni, "3 mesi" = 95,
+    "6 mesi" = 187.
+56. **Confronti di lunghezza diversa**: il mese in corso (magari 15 giorni) confrontato col
+    precedente completo (30). Il calo lo produce il calendario, non l'azienda.
+57. **`yoyGrowth` non è anno su anno** (financial.ts:246-251): confronta l'ultimo mese col
+    PRIMO della serie, qualunque sia la sua lunghezza.
+58. **Previsioni con 3 soli mesi di storico** (forecasting/route.ts:60), e la confidenza
+    (forecasting.ts:142-151) PREMIA lo storico povero: meno punti, meglio la retta li
+    interpola, più alta risulta la confidenza. `zScore = 1.645` fisso.
+59. **Benchmark statici del 2024** scritti nel codice (benchmarks-data.ts), con un commento
+    onesto sulle fonti che però non arriva mai alla pagina: l'utente legge "dati di
+    riferimento del settore" senza sapere che sono stime fisse.
+60. `netProfit` e `operatingProfit` sono lo STESSO numero (financial.ts:65, con commento
+    onesto: non esiste un dato fiscale nel modello) ma l'interfaccia li mostra come due voci.
+61. I tipi si chiamano `DemoTransaction`, `DemoCashflow`, `DemoCustomerStat` ma contengono
+    DATI VERI (financial-query.ts:64). Chi legge il file può crederlo codice di prova.
+62. `prevMrr` (financial.ts:184-188) usa `setMonth(-1)`: il 31 marzo produce il 3 marzo.
+    [DEDOTTO, non eseguito]
+63. Minori: il CAC usa lo stesso fuso del server · `movingAverage` restringe la finestra sui
+    primi punti · `filterTransactionsByPeriod` con periodo 'custom' senza `from` parte dal 1970.
+
+BUONO, verificato: `netProfit = operatingProfit × 0.88` NON ESISTE PIÙ (oggi sono uguali,
+con commento onesto) · formule contabili di base corrette (grossProfit, operatingProfit,
+cassa cumulata, quote per categoria) · nessun NaN, Infinity o crash in nessun caso limite ·
+previsione non mostrata sotto i 3 mesi · i costi non-COGS non spariscono mai dai totali ·
+i totali scadenzario schermo/AI coincidono davvero (partono da `effectiveStatus` condiviso).
+### G — REPORT E CONDIVISIONE (audit 2026-09-02, blocco 4)
+PREMESSA: questo blocco è il meglio costruito del progetto. Il PDF usa il motore
+PRUDENTE (`getFinancialFacts`), non quello dello schermo: gli errori 47/49/51 NON
+finiscono nei documenti che escono dal prodotto. Dove non può calcolare onestamente,
+omette il riquadro invece di inventare (real-data.ts:166, runway → `null` con commento).
+
+64. **CHI ESCE DALL'AZIENDA RICEVE I CONTI PER SEMPRE** [il più grave sulla riservatezza]
+    I destinatari di un report programmato sono validati alla CREAZIONE
+    (reports/route.ts:89 `validateReportRecipients`), ma il cron che invia NON ricontrolla:
+    scheduled-reports.ts:125 usa solo `parseRecipients`, che spezza la stringa sulle virgole.
+    `validateReportRecipients` compare 0 volte nel cron. Un socio, dipendente o
+    commercialista rimosso continua a ricevere ogni mese il PDF completo dei conti, e
+    l'imprenditore non può accorgersene perché quella persona non compare più
+    nell'interfaccia. Attenuante: i destinatari non sono modificabili dopo la creazione
+    (nessun PATCH su /api/reports/[id]).
+65. **EXPORT GDPR: i numeri non hanno filtro di ruolo.** Le email dei colleghi sono protette
+    (`canSeeTeam = isManagerRole(role)`, riga 38), ma righe 124-127 esportano
+    `financialRecord`, `receivable`, `recurringExpense` e `transaction` dell'intera
+    organizzazione a QUALSIASI membro autenticato, anche un 'viewer'. Tutta la contabilità
+    in un JSON scaricabile da chi ha solo il permesso di lettura.
+66. **Report generato il 29/30/31 → grafico previsioni con mesi mancanti e ripetuti.**
+    real-data.ts:239 usa `setMonth(+k+1)`: dal 31 gennaio escono "mar 26, mar 26, mag 26,
+    mag 26" — febbraio e aprile spariscono. Le etichette finiscono stampate
+    (ReportDocument.tsx:491). I valori sono giusti, è l'asse a essere rotto. Capita proprio
+    quando si genera il report di fine mese per il commercialista.
+67. **"Crescita 0%" quando non è misurabile.** `computeGrowth` (real-data.ts:204-213)
+    restituisce onestamente `null`, ma riga 161 lo schiaccia: `revenueGrowth ?? 0`. Su un
+    documento che va dal commercialista, "zero crescita" e "non calcolabile" sono due cose
+    molto diverse. È l'unico punto dove il motore del report perde la prudenza che ha
+    ovunque altrove (mantiene `null` per margine lordo e runway).
+68. **Dettaglio ricavi troncato in silenzio**: real-data.ts:89 `.slice(0, 8)` tiene le 8
+    categorie maggiori. L'elenco sembra completo e la somma delle voci non torna col totale
+    stampato sopra.
+69. **Data di generazione nel fuso del server**: `fmtDate` (ReportDocument.tsx:227-232) usa
+    `Intl.DateTimeFormat('it-IT')` senza `timeZone` su un `generatedAt` in UTC. Un report
+    generato tra mezzanotte e le 2 italiane porta in copertina il giorno prima. Unico punto
+    del percorso report che viola CLAUDE.md §7.
+70. **Report generabili a prova scaduta**: `requireActiveAccess` compare 0 volte in
+    reports/generate e reports/route.ts. Non costa soldi (l'AI non è coinvolta), ma è una
+    funzione a pagamento che resta aperta dopo la scadenza.
+71. Manca il meta `noindex` sulla pagina condivisa (robots.txt la esclude, ma è un cartello
+    non una serratura). Rischio basso: senza il token da 43 caratteri non c'è nulla da trovare.
+
+BUONO, verificato: il PDF usa il motore prudente, non eredita runway/margine/crescita
+sbagliati dello schermo · omette i riquadri che non può calcolare invece di inventare ·
+rispetta davvero il periodo e non genera nulla su finestre vuote · token condivisione
+`randomBytes(32)` server-side, 30 giorni, revoca che azzera, ricerca per token, campi in
+elenco chiuso, nessuna risorsa esterna, rate limit per IP · PDF generato in casa
+(`@react-pdf/renderer`), nessun fornitore terzo · nessun testo AI nel PDF, quindi nessun
+obbligo AI Act su questo documento · report programmati: `lastRunAt` scritto solo dopo un
+invio riuscito, quindi i fallimenti vengono ritentati.
+
+DA CORREGGERE NEI DOCUMENTI (già risolti nel codice, ancora scritti come aperti):
+- CLAUDE.md riga 262: «"Run now" aggiorna solo lastRunAt, nessun PDF» → FALSO, oggi genera
+  davvero e risponde 422 se non ci sono dati.
+- CLAUDE.md riga 263: «condivisione legge da localStorage, non validata lato server» →
+  FALSO, il token è generato dal server e salvato nel DB: funziona da qualsiasi dispositivo.
+  ### H — INGRESSO E PERMESSI (audit 2026-09-02, blocco 5)
+PREMESSA: l'isolamento tra aziende NON ha buchi (verificato route per route) e la gestione
+password/sessioni è fatta bene. I problemi sono di RUOLI e di funzioni mancanti.
+
+72. **CHIUNQUE NELL'AZIENDA PUÒ DISDIRE L'ABBONAMENTO.** billing/portal/route.ts:9-13 ha solo
+    "sei loggato" + "non sei la demo", nessun controllo di ruolo. Apre il portale Stripe
+    dell'organizzazione: da lì si cancella l'abbonamento, si cambia piano, si leggono tutte
+    le fatture con indirizzo e ultime 4 cifre della carta. Un viewer può farlo. Stessa
+    assenza in billing/checkout e billing/credits/checkout. **Da chiudere prima di Stripe.**
+73. **AZIENDE ILLIMITATE, OGNUNA CON CREDITI E PROVA NUOVI.**
+    onboarding/organization/route.ts:27-89 non verifica se l'utente ha già un'azienda. Il
+    limite `orgsPerUser` esiste in lib/auth/config.ts ma `planLimits` non è chiamato da
+    nessuna parte. Unico freno: 3 chiamate/ora → 72 aziende gratis al giorno per account.
+    **Rende aggirabile la prova con carta (punto 4): non serve una carta nuova, basta una
+    nuova azienda.**
+74. **I 10 CODICI DI RECUPERO 2FA NON FUNZIONANO.** 2fa/verify/route.ts:50-56 li genera, li
+    mostra e li salva IN CHIARO; il login (auth.ts:69-79) accetta solo il TOTP —
+    `twoFactorBackupCodes` non compare mai in auth.ts. Chi perde il telefono resta fuori.
+    E chi legge il database ha in chiaro sia il seme sia i codici sostitutivi.
+75. **Cambiare o reimpostare la password non caccia chi è già dentro.** Le sessioni sono JWT
+    (30 giorni di default, nessun `maxAge` dichiarato) senza numero di versione confrontato
+    col DB. Chi ha rubato una sessione la mantiene anche dopo che il proprietario ha
+    cambiato password — la mossa esatta che si fa quando si sospetta un furto. Noto in
+    CLAUDE.md §10 per il cambio password; vale ANCHE per il reset via email, caso peggiore.
+76. **DOPO L'ONBOARDING LA SQUADRA È CONGELATA.** Nessuna route per invitare, rimuovere o
+    cambiare ruolo: `prisma.invite.create` esiste solo nell'onboarding, settings/team espone
+    solo GET, la pagina è di sola lettura. **Quando un collaboratore se ne va non c'è modo
+    di togliergli l'accesso** se non a mano sul database. È la causa del punto 64.
+    Corollario: nessuna azienda vera ha un 'owner' — chi crea è messo 'admin' (riga 86);
+    'owner' esiste solo nella demo.
+77. Un invito ancora valido aperto da chi è già membro ne SOVRASCRIVE il ruolo
+    (invite/accept/route.ts:30-34, `update: { role: invite.role }`). Finestra oggi stretta
+    (inviti solo all'onboarding, 72 ore), ma il codice non protegge il caso.
+78. **Il registro azioni non traccia i fatti dei permessi.** `auditLog` è chiamato in 26
+    punti, ma NON per: registrazione utente, creazione azienda, creazione invito,
+    ACCETTAZIONE invito (una persona nuova che entra nei dati), cambio azienda attiva, reset
+    password. Cioè proprio ciò che serve per rispondere a "chi è entrato e quando".
+79. auth/email-status è pubblica e conferma se un indirizzo è registrato e verificato
+    (20 richieste/10 min per IP). Le altre porte rispondono in modo neutro.
+80. **L'interfaccia non conosce i ruoli**: zero occorrenze di `isManagerRole`/`MANAGER_ROLES`
+    nei file .tsx. Un viewer vede i pulsanti Elimina, Condividi, Disconnetti e scopre il
+    divieto dopo il clic, con un 403. Non è un buco — è il prodotto che sembra rotto.
+81. Quattro GET senza autenticazione: analysis/operations/{customers,efficiency,team} e
+    analysis/market/{trends,positioning}. Servono numeri inventati (operations-data.ts),
+    menu già disattivati. Porte aperte su dati finti.
+82. `Membership.role` ha ancora `@default("owner")` nello schema. Oggi NON raggiungibile (i
+    3 punti che creano appartenenze scrivono sempre il ruolo esplicito), ma è una mina per
+    il codice futuro.
+83. Chi entra con Google non ha password, quindi non può disattivare il 2FA né chiedere la
+    cancellazione account (servono entrambe la password). Da decidere, non un difetto.
+
+**DECISIONE RICHIESTA AL FONDATORE.** Il modello che si ripete è: il ruolo protegge i dati
+delle PERSONE, mai i NUMERI (gdpr/export, settings/team, data/import/batches, reports/[id]).
+È coerente con la regola "leggere = tutti i membri". La domanda: "leggere" deve includere
+anche **portarsi via l'intera contabilità in un file scaricabile**?
+
+BUONO, verificato: isolamento tra aziende SENZA BUCHI (13 route con [id], tutte con
+`findFirst({ id, organizationId })`) · organizzazione attiva mai presa per buona dal client,
+sempre verificata contro Membership · ruolo riletto dal DB a ogni richiesta, non dal token ·
+RLS su TUTTE le tabelle (migration 20260825150000, ciclo dinamico) · bcrypt costo 12 ·
+8 tentativi per email/15 min + 30 per IP/10 min, fail-closed · token reset 32 byte casuali,
+30 minuti, monouso · email non confermata = login rifiutato.
+### I — INTEGRAZIONI (audit 2026-09-02, blocco 6, ultimo)
+SMENTITA AL DOCUMENTO: STATO-REALE righe 131-132 e 1635 dicono ancora «solo Stripe
+sincronizza, con dati casuali finti — gli altri 5 falliscono in silenzio». **FALSO oggi.**
+La riga 822 dello stesso file è quella giusta. Verificato: tutti e sei i provider sono
+`makeStubProvider` (sync/manager.ts:6-13), la sincronizzazione lancia un errore e basta
+(providers/stub.ts:6-8), connect risponde 503 prima di leggere la richiesta
+(connect/route.ts:30). **Nessun dato inventato entra più nel database, nei calcoli o nei
+prompt AI** (verificato con grep su ai-context, financial-facts, analysis/financial,
+reports/real-data). La pagina è onesta: quando non è collegato non c'è nessun pulsante
+"Collega", c'è "prossimamente".
+
+84. **PORTA DI RETE APERTA OGGI — `/api/market/exchange-rates`.** [pericoloso adesso]
+    Pubblica, senza login (righe 18-21): prende `base` dall'indirizzo e lo incolla
+    nell'URL della richiesta in uscita (exchange-rates.ts:30) senza verificare che sia una
+    sigla di valuta. Provato: `base="../../../../"` fa risalire la richiesta altrove.
+    Limite onesto: il dominio è fisso nel codice, quindi non è l'SSRF pieno di
+    market/scrape, e la nostra chiave sparisce quando si risale. AGGRAVANTE: la cache usa
+    quella stringa come etichetta, senza limite né scadenza → migliaia di valori diversi
+    gonfiano la memoria del server. **E nessuna schermata la chiama** (grep: solo la route
+    e la sua riga di rate limit). Porta sul mondo che non serve a niente → da chiudere.
+85. **Le credenziali dei clienti finirebbero IN CHIARO.** schema.prisma:622 `apiKey String?`
+    è testo semplice; nessuna cifratura né libreria di cifratura in tutto il progetto.
+    Oggi innocuo (nessun codice ci scrive: l'unica scrittura è disconnect che la mette a
+    null). Manca anche qualsiasi colonna per scadenza e rinnovo token, che 5 provider su 6
+    (OAuth) richiedono, e non esiste nessuna route di ritorno OAuth.
+    FATTO BENE: la chiave è esclusa dall'export GDPR con scelta esplicita
+    (gdpr/export:157) e la route di stato non la restituisce (campi elencati uno per uno).
+86. **L'interruttore della frequenza di sincronizzazione non è collegato a niente.**
+    L'utente sceglie "ogni 6/12/24 ore" (frequency/route.ts:10), il valore si salva, e
+    nessuno legge mai il campo `frequency`. vercel.json ha solo trial-check e gdpr-purge.
+    La sincronizzazione automatica non esiste: esiste solo "Sincronizza ora".
+87. **Il controllo del piano sulle integrazioni non è decorativo: non c'è.** In 4 file
+    ([provider]/route.ts:12, disconnect:22, sync:23, frequency:28) c'è
+    `const org = { id, plan: 'PRO' as const }`, e `org.plan` non è mai letto (grep: zero).
+    Ma la pagina di dettaglio quel valore lo usa (righe 29-31): **un cliente ENTERPRISE che
+    apre HubSpot, Google Analytics o Shopify legge "passa a ENTERPRISE"** pur avendolo già.
+88. **Due elenchi di provider che non coincidono, e due che non esistono.** registry.ts:15-63
+    ha stripe, quickbooks, xero, hubspot, google-analytics, shopify; billing/plans.ts:23 ha
+    stripe, quickbooks, xero, **Salesforce**, hubspot, **SAP**. Salesforce e SAP non esistono
+    altrove. Oggi innocuo (`planHasIntegration` non è chiamato da nessun componente e la
+    pagina prezzi non stampa la lista), ma diventa una promessa commerciale falsa il giorno
+    che qualcuno lo collega.
+89. `externalId` (schema:656), la colonna pensata per evitare i duplicati in
+    sincronizzazione, non è usata da nessuna riga di codice. `runSync` non è transazionale.
+90. `disconnect` e `frequency` fanno un update su una riga che può non esistere, senza
+    try/catch → 500 invece di un messaggio sensato. E l'interfaccia fa `res.json()` su una
+    pagina di errore HTML, quindi l'utente non vedrebbe nemmeno il messaggio.
+91. Sincronizzazione lunga: `runSync` gira dentro la POST senza `maxDuration`. Se va in
+    timeout, la riga di log resta su "RUNNING" per sempre — niente la ripulisce mai.
+92. Nessun rate limit su nessuna route di integrazione.
+93. La pagina di dettaglio di un'integrazione è completa e curata — storico, frequenza,
+    pulsanti — ed è **irraggiungibile**: nessun link ci porta. Sembra viva, non lo è.
+    (Conseguenza: nella pagina Integrazioni vera gli errori non producono nessun messaggio,
+    perché le mutazioni hanno solo `onSettled` e nessun `onError`.)
+94. Il generatore della DEMO scrive righe finte etichettandole `source:'stripe'` e `'bank'`
+    (session.ts:374): nell'organizzazione demo l'etichetta "fonte" mente già. Fuori dalla
+    demo, no.
+    95. **La Panoramica ha lo stesso difetto di etichetta appena corretto su Finanza**: la card
+    dice "Margine Operativo" ma mostra `netMargin`. Card unica, quindi il doppione non si
+    vede — ma l'etichetta resta falsa. Imparentato col punto 50.
+96. `finance.kpi.netMargin` è ora traduzione morta in it.json e en.json (nessuna pagina la
+    legge). Da rimuovere nel prossimo giro di pulizia traduzioni.
+97. **CORREZIONE al punto 30**: gli errori eslint preesistenti sono **9, non 1**, sparsi in
+    10 file (settings/billing, ai/chat/chat-client, alert-detail, cookie-banner, NavItem,
+    ThemeToggle, manual-form-financial, onboarding-flow, receivable-form-dialog,
+    recurring-expense-form-dialog, security/two-factor). Tutti dello stesso tipo:
+    `react-hooks/set-state-in-effect`. Baseline corretta per i prossimi lavori: **9 errori,
+    2 warning su tutto src/**.
