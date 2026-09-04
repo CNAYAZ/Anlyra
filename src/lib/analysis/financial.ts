@@ -167,11 +167,29 @@ export function computeKpis(args: {
   cashflow: DemoCashflow[];
   customers: DemoCustomerStat[];
   subscriptions: DemoSubscription[];
+  /**
+   * Data for the COMPARISON period, entirely supplied by the caller — this
+   * function never derives "the previous period" on its own. Build it with
+   * comparisonWindow() + filterTransactionsByWindow() (both above), the same
+   * day-parity rule the caller applies to its own primary window, so a
+   * partial current month is never held up against a full prior one.
+   *
+   * `asOf` is the comparison window's own "now" — the moment subscriptions
+   * are evaluated as active/cancelled at, mirroring how `subscriptions` is
+   * evaluated against the real `now` for the CURRENT period below. Omit the
+   * whole `comparison` object when the caller has no fair comparison period
+   * to offer (e.g. it does not expose any mom/delta figure to the user):
+   * every comparison field then comes back null, never guessed.
+   */
+  comparison?: {
+    transactions: DemoTransaction[];
+    customers: DemoCustomerStat[];
+    asOf: Date;
+  };
 }): KpiSummary {
-  const { transactions, cashflow, customers, subscriptions } = args;
+  const { transactions, cashflow, customers, subscriptions, comparison } = args;
   const series = groupByMonth(transactions);
   const last = series.at(-1);
-  const prev = series.at(-2);
 
   const last3 = series.slice(-3);
   const burnRate = last3.length > 0 ? last3.reduce((s, m) => s + m.costs, 0) / last3.length : 0;
@@ -206,9 +224,7 @@ export function computeKpis(args: {
   const mrr = activeSubs.reduce((s, x) => s + x.mrr, 0);
 
   const lastCustomer = customers.at(-1);
-  const prevCustomer = customers.at(-2);
   const activeCustomers = lastCustomer?.activeCustomers ?? 0;
-  const prevActive = prevCustomer?.activeCustomers ?? 0;
 
   const arpu = safeDiv(totalRevenue, activeCustomers);
 
@@ -228,26 +244,43 @@ export function computeKpis(args: {
   const churnRate = activeCustomers > 0 ? safeDiv(churned, activeCustomers) : null;
   const ltv = arpu !== null && churnRate !== null && churnRate > 0 ? arpu * (1 / churnRate) : null;
 
-  // "No previous period" is the same unmeasurable case as safeDiv's own
-  // zero-denominator guard (there is nothing to compare against either way),
-  // so both fold to null instead of the previous fallback of 0.
+  // Everything below compares against the CALLER-supplied comparison period
+  // — never a bucket derived from `transactions`/`customers` themselves (no
+  // more series.at(-2) or customers.at(-2), which were "whatever the
+  // adjacent calendar-month bucket happened to be", not a day-parity match
+  // for a partial current period). No `comparison` supplied => `prev` is
+  // undefined and every field below is null, the same "not calculable" path
+  // as an unfair (zero-denominator) comparison — never a guessed number.
+  const compSeries = comparison ? groupByMonth(comparison.transactions) : [];
+  const prev = compSeries.at(-1);
+
   const rawRevenueGrowth = prev ? safeDiv(last!.revenue - prev.revenue, prev.revenue) : null;
   const momRevenueGrowth = rawRevenueGrowth === null ? null : rawRevenueGrowth * 100;
   const rawCostGrowth = prev ? safeDiv(last!.costs - prev.costs, prev.costs) : null;
   const momCostGrowth = rawCostGrowth === null ? null : rawCostGrowth * 100;
-  // Same revenue<=0 rule as netMargin above, applied to the PRIOR period, so
-  // the delta below never subtracts a real number from a period that in fact
-  // had no derivable margin.
+  // Same revenue<=0 rule as netMargin above, applied to the COMPARISON
+  // period, so the delta below never subtracts a real number from a period
+  // that in fact had no derivable margin.
   const prevNet = prev && prev.revenue > 0 ? (prev.netProfit / prev.revenue) * 100 : null;
   const momNetMarginDelta = netMargin === null || prevNet === null ? null : netMargin - prevNet;
 
-  const prevMrr = subscriptions
-    .filter((s) => s.startedAt <= new Date(new Date(now).setMonth(now.getMonth() - 1)))
-    .filter((s) => !s.cancelledAt || s.cancelledAt > new Date(new Date(now).setMonth(now.getMonth() - 1)))
-    .reduce((s, x) => s + x.mrr, 0);
+  // MRR and active-customer deltas: comparison.asOf is the ONE moment
+  // subscriptions are evaluated at for the comparison side — mirroring how
+  // `subscriptions` is evaluated against the real `now` above for the
+  // current side. safeDiv's own zero-denominator guard already returns null
+  // when there is no comparison (prevMrr/prevActive both default to 0 below,
+  // same as an unfair comparison with a real but zero base), so nothing here
+  // needs a separate "was `comparison` supplied at all" branch.
+  const prevMrr = comparison
+    ? subscriptions
+        .filter((s) => s.startedAt <= comparison.asOf)
+        .filter((s) => !s.cancelledAt || s.cancelledAt > comparison.asOf)
+        .reduce((s, x) => s + x.mrr, 0)
+    : 0;
   const rawMrrDelta = safeDiv(mrr - prevMrr, prevMrr);
   const momMrrDelta = rawMrrDelta === null ? null : rawMrrDelta * 100;
 
+  const prevActive = comparison?.customers.at(-1)?.activeCustomers ?? 0;
   const rawCustomersDelta = safeDiv(activeCustomers - prevActive, prevActive);
   const momCustomersDelta = rawCustomersDelta === null ? null : rawCustomersDelta * 100;
 

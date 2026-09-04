@@ -21,6 +21,13 @@ export async function GET(req: NextRequest) {
     const data = await getOrgData();
     const periodTransactions = filterTransactionsByPeriod(data.transactions, period, from, to);
     const filteredCashflow = filterTransactionsByPeriod(data.cashflow, period, from, to);
+    // No `comparison` is passed: computeKpis needs one supplied by the caller
+    // to compute momRevenueGrowth/momCostGrowth/momNetMarginDelta/
+    // momMrrDelta/momCustomersDelta (see the main /api/analysis/financial
+    // route), but none of those are among the fields this route exposes
+    // below (operating/available/workingCapital/runway/isBurningCash are all
+    // "as of the current period", not comparisons) — they simply come back
+    // null, which is correct here since nothing reads them.
     const kpis = computeKpis({
       transactions: periodTransactions,
       cashflow: filteredCashflow,

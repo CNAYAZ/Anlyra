@@ -36,8 +36,15 @@ export async function GET(req: NextRequest) {
 
     // Previously built from data.transactions/data.cashflow (the org's full,
     // unfiltered history) regardless of the requested period — the same bug
-    // fixed in the main /api/analysis/financial route. computeKpis itself is
-    // unchanged; only what is fed into it now respects the period.
+    // fixed in the main /api/analysis/financial route.
+    //
+    // No `comparison` is passed: computeKpis now needs one supplied by the
+    // caller to compute momRevenueGrowth/momCostGrowth/momNetMarginDelta/
+    // momMrrDelta/momCustomersDelta (see the main route), but this route
+    // never reads any of them — only totalCosts/totalRevenue (via ratio
+    // below) and burnRate, none of which are comparison figures. Without
+    // `comparison` those five fields simply come back null, which is
+    // correct here: nothing shows them, so there is nothing to get wrong.
     const kpis = computeKpis({
       transactions: periodTransactions,
       cashflow: filterTransactionsByPeriod(data.cashflow, period, from, to),

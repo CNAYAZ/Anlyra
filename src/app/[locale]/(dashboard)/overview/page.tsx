@@ -116,6 +116,9 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <p className="-mt-4 text-xs text-muted-foreground">
+        {tc('partialMonthNote')} {tc('dayParityComparisonNote')}
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
