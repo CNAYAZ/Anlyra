@@ -70,6 +70,7 @@ export default function CostsPage() {
         subtitle={t('subtitle')}
         actions={<PeriodFilter value={range} onChange={(v) => { setRange(v); setPage(1); }} />}
       />
+      <p className="-mt-4 text-xs text-muted-foreground">{tc('partialMonthNote')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {isLoading || !data ? (

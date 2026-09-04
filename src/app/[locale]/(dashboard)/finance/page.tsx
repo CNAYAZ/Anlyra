@@ -62,6 +62,7 @@ export default function FinancePage() {
         subtitle={t('subtitle')}
         actions={<PeriodFilter value={range} onChange={setRange} />}
       />
+      <p className="-mt-4 text-xs text-muted-foreground">{tc('partialMonthNote')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {isLoading || !data ? (

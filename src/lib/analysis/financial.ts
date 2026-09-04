@@ -277,6 +277,78 @@ export function computeKpis(args: {
   };
 }
 
+const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 } as const;
+
+/** Last day of `monthIndex` (0-based) in `year`. Day 0 of the next month is,
+ * by definition, the last day of this one — no day-of-month is ever read
+ * back off an existing Date here, so this cannot suffer the classic
+ * setMonth() overflow ("Feb 31" silently becoming "Mar 3") that
+ * alerts/rules.ts and the AI benchmark/forecasting routes have. */
+function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/**
+ * Boundaries of "N months", per the founder's definition: the CURRENT month
+ * (day 1 through today, declared partial) plus the N-1 preceding COMPLETE
+ * calendar months. "Today" is read in Europe/Rome (toAppDateString), not the
+ * server's own timezone (UTC on Vercel) — near midnight Rome time the server
+ * can still be on yesterday's date, which would anchor the whole window one
+ * day (and sometimes one month) too early. Same fix as monthKey() above, for
+ * the same reason (CLAUDE.md §7).
+ *
+ * fromDate is always the 1st of some month, constructed directly via
+ * `new Date(year, monthIndex, 1)` — day 1 exists in every month, and a
+ * negative monthIndex correctly rolls the year back (verified: Date(2026,
+ * -11, 1) => 2025-02-01), so this half has no overflow risk either.
+ */
+export function periodWindow(
+  period: '1m' | '3m' | '6m' | '12m' | 'custom',
+  customFrom?: string,
+  customTo?: string,
+): { from: Date; to: Date } {
+  const now = new Date();
+  if (period === 'custom') {
+    return {
+      from: customFrom ? new Date(customFrom) : new Date(0),
+      to: customTo ? new Date(customTo) : now,
+    };
+  }
+  const [romeYear, romeMonth] = toAppDateString(now).split('-').map(Number);
+  const currentMonthIndex = romeMonth - 1; // toAppDateString's month is 1-based
+  const n = PERIOD_MONTHS[period];
+  return {
+    from: new Date(romeYear, currentMonthIndex - (n - 1), 1),
+    to: now,
+  };
+}
+
+/**
+ * The comparison window for a period, per the founder's day-parity rule: the
+ * SAME shape (same count of complete months, same number of days in the
+ * partial month) shifted back by `monthsShift` months — never the naive
+ * "whole calendar month before", which would compare a handful of days in
+ * the current month against a full prior month.
+ *
+ * `to`'s day-of-month is explicitly clamped to the comparison month's real
+ * length (via daysInMonth) rather than read off a shifted Date — shifting
+ * "Oct 31" back one month via setMonth() would silently ask for "Sept 31",
+ * which does not exist, and roll over into October. Same bug class as
+ * alerts/rules.ts, avoided the same way daysInMonth avoids it above: no
+ * day-of-month is ever carried across a setMonth() call.
+ */
+export function comparisonWindow(
+  window: { from: Date; to: Date },
+  monthsShift: number,
+): { from: Date; to: Date } {
+  const from = new Date(window.from.getFullYear(), window.from.getMonth() - monthsShift, 1);
+  const toYear = window.to.getFullYear();
+  const toMonthIndex = window.to.getMonth() - monthsShift;
+  const clampedDay = Math.min(window.to.getDate(), daysInMonth(toYear, toMonthIndex));
+  const to = new Date(toYear, toMonthIndex, clampedDay, 23, 59, 59, 999);
+  return { from, to };
+}
+
 // Generic over anything date-stamped (DemoTransaction or DemoCashflow): same
 // exact window logic either way, so the routes can filter cashflow entries
 // with this instead of hand-rolling a second copy of the same date math.
@@ -286,27 +358,18 @@ export function filterTransactionsByPeriod<T extends { date: Date }>(
   customFrom?: string,
   customTo?: string,
 ): T[] {
-  const now = new Date();
-  let fromDate = new Date(0);
-  switch (period) {
-    case '1m':
-      fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      break;
-    case '3m':
-      fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      break;
-    case '6m':
-      fromDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-      break;
-    case '12m':
-      fromDate = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-      break;
-    case 'custom':
-      if (customFrom) fromDate = new Date(customFrom);
-      break;
-  }
-  const toDate = period === 'custom' && customTo ? new Date(customTo) : now;
-  return transactions.filter((t) => t.date >= fromDate && t.date <= toDate);
+  const { from, to } = periodWindow(period, customFrom, customTo);
+  return transactions.filter((t) => t.date >= from && t.date <= to);
+}
+
+/** Filters by an explicit [from, to] window rather than a named period —
+ * for comparisonWindow()'s output, which routes need to filter against
+ * directly for day-parity mom/yoy figures. */
+export function filterTransactionsByWindow<T extends { date: Date }>(
+  transactions: T[],
+  window: { from: Date; to: Date },
+): T[] {
+  return transactions.filter((t) => t.date >= window.from && t.date <= window.to);
 }
 
 // True year-over-year: the SAME calendar month twelve months before the

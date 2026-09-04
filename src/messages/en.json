@@ -361,7 +361,10 @@
     "notBurningCash": "You're not burning cash",
     "notBurningCashHint": "Average revenue at or above average costs over the last months",
     "kpiNotAvailableNoPreviousPeriod": "No previous period to compare against",
-    "kpiNotAvailableNoYearHistory": "Requires at least 12 months of history in the selected period"
+    "kpiNotAvailableNoYearHistory": "Requires at least 12 months of history in the selected period",
+    "partialMonth": "partial",
+    "partialMonthNote": "The current month is included as partial, updated through today.",
+    "dayParityComparisonNote": "Comparisons shown are calculated on a like-for-like day basis."
   },
   "periods": {
     "1m": "Last month",

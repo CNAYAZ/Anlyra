@@ -3,8 +3,10 @@ import { fail, ok } from '@/lib/api/response';
 import { getOrgData, listQuerySchema } from '@/lib/api/financial-query';
 import {
   categoryBreakdown,
-  filterTransactionsByPeriod,
+  comparisonWindow,
+  filterTransactionsByWindow,
   monthlySeries,
+  periodWindow,
   safeDiv,
   yoyGrowth,
 } from '@/lib/analysis/financial';
@@ -19,7 +21,8 @@ export async function GET(req: NextRequest) {
     // Period-filtered but BOTH kinds, so the trend/mom/yoy figures below see
     // costs too where they need them — `filtered` (revenue only) is derived
     // from it for everything that is specifically about revenue.
-    const periodTransactions = filterTransactionsByPeriod(data.transactions, period, from, to);
+    const window = periodWindow(period, from, to);
+    const periodTransactions = filterTransactionsByWindow(data.transactions, window);
     const filtered = periodTransactions.filter((t) => t.kind === 'REVENUE');
     const inCategory = category ? filtered.filter((t) => t.category === category) : filtered;
 
@@ -39,16 +42,30 @@ export async function GET(req: NextRequest) {
     // the main /api/analysis/financial route.
     const series = monthlySeries(periodTransactions);
     const last = series.at(-1);
-    const prev = series.at(-2);
     const totalRevenue = filtered.reduce((s, t) => s + t.amount, 0);
-    // null instead of 0 when there is no previous period, or its revenue was
-    // <= 0 — a fallback 0% here would claim "no change" when the comparison
-    // was never actually possible. Same rule as momRevenueGrowth in
-    // computeKpis (lib/analysis/financial.ts), applied by hand here since
-    // this route computes mom itself rather than calling computeKpis.
-    const rawMom = prev ? safeDiv(last!.revenue - prev.revenue, prev.revenue) : null;
+
+    // mom: the SAME day-count window exactly one month earlier — not the
+    // whole previous calendar month (series.at(-2)), which would compare a
+    // handful of days in the current month against a full prior month
+    // whenever the current one is still in progress (it always is: "last"
+    // is always the current, possibly-partial month, see periodWindow).
+    const momWindow = comparisonWindow(window, 1);
+    const momRevenue = filterTransactionsByWindow(data.transactions, momWindow)
+      .filter((t) => t.kind === 'REVENUE')
+      .reduce((s, t) => s + t.amount, 0);
+    const rawMom = last ? safeDiv(last.revenue - momRevenue, momRevenue) : null;
     const mom = rawMom === null ? null : rawMom * 100;
-    const yoy = yoyGrowth(series);
+
+    // yoy: same day-parity idea twelve months back. Built as the union of
+    // the primary window's revenue with that comparison window's, so the
+    // already-fixed yoyGrowth() (financial.ts) does the same "same period
+    // key" lookup it already does — never sent to the client as `series`,
+    // which stays exactly the selected period (see the trend chart on
+    // finance/revenue/page.tsx).
+    const yoyWindow = comparisonWindow(window, 12);
+    const yoyComparisonRevenue = filterTransactionsByWindow(data.transactions, yoyWindow).filter((t) => t.kind === 'REVENUE');
+    const yoy = yoyGrowth(monthlySeries([...filtered, ...yoyComparisonRevenue]));
+
     const activeCustomers = data.customers.at(-1)?.activeCustomers ?? 0;
     // null instead of Math.max(1, 0)-then-divide when there are no active
     // customers: the old code produced a real-looking ARPU number (equal to
