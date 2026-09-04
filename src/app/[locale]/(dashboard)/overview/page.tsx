@@ -122,10 +122,17 @@ export default function OverviewPage() {
   // than a year gets fewer than 12 without anything special here. Read into
   // the sentence below so it never claims a span the org doesn't have.
   const monthsCount = data?.series.length ?? 0;
+  // Operating margin, not net: financial.ts sets netProfit = operatingProfit
+  // (no fiscal category in the data model, see computeKpis), so a "net"
+  // margin is not actually distinct from the operating one — calling it net
+  // here would repeat the same false precision the KPI card below was fixed
+  // for. periodKpis.operatingMargin already exists (same object this sentence
+  // already reads for periodKpis.netMargin before this change), so this is a
+  // field swap, not a new calculation.
   const aiSpotlight =
-    data && data.periodKpis.netMargin !== null && data.periodKpis.netMargin > 0
+    data && data.periodKpis.operatingMargin !== null && data.periodKpis.operatingMargin > 0
       ? t('aiSpotlightSummary', {
-          margin: formatPercent(data.periodKpis.netMargin, locale),
+          margin: formatPercent(data.periodKpis.operatingMargin, locale),
           burnRate: formatCurrency(data.kpis.burnRate, locale),
           monthsCount,
         })

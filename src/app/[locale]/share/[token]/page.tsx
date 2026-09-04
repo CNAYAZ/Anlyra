@@ -137,10 +137,6 @@ export default function PublicSharePage() {
     currency: 'EUR',
     maximumFractionDigits: 0,
   });
-  const pf = new Intl.NumberFormat(params.locale === 'en' ? 'en-US' : 'it-IT', {
-    style: 'percent',
-    maximumFractionDigits: 1,
-  });
 
   return (
     <div className="min-h-screen bg-bg-light">
@@ -181,24 +177,13 @@ export default function PublicSharePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="card">
             <p className="text-xs text-muted-foreground">{t('revenue')}</p>
             <p className="font-heading text-xl font-semibold tabular-nums">
               {nf.format(report.kpis.revenue)}
             </p>
           </div>
-          {/* Null = no revenue for the period to divide by: the card is
-              omitted rather than printing an invented "0% margin" — same
-              rule as the PDF this page mirrors (ReportDocument.tsx). */}
-          {report.kpis.netMargin !== null && (
-            <div className="card">
-              <p className="text-xs text-muted-foreground">{t('netMargin')}</p>
-              <p className="font-heading text-xl font-semibold tabular-nums">
-                {pf.format(report.kpis.netMargin)}
-              </p>
-            </div>
-          )}
           <div className="card">
             <p className="text-xs text-muted-foreground">{t('headcount')}</p>
             <p className="font-heading text-xl font-semibold tabular-nums">
