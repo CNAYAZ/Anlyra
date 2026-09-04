@@ -83,9 +83,9 @@ export default function FinancePage() {
         {tc('partialMonthNote')} {tc('periodComparisonNote')}
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading || !data ? (
-          Array.from({ length: 5 }).map((_, i) => <KpiSkeleton key={i} />)
+          Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
         ) : (
           <>
             <KpiCard
@@ -115,14 +115,6 @@ export default function FinancePage() {
               }
               state={data.periodKpis.operatingMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
-            />
-            <KpiCard
-              label={t('kpi.netMargin')}
-              value={data.periodKpis.netMargin !== null ? formatPercent(data.periodKpis.netMargin, locale) : ''}
-              state={data.periodKpis.netMargin === null ? 'empty' : 'idle'}
-              empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
-              delta={toDelta(data.periodKpis.netMarginDelta, locale)}
-              subtitle={data.periodKpis.netMargin === null ? undefined : noComparison(data.periodKpis.netMarginDelta)}
             />
           </>
         )}
