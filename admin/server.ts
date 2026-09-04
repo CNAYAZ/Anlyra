@@ -154,12 +154,26 @@ async function handlePost(pathname: string, body: Record<string, unknown>, res: 
   switch (pathname) {
     case '/api/organizations/credits': {
       const organizationId = str(body.organizationId);
-      const credits = body.credits;
       if (!organizationId) return err(res, 400, 'ID organizzazione mancante.');
-      if (typeof credits !== 'number' || !Number.isInteger(credits) || credits < 0) {
-        return err(res, 400, 'Crediti non validi: serve un intero >= 0.');
+
+      // Two independent, optional balances: plan credits (overwritten monthly by
+      // the renewal) and purchased credits (never overwritten). Omitting one
+      // leaves that column exactly as it is.
+      const parse = (v: unknown, label: string): number | undefined | string => {
+        if (v === undefined || v === null || v === '') return undefined;
+        if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) {
+          return `${label}: serve un intero >= 0.`;
+        }
+        return v;
+      };
+      const plan = parse(body.plan, 'Crediti di piano');
+      const purchased = parse(body.purchased, 'Crediti acquistati');
+      if (typeof plan === 'string') return err(res, 400, plan);
+      if (typeof purchased === 'string') return err(res, 400, purchased);
+      if (plan === undefined && purchased === undefined) {
+        return err(res, 400, 'Indicare almeno uno fra crediti di piano e crediti acquistati.');
       }
-      return ok(res, await setCredits(organizationId, credits));
+      return ok(res, await setCredits(organizationId, { plan, purchased }));
     }
 
     case '/api/organizations/plan': {

@@ -137,12 +137,21 @@ export async function recordInvoice(inv: Invoice): Promise<void> {
   });
 }
 
+/**
+ * The org's spendable balance: PLAN credits plus PURCHASED credits.
+ *
+ * Both columns are real, spendable credit — consumeCredits draws on the plan
+ * balance first and the purchased balance for the remainder — so every place
+ * that shows a balance or decides whether a feature is affordable must use this
+ * SUM. Reading only aiCredits would make a customer's paid pack invisible: they
+ * would pay for 500 credits and watch the counter not move.
+ */
 export async function getCreditBalance(orgId: string): Promise<number> {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
-    select: { aiCredits: true },
+    select: { aiCredits: true, aiCreditsPurchased: true },
   });
-  return org?.aiCredits ?? 0;
+  return (org?.aiCredits ?? 0) + (org?.aiCreditsPurchased ?? 0);
 }
 
 export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
@@ -169,6 +178,14 @@ export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
  * payment and receive nothing usable — the purchase showed in the history while
  * the balance stayed put.
  *
+ * ── WHICH COLUMN, AND WHY IT MATTERS ──
+ * Credits aiCreditsPurchased, NEVER aiCredits. aiCredits is the monthly plan
+ * allowance and the renewal job OVERWRITES it (`set: allowance`) at the start of
+ * every billing period — so a pack credited there was destroyed by the first
+ * renewal after the purchase: the customer paid, the ledger showed the purchase,
+ * and the credits silently vanished. aiCreditsPurchased is never overwritten by
+ * anything, which is the entire reason it exists.
+ *
  * ── ATOMIC ──
  * Both writes are in one transaction: a balance credited without a ledger row
  * would be money we cannot account for, and a ledger row without the balance is
@@ -193,7 +210,7 @@ export async function applyCreditPurchase(params: {
   await prisma.$transaction([
     prisma.organization.update({
       where: { id: params.orgId },
-      data: { aiCredits: { increment: params.credits } },
+      data: { aiCreditsPurchased: { increment: params.credits } },
     }),
     prisma.creditEntry.create({
       data: {

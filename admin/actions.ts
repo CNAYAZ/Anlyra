@@ -30,26 +30,74 @@ export type ValidPlan = (typeof VALID_PLANS)[number];
 export const DELETABLE_TABLES = ['receivable', 'recurringExpense', 'financialRecord'] as const;
 export type DeletableTable = (typeof DELETABLE_TABLES)[number];
 
-export async function setCredits(organizationId: string, credits: number) {
+/**
+ * Sets an organization's credit balances.
+ *
+ * ── WHY TWO NUMBERS AND NOT ONE ──
+ * The balance is two columns, and they behave differently:
+ *  • aiCredits — the monthly PLAN allowance. The renewal job overwrites it at
+ *    the start of every billing period, so anything put here is temporary: it
+ *    survives until the next renewal and no longer.
+ *  • aiCreditsPurchased — credits the customer PAID FOR. Nothing overwrites it.
+ * That difference is the whole reason the columns were split, and it decides
+ * which one the founder should be typing into. Compensating a customer for
+ * credits lost to a bug means writing the PURCHASED column: put it in the plan
+ * column and the next monthly renewal deletes the make-good, leaving the
+ * customer worse off than before the apology. Topping up a plan allowance for
+ * the current month is the plan column.
+ *
+ * Either number may be omitted; only the columns actually supplied are written,
+ * so a top-up of one cannot silently clear the other. Both are absolute values
+ * (set, not add), matching what the panel has always done.
+ */
+export async function setCredits(
+  organizationId: string,
+  values: { plan?: number; purchased?: number },
+) {
+  if (values.plan === undefined && values.purchased === undefined) {
+    throw new Error('setCredits: indicare almeno uno fra crediti di piano e crediti acquistati.');
+  }
+
   const before = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: { aiCredits: true, name: true },
+    select: { aiCredits: true, aiCreditsPurchased: true, name: true },
   });
 
   await prisma.organization.update({
     where: { id: organizationId },
-    data: { aiCredits: { set: credits } },
+    data: {
+      ...(values.plan !== undefined ? { aiCredits: { set: values.plan } } : {}),
+      ...(values.purchased !== undefined ? { aiCreditsPurchased: { set: values.purchased } } : {}),
+    },
   });
+
+  const after = {
+    plan: values.plan ?? before.aiCredits,
+    purchased: values.purchased ?? before.aiCreditsPurchased,
+  };
 
   await auditLog({
     action: 'admin.credits_set',
     organizationId,
     targetType: 'organization',
     targetId: organizationId,
-    metadata: { from: before.aiCredits, to: credits },
+    // Both columns recorded either way, so the trail says what the balance was
+    // and what it became — not just the half that happened to be edited.
+    // Flat keys: auditLog's metadata is deliberately Record<string, scalar>, so
+    // a nested { from: {...} } would not survive its type (or its intent).
+    metadata: {
+      fromPlan: before.aiCredits,
+      toPlan: after.plan,
+      fromPurchased: before.aiCreditsPurchased,
+      toPurchased: after.purchased,
+    },
   });
 
-  return { organizationName: before.name, from: before.aiCredits, to: credits };
+  return {
+    organizationName: before.name,
+    from: { plan: before.aiCredits, purchased: before.aiCreditsPurchased },
+    to: after,
+  };
 }
 
 /**

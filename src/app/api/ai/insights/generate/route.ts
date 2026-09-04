@@ -8,7 +8,7 @@ import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
-import { consumeCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits';
+import { consumeCredits, refundCredits, InsufficientCreditsError, type CreditSpend } from '@/lib/credits';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { loadBusinessContext } from '@/lib/ai-context';
 import {
@@ -91,12 +91,15 @@ export async function POST(req: NextRequest) {
     if (!hasData) return fail('NOT_ENOUGH_DATA', 422);
 
     // 8. Credits: charged HERE, the last gate before the Anthropic call, with the
-    //    same atomic conditional UPDATE used by /api/ai/chat and /api/ai/analyze
-    //    (…WHERE aiCredits >= cost), so concurrent requests can never drive the
-    //    balance negative.
-    let creditsRemaining: number;
+    //    same single atomic SQL statement used by /api/ai/chat and
+    //    /api/ai/analyze, so concurrent requests can never drive the balance
+    //    negative.
+    //    The whole CreditSpend is kept, not just the remaining total: this is
+    //    the ONE route that refunds, and the refund below has to put each credit
+    //    back in the column it came out of (plan vs purchased).
+    let spend: CreditSpend;
     try {
-      creditsRemaining = await consumeCredits(organizationId, GENERATION_CREDIT_COST);
+      spend = await consumeCredits(organizationId, GENERATION_CREDIT_COST);
     } catch (err) {
       if (err instanceof InsufficientCreditsError) return fail('INSUFFICIENT_CREDITS', 402);
       throw err;
@@ -126,7 +129,11 @@ export async function POST(req: NextRequest) {
         // still what we report — the credit desync is logged for a manual fix
         // rather than masked behind a different error message.
         try {
-          await refundCredits(organizationId, GENERATION_CREDIT_COST);
+          // `spend`, not the flat cost: a generation that dipped into the
+          // PURCHASED balance is refunded to the purchased balance. Handing back
+          // paid credits as plan credits would let the next monthly renewal
+          // delete them.
+          await refundCredits(organizationId, spend);
         } catch (refundErr) {
           console.error('[ai/insights/generate] credit refund FAILED after invalid response:', refundErr);
         }
@@ -157,7 +164,7 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    return ok({ created: generated.length, creditsRemaining });
+    return ok({ created: generated.length, creditsRemaining: spend.remaining });
   } catch (e) {
     console.error('[ai/insights/generate] unexpected error:', e);
     return fail((e as Error).message, 500);

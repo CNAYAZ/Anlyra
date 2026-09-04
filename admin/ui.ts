@@ -99,10 +99,19 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
 
     <div class="card">
       <h3>Imposta crediti AI</h3>
-      <p class="note">Imposta un valore assoluto (non somma). Copia l'id dalla tabella qui sopra.</p>
+      <p class="note">Imposta un valore assoluto (non somma). Copia l'id dalla tabella qui sopra.
+        <b>Lascia vuoto il campo che non vuoi toccare.</b></p>
+      <p class="note">
+        <b>Crediti di piano</b>: l'assegno mensile. Il rinnovo li SOVRASCRIVE a inizio periodo,
+        quindi quello che scrivi qui dura fino al prossimo rinnovo e poi sparisce.<br>
+        <b>Crediti acquistati</b>: pacchetti che il cliente ha PAGATO. Non li sovrascrive nessuno.
+        Per rimborsare o risarcire un cliente usa QUESTO campo: mettendolo nei crediti di piano,
+        il rinnovo del mese dopo cancella il risarcimento.
+      </p>
       <div class="row">
         <div><label>ID organizzazione</label><input id="credOrg" placeholder="cl..."></div>
-        <div><label>Crediti</label><input id="credVal" type="number" min="0" step="1" value="200"></div>
+        <div><label>Crediti di piano</label><input id="credVal" type="number" min="0" step="1" placeholder="lascia vuoto per non toccarli"></div>
+        <div><label>Crediti acquistati</label><input id="credPurch" type="number" min="0" step="1" placeholder="lascia vuoto per non toccarli"></div>
       </div>
       <button class="act" onclick="doSetCredits()">Imposta crediti</button>
       <div id="credOut"></div>
@@ -266,14 +275,22 @@ async function loadOrgs() {
   document.getElementById('orgsTable').innerHTML =
     '<table><tr><th>ID</th><th>Nome</th><th>Organization.plan<br><small>(legacy)</small></th>' +
     '<th>BillingSubscription.plan<br><small>(quello vero)</small></th><th>Stato abb.</th>' +
-    '<th class="num">Crediti</th><th class="num">Membri</th><th>Creata</th></tr>' +
+    '<th class="num">Crediti piano<br><small>(azzerati ogni mese)</small></th>' +
+    '<th class="num">Crediti acquistati<br><small>(pagati, non scadono)</small></th>' +
+    '<th class="num">Totale<br><small>(quello che vede il cliente)</small></th>' +
+    '<th class="num">Membri</th><th>Creata</th></tr>' +
     rows.map(o => {
       const diverge = o.subscriptionPlan && o.organizationPlan !== o.subscriptionPlan;
       return '<tr><td><code>' + esc(o.id) + '</code></td><td>' + esc(o.name) + '</td>' +
         '<td' + (diverge ? ' style="color:#e8c9a0"' : '') + '>' + esc(o.organizationPlan) + '</td>' +
         '<td' + (diverge ? ' style="color:#e8c9a0"' : '') + '>' + esc(o.subscriptionPlan ?? '— nessun abbonamento —') + '</td>' +
         '<td>' + esc(o.subscriptionStatus ?? '—') + '</td>' +
-        '<td class="num">' + o.aiCredits + '</td><td class="num">' + o.memberCount + '</td>' +
+        '<td class="num">' + o.aiCredits + '</td>' +
+        // Gli acquistati sono soldi veri del cliente: evidenziati quando ci sono,
+        // così saltano all'occhio prima di toccare qualsiasi cosa.
+        '<td class="num"' + (o.aiCreditsPurchased > 0 ? ' style="color:#e8c9a0"' : '') + '>' + o.aiCreditsPurchased + '</td>' +
+        '<td class="num"><b>' + o.aiCreditsTotal + '</b></td>' +
+        '<td class="num">' + o.memberCount + '</td>' +
         '<td>' + fmt(o.createdAt) + '</td></tr>';
     }).join('') + '</table>';
 }
@@ -318,14 +335,35 @@ async function loadAuditActions() {
 
 async function doSetCredits() {
   const org = document.getElementById('credOrg').value.trim();
-  const credits = parseInt(document.getElementById('credVal').value, 10);
+  const rawPlan = document.getElementById('credVal').value.trim();
+  const rawPurch = document.getElementById('credPurch').value.trim();
   if (!org) return show('credOut', 'Indica l\\'id organizzazione.', 'err');
-  if (!Number.isInteger(credits) || credits < 0) return show('credOut', 'Crediti non validi.', 'err');
-  if (!confirm('IMPOSTARE I CREDITI\\n\\nOrganizzazione: ' + org + '\\nNuovo valore: ' + credits +
-      '\\n\\nSostituisce il saldo attuale (non lo somma). Database di PRODUZIONE. Procedere?')) return;
+  if (rawPlan === '' && rawPurch === '')
+    return show('credOut', 'Compila almeno uno dei due campi crediti.', 'err');
+
+  // Campo vuoto = colonna non toccata. Va distinto da 0, che invece azzera.
+  var plan, purchased;
+  if (rawPlan !== '') {
+    plan = parseInt(rawPlan, 10);
+    if (!Number.isInteger(plan) || plan < 0) return show('credOut', 'Crediti di piano non validi.', 'err');
+  }
+  if (rawPurch !== '') {
+    purchased = parseInt(rawPurch, 10);
+    if (!Number.isInteger(purchased) || purchased < 0) return show('credOut', 'Crediti acquistati non validi.', 'err');
+  }
+
+  var righe = [];
+  if (plan !== undefined) righe.push('crediti di PIANO -> ' + plan + ' (il rinnovo mensile li sovrascrive)');
+  if (purchased !== undefined) righe.push('crediti ACQUISTATI -> ' + purchased + ' (pagati dal cliente, non scadono)');
+  if (!confirm('IMPOSTARE I CREDITI\\n\\nOrganizzazione: ' + org + '\\n' + righe.join('\\n') +
+      '\\n\\nSostituisce il saldo attuale (non lo somma). Le colonne lasciate vuote NON vengono toccate.' +
+      '\\nDatabase di PRODUZIONE. Procedere?')) return;
   try {
-    const r = await post('/api/organizations/credits', { organizationId: org, credits });
-    show('credOut', 'Fatto — ' + r.organizationName + ': ' + r.from + ' -> ' + r.to + ' crediti.', 'ok');
+    const r = await post('/api/organizations/credits', { organizationId: org, plan: plan, purchased: purchased });
+    show('credOut', 'Fatto — ' + r.organizationName +
+      ': piano ' + r.from.plan + ' -> ' + r.to.plan +
+      ', acquistati ' + r.from.purchased + ' -> ' + r.to.purchased +
+      ' (totale ' + (r.to.plan + r.to.purchased) + ').', 'ok');
     loadOrgs();
   } catch (e) { show('credOut', e.message, 'err'); }
 }

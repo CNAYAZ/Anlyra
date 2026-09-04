@@ -120,16 +120,18 @@ export async function POST(req: NextRequest) {
 
   // Credits: charged HERE, the last gate before the first Anthropic call, on both
   // the streaming and the non-streaming path. Same pattern as /api/ai/chat —
-  // consumeCredits decrements conditionally in a single UPDATE (…WHERE aiCredits
-  // >= cost), so concurrent requests can never drive the balance negative, and an
-  // empty balance raises InsufficientCreditsError → 402 'INSUFFICIENT_CREDITS'
+  // consumeCredits spends the plan balance first and the purchased balance for
+  // the remainder, checking affordability and subtracting in ONE SQL statement,
+  // so concurrent requests can never drive the balance negative, and an empty
+  // balance raises InsufficientCreditsError → 402 'INSUFFICIENT_CREDITS'
   // WITHOUT calling the model. Placed after the 501/503 guards and after the
   // prompt build so a request that never reaches Anthropic is never billed;
   // being before the branch below, the stream can only open once paid.
   // As in chat, a model failure after this point does NOT refund the credit.
+  // `remaining` is the sum of both balances: the number the user sees.
   let creditsRemaining: number;
   try {
-    creditsRemaining = await consumeCredits(organizationId, ANALYSIS_CREDIT_COST);
+    creditsRemaining = (await consumeCredits(organizationId, ANALYSIS_CREDIT_COST)).remaining;
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);

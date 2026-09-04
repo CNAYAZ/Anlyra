@@ -11,10 +11,22 @@ import { auditLog } from '@/lib/audit/log';
  * Same reasoning — and the same isolation — as runScheduledReports().
  *
  * ── FOUNDER'S RULE: RESET, NOT ACCUMULATE ──
- * At renewal the balance is SET to the plan's allowance, it is not incremented.
- * An org that used 5 of 200 credits starts the new period at 200, not 395.
- * Unused credits expire; that is the decision, and it is why this writes an
- * absolute value (`set`) rather than an `increment`.
+ * At renewal the PLAN balance is SET to the plan's allowance, it is not
+ * incremented. An org that used 5 of 200 credits starts the new period at 200,
+ * not 395. Unused PLAN credits expire; that is the decision, and it is why this
+ * writes an absolute value (`set`) rather than an `increment`.
+ *
+ * ── AND WHY IT TOUCHES ONLY ONE COLUMN ──
+ * This job writes Organization.aiCredits and NOTHING ELSE. It must never write
+ * Organization.aiCreditsPurchased, not even to read-modify-write it back.
+ * Purchased credits are packs the customer PAID FOR: they do not expire, so the
+ * "reset" rule above does not apply to them. The two balances were one column
+ * until this was fixed, and that is precisely how the bug worked — the `set`
+ * below overwrote the purchased credits along with the plan ones, so any pack
+ * bought and not spent before the next renewal was destroyed without a trace.
+ * Keeping this job's reach limited to the single column above is the mechanical
+ * guarantee that it cannot happen again. If a future change ever needs to touch
+ * the purchased balance from here, it is almost certainly the wrong change.
  *
  * ── WHO IS RENEWED ──
  * Only orgs with a subscription row whose status is "active". Everything else is
@@ -139,6 +151,8 @@ export async function runCreditRenewal(now = new Date()): Promise<CreditRenewalR
         prisma.organization.update({
           where: { id: sub.organizationId },
           // `set`, not `increment` — the founder's rule is reset, not accumulate.
+          // aiCredits ONLY: aiCreditsPurchased is deliberately absent from this
+          // update, so paid credit packs survive every renewal. See the header.
           data: { aiCredits: { set: allowance } },
         }),
         prisma.billingSubscription.update({

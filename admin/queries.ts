@@ -20,7 +20,12 @@ export type OrgRow = {
   /** Authoritative for features/limits/renewal, or null when the org has no subscription row. */
   subscriptionPlan: string | null;
   subscriptionStatus: string | null;
+  /** PLAN credits — overwritten by the monthly renewal. Temporary by design. */
   aiCredits: number;
+  /** PURCHASED credits — paid packs. Nothing overwrites these. */
+  aiCreditsPurchased: number;
+  /** What the customer actually sees in the app: the sum of the two above. */
+  aiCreditsTotal: number;
   createdAt: string;
   memberCount: number;
 };
@@ -35,6 +40,7 @@ export async function listOrganizations(): Promise<OrgRow[]> {
       slug: true,
       plan: true,
       aiCredits: true,
+      aiCreditsPurchased: true,
       createdAt: true,
       _count: { select: { memberships: true } },
     },
@@ -57,6 +63,8 @@ export async function listOrganizations(): Promise<OrgRow[]> {
     subscriptionPlan: subByOrg.get(o.id)?.plan ?? null,
     subscriptionStatus: subByOrg.get(o.id)?.status ?? null,
     aiCredits: o.aiCredits,
+    aiCreditsPurchased: o.aiCreditsPurchased,
+    aiCreditsTotal: o.aiCredits + o.aiCreditsPurchased,
     createdAt: o.createdAt.toISOString(),
     memberCount: o._count.memberships,
   }));

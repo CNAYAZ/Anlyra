@@ -1,0 +1,49 @@
+-- Separates PURCHASED AI credits from the monthly PLAN allowance.
+--
+-- WHY A NEW COLUMN: both kinds of credit lived in Organization."aiCredits".
+-- A paid credit pack was ADDED to it (applyCreditPurchase, src/lib/billing/
+-- repository.ts), while the monthly renewal OVERWRITES it with the plan's
+-- allowance (`set`, not `increment` — src/lib/cron/credit-renewal.ts). The two
+-- rules are incompatible on one column: any pack a customer bought and had not
+-- spent was silently destroyed by the first renewal after the purchase. Money
+-- paid, credits gone, nothing in the interface to explain it.
+-- Splitting the balance is the only fix that survives the renewal, because the
+-- renewal's `set` is a deliberate product rule (unused PLAN credits expire) and
+-- is not going away. From here on the renewal writes "aiCredits" only and can no
+-- longer reach the purchased balance at all.
+--
+-- DEFAULT: 0, NOT NULL. An organization that has never bought a pack has zero
+-- purchased credits — that is a fact, not a missing value, so there is no reason
+-- for this column to be nullable. 0 is also the only starting value that cannot
+-- give anybody credits they did not pay for.
+-- The balance shown to the user is from now on the SUM of the two columns, so a
+-- default of 0 leaves every existing organization's visible balance EXACTLY as
+-- it is today: aiCredits + 0 = aiCredits.
+--
+-- SAFETY: this migration only ADDS one column to one table. It drops nothing,
+-- renames nothing, rewrites no existing row and changes no existing value. It
+-- cannot alter the credit balance of any organization: every org keeps the exact
+-- aiCredits it had, and gains a purchased balance of 0.
+--
+-- Verified before writing this (see the report accompanying the change): NO
+-- purchase has ever been made. The purchase endpoint /api/billing/credits/
+-- checkout exists but is called from NOWHERE in the application — no component,
+-- no page, no button reaches it; CREDIT_PACKS is imported only by that unused
+-- route, and the only interface that would have shown a pack (CreditsCard) is
+-- not rendered anywhere either. No purchase path has ever been reachable by a
+-- customer, so no existing aiCredits value can contain purchased credit. The
+-- whole existing balance of every organization is PLAN credit, and starting the
+-- new column at 0 for everyone therefore takes nothing away from anyone.
+-- This is a code-level fact. The database-level confirmation (zero CreditEntry
+-- rows with reason 'purchase' and zero AuditLog rows with action
+-- 'credits.purchase') is a read-only check the founder can run at any time; the
+-- command is in the report. Should that check ever contradict the above, this
+-- migration still takes nothing away — it only means some org's purchased
+-- credits were already lost before this change, which is the bug being fixed.
+--
+-- RLS: "Organization" already has Row Level Security enabled (migration
+-- 20260825150000_enable_row_level_security). Adding a column to an existing
+-- table inherits the table's RLS; no new statement is needed here. A migration
+-- creating a NEW table would still have to enable it explicitly.
+
+ALTER TABLE "Organization" ADD COLUMN "aiCreditsPurchased" INTEGER NOT NULL DEFAULT 0;

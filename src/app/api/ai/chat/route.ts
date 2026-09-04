@@ -91,9 +91,12 @@ export async function POST(req: NextRequest) {
 
   const { conversationId, message } = parsed.data;
 
+  // `remaining` is the SUM of the plan and purchased balances — the single
+  // number the user sees. Which column the credit came out of is decided inside
+  // consumeCredits (plan first) and is not this route's business.
   let creditsRemaining: number;
   try {
-    creditsRemaining = await consumeCredits(organizationId, 1);
+    creditsRemaining = (await consumeCredits(organizationId, 1)).remaining;
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);

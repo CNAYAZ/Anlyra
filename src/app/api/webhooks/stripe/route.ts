@@ -39,9 +39,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       return;
     }
 
-    // Credits the USABLE balance (Organization.aiCredits) and writes the ledger
-    // row in one transaction. Before this, only the ledger row was written, so a
-    // paying customer got a purchase in their history and no spendable credits.
+    // Credits the PURCHASED balance (Organization.aiCreditsPurchased) and writes
+    // the ledger row in one transaction. Before this, only the ledger row was
+    // written, so a paying customer got a purchase in their history and no
+    // spendable credits. The purchased column — not the plan one — because the
+    // monthly renewal overwrites the plan balance and would erase the pack.
     await applyCreditPurchase({ orgId, credits });
 
     await auditLog({

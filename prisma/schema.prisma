@@ -50,16 +50,36 @@ model Organization {
   name             String
   slug             String   @unique
   plan             String   @default("STARTER")
-  /// Usable AI credit balance. Decremented by consumeCredits (src/lib/credits.ts).
-  /// The application always sets this explicitly on creation from the org's PLAN
-  /// (see src/lib/billing/plan-credits.ts) and resets it every billing period in
-  /// the renewal job. The default stays deliberately LOW as a fail-safe: if a
-  /// future creation path ever forgets to set it, the org gets too FEW credits
-  /// (a visible, harmless, fixable annoyance) rather than a free windfall.
+  /// PLAN credits — the monthly allowance, and ONLY that.
+  ///
+  /// Set explicitly on creation from the org's PLAN (src/lib/billing/plan-credits.ts)
+  /// and OVERWRITTEN every billing period by the renewal job, which does
+  /// `set: allowance` — the founder's rule is reset, not accumulate, so unused
+  /// plan credits expire. That overwrite is exactly why purchased credits may
+  /// never live here: a `set` would destroy money the customer paid for. They
+  /// live in aiCreditsPurchased below.
+  ///
+  /// The default stays deliberately LOW as a fail-safe: if a future creation path
+  /// ever forgets to set it, the org gets too FEW credits (a visible, harmless,
+  /// fixable annoyance) rather than a free windfall.
   aiCredits        Int      @default(100)
+  /// PURCHASED credits — paid credit packs, bought through Stripe.
+  ///
+  /// The difference from aiCredits above is the whole point of this column:
+  /// NOTHING ever overwrites this one. The monthly renewal does not touch it, so
+  /// a pack a customer paid for survives every renewal until it is spent.
+  /// Credited by applyCreditPurchase (src/lib/billing/repository.ts), spent only
+  /// after aiCredits is exhausted (founder's rule: plan first, purchased second —
+  /// the credits that expire get used before the credits that do not).
+  ///
+  /// Default 0, never null: an org that has never bought anything simply has none.
+  /// The balance the USER sees is always the SUM of the two columns — see
+  /// getCreditBalance in src/lib/billing/repository.ts.
+  aiCreditsPurchased Int    @default(0)
   /// DEAD COLUMN — not read or written by any application code. Kept only so no
-  /// destructive migration is needed on the live database. Do not use it: the
-  /// real balance is aiCredits above.
+  /// destructive migration is needed on the live database. Do not use it, and do
+  /// not confuse it with aiCreditsPurchased above: the two live balances are
+  /// aiCredits (plan) and aiCreditsPurchased (paid).
   aiCreditsBalance Int      @default(100)
   currency         String   @default("EUR")
   industry         String   @default("Generale")

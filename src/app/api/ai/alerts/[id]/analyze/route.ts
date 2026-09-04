@@ -48,11 +48,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }
 
     // 3. Credit guard BEFORE any AI call. Cheaper failure path.
+    //    Checks the SUM of the two balances, exactly as consumeCredits will:
+    //    both plan and purchased credits are spendable, so an org sitting on 0
+    //    plan credits and a paid pack can afford this and must not be refused.
+    //    (This is only a cheap early exit — the real, atomic check is in
+    //    consumeCredits at step 6.)
     const org = await prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { aiCredits: true, name: true, industry: true, employees: true },
+      select: { aiCredits: true, aiCreditsPurchased: true, name: true, industry: true, employees: true },
     });
-    if (org.aiCredits < ANALYSIS_CREDIT_COST) {
+    if (org.aiCredits + org.aiCreditsPurchased < ANALYSIS_CREDIT_COST) {
       return fail('INSUFFICIENT_CREDITS', 402);
     }
 
@@ -80,7 +85,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     //    paid result.
     let creditsRemaining: number;
     try {
-      creditsRemaining = await consumeCredits(organizationId, ANALYSIS_CREDIT_COST);
+      creditsRemaining = (await consumeCredits(organizationId, ANALYSIS_CREDIT_COST)).remaining;
     } catch (e) {
       if (e instanceof InsufficientCreditsError) return fail('INSUFFICIENT_CREDITS', 402);
       throw e;
