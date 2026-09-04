@@ -27,12 +27,24 @@ import { ChartSkeleton, ErrorState, KpiSkeleton } from '@/components/ui/state';
 import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
-import type { CategoryBreakdown, KpiSummary, MonthlySeriesPoint } from '@/lib/analysis/financial';
+import type {
+  CategoryBreakdown,
+  KpiSummary,
+  MonthlySeriesPoint,
+  PeriodTotals,
+} from '@/lib/analysis/financial';
 import type { ReceivableDTO, ReceivableTotals } from '@/types/receivable';
 import type { RecurringExpenseDTO, RecurringExpenseTotals } from '@/types/recurring-expense';
 
 type FinanceResponse = {
   kpis: KpiSummary;
+  // Totals across every month the ?period=12m window actually contains (up
+  // to 12; fewer for an org younger than that), summed before the margin is
+  // taken — never an average of monthly percentages, which would weigh a
+  // slow month the same as a strong one. Used only for the AI-spotlight
+  // sentence below: the KPI cards keep reading `kpis` (the latest month
+  // alone), unchanged.
+  periodKpis: PeriodTotals;
   series: MonthlySeriesPoint[];
   revenueByCategory: CategoryBreakdown[];
   costsByCategory: CategoryBreakdown[];
@@ -105,11 +117,17 @@ export default function OverviewPage() {
   const cashFlowError = receivablesError || recurringError;
 
   const lastSeries = data?.series.slice(-1)[0];
+  // How many months the 12-month window actually has data for — `series` has
+  // a bucket only for months with at least one movement, so an org younger
+  // than a year gets fewer than 12 without anything special here. Read into
+  // the sentence below so it never claims a span the org doesn't have.
+  const monthsCount = data?.series.length ?? 0;
   const aiSpotlight =
-    data && data.kpis.netMargin !== null && data.kpis.netMargin > 0
+    data && data.periodKpis.netMargin !== null && data.periodKpis.netMargin > 0
       ? t('aiSpotlightSummary', {
-          margin: formatPercent(data.kpis.netMargin, locale),
+          margin: formatPercent(data.periodKpis.netMargin, locale),
           burnRate: formatCurrency(data.kpis.burnRate, locale),
+          monthsCount,
         })
       : t('aiSpotlightLoading');
 
@@ -138,10 +156,19 @@ export default function OverviewPage() {
               icon={TrendingDown}
             />
             <KpiCard
-              label={t('kpi.netMargin')}
-              value={data.kpis.netMargin !== null ? formatPercent(data.kpis.netMargin, locale) : ''}
-              state={data.kpis.netMargin === null ? 'empty' : 'idle'}
+              label={t('kpi.operatingMargin')}
+              value={data.kpis.operatingMargin !== null ? formatPercent(data.kpis.operatingMargin, locale) : ''}
+              state={data.kpis.operatingMargin === null ? 'empty' : 'idle'}
               empty={{ message: tc('kpiNotAvailable'), hint: tc('kpiNotAvailableNoRevenue') }}
+              // momNetMarginDelta, not renamed: financial.ts sets
+              // netProfit = operatingProfit (no fiscal category in the data
+              // model — see computeKpis), so netMargin and operatingMargin
+              // are the same number at every point in time and this delta is
+              // numerically the operating margin's own change too. There is
+              // no momOperatingMarginDelta field and none was added: the only
+              // ask here was to make the VALUE match the label. If a fiscal
+              // category is ever introduced, netMargin and operatingMargin
+              // will diverge and this delta will need its own field then.
               delta={toDelta(data.kpis.momNetMarginDelta, locale)}
             />
             <KpiCard

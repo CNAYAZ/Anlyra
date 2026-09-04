@@ -383,7 +383,7 @@
     "subtitle": "Organization financial summary",
     "kpi": {
       "revenue": "Total Revenue",
-      "netMargin": "Operating Margin",
+      "operatingMargin": "Operating Margin",
       "runway": "Cash Runway",
       "mrr": "MRR",
       "customers": "Active Customers",
@@ -420,7 +420,7 @@
       "aiChat": "Chat with AI"
     },
     "aiSpotlightBadge": "Automated insight",
-    "aiSpotlightSummary": "Net margin at {margin} for the latest available month. Average costs {burnRate}/month.",
+    "aiSpotlightSummary": "Net margin at {margin}, calculated over {monthsCount, plural, one {# month} other {# months}} of data. Average costs {burnRate}/month.",
     "aiSpotlightLoading": "We're collecting your data. Open the finance dashboard to learn more.",
     "lastMonthRevenue": "Last month — Revenue",
     "lastMonthCosts": "Last month — Costs",
