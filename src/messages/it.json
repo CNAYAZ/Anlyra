@@ -420,7 +420,7 @@
       "aiChat": "Chat con l'AI"
     },
     "aiSpotlightBadge": "Insight automatico",
-    "aiSpotlightSummary": "Margine netto al {margin} nell'ultimo mese disponibile. Costi medi {burnRate}/mese.",
+    "aiSpotlightSummary": "Margine netto al {margin}, calcolato su {monthsCount, plural, one {# mese} other {# mesi}} di dati. Costi medi {burnRate}/mese.",
     "aiSpotlightLoading": "Stiamo raccogliendo i tuoi dati. Apri la dashboard finanza per saperne di più.",
     "lastMonthRevenue": "Ultimo mese — Ricavi",
     "lastMonthCosts": "Ultimo mese — Costi",
