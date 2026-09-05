@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { getBillingState, getCreditBalance } from '@/lib/billing/repository';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
-import { sendEmail, bugReportTemplate } from '@/lib/email';
+import { sendEmail, bugReportTemplate, sanitizeSubjectText } from '@/lib/email';
 import { auditLog } from '@/lib/audit/log';
 import { APP_TIME_ZONE } from '@/lib/timezone';
 import { COMPANY } from '@/lib/company';
@@ -90,7 +90,10 @@ export async function POST(req: NextRequest) {
 
   const result = await sendEmail({
     to: COMPANY.contactEmail,
-    subject: `[Segnalazione] ${org.name}`,
+    // org.name is free text set by whoever created/renamed the organization —
+    // see sanitizeSubjectText for why a Subject header needs this even though
+    // the HTML body (bugReportTemplate) already escapes it separately.
+    subject: `[Segnalazione] ${sanitizeSubjectText(org.name)}`,
     html,
     // Lets the founder hit "reply" in their inbox and land directly on the
     // reporting user — only when we actually have an address to use.

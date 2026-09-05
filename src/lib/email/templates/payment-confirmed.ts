@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 import { COMPANY } from '@/lib/company';
 
 interface PaymentConfirmedParams {
@@ -13,13 +14,20 @@ interface PaymentConfirmedParams {
 
 export function paymentConfirmedTemplate(params: PaymentConfirmedParams): string {
   const { userName, userEmail, planName, amount, currency, nextBillingDate, invoiceUrl } = params;
+  const safeUserName = escapeHtml(userName);
+  // planName here traces back to Stripe's invoice line description
+  // (webhooks/stripe/route.ts: `invoice.lines.data[0]?.description`), founder
+  // -configured product/price text rather than something a customer types —
+  // but escaping costs nothing on a plain plan name, and it stops depending
+  // on that staying true.
+  const safePlanName = escapeHtml(planName);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       Pagamento confermato
     </h1>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      Grazie ${userName}! Il tuo pagamento è stato elaborato con successo.
+      Grazie ${safeUserName}! Il tuo pagamento è stato elaborato con successo.
     </p>
 
     <!-- Payment summary table -->
@@ -32,7 +40,7 @@ export function paymentConfirmedTemplate(params: PaymentConfirmedParams): string
       </tr>
       <tr>
         <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#6B6760;width:50%;">Piano</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${planName}</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${safePlanName}</td>
       </tr>
       <tr>
         <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#6B6760;">Importo addebitato</td>

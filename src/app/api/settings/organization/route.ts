@@ -6,12 +6,13 @@ import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
+import { hasControlChars, NO_CONTROL_CHARS_MESSAGE } from '@/lib/validation/display-name';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const patchSchema = z.object({
-  name: z.string().min(1).max(120).optional(),
+  name: z.string().min(1).max(120).refine((v) => !hasControlChars(v), NO_CONTROL_CHARS_MESSAGE).optional(),
   industry: z.string().min(1).optional(),
   employees: z.number().int().nonnegative().optional(),
   country: z.string().length(2).optional(),

@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 import { COMPANY } from '@/lib/company';
 
 interface WelcomeParams {
@@ -9,10 +10,11 @@ interface WelcomeParams {
 
 export function welcomeTemplate(params: WelcomeParams): string {
   const { userName, userEmail, loginUrl } = params;
+  const safeUserName = escapeHtml(userName);
 
   const content = `
     <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
-      Benvenuto su Anlyra, ${userName}!
+      Benvenuto su Anlyra, ${safeUserName}!
     </h1>
     <p style="margin:0 0 16px;color:#2A2520;">
       Il tuo account è stato creato con successo. Sei pronto a trasformare i dati della tua azienda in decisioni intelligenti.

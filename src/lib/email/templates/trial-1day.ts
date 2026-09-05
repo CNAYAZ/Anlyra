@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 import { COMPANY } from '@/lib/company';
 
 interface Trial1DayParams {
@@ -13,15 +14,17 @@ interface Trial1DayParams {
 
 export function trialOneDayTemplate(params: Trial1DayParams): string {
   const { userName, userEmail, billingDate, billingAmount, planName, upgradeUrl, cancelUrl } = params;
+  const safeUserName = escapeHtml(userName);
+  const safePlanName = escapeHtml(planName);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
-      Domani inizia il tuo piano ${planName}
+      Domani inizia il tuo piano ${safePlanName}
     </h1>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      Ciao ${userName}, la prova gratuita scade oggi. Domani
+      Ciao ${safeUserName}, la prova gratuita scade oggi. Domani
       <strong style="color:#2A2520;">${billingDate}</strong> verrà addebitato
-      <strong style="color:#2A2520;">${billingAmount}</strong> per il piano <strong style="color:#2A2520;">${planName}</strong>.
+      <strong style="color:#2A2520;">${billingAmount}</strong> per il piano <strong style="color:#2A2520;">${safePlanName}</strong>.
     </p>
 
     <!-- Billing summary -->
@@ -34,7 +37,7 @@ export function trialOneDayTemplate(params: Trial1DayParams): string {
       </tr>
       <tr>
         <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#6B6760;width:50%;">Piano</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${planName}</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${safePlanName}</td>
       </tr>
       <tr>
         <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#6B6760;">Importo</td>

@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 
 interface Trial3DaysParams {
   userName: string;
@@ -11,15 +12,17 @@ interface Trial3DaysParams {
 
 export function trialThreeDaysTemplate(params: Trial3DaysParams): string {
   const { userName, userEmail, daysRemaining, planName, upgradeUrl, billingDate } = params;
+  const safeUserName = escapeHtml(userName);
+  const safePlanName = escapeHtml(planName);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       ${daysRemaining === 3 ? 'Mancano 3 giorni alla fine della prova' : `Mancano ${daysRemaining} giorni alla fine della prova`}
     </h1>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      Ciao ${userName}, la tua prova gratuita di Anlyra termina tra
+      Ciao ${safeUserName}, la tua prova gratuita di Anlyra termina tra
       <strong style="color:#2A2520;">${daysRemaining} giorni</strong>. Se continui, il tuo piano
-      <strong style="color:#2A2520;">${planName}</strong> inizierà il <strong style="color:#2A2520;">${billingDate}</strong>.
+      <strong style="color:#2A2520;">${safePlanName}</strong> inizierà il <strong style="color:#2A2520;">${billingDate}</strong>.
     </p>
 
     <!-- What you keep -->

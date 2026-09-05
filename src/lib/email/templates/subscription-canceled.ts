@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 
 interface SubscriptionCanceledParams {
   userName: string;
@@ -12,13 +13,15 @@ interface SubscriptionCanceledParams {
 
 export function subscriptionCanceledTemplate(params: SubscriptionCanceledParams): string {
   const { userName, userEmail, planName, accessUntil, reactivateUrl, exportUrl, feedbackUrl } = params;
+  const safeUserName = escapeHtml(userName);
+  const safePlanName = escapeHtml(planName);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       Account cancellato — grazie per averci provato
     </h1>
     <p style="margin:0 0 16px;font-size:15px;color:#6B6760;">
-      Ciao ${userName}, la cancellazione del piano <strong style="color:#2A2520;">${planName}</strong> è confermata.
+      Ciao ${safeUserName}, la cancellazione del piano <strong style="color:#2A2520;">${safePlanName}</strong> è confermata.
       Grazie per aver scelto Anlyra.
     </p>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">

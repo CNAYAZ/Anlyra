@@ -4,12 +4,13 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { hasControlChars, NO_CONTROL_CHARS_MESSAGE } from '@/lib/validation/display-name';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const patchSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  name: z.string().min(1).max(100).refine((v) => !hasControlChars(v), NO_CONTROL_CHARS_MESSAGE).optional(),
   locale: z.enum(['it', 'en']).optional(),
 });
 

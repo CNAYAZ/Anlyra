@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 import { COMPANY } from '@/lib/company';
 
 interface TrialExpiredParams {
@@ -11,13 +12,14 @@ interface TrialExpiredParams {
 
 export function trialExpiredTemplate(params: TrialExpiredParams): string {
   const { userName, userEmail, expiredAt, reactivateUrl, exportUrl } = params;
+  const safeUserName = escapeHtml(userName);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       La tua prova è scaduta
     </h1>
     <p style="margin:0 0 16px;font-size:15px;color:#6B6760;">
-      Ciao ${userName}, la tua prova gratuita di Anlyra è terminata il
+      Ciao ${safeUserName}, la tua prova gratuita di Anlyra è terminata il
       <strong style="color:#2A2520;">${expiredAt}</strong>.
     </p>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">

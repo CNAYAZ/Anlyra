@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml, escapeMailtoAddress } from './_escape';
 
 interface TeamInviteParams {
   inviterName: string;
@@ -11,15 +12,27 @@ interface TeamInviteParams {
 
 export function teamInviteTemplate(params: TeamInviteParams): string {
   const { inviterName, inviterEmail, orgName, userEmail, inviteUrl, expiryHours } = params;
+  const safeInviterName = escapeHtml(inviterName);
+  const safeOrgName = escapeHtml(orgName);
+  // inviterEmail sits in TWO contexts here — the mailto: href AND the visible
+  // link text — and each needs different protection. escapeHtml alone would
+  // NOT be enough for the href: it stops the value breaking out of the HTML
+  // attribute, but does nothing to stop it carrying mailto's own structural
+  // characters (?, &, =) into the resolved URL once those HTML entities are
+  // decoded back out — see escapeMailtoAddress in _escape.ts for why, and why
+  // that gap is reachable (the email-format check at registration does not
+  // forbid those characters).
+  const safeInviterEmailHref = escapeMailtoAddress(inviterEmail);
+  const safeInviterEmailText = escapeHtml(inviterEmail);
 
   const content = `
     <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
-      Sei stato invitato a unirti a ${orgName}
+      Sei stato invitato a unirti a ${safeOrgName}
     </h1>
     <p style="margin:0 0 16px;color:#2A2520;">
-      <strong>${inviterName}</strong>
-      (<a href="mailto:${inviterEmail}" style="color:#5B6F4E;text-decoration:none;">${inviterEmail}</a>)
-      ti ha invitato a collaborare su <strong>${orgName}</strong> usando Anlyra.
+      <strong>${safeInviterName}</strong>
+      (<a href="mailto:${safeInviterEmailHref}" style="color:#5B6F4E;text-decoration:none;">${safeInviterEmailText}</a>)
+      ti ha invitato a collaborare su <strong>${safeOrgName}</strong> usando Anlyra.
     </p>
 
     <!-- What is Anlyra -->
@@ -40,7 +53,7 @@ export function teamInviteTemplate(params: TeamInviteParams): string {
         <td style="padding:10px 16px;border:1px solid #E8DFD0;border-radius:8px;">
           <p style="margin:0;font-size:13px;color:#6B6760;">
             L'invito è valido per <strong style="color:#2A2520;">${expiryHours} ore</strong>.
-            Dopo la scadenza ${inviterName} dovrà inviarne uno nuovo.
+            Dopo la scadenza ${safeInviterName} dovrà inviarne uno nuovo.
           </p>
         </td>
       </tr>
@@ -55,7 +68,7 @@ export function teamInviteTemplate(params: TeamInviteParams): string {
     </p>
 
     <p style="margin:24px 0 0;font-size:13px;color:#6B6760;">
-      Se non conosci ${inviterName} o non ti aspettavi questo invito, puoi ignorare questa email in tutta sicurezza.
+      Se non conosci ${safeInviterName} o non ti aspettavi questo invito, puoi ignorare questa email in tutta sicurezza.
     </p>
   `;
 

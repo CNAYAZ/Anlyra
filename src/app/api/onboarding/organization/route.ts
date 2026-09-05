@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
-import { sendEmail, teamInviteTemplate, welcomeTemplate } from '@/lib/email';
+import { sendEmail, teamInviteTemplate, welcomeTemplate, sanitizeSubjectText } from '@/lib/email';
 import { signupCredits } from '@/lib/billing/plan-credits';
 import { COMPANY } from '@/lib/company';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
+import { hasControlChars } from '@/lib/validation/display-name';
 
 const TRIAL_DAYS = 7;
 const INVITE_EXPIRY_HOURS = 72;
@@ -56,6 +57,14 @@ export async function POST(req: Request) {
   if (!name) {
     return NextResponse.json({ error: 'NAME_REQUIRED' }, { status: 400 });
   }
+  // No cap and no character filter previously existed here at all — unlike
+  // settings/organization's PATCH (same Organization.name column,
+  // z.string().min(1).max(120)). Matching that route's cap here, plus the
+  // control-character rule shared with it: this becomes org.name, later shown
+  // to other people this org invites (team-invite email) and in bug reports.
+  if (name.length > 120 || hasControlChars(name)) {
+    return NextResponse.json({ error: 'INVALID_NAME' }, { status: 400 });
+  }
 
   // Ensure a unique slug.
   const base = slugify(name);
@@ -96,6 +105,7 @@ export async function POST(req: Request) {
 
   // Create + send invites (best-effort).
   const inviter = await prisma.user.findUnique({ where: { id: userId } });
+  const inviterSubjectName = inviter?.name ? sanitizeSubjectText(inviter.name) : '';
   // Cap the batch. The rate limit above bounds how OFTEN this route runs, but a
   // single call iterates the caller's array and sends one email per entry — so
   // without a cap, 3 permitted calls could still mean 30 000 emails. The limiter
@@ -120,7 +130,16 @@ export async function POST(req: Request) {
     });
     await sendEmail({
       to: inv.email,
-      subject: `${inviter?.name || 'Un collega'} ti ha invitato su Anlyra`,
+      // inviterSubjectName is free text the inviter typed for themselves
+      // (profile name), landing directly in the Subject header of an email
+      // sent to someone else — sanitizeSubjectText strips control characters/
+      // newlines (header-injection risk, e.g. a name ending in a line break
+      // followed by "Bcc: ...") and caps the length; it does not need
+      // HTML-escaping, the Subject header is not HTML. Sanitized BEFORE the
+      // fallback check, not after, so a name that is control characters
+      // through and through (sanitizes down to empty) still falls back to
+      // "Un collega" instead of leaving a blank in the subject.
+      subject: `${inviterSubjectName || 'Un collega'} ti ha invitato su Anlyra`,
       html: teamInviteTemplate({
         inviterName: inviter?.name || inviter?.email || 'Un collega',
         inviterEmail: inviter?.email || COMPANY.noreplyEmail,

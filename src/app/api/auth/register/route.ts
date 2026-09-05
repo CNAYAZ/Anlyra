@@ -6,6 +6,7 @@ import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, verifyEmailTemplate } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
+import { hasControlChars } from '@/lib/validation/display-name';
 
 const VERIFY_EXPIRY_HOURS = 24;
 
@@ -28,6 +29,15 @@ export async function POST(req: Request) {
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: 'INVALID_EMAIL' }, { status: 400 });
+  }
+  // No schema previously validated this at all — unlike settings/profile's
+  // PATCH (same User.name column, z.string().min(1).max(100)), this route had
+  // no length cap and no character filter. Matching that route's cap here,
+  // plus the control-character rule shared with it: this name can later be
+  // shown to OTHER people (e.g. as the inviter's name in a team-invite email),
+  // not just to the person who typed it.
+  if (name.length > 100 || hasControlChars(name)) {
+    return NextResponse.json({ error: 'INVALID_NAME' }, { status: 400 });
   }
   if (!validatePassword(password)) {
     return NextResponse.json(
