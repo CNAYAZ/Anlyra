@@ -68,7 +68,12 @@ export async function POST(req: Request) {
   });
 
   const verifyUrl = `${siteUrl()}/api/auth/verify-email?token=${token}`;
-  await sendEmail({
+  // sendEmail never throws (it catches internally and returns
+  // {success,error} — see send.ts), so the .catch() this replaces caught
+  // nothing; it only looked like error handling. Checking the result is what
+  // actually leaves a trace when delivery fails — the response below is
+  // unchanged either way, verification can still be re-requested.
+  const sendResult = await sendEmail({
     to: email,
     subject: 'Conferma la tua email per attivare Anlyra',
     html: verifyEmailTemplate({
@@ -77,9 +82,10 @@ export async function POST(req: Request) {
       verifyUrl,
       expiryHours: VERIFY_EXPIRY_HOURS,
     }),
-  }).catch(() => {
-    // email delivery is best-effort; verification can be re-requested
   });
+  if (!sendResult.success) {
+    console.error('[email] verify-email failed', { to: email, reason: sendResult.error });
+  }
 
   return NextResponse.json({ success: true, message: 'CHECK_EMAIL' });
 }

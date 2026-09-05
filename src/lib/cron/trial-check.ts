@@ -95,10 +95,12 @@ export interface TrialCheckResult {
   expired: number;
   /** Plan string on BillingSubscription had no recoverable name/price — see resolvePlanEmailInfo. */
   skippedUnknownPlan: number;
+  /** sendEmail returned {success:false} for one of the three templates above — see send.ts. */
+  failed: number;
 }
 
 export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult> {
-  const result: TrialCheckResult = { threeDays: 0, oneDay: 0, expired: 0, skippedUnknownPlan: 0 };
+  const result: TrialCheckResult = { threeDays: 0, oneDay: 0, expired: 0, skippedUnknownPlan: 0, failed: 0 };
 
   const orgs = await prisma.organization.findMany({
     where: { trialEndsAt: { not: null } },
@@ -156,9 +158,15 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     if (recipients.length === 0) continue;
 
     for (const r of recipients) {
+      // sendEmail never throws (it catches internally and returns
+      // {success,error} — see send.ts), so the .catch() these three calls had
+      // caught nothing; it only looked like error handling. Checking each
+      // result is what actually leaves a trace when delivery fails — the
+      // three counters below still count attempts, unchanged, exactly as
+      // before; `failed` is new and additive.
       if (msLeft <= 0 && msLeft > -DAY_MS) {
         // Expired within the last day → send once.
-        await sendEmail({
+        const sendResult = await sendEmail({
           to: r.email,
           subject: 'Prova scaduta — riattiva il tuo account · Anlyra',
           html: trialExpiredTemplate({
@@ -168,10 +176,14 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
             reactivateUrl,
             exportUrl,
           }),
-        }).catch(() => {});
+        });
+        if (!sendResult.success) {
+          result.failed++;
+          console.error('[email] trial-expired failed', { to: r.email, reason: sendResult.error });
+        }
         result.expired++;
       } else if (daysLeft === 1) {
-        await sendEmail({
+        const sendResult = await sendEmail({
           to: r.email,
           subject: 'Domani inizia il tuo piano · Anlyra',
           html: trialOneDayTemplate({
@@ -183,10 +195,14 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
             upgradeUrl,
             cancelUrl,
           }),
-        }).catch(() => {});
+        });
+        if (!sendResult.success) {
+          result.failed++;
+          console.error('[email] trial-1day failed', { to: r.email, reason: sendResult.error });
+        }
         result.oneDay++;
       } else if (daysLeft > 1 && daysLeft <= 3) {
-        await sendEmail({
+        const sendResult = await sendEmail({
           to: r.email,
           subject: `${daysLeft} giorni alla fine della prova · Anlyra`,
           html: trialThreeDaysTemplate({
@@ -197,7 +213,11 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
             upgradeUrl,
             billingDate: fmtDate(org.trialEndsAt),
           }),
-        }).catch(() => {});
+        });
+        if (!sendResult.success) {
+          result.failed++;
+          console.error('[email] trial-3days failed', { to: r.email, reason: sendResult.error });
+        }
         result.threeDays++;
       }
     }
