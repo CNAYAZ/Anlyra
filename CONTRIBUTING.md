@@ -30,7 +30,7 @@ cd anlyra
 cp .env.example .env.local   # compila le variabili
 npm install
 npx prisma migrate dev
-npm run seed
+npm run db:seed
 npm run dev
 ```
 
@@ -99,8 +99,11 @@ Entrambi devono passare prima di ogni PR. I warning ESLint bloccano il merge.
 ## Test
 
 ```bash
-npm run test        # Vitest unit
-npm run test:e2e    # Playwright (pianificato Q3 2026)
+# npm run test       # non esiste ancora: nessuna dipendenza Vitest nel progetto
+                      # (verificato su package.json, 2026-09-05) e nessun file di
+                      # test in src/ o prisma/. I test unitari sono un obiettivo
+                      # (docs/TESTING.md), non uno stato attuale.
+npm run test:e2e    # Playwright (pianificato Q3 2026, non ancora esistente)
 ```
 
 Vedi [TESTING.md](docs/TESTING.md) per la strategia completa e i 12 scenari E2E critici.

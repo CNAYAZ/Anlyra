@@ -131,11 +131,16 @@ ambiente principale**. Regole di collaborazione:
 - **Container remoto Claude Code**: `CODESPACE_NAME` vuoto, working dir `/home/user/Anlyra`.
   I file gitignored (es. `.env`) NON viaggiano tra ambienti: viaggia solo git.
 
-**DATABASE (VERIFICATO 2026-07-26)**: **Supabase PostgreSQL**, NON più SQLite.
+**DATABASE (VERIFICATO 2026-09-05)**: **Supabase PostgreSQL**, NON più SQLite.
 - `prisma/schema.prisma`: `provider = "postgresql"`, `url = env("DATABASE_URL")`,
   `directUrl = env("DIRECT_URL")` (pooler eu-west-1).
-- 3 migration applicate: `20260702225830_init_postgres`, `20260710231614_billing_tables`,
-  `20260712142054_repoint_integration_fk_drop_org_b12`.
+- 11 migration applicate (contate su `prisma/migrations/`, non più 3 come diceva questa
+  riga fino al 2026-09-04): `20260702225830_init_postgres`, `20260710231614_billing_tables`,
+  `20260712142054_repoint_integration_fk_drop_org_b12`, `20260726190000_gdpr_deletion_requested_at`,
+  `20260728180000_report_config_and_share_token`, `20260821120000_insight_source`,
+  `20260822200000_stripe_webhook_idempotency`, `20260822200100_audit_log`,
+  `20260823120000_credits_renewed_at`, `20260825150000_enable_row_level_security`,
+  `20260904120000_ai_credits_purchased`.
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
   **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
@@ -145,7 +150,7 @@ ambiente principale**. Regole di collaborazione:
   impostata **in permanenza** su Vercel, e una volta lì quella variabile avrebbe disarmato
   la protezione anche per tutto il resto. La guardia copre solo i comandi distruttivi
   lanciati **a mano**.
-- **Comandi distruttivi guardati** (VERIFICATO 2026-08-11): i 4 seed
+- **Comandi distruttivi guardati** (VERIFICATO 2026-09-05, invariato dal 2026-08-11): i 4 seed
   (`prisma/seed.ts`, `seed-alerts.ts`, `seed-insights.ts`, `seed-receivables.ts` — la
   guardia è chiamata a livello di modulo, quindi copre anche `npx prisma db seed`) più
   `db:push`, `prisma:push`, `prisma:migrate` (guardia come primo comando dello script npm:
@@ -157,23 +162,28 @@ ambiente principale**. Regole di collaborazione:
   i file gitignored** — i dati sono su Postgres remoto, raggiungibile da qualsiasi
   ambiente con le credenziali. Un fix dati fatto dal container arriva ovunque.
 
-**Env file**: sono due, `.env` e `.env.local`, con priorità a `.env.local`. Considerarli
-entrambi quando si cerca la sorgente di una variabile. **MAI committare `.env`**.
+**Env file**: `.env` e `.env.local`, con priorità a `.env.local` (VERIFICATO 2026-09-05 sul
+commento in `prisma/guard.ts`). Esiste anche un terzo percorso, `prisma/.env`, che la
+guardia legge come possibile fonte ma che questa riga non nominava: verificato che
+`prisma/guard.ts` controlla tutti e tre. Considerarli quando si cerca la sorgente di una
+variabile. **MAI committare `.env`**.
 **MAI impostare `AUTH_URL`/`NEXTAUTH_URL` in sviluppo** (self-proxy loop → 500 dopo 30s,
 vedi `docs/dev-codespace-proxy-500.md`).
 
 **Server dev**: gestore UNICO, il terminale col loop di auto-riavvio nel Codespace.
 MAI `npm run dev` diretto. Per riavviare: `pkill -f "next dev"` e attendere ~20s.
 
-## 4. Comandi utili (VERIFICATI su package.json)
+## 4. Comandi utili (VERIFICATI su package.json, 2026-09-05)
 
 ```
 npm run typecheck      # tsc --noEmit
-npm run lint           # next lint
+npm run lint           # eslint .   (NON "next lint" come diceva questa riga fino al
+                        #  2026-09-04: "next lint" non è più lo script — next 16 lo ha
+                        #  deprecato, il progetto è già passato a chiamare eslint diretto)
 npm run build          # ATTENZIONE: prisma migrate deploy + next build (tocca il DB remoto)
 npm run db:seed        # tsx prisma/seed.ts
 npm run db:generate    # prisma generate (anche in postinstall)
-npm run prisma:migrate # prisma migrate dev
+npm run prisma:migrate # tsx prisma/guard.ts ... && prisma migrate dev (guardato, vedi §3)
 ```
 
 ## 5. Struttura del codice
@@ -223,13 +233,20 @@ repo): **Mercato** (competitors/trends/positioning) e **Operations**
 
 ## 7. Regole di sicurezza (dalle correzioni di luglio 2026)
 
-**Ruoli** (VERIFICATO): valori reali lowercase `'owner' | 'admin' | 'editor' | 'viewer'`
-su `Membership.role`. Decisione del fondatore: **cancellare dati e cambiare impostazioni
-org = solo owner/admin; leggere e creare/modificare dati = tutti i membri.**
-- `requireManagerRole` è applicato a 11 route (VERIFICATO con grep): le 6 DELETE
-  (receivables, recurring-expenses, reports, custom-dashboards, data/import/batches,
-  market/competitors), PATCH `settings/organization`, e le 4 route integrazioni
-  (connect, disconnect, sync, frequency).
+**Ruoli** (VERIFICATO 2026-09-05): valori reali lowercase `'owner' | 'admin' | 'editor' |
+'viewer'` su `Membership.role`, letti da `src/lib/auth/require-role.ts`. Decisione del
+fondatore: **cancellare dati e cambiare impostazioni org = solo owner/admin; leggere e
+creare/modificare dati = tutti i membri.**
+- `requireManagerRole` blocca (403) in 12 file/13 punti di chiamata (VERIFICATO con grep,
+  2026-09-05 — non più 11 come diceva questa riga: mancava `reports/[id]/share`): le 6
+  DELETE già elencate in precedenza (receivables, recurring-expenses, reports,
+  custom-dashboards, data/import/batches, market/competitors), PATCH
+  `settings/organization`, le 4 route integrazioni (connect, disconnect, sync,
+  frequency), e le 2 chiamate di `reports/[id]/share` (POST che crea il link
+  condivisibile, DELETE che lo revoca — "il link espone il fatturato dell'azienda",
+  commento nel file). C'è anche una TERZA chiamata in `reports/[id]/route.ts` (GET), ma
+  NON blocca nessuno: decide solo se includere il token nella risposta
+  (`canSeeToken = !requireManagerRole(...)`), quindi non va contata come guardia.
 - **Ogni nuova azione distruttiva DEVE usare `requireManagerRole`.**
 - Nota onesta: il blocco per un utente `viewer` è attivo nel codice ma **NON è ancora
   stato provato dal vivo** (DA VERIFICARE); verificato invece a runtime che un `owner`
@@ -237,7 +254,7 @@ org = solo owner/admin; leggere e creare/modificare dati = tutti i membri.**
 - Nello schema `Membership.role` ha `@default("owner")` — da cambiare in `'viewer'`
   (default sicuro) quando si costruirà la gestione team.
 
-**Niente dati finti al modello o nel DB** (VERIFICATO):
+**Niente dati finti al modello o nel DB** (VERIFICATO 2026-09-05):
 - La finta sync Stripe è neutralizzata: `src/lib/sync/providers/stripe.ts` delega a
   `makeStubProvider` (prima scriveva record CASUALI in FinancialRecord).
   **Non reintrodurre generatori di dati finti.**
@@ -248,12 +265,14 @@ org = solo owner/admin; leggere e creare/modificare dati = tutti i membri.**
   `getFinancialFacts`, il riepilogo scadenzario e le spese ricorrenti.
   **REGOLA: mai passare al modello dati sintetici o hardcoded.**
 
-**Fuso orario** (VERIFICATO): le date sono salvate in UTC come mezzanotte ITALIANA —
+**Fuso orario** (VERIFICATO 2026-09-05): le date sono salvate in UTC come mezzanotte ITALIANA —
 `toISOString().slice(0,10)` restituisce il giorno SBAGLIATO. Usare SEMPRE gli helper di
 `src/lib/timezone.ts` (`toAppDateString`, `appDateStartUTC`) per date visibili all'utente
 o passate all'AI; i giorni di ritardo si calcolano solo con `daysOverdueOf`.
 
-**Row Level Security (RLS) su Supabase** (VERIFICATO 2026-08-25): oltre a servire l'app via
+**Row Level Security (RLS) su Supabase** (abilitata e VERIFICATA il 2026-08-25, fatti di
+base RIVERIFICATI 2026-09-05: la migration e `check-rls.ts` esistono ancora, nessuna
+policy è stata aggiunta nel frattempo): oltre a servire l'app via
 Prisma, Supabase espone automaticamente un'API REST pubblica (PostgREST) su ogni tabella
 dello schema `public`. Senza RLS, la sola chiave `anon` bastava per leggere dati veri
 bypassando completamente l'applicazione — provato: `GET /rest/v1/User?select=email` ha
@@ -279,21 +298,35 @@ ruoli `anon`/`authenticated`.
   browser), servirebbero policy esplicite per organizzazione: decisione del fondatore, non
   ancora presa.
 
-## 8. Stato verificato al 2026-07-26
+## 8. Stato del prodotto (data di verifica riportata riga per riga, non più un unico timbro)
 
-- `npx tsc --noEmit` → **0 errori** (VERIFICATO a runtime).
-- `npm run build` → **OK, 137 pagine** (VERIFICATO a runtime).
-- Pagina `/situazione` funzionante con fatti reali (VERIFICATO nel browser).
-- Chat AI risponde con crediti reali, date e giorni di ritardo corretti (VERIFICATO nel browser).
-- `/api/ai/insights/generate` è ATTIVO (VERIFICATO su codice, 2026-09-04): riattivato il
-  2026-08-21 (commento nel file), consuma crediti (`consumeCredits`, `GENERATION_CREDIT_COST`),
-  rimborsa se il modello risponde in un formato non utilizzabile. Non è più uno stub 503 —
-  quel codice resta solo come guardia se manca la chiave Anthropic, non come stato permanente.
-- Isolamento tra organizzazioni: **nessun IDOR trovato** nell'audit del 2026-07-26;
-  nessun segreto hardcoded, nessun `.env` committato, no SQLi, no XSS (VERIFICATO in audit).
-- Merge di giornata su `claude/merge-repos-nextjs-rOZU3` (VERIFICATI con git log):
-  stub Stripe sync → integrazioni oneste → controllo ruoli → contesto AI su dati reali →
-  fuso orario Europe/Rome.
+Fino al 2026-09-04 questa sezione si intitolava "Stato verificato al 2026-07-26" ma
+conteneva righe datate agosto e settembre — un titolo che prometteva una data unica non
+più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria data.
+
+- `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-05, a runtime, in questo
+  passaggio).
+- `next build` → **134 pagine, non più 137** (RIVERIFICATO 2026-09-05 con `npx next build`,
+  non `npm run build`: quest'ultimo esegue anche `prisma migrate deploy` contro il database
+  remoto, cosa che questo lavoro doveva evitare — `next build` da solo non tocca il
+  database).
+- Pagina `/situazione` funzionante con fatti reali — **NON RIVERIFICATO**: richiede una
+  sessione autenticata dal vivo in un browser, non disponibile in un lavoro di sola
+  verifica documenti. Ultima conferma nota: nel browser, 2026-07-26.
+- Chat AI risponde con crediti reali, date e giorni di ritardo corretti — **NON
+  RIVERIFICATO**, stesso motivo. Ultima conferma nota: nel browser, 2026-07-26.
+- `/api/ai/insights/generate` è ATTIVO (RIVERIFICATO su codice, 2026-09-05, invariato dal
+  2026-09-04): consuma crediti (`consumeCredits`, `GENERATION_CREDIT_COST`), rimborsa se il
+  modello risponde in un formato non utilizzabile. Non è più uno stub 503 — quel codice
+  resta solo come guardia se manca la chiave Anthropic, non come stato permanente.
+- Isolamento tra organizzazioni: **nessun IDOR trovato** nell'audit del 2026-07-26 — **NON
+  RIVERIFICATO in questo passaggio**: un riaudit completo (IDOR, segreti, SQLi, XSS)
+  richiede una revisione dedicata dell'intero codice, fuori dallo scopo di un lavoro sui
+  soli documenti. La riga resta come record storico di quell'audit, non come conferma di
+  oggi.
+- Merge di giornata su `claude/merge-repos-nextjs-rOZU3` il 2026-07-26 (record storico da
+  git log, non decade): stub Stripe sync → integrazioni oneste → controllo ruoli →
+  contesto AI su dati reali → fuso orario Europe/Rome.
 
 ## 9. Debiti noti (elencati, NON risolti)
 
@@ -309,45 +342,70 @@ ruoli `anon`/`authenticated`.
 - **ATTENZIONE**: `Report_b8`, `CustomDashboard_b8`, `NotificationPref_b8` hanno il
   suffisso `_bN` dei modelli morti ma sono **ATTIVI** — non trattarli da zombie.
 
-## 10. Backlog sicurezza (audit 2026-07-26, aggiornato 2026-09-04)
+## 10. Backlog sicurezza (audit 2026-07-26, RIVERIFICATO riga per riga 2026-09-05)
 
-- **10 vulnerabilità npm** — 3 critical: `next`, `next-auth`/`@auth`, `xlsx` (senza fix
-  disponibile; `xlsx` è sul percorso di upload file).
+- **npm audit (RIVERIFICATO 2026-09-05, `npm audit`)**: 13 vulnerabilità, non più "10 — 3
+  critical" come diceva questa riga fino a oggi — 0 critical, 7 high, 4 moderate, 2 low.
+  `next` è ancora nell'elenco (high, ma oggi con fix disponibile — non più "senza fix
+  disponibile"). `next-auth`/`@auth` NON compare più nell'elenco. `xlsx` non è più una
+  dipendenza del progetto: sostituita da `exceljs` (`^4.4.0`, usata in
+  `src/lib/import/parse.ts`, lo stesso percorso di upload file che `xlsx` occupava), che
+  oggi compare lei stessa nell'elenco come moderate, fix disponibile ma di versione
+  maggiore (da verificare prima di applicarlo, non fatto qui: nessuna modifica a
+  package.json in un lavoro sui soli documenti).
 - CSP: **esiste** (`next.config.mjs`), ma di default in modalità
   `Content-Security-Policy-Report-Only` — segnala le violazioni, non le blocca. Si passa a
   bloccante impostando `CSP_ENFORCE=true`. Resta da fare: portarla in enforcement dopo un
-  periodo pulito in report-only (VERIFICATO su codice, 2026-09-04).
-- Nessun endpoint **GDPR** export/cancellazione account.
-  **DA VERIFICARE — questa riga è probabilmente falsa**: esistono
-  `src/app/api/gdpr/export/` e `src/app/api/gdpr/account/`, e §12 di questo stesso file
-  descrive un flusso GDPR con `deletionRequestedAt` e il cron `gdpr-purge`. Non l'ho corretta
-  perché non era fra i cinque punti di questo lavoro — vedi
-  `.vscode/SCOPERTE-DA-VALUTARE.md`.
-- Webhook Stripe senza **idempotency** su `event.id`.
-  **DA VERIFICARE — anche questa sembra superata**: esiste la migration
-  `20260822200000_stripe_webhook_idempotency` e una tabella `StripeWebhookEvent` dedicata.
-  Non l'ho corretta per lo stesso motivo della riga sopra.
-- `change-password` **non invalida le sessioni JWT** esistenti.
+  periodo pulito in report-only (RIVERIFICATO su codice, 2026-09-05, invariato dal
+  2026-09-04).
+- ~~Nessun endpoint GDPR export/cancellazione account.~~ **FALSA, risolta 2026-09-05**
+  (era già segnata "probabilmente falsa" dal 2026-09-04, ora verificata fino in fondo):
+  esistono davvero `src/app/api/gdpr/export/route.ts` e `src/app/api/gdpr/account/route.ts`,
+  `User.deletionRequestedAt` e `Organization.deletionRequestedAt` esistono nello schema, e
+  il cron `gdpr-purge` esiste (`src/app/api/cron/gdpr-purge/route.ts`) — il flusso GDPR
+  descritto al §12 è reale, non solo pianificato.
+- ~~Webhook Stripe senza idempotency su event.id.~~ **FALSA, risolta 2026-09-05** (era già
+  segnata "sembra superata" dal 2026-09-04, ora verificata fino in fondo): il webhook
+  (`src/app/api/webhooks/stripe/route.ts`) chiama davvero `prisma.stripeWebhookEvent.create`
+  su `event.id` PRIMA di processare l'evento (rivendica l'idempotenza) e lo cancella se il
+  processing fallisce; se la rivendicazione stessa fallisce (event.id già presente) risponde
+  500 così Stripe ritenta più tardi invece di processare due volte lo stesso evento.
+- `change-password` **non invalida le sessioni JWT** esistenti (RIVERIFICATO 2026-09-05: il
+  file aggiorna solo `passwordHash`, nessuna chiamata a `signOut`/revoca sessione).
 
-Corrette il 2026-09-04 (erano false, VERIFICATO su codice — le altre righe di questa
-sezione NON sono state riverificate in questo passaggio, vedi le due note sopra):
+Corrette il 2026-09-04, RIVERIFICATE 2026-09-05 (salvo dove segnalato):
 - Rate-limit: NON è fail-open. 17 dei 20 secchielli in `src/lib/rate-limit.ts` sono
   `onFailure: 'closed'`; restano fail-open solo `report-generate-ip`, `share-token-ip`,
   `exchange-rates-ip` — scelta deliberata su rotte dove bloccare per un disservizio di
-  Upstash costerebbe più del rischio di abuso.
-- Audit log: esiste, `src/lib/audit/log.ts`, 24 punti di chiamata (grep `auditLog(` su
-  `src/` e `admin/`).
+  Upstash costerebbe più del rischio di abuso. (Attenzione a contare a mano: il file
+  contiene anche la riga `onFailure: FailureMode;` nella definizione del tipo, che non è un
+  secchiello — sono 20 secchielli veri, non 21.)
+- Audit log: esiste, `src/lib/audit/log.ts`, **33 punti di chiamata oggi, non più 24** (grep
+  `auditLog(` su `src/` e `admin/`, esclusa la definizione della funzione — cresciuto nel
+  giro di un giorno, probabilmente per lavoro recente che ha aggiunto chiamate; non
+  indagato oltre, non era richiesto).
 - `/api/ai/analyze` consuma crediti (`consumeCredits`, `ANALYSIS_CREDIT_COST`), come
   `/api/ai/chat` e `/api/ai/insights/generate`.
 
 ## 11. Guida modelli ed effort
 
+Nomi dei modelli corretti il 2026-09-05: `claude-fable-5` e `claude-opus-4-8` erano nomi di
+una generazione precedente (mancava il patch number del primo, e il secondo nominava
+un'altra major version). Sostituiti con `claude-fable-5-1` e `claude-opus-5`, i nomi che
+risultano oggi correnti.
+
 | Modello | Effort | Quando |
 |---|---|---|
-| `claude-fable-5` | xhigh | Diagnosi profonde, audit, root-cause |
-| `claude-opus-4-8` | xhigh | Sicurezza, auth, schema Prisma, codice critico |
+| `claude-fable-5-1` | xhigh | Diagnosi profonde, audit, root-cause |
+| `claude-opus-5` | xhigh | Sicurezza, auth, schema Prisma, codice critico |
 | `claude-sonnet-5` | high/xhigh | Sviluppo normale: componenti, API, refactor |
 | `claude-haiku-4-5` | — | Merge, restart, verifiche meccaniche (va istruito a ESEGUIRE, non descrivere) |
+
+`claude-haiku-4-5` NON è stato toccato: non sono sicuro se il nome corrente richieda un
+suffisso di data (nella forma vista altrove `claude-haiku-4-5-20251001`) o se la forma
+breve resti valida di per sé in questo contesto — a differenza degli altri tre, per
+`claude-haiku-4-5` non ho trovato conferma sufficiente per decidere. Meglio lasciarla
+com'è che inventare: segnalato, da decidere.
 
 La parola `ultrathink` nel prompt aumenta il ragionamento per quel turno.
 
@@ -427,7 +485,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.2 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.3 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -445,3 +503,14 @@ Cancellato anche il vecchio `Claude.md` (minuscolo, v5.0 del 20 agosto): file di
 questo, non da esso stesso, con contenuti superati (SQLite, NextAuth non installato,
 cookie `pro_session`, endpoint `/api/auth/login-demo` mai più esistito nel codice) e nulla
 nel repository lo referenziava.
+La v5.3 riverifica riga per riga §3, §4, §7, §8, §10 (le sezioni segnalate a rischio dalla
+v5.2) e corregge ogni timbro VERIFICATO che non corrispondeva più al codice: §3 (11
+migration applicate, non 3), §4 ("npm run lint" è `eslint .`, non "next lint"), §7 (
+`requireManagerRole` blocca 12 file/13 punti, non 11 — mancava `reports/[id]/share`), §8
+(rinominata: portava un'unica data in titolo con contenuto di mesi diversi — ora ogni riga
+ha la propria data o "NON RIVERIFICATO" con il motivo), §10 (npm audit oggi conta 13
+vulnerabilità/0 critical, non più 10/3 critical, e `xlsx` non è più nemmeno una dipendenza;
+le due righe "DA VERIFICARE" sono state risolte: entrambe erano false, GDPR e idempotency
+Stripe sono reali; l'audit log ha 33 punti di chiamata, non 24). Corretti anche due nomi di
+modello in §11 (`claude-fable-5` → `claude-fable-5-1`, `claude-opus-4-8` → `claude-opus-5`);
+`claude-haiku-4-5` lasciato invariato per incertezza dichiarata, non per omissione.

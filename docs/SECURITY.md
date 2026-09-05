@@ -1,7 +1,12 @@
 # Security & GDPR Posture — Anlyra
 
-**Versione:** 2.0
-**Last updated:** 2026-05-28
+**Versione:** 2.1
+**Last updated:** 2026-09-05 (corretto il dominio dei contatti: `anlyra.it` → `anlyra.com`
+in 7 punti — il dominio vero, verificato sul codice vivo: `src/lib/company.ts`,
+`src/app/layout.tsx`, `robots.ts`, `sitemap.ts` e i testi legali in `src/messages/`
+usano tutti `anlyra.com` come fallback hardcoded, coerente con l'avviso in cima a
+`CLAUDE.md`; nessuna delle due varianti è stata verificata via DNS/HTTP dal vivo in questa
+sessione, network in uscita bloccata verso entrambi i domini)
 **Status:** Living document — aggiornato a ogni feature security implementata.
 **Audience:** prospect enterprise, security review / due diligence, DPO.
 
@@ -136,7 +141,7 @@ demo mode sono stati rimossi).
 - **Secrets:** tutte le chiavi (Stripe, Anthropic, Resend, Supabase, AUTH_SECRET) in env vars; mai
   nel codice. `.gitignore` esclude `.env*`; `.env.example` documenta le variabili senza valori reali.
   Rotation periodica (trimestrale) e password manager business per la condivisione (pianificato).
-- **HTTPS-only + HSTS** su `anlyra.it`; redirect HTTP→HTTPS a livello edge.
+- **HTTPS-only + HSTS** su `anlyra.com`; redirect HTTP→HTTPS a livello edge.
 
 ---
 
@@ -161,7 +166,7 @@ demo mode sono stati rimossi).
 - **Opposizione (21)** — opt-out analytics/marketing in qualsiasi momento.
 - **Limitazione (18)** — sospensione temporanea su richiesta tramite DPO.
 
-Canale richieste: `privacy@anlyra.it` — risposta entro 30 giorni come da GDPR.
+Canale richieste: `privacy@anlyra.com` — risposta entro 30 giorni come da GDPR.
 
 ### 7.3 Sub-processors
 
@@ -218,8 +223,8 @@ DPA firmato con ciascuno.
 
 ## 9. Responsible disclosure
 
-- **Canale:** `security@anlyra.it`.
-- **Scope:** dominio `anlyra.it`, applicazione e API. Fuori scope: DoS/DDoS, social engineering,
+- **Canale:** `security@anlyra.com`.
+- **Scope:** dominio `anlyra.com`, applicazione e API. Fuori scope: DoS/DDoS, social engineering,
   attacchi fisici, sub-processor di terze parti.
 - **Safe harbor:** la ricerca in buona fede entro lo scope non comporta azioni legali; vietato
   accedere/alterare dati di altri utenti.
@@ -272,9 +277,9 @@ breach notification (72h) è in §7.5.
 
 ## 12. Contatti
 
-- **Security:** `security@anlyra.it`
-- **Privacy / DPO:** `privacy@anlyra.it`
-- **Support:** `support@anlyra.it`
+- **Security:** `security@anlyra.com`
+- **Privacy / DPO:** `privacy@anlyra.com`
+- **Support:** `support@anlyra.com`
 
 ---
 
