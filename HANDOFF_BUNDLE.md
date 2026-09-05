@@ -7,6 +7,15 @@ target: Claude Code (Opus 4.7)
 status: ready_for_implementation
 ---
 
+> ⚠️ **Documento storico (creato 2026-05-17).** La fonte aggiornata è
+> [`CLAUDE.md`](CLAUDE.md). In particolare, il punto 3 dell'elenco "Leggere prima di
+> toccare il repo" qui sotto ("NextAuth NON è installato... cookie custom `pro_session`")
+> e la riga "Stack target: Next.js 14" NON sono più vere: NextAuth v5 è installato e in
+> uso, e la versione di Next.js reale è 16.2.12 (vedi CLAUDE.md §1, corretto il
+> 2026-09-05). Il resto del documento — palette, tipografia, spacing, markup dei 14
+> componenti, mappatura file→componente — resta un riferimento di design utile, non
+> riverificato riga per riga in questo passaggio.
+
 # Anlyra · Design System — Handoff Bundle per Claude Code
 
 > **Destinatario**: Claude Code (Opus 4.7). Questo bundle è la **fonte di verità unica** per applicare il design system Anlyra al codebase. Tutte le decisioni di design sono già state prese e approvate dall'utente nelle 4 sessioni precedenti (Modulo 1 · Palette, 2 · Tipografia, 3 · Spacing/Radius/Elevation, 4 · 14 componenti). Il tuo compito è **applicare**, non re-discutere.

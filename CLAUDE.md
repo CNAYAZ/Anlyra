@@ -56,13 +56,27 @@ crediti, spese ricorrenti) e dà consigli ancorati a quei numeri. Il valore è l
 ai dati reali: un consiglio generico è un oroscopo, un consiglio sui numeri veri del
 cliente è il prodotto.
 
-- **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3` (HEAD al 2026-07-26: `09ac337`).
-- **Stack** (VERIFICATO su `package.json`): Next.js 14.2.18 (App Router, `src/`), next-intl
-  (IT primaria, EN secondaria), Prisma 5.22, NextAuth v5 beta (JWT), Anthropic SDK,
-  Stripe, Resend, Upstash rate-limit, Tailwind + shadcn.
-- **Online**: deploy Vercel su `anlyra.vercel.app` (riportato in STATO-REALE §10 del 2026-07-03 — DA VERIFICARE a runtime prima di dichiararlo funzionante in un report).
-- **Demo org**: "Acme Analytics" (id: `demo-org`). Password demo: cambiata il 2026-07-01
-  in `NuovaDemo2026!` per `demo@pro.app` (fonte: STATO-REALE §9 — DA VERIFICARE al login).
+- **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3` (HEAD al 2026-09-05: `b9a52f8`).
+- **Stack** (VERIFICATO su `package.json`, 2026-09-05): Next.js 16.2.12 con Turbopack — NON
+  14.2.18 come diceva questa riga fino al 2026-09-04, uno scarto di due versioni maggiori
+  (App Router, `src/`), React 19.2.8, TypeScript 5.6.3, next-intl (IT primaria, EN
+  secondaria), Prisma 5.22 su PostgreSQL (Supabase — vedi §3), NextAuth v5 beta (JWT,
+  `next-auth@5.0.0-beta.31`), Anthropic SDK, Stripe, Resend (email transazionali), Upstash
+  rate-limit, Tailwind 3.4 + shadcn.
+- **Online**: deploy Vercel su dominio `anlyra.com` (NON `anlyra.vercel.app` come diceva
+  questa riga: il fallback hardcoded in `src/app/layout.tsx`, `robots.ts`, `sitemap.ts` e
+  nei testi legali è `https://anlyra.com`, coerente con l'avviso in cima a questo file —
+  VERIFICATO sul codice 2026-09-05, ma la raggiungibilità live NON è stata verificata a
+  runtime in questa sessione: la rete in uscita di questo container blocca l'accesso al
+  dominio, quindi resta DA VERIFICARE dal fondatore).
+- **Demo org**: "Acme Analytics" (id: `demo-org`, slug `acme` — VERIFICATO su
+  `src/lib/demo/data.ts`, il dataset usato da `prisma/seed.ts`). L'accesso con le
+  credenziali di `demo@pro.app` è stato DISATTIVATO il 2026-09-05
+  (`src/auth.ts`, errore dedicato `DEMO_LOGIN_DISABLED`): una password non è più una via
+  d'ingresso, quindi non è più riportata qui. L'unico modo di entrare nella demo oggi è il
+  pulsante "prova la demo", che imposta solo un cookie di sola lettura
+  (`hasDemoSession`/`DEMO_COOKIE` in `src/lib/session.ts`) e non crea nessuna sessione
+  scrivibile.
 - **Documento gemello**: [`.vscode/STATO-REALE-E-VALUTAZIONE.md`](.vscode/STATO-REALE-E-VALUTAZIONE.md)
   — valutazione onesta dello stato del progetto letta dal codice (cosa è vero, cosa è
   scenografia, opinione da collega). Questo CLAUDE.md sono le istruzioni operative;
@@ -413,10 +427,21 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.1 · **Aggiornato**: 2026-09-04 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.2 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
 La v5.1 corregge cinque affermazioni false rimaste nella v5.0 (§8, §9, §10 — vedi il
 report della sessione che le ha corrette per il dettaglio) e aggiunge
 `.vscode/SCOPERTE-DA-VALUTARE.md` come registro delle scoperte non ancora affrontate.
+La v5.2 corregge §1 (Identità progetto): la versione di Next.js era sbagliata di due
+versioni maggiori (14.2.18 dichiarato, 16.2.12 reale), il dominio online era quello
+sbagliato (`anlyra.vercel.app` invece di `anlyra.com`), e la voce sulla password demo
+descriveva un accesso nel frattempo disattivato (login via credenziali per `demo@pro.app`
+bloccato in questa stessa sessione). Le altre sezioni di CLAUDE.md NON sono state
+riverificate in questo passaggio — vedi il rapporto della sessione che ha fatto questa
+correzione per l'elenco di quali sezioni sembrano più a rischio.
+Cancellato anche il vecchio `Claude.md` (minuscolo, v5.0 del 20 agosto): file distinto da
+questo, non da esso stesso, con contenuti superati (SQLite, NextAuth non installato,
+cookie `pro_session`, endpoint `/api/auth/login-demo` mai più esistito nel codice) e nulla
+nel repository lo referenziava.
