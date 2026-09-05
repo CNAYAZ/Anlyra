@@ -15,6 +15,32 @@ lavoro era di sola lettura. Registrate qui tutte e sei come richiesto, con lo
 stato AGGIORNATO dopo il lavoro di chiusura che è seguito sullo stesso giorno
 (branch `claude/close-credit-abuse-paths`).
 
+**Aggiornamento 2026-09-05 (branch `claude/block-demo-login`)**: chiuse anche
+le due porte rimaste dal lavoro precedente.
+- `src/app/[locale]/onboarding/organization/page.tsx` — la SECONDA pagina di
+  creazione azienda, raggiungibile da `/welcome`, segnalata nel rapporto della
+  sessione precedente ma non ancora chiusa (era la stessa mancanza di guardia
+  di `onboarding/page.tsx`, riga 34-38 qui sotto, ma non era stata inclusa in
+  quel lavoro). RISOLTO: stessa protezione, ma in un `layout.tsx` nuovo
+  (quella pagina è un Client Component, `getSessionState()` non può girarci
+  dentro direttamente). Cercate anche altre pagine che postano su
+  `/api/onboarding/organization`: nessun'altra esiste oltre a queste due.
+- L'account demo (`demo@pro.app`) poteva ancora autenticarsi con la password
+  reale attraverso il modulo di login normale, ottenendo una sessione
+  NextAuth vera e scrivibile — un varco indipendente dalle due pagine di
+  creazione, perché non passava da nessuna delle due. RISOLTO in
+  `src/auth.ts`: l'indirizzo demo è rifiutato nel percorso Credentials con un
+  errore dedicato (`DEMO_LOGIN_DISABLED`), stessa struttura del controllo
+  `EMAIL_NOT_VERIFIED` già presente. Il flusso di sola lettura via cookie
+  (`hasDemoSession`, dietro "prova la demo") resta invariato e non c'entra
+  con questo percorso.
+- Aggiunto anche `prisma/check-orgs-per-account.ts`
+  (`npm run db:check-orgs-per-account`), script di sola lettura sullo stesso
+  schema di `check-credit-purchases.ts`: elenca gli account membri di più di
+  un'organizzazione, con email, quante ne hanno, i nomi, e i crediti AI
+  totali in loro possesso. Utile per capire se le porte ora chiuse siano già
+  state usate in passato.
+
 RISOLTE in quel lavoro (non sono più aperte, lasciate per la storia):
 - **`/api/ai/alerts/[id]/analyze` consumava crediti senza chiamare
   `requireActiveAccess`** — l'unica delle quattro rotte che spendono crediti a
