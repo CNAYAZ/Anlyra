@@ -9,6 +9,7 @@ import {
   getSessionState,
   hasDemoSession,
   isDemoOrganization,
+  getAuthContext,
 } from '@/lib/session';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { DemoProvider } from '@/lib/demo/context';
@@ -16,6 +17,8 @@ import { getCreditBalance, getBillingState } from '@/lib/billing/repository';
 import { BillingProvider } from '@/lib/billing/context';
 import { PLANS } from '@/lib/billing/plans';
 import type { PlanId } from '@/lib/billing/plans';
+import { isOwnerRole } from '@/lib/auth/require-role';
+import { OwnerProvider } from '@/lib/auth/owner-context';
 
 // Authenticated per-user surface: never statically prerendered. The previous
 // getSession() bailed to dynamic implicitly via a synchronous cookie read; now
@@ -69,27 +72,39 @@ export default async function DashboardLayout({
   const planMax = PLANS[planId]?.limits.aiCredits ?? PLANS['PRO'].limits.aiCredits;
   const credits = await getCreditBalance(orgId);
 
+  // Real role, for the same reason as isDemo above: only for a real signed-in
+  // member (getAuthContext() returns null for the anonymous demo visitor,
+  // which has no Membership row at all — treated as not-owner, matching the
+  // fact that billing is refused server-side for the demo org regardless).
+  const authCtx = isDemo ? null : await getAuthContext();
+  const isOwner = authCtx ? isOwnerRole(authCtx.role) : false;
+
   return (
     <BillingProvider initialState={billingState}>
       {/* Makes `isDemo` available to every client component below, so the UI can
           disable the controls that the server would refuse anyway. */}
       <DemoProvider isDemo={isDemo}>
-        <div className="flex min-h-screen bg-background">
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <Topbar />
-            {/* Demo notice first: it explains what the whole page is. Like the
-                trial strip it pushes content down instead of covering it. */}
-            <DemoBanner />
-            {/* Read-only strip for expired trials (renders null for active/trialing).
-                A strip that pushes content down, never an overlay — data stays visible. */}
-            <TrialExpiredBanner />
-            <main className="flex-1 p-6">
-              <div className="mx-auto w-full max-w-[1440px]">{children}</div>
-            </main>
+        {/* Same idea as DemoProvider, for billing: the portal/checkout routes
+            refuse anyone but 'owner' — this lets the billing page hide those
+            controls instead of offering a button that would 403. */}
+        <OwnerProvider isOwner={isOwner}>
+          <div className="flex min-h-screen bg-background">
+            <Sidebar />
+            <div className="flex-1 flex flex-col min-w-0">
+              <Topbar />
+              {/* Demo notice first: it explains what the whole page is. Like the
+                  trial strip it pushes content down instead of covering it. */}
+              <DemoBanner />
+              {/* Read-only strip for expired trials (renders null for active/trialing).
+                  A strip that pushes content down, never an overlay — data stays visible. */}
+              <TrialExpiredBanner />
+              <main className="flex-1 p-6">
+                <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+              </main>
+            </div>
+            <CreditsHydrator credits={credits} max={planMax} />
           </div>
-          <CreditsHydrator credits={credits} max={planMax} />
-        </div>
+        </OwnerProvider>
       </DemoProvider>
     </BillingProvider>
   );

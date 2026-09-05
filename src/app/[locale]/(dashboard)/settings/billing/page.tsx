@@ -8,6 +8,7 @@ import { Check, Crown, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { useCreditsStore } from '@/stores/credits-store';
+import { useIsOwner } from '@/lib/auth/owner-context';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
@@ -17,6 +18,7 @@ export default function SettingsBillingPage() {
   const tBilling = useTranslations('billing');
   const tPricing = useTranslations('pricing');
   const aiCredits = useCreditsStore((s) => s.credits);
+  const isOwner = useIsOwner();
   const plan = usePlan();
   const currentPlanId = plan.plan;
   const currentCycle = plan.cycle;
@@ -104,16 +106,22 @@ export default function SettingsBillingPage() {
           <p className="text-[11px] font-medium uppercase tracking-wider text-fg-3">{t('billingCredits')}</p>
           <p className="font-heading text-xl font-semibold tabular-nums text-foreground">{aiCredits}</p>
         </div>
-        {/* Manage subscription → Stripe Customer Portal */}
+        {/* Manage subscription → Stripe Customer Portal. Owner-only: the portal
+            can cancel the subscription or change plan, and the route itself
+            now refuses anyone but 'owner' (requireOwnerRole) — disabled here
+            too, with an explanation, so a non-owner isn't offered a button
+            that would only fail after the click. */}
         <button
           type="button"
           onClick={openPortal}
-          disabled={portalBusy}
+          disabled={portalBusy || !isOwner}
+          title={!isOwner ? tBilling('ownerOnly') : undefined}
           className="shrink-0 rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-sage-700 transition-colors hover:bg-muted hover:border-sage-500 disabled:opacity-70 dark:text-sage-300"
         >
           {portalBusy ? '…' : tBilling('currentPlanCard.manageBtn')}
         </button>
         {portalError && <p className="w-full text-[11px] text-danger">{portalError}</p>}
+        {!isOwner && <p className="w-full text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
       </div>
 
       {/* ── Plans ── */}
@@ -237,12 +245,17 @@ export default function SettingsBillingPage() {
                   ))}
                 </ul>
 
-                {/* CTA */}
+                {/* CTA. Owner-only for a real checkout (not the Enterprise
+                    "contact us" button, which never calls startCheckout):
+                    /api/billing/checkout now refuses anyone but 'owner'
+                    (requireOwnerRole), so a non-owner is stopped here too,
+                    with a tooltip, instead of clicking through to a 403. */}
                 <button
                   type="button"
-                  disabled={isCurrent || busyPlan === planId}
+                  disabled={isCurrent || busyPlan === planId || (!p.contact && !isOwner)}
+                  title={!isCurrent && !p.contact && !isOwner ? tBilling('ownerOnly') : undefined}
                   onClick={
-                    !isCurrent && !p.contact ? () => startCheckout(planId) : undefined
+                    !isCurrent && !p.contact && isOwner ? () => startCheckout(planId) : undefined
                   }
                   className={cn(
                     'mt-auto w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-70',

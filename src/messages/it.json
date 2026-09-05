@@ -1889,6 +1889,7 @@
     },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
     "managePortalError": "Impossibile aprire il portale. Riprova.",
+    "ownerOnly": "Solo il proprietario dell'organizzazione può gestire la fatturazione.",
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
       "cta": "Abbonati"
