@@ -70,6 +70,47 @@ export async function listOrganizations(): Promise<OrgRow[]> {
   }));
 }
 
+export type MembershipRow = {
+  organizationId: string;
+  organizationName: string;
+  userId: string;
+  email: string;
+  role: string;
+  isDefault: boolean;
+};
+
+/**
+ * Every membership, one row per person per organization, so the operator can
+ * see (and copy the email/id of) an organization's members right under the
+ * organizations table — the org list itself only has a member COUNT.
+ *
+ * Same LIST_LIMIT as the other lists: this is a live production database, not
+ * a fixture, and an unbounded findMany here would be as unsafe as it would be
+ * for organizations or users.
+ */
+export async function listOrganizationMembers(): Promise<MembershipRow[]> {
+  const memberships = await prisma.membership.findMany({
+    take: LIST_LIMIT,
+    orderBy: [{ organization: { name: 'asc' } }, { user: { email: 'asc' } }],
+    select: {
+      organizationId: true,
+      role: true,
+      isDefault: true,
+      organization: { select: { name: true } },
+      user: { select: { id: true, email: true } },
+    },
+  });
+
+  return memberships.map((m) => ({
+    organizationId: m.organizationId,
+    organizationName: m.organization.name,
+    userId: m.user.id,
+    email: m.user.email,
+    role: m.role,
+    isDefault: m.isDefault,
+  }));
+}
+
 export type UserRow = {
   id: string;
   email: string;

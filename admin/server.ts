@@ -17,6 +17,7 @@ import {
 import { renderPage } from './ui';
 import {
   listOrganizations,
+  listOrganizationMembers,
   listUsers,
   listAuditLog,
   listAuditActions,
@@ -27,6 +28,7 @@ import {
   setCredits,
   setPlan,
   setMemberRole,
+  setMemberRoleByEmail,
   deleteInsights,
   deleteRowById,
   unblockAccount,
@@ -133,6 +135,8 @@ async function handleGet(pathname: string, search: URLSearchParams, res: ServerR
       return ok(res, await getCounts());
     case '/api/organizations':
       return ok(res, await listOrganizations());
+    case '/api/organizations/members':
+      return ok(res, await listOrganizationMembers());
     case '/api/users':
       return ok(res, await listUsers());
     case '/api/audit/actions':
@@ -195,6 +199,19 @@ async function handlePost(pathname: string, body: Record<string, unknown>, res: 
         return err(res, 400, `Ruolo non valido. Ammessi: ${VALID_ROLES.join(', ')}.`);
       }
       return ok(res, await setMemberRole(userId, organizationId, role as ValidRole));
+    }
+
+    case '/api/organizations/member-role': {
+      // Same action as /api/users/role, addressed by email instead of userId —
+      // see setMemberRoleByEmail. Two routes, one underlying write.
+      const organizationId = str(body.organizationId);
+      const email = str(body.email);
+      const role = str(body.role);
+      if (!organizationId || !email) return err(res, 400, 'Servono id organizzazione ed email del membro.');
+      if (!role || !(VALID_ROLES as readonly string[]).includes(role)) {
+        return err(res, 400, `Ruolo non valido. Ammessi: ${VALID_ROLES.join(', ')}.`);
+      }
+      return ok(res, await setMemberRoleByEmail(organizationId, email, role as ValidRole));
     }
 
     case '/api/users/unblock': {
