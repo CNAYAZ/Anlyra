@@ -7,6 +7,72 @@ sul codice alla data indicata; se una voce smette di essere vera, va aggiornata 
 (non cancellata), così la storia resta leggibile. Vedi anche CLAUDE.md §9 e §10 per i
 debiti già classificati come tali.
 
+## Un account, più aziende (ricognizione 2026-09-04, chiuse due porte su tre)
+
+La ricognizione "un account, un'azienda" ha trovato tre porte aperte e
+indipendenti fra loro, oltre a sei cose notate ma non affrontate perché quel
+lavoro era di sola lettura. Registrate qui tutte e sei come richiesto, con lo
+stato AGGIORNATO dopo il lavoro di chiusura che è seguito sullo stesso giorno
+(branch `claude/close-credit-abuse-paths`).
+
+RISOLTE in quel lavoro (non sono più aperte, lasciate per la storia):
+- **`/api/ai/alerts/[id]/analyze` consumava crediti senza chiamare
+  `requireActiveAccess`** — l'unica delle quattro rotte che spendono crediti a
+  non farlo. RISOLTO: aggiunta la stessa guardia delle altre tre, stesso
+  punto nella sequenza, stesso errore `TRIAL_EXPIRED`/402. Verificato con la
+  funzione vera contro un database locale: un'organizzazione a prova scaduta
+  viene rifiutata e i crediti restano identici, riletti dal database.
+- **`/api/onboarding/organization` era l'unica rotta di scrittura del
+  prodotto senza `requireWritableOrg`** — chi accedeva come `demo@pro.app`
+  poteva creare un'azienda nuova e uscire dalla gabbia di sola lettura.
+  RISOLTO: la sessione demo è riconosciuta per identità (email a confronto
+  con `DEMO_EMAIL`, ora esportata da `src/lib/session.ts`) prima che esista
+  un'organizzazione da controllare — `requireWritableOrg` da solo non
+  bastava, perché questa rotta deve restare aperta a un utente nuovo che non
+  ha ancora nessuna organizzazione, e `getAuthContext()` restituisce null
+  proprio per quel caso.
+  Nella stessa serie di commit è stata chiusa anche una quarta porta,
+  scoperta durante la ricognizione ma non contata fra le tre originarie:
+  `src/app/[locale]/onboarding/page.tsx` non aveva nessuna guardia, e un
+  utente con già un'azienda ci arrivava scrivendo l'indirizzo a mano. Ora
+  chi ha già un'organizzazione (stato `'ok'`) viene rimandato a `/overview`.
+
+ANCORA APERTE (non affrontate, il compito lo vietava esplicitamente per
+alcune di queste — nessuna modifica al modello dati, nessun limite al numero
+di aziende):
+- **La creazione di un'organizzazione non scrive nessun audit log.**
+  `organization.create` non esiste nel catalogo delle azioni di audit
+  (`src/lib/audit/actions.ts` prevede solo `organization.update`). Non c'è
+  quindi traccia storica di CHI ha creato COSA — che è anche il motivo per
+  cui il punto successivo non è implementabile a costo zero.
+- **`assertWithinLimit()` (`src/lib/billing/server-gate.ts`) non è chiamata
+  da nessuna parte in tutto il repository: codice morto.** E i piani
+  dichiarano già un limite — `PLANS.PRO.limits.orgs = 1`,
+  `PLANS.ADVANCED.limits.orgs = 1`, `PLANS.ENTERPRISE.limits.orgs = -1`
+  (illimitato) — che nessuno legge. La regola "un account, un'azienda
+  creata" che il fondatore ha deciso troverebbe qui il meccanismo già
+  pronto, ma applicarla oggi chiuderebbe fuori chi è stato solo INVITATO in
+  un'azienda altrui (ha già una membership pur non avendo creato niente) —
+  serve prima il dato del punto successivo.
+- **Il modello dati non distingue un'azienda CREATA da una RICEVUTA per
+  invito.** Né `Organization` né `Membership` registrano chi ha creato cosa;
+  chi crea riceve semplicemente il ruolo `'admin'`, lo stesso ruolo
+  assegnabile per invito. Servirebbe un campo nuovo (per esempio
+  `Organization.createdByUserId`, scritto nella stessa transazione della
+  creazione) — è un cambiamento al modello dati, quindi esplicitamente FUORI
+  da questo lavoro e da quello precedente.
+- **Non esiste nessuna rotta per invitare qualcuno in un'azienda già
+  esistente.** `prisma.invite.create` compare in un solo punto di tutto il
+  repository, dentro `/api/onboarding/organization` — cioè l'UNICO modo di
+  invitare un collega oggi è creare una nuova azienda. `/api/settings/team`
+  espone solo GET.
+- **Ogni organizzazione creata dalla rotta di onboarding resta con
+  `Organization.plan = "STARTER"`** (il default dello schema, mai
+  sovrascritto da quella rotta) — non è una deduzione: osservato dal vivo
+  dieci volte su dieci creando organizzazioni di prova. Il fatto generale
+  era già registrato più sotto in "## Piani"; qui si aggiunge solo la
+  conferma diretta che succede ogni volta, non solo in teoria.
+
 ## Email di prova / abbonamenti (aggiunto 2026-09-04)
 
 - **Un cliente che si abbona e poi disdice non riceve più NESSUNA email da

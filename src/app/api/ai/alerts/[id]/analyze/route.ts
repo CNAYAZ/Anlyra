@@ -2,6 +2,7 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
@@ -22,6 +23,15 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
     const { organizationId } = authCtx;
+
+    // Trial/subscription gate: an expired trial (or past_due) is read-only and
+    // may not run the AI. Blocked BEFORE the rate limit and any AI call, so no
+    // credits are spent. Same gate, same order and same 402 as /api/ai/chat,
+    // /api/ai/analyze and /api/ai/insights/generate — this was the one AI
+    // surface still missing it, so an organization past its trial could keep
+    // spending credits here with none of the other three routes open to it.
+    const access = await requireActiveAccess(organizationId);
+    if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
     // 0. Rate limit. This route calls the Anthropic model, and until now it was
     //    the ONLY model-calling route with no limiter at all — credits were the

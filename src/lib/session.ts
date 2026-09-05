@@ -8,7 +8,12 @@ import { prisma } from './prisma';
 import { auth } from '@/auth';
 import { signupCredits } from '@/lib/billing/plan-credits';
 
-const DEMO_EMAIL = 'demo@pro.app';
+// Exported so a route can recognize the demo ACCOUNT before it has resolved
+// (or created) an organization to check with isDemoOrganization — see
+// src/app/api/onboarding/organization/route.ts, the one write route that
+// runs with no organization yet and so cannot use requireWritableOrg's usual
+// organizationId-based check.
+export const DEMO_EMAIL = 'demo@pro.app';
 export const DEMO_ORG_ID = 'demo-org';
 const ORG_COOKIE = 'current_org_id';
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { DEMO_EMAIL } from '@/lib/session';
 import { generateToken, siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, teamInviteTemplate, welcomeTemplate, sanitizeSubjectText } from '@/lib/email';
 import { signupCredits } from '@/lib/billing/plan-credits';
@@ -30,6 +31,22 @@ export async function POST(req: Request) {
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  // This is the one write route in the product that does NOT resolve its
+  // organization through getAuthContext()/requireWritableOrg — deliberately,
+  // because it is the route a brand-new user with NO organization yet must
+  // still be able to reach (getAuthContext() returns null for exactly that
+  // user, "signed in but no org yet"). That also means the usual
+  // requireWritableOrg(organizationId) check has no organization to test:
+  // there is not one yet, we are creating one. So the demo account is
+  // recognized by IDENTITY here — the session's own email against the known
+  // demo address — the same thing requireWritableOrg exists to prevent
+  // (demo@pro.app is a real user row with a real password; anyone signed in
+  // as it must not be able to write, and creating a new organization is the
+  // one write this route previously left open to it).
+  if (session?.user?.email?.toLowerCase() === DEMO_EMAIL) {
+    return NextResponse.json({ error: 'DEMO_READ_ONLY' }, { status: 403 });
   }
 
   // Rate limit per user. This route sends ONE INVITE EMAIL PER ENTRY of a
