@@ -117,6 +117,13 @@ ambiente principale**. Regole di collaborazione:
   È già accaduto che un commento presentasse come scelta deliberata l'aggiramento di
   un difetto scoperto e non segnalato. Un commento che giustifica una scelta strana va
   verificato sul codice, non preso per buono.
+- **Un riferimento a file e riga dentro un compito può essere sbagliato o superato.**
+  Successo più volte in questa sessione (una riga "~95" era in realtà alla 112; un
+  conteggio di route "11" erano in realtà 12; un elenco di vulnerabilità dato per
+  "10 — 3 critical" erano 13, zero critical). Verificare SEMPRE il riferimento prima di
+  toccarlo, e se non corrisponde: correggerlo silenziosamente non va bene, va segnalato
+  nel rapporto — chi ha scritto il compito deve sapere che il suo riferimento non
+  reggeva, non solo vedere il risultato finale.
 - Riportare sempre il nome REALE del branch pushato, e dichiarare l'ambiente
   (container remoto vs Codespace) a inizio report.
 - **Prima di iniziare un lavoro nuovo, leggere
@@ -251,8 +258,32 @@ creare/modificare dati = tutti i membri.**
 - Nota onesta: il blocco per un utente `viewer` è attivo nel codice ma **NON è ancora
   stato provato dal vivo** (DA VERIFICARE); verificato invece a runtime che un `owner`
   può ancora cancellare.
+- **`editor` e `viewer` si comportano in modo IDENTICO oggi** (VERIFICATO 2026-09-05,
+  nessun punto del codice li distingue): nessuna guardia impedisce a un `viewer` di
+  creare o modificare dati, nonostante il nome suggerisca sola lettura — quella
+  distinzione non è implementata. Vedi `.vscode/SCOPERTE-DA-VALUTARE.md`.
 - Nello schema `Membership.role` ha `@default("owner")` — da cambiare in `'viewer'`
   (default sicuro) quando si costruirà la gestione team.
+- **La fatturazione (portale Stripe, checkout abbonamento, checkout pacchetti crediti)
+  è riservata al solo `owner`** (VERIFICATO 2026-09-05): `requireOwnerRole`/
+  `OWNER_ROLES` in `src/lib/auth/require-role.ts`, un controllo SEPARATO da
+  `requireManagerRole` (che ammette anche `admin`), applicato alle tre rotte
+  `api/billing/checkout`, `api/billing/credits/checkout`, `api/billing/portal`. Lato
+  interfaccia, `settings/billing/page.tsx` disattiva (non nasconde) i pulsanti per chi
+  non è owner, con spiegazione — l'informazione di ruolo arriva dal layout dashboard
+  via un context dedicato (`src/lib/auth/owner-context.tsx`), stesso schema già usato
+  per `isDemo`.
+- **Chi CREA un'organizzazione ne diventa `owner`, non più `admin`** (VERIFICATO
+  2026-09-05, `src/app/api/onboarding/organization/route.ts`): prima di questa
+  correzione il creatore riceveva `admin`, che con la riga sopra lo avrebbe escluso dal
+  portale di fatturazione della propria stessa azienda. **Le organizzazioni create
+  PRIMA di questa correzione hanno ancora il creatore come `admin`**: non esiste un
+  modo per contarle con certezza dal solo `Membership.role` (un `admin` può anche
+  essere un invitato legittimo — vedi `.vscode/SCOPERTE-DA-VALUTARE.md`, il campo
+  `createdByUserId` non esiste), quindi vanno corrette a mano, una alla volta, dal
+  fondatore. Il pannello admin ha ora un modulo apposta: scheda **Organizzazioni**,
+  elenco membri sotto la tabella (email + ruolo), modulo "Cambia ruolo di un membro
+  (per email)" — vedi §12.
 
 **Niente dati finti al modello o nel DB** (VERIFICATO 2026-09-05):
 - La finta sync Stripe è neutralizzata: `src/lib/sync/providers/stripe.ts` delega a
@@ -264,6 +295,83 @@ creare/modificare dati = tutti i membri.**
   hardcoded dal seed (churn 4.2, NPS 42, Alpha/Beta/Gamma): passa i fatti di
   `getFinancialFacts`, il riepilogo scadenzario e le spese ricorrenti.
   **REGOLA: mai passare al modello dati sintetici o hardcoded.**
+
+**Niente numeri finti nemmeno in interfaccia** (VERIFICATO 2026-09-05, motore in
+`src/lib/analysis/financial.ts`): lo stesso principio della sezione sopra, esteso ai
+numeri che l'utente VEDE, non solo a quelli passati al modello.
+- Margini e crescita mensile non sono più mai `0` per mancanza di dati o denominatore
+  zero: sono `null`, e la UI mostra "non calcolabile" invece di una percentuale precisa
+  ma falsa (uno `0%` di margine dichiara pareggio, uno `0%` di crescita dichiara
+  stagnazione — nessuno dei due è vero quando il dato manca).
+  **REGOLA: mai far ricadere un valore non calcolabile su 0.**
+- Runway, LTV e tasso di abbandono inventati sono stati rimossi: il runway presumeva un
+  saldo di cassa che lo schema non registra (nessun concetto di saldo iniziale), quindi
+  non è MAI calcolabile con un numero reale — resta solo il fatto binario "sta bruciando
+  cassa sì/no". LTV assumeva una vita cliente di 24 mesi o un tasso di abbandono del 5%
+  quando nessuno aveva ancora disdetto: ora `null` invece di un numero credibile ma
+  inventato.
+- Il filtro di periodo ora governa DAVVERO ogni numero mostrato (prima i totali in
+  alto restavano quelli dell'ultimo mese, ignorando il periodo selezionato). Le finestre
+  "N mesi" sono calendario preciso (mese in corso, dal giorno 1 a oggi, più gli N-1 mesi
+  completi precedenti — non più "1 mese" = 34 giorni per un bug di calcolo). I confronti
+  periodo-su-periodo confrontano finestre della stessa durata E la stessa ora del giorno
+  (non un mese intero contro un mese parziale), e il mese-su-mese confronta i due mesi
+  che dichiara di confrontare, cercandoli per nome (`"YYYY-MM"`), non per posizione in un
+  array — un mese senza dati produceva confronti con il mese sbagliato.
+- Rimosse dalla landing e dai piani le affermazioni che il prodotto non mantiene:
+  testimonianze inventate ("Marco C.", "Giulia R.", "Andrea T.") e la promessa di
+  "alert automatici" (non esiste nessun cron che li spinge — `vercel.json` pianifica
+  solo `trial-check` e `gdpr-purge` — gli alert si calcolano solo quando l'utente preme
+  "Aggiorna").
+- **Crediti di piano vs crediti acquistati** (`Organization.aiCredits` /
+  `aiCreditsPurchased`, colonne separate dalla migration `20260904120000_ai_credits_purchased`):
+  prima vivevano nella stessa colonna, e un pacchetto pagato non speso spariva al primo
+  rinnovo mensile (che sovrascrive `aiCredits`). Ora `aiCreditsPurchased` non viene mai
+  sovrascritta da nessuno; il consumo spende prima il piano poi gli acquistati (un'unica
+  istruzione SQL con controllo di capienza nella `WHERE`, provata contro Postgres reale
+  con 40 consumatori simultanei su 10 crediti: esattamente 10 riescono). Ovunque il saldo
+  sia mostrato o decida se una funzione è disponibile è la SOMMA delle due colonne
+  (`getCreditBalance`). Nessun acquisto era mai avvenuto prima della migration (verificato
+  con `prisma/check-credit-purchases.ts`, sola lettura): la colonna nuova parte da 0 per
+  tutti, nessun saldo alterato.
+
+**Email di prova non scrivono più a chi ha già pagato** (VERIFICATO 2026-09-05,
+`src/lib/cron/trial-check.ts`): il cron selezionava le organizzazioni candidate solo su
+`Organization.trialEndsAt` (scritto una volta all'onboarding, mai azzerato), senza mai
+consultare `BillingSubscription` — un cliente abbonato a metà prova continuava a ricevere
+"la tua prova sta per finire" ben oltre l'abbonamento vero. Ora le organizzazioni con un
+abbonamento `active` o `past_due` sono escluse a prescindere da `trialEndsAt`, e
+`trialEndsAt` viene azzerato in ogni punto in cui un abbonamento diventa davvero attivo
+(webhook Stripe, e `admin/actions.ts` quando il fondatore assegna un piano a mano). Il
+piano e il prezzo nelle email ora vengono da `BillingSubscription.plan` (via
+`getSubscription()`) e dal listino vero (`PLANS`/`plans.ts`), non più da
+`Organization.plan` (legacy, default `"STARTER"`) con una tabella di nomi/prezzi scritta
+a mano e scollegata dal listino. Residui noti, non risolti: nessuna email di "win-back"
+per chi disdice, e le email restano tutte in italiano fisso anche per utenti con
+`locale: 'en'` — vedi `.vscode/SCOPERTE-DA-VALUTARE.md`.
+
+**Escape del testo utente in ogni email** (VERIFICATO 2026-09-05,
+`src/lib/email/templates/`): 11 dei 12 modelli incollavano testo scelto dall'utente
+(nome, nome organizzazione, nome di chi invita, titolo report) direttamente nell'HTML
+senza escape — il più esposto, `team-invite.ts`, metteva il nome di chi invita anche
+nell'OGGETTO dell'email. Chiunque si registrasse poteva far partire email dal dominio
+verificato di Anlyra con oggetto e corpo sotto il proprio controllo. Una sola funzione di
+escape (`src/lib/email/templates/_escape.ts`); `baseLayout` (`_layout.ts`) applica
+l'escape una volta sola a `title`/`preheader`/`ctaButton.label`/`userEmail` — ogni
+modello resta responsabile di escapare i valori che compone dentro il proprio `content`,
+che `baseLayout` non tocca. **ATTENZIONE**: passare a `baseLayout` un valore GIÀ escapato
+produrrebbe un doppio escape — nessun chiamante lo fa oggi (verificato), ma è un rischio
+per codice futuro, non solo teorico. **REGOLA: mai passare testo utente non escapato a un
+template email; mai pre-escapare prima di chiamare `baseLayout`.**
+
+**Guardie sull'onboarding** (VERIFICATO 2026-09-05): tre porte chiuse nella stessa serie
+di lavori — l'account demo non può più creare un'organizzazione per uscire dalla gabbia
+di sola lettura (`api/onboarding/organization` ora riconosce `demo@pro.app` per identità,
+prima di risolvere un'organizzazione da controllare); nessuna delle due pagine di
+creazione azienda (`onboarding/page.tsx` e `onboarding/organization/page.tsx`, quest'ultima
+raggiungibile da `/welcome`) è più un ingresso libero per chi ha già un'organizzazione —
+redirect a `/overview`. La seconda pagina è un Client Component: la guardia vive in un
+`layout.tsx` nuovo accanto ad essa, non nella pagina stessa.
 
 **Fuso orario** (VERIFICATO 2026-09-05): le date sono salvate in UTC come mezzanotte ITALIANA —
 `toISOString().slice(0,10)` restituisce il giorno SBAGLIATO. Usare SEMPRE gli helper di
@@ -440,9 +548,12 @@ da lì. Si ferma con Ctrl+C. Se la 3001 è occupata: `ADMIN_PORT=3002 npm run ad
 > in più, non un sostituto della privacy della porta.
 
 **Cosa fa**:
-- *Vedere*: organizzazioni (con **entrambe** le colonne piano, vedi sotto), utenti, audit log
-  filtrabile, conteggi generali.
-- *Modificare*: crediti AI di un'organizzazione, piano, ruolo di un membro.
+- *Vedere*: organizzazioni (con **entrambe** le colonne piano, vedi sotto) e i loro
+  membri (email + ruolo, sotto la tabella organizzazioni — VERIFICATO 2026-09-05, prima
+  c'era solo un conteggio), utenti, audit log filtrabile, conteggi generali.
+- *Modificare*: crediti AI di un'organizzazione, piano, ruolo di un membro (due moduli:
+  scheda Utenti per id utente, scheda Organizzazioni per email — stessa azione,
+  `setMemberRole`, sotto).
 - *Pulire*: cancellare insight con filtri, cancellare singole righe di prova per id,
   sbloccare un account (azzerare la richiesta GDPR, riportare un ruolo a `owner`).
 - *Lanciare i cron a mano*: `trial-check` (che include rinnovo crediti e report pianificati) e
@@ -485,7 +596,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.3 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.4 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -514,3 +625,19 @@ le due righe "DA VERIFICARE" sono state risolte: entrambe erano false, GDPR e id
 Stripe sono reali; l'audit log ha 33 punti di chiamata, non 24). Corretti anche due nomi di
 modello in §11 (`claude-fable-5` → `claude-fable-5-1`, `claude-opus-4-8` → `claude-opus-5`);
 `claude-haiku-4-5` lasciato invariato per incertezza dichiarata, non per omissione.
+La v5.4 riporta in CLAUDE.md il lavoro funzionale di questa lunga sessione, che le v5.1-v5.3
+non coprivano (erano correzioni di affermazioni sbagliate, non racconto di cosa è cambiato).
+Aggiunte a §7: fatturazione riservata a `owner` (`requireOwnerRole`, separato da
+`requireManagerRole`), chi crea un'organizzazione ora diventa `owner` (non più `admin` — le
+organizzazioni create prima vanno corrette a mano dal pannello admin, non c'è modo di
+contarle con certezza), `editor`/`viewer` identici oggi, numeri onesti nel motore
+finanziario (null invece di zeri finti, filtro di periodo effettivo, finestre a calendario
+preciso, confronti a parità di giorni e ore, runway/LTV/abbandono inventati rimossi,
+affermazioni false su landing e piani rimosse), la separazione crediti piano/acquistati,
+le email di prova che non scrivono più a chi ha pagato con prezzi dal listino vero,
+l'escape del testo utente in ogni email, le guardie sull'onboarding. Aggiornato §12 con
+l'elenco membri per organizzazione e il modulo di cambio ruolo per email nel pannello
+admin. Aggiunta a §2 la regola sui riferimenti a file/riga nei compiti, verificati non
+sempre esatti in questa sessione. §5, §6, §9, §13 NON riverificate in questo passaggio
+(§12 riverificata solo per le due aggiunte citate, il resto della sezione riportato dalla
+v5.3) — vedi il rapporto di questa sessione per il giudizio di rischio sezione per sezione.
