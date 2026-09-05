@@ -1,5 +1,15 @@
 # Contributing to Anlyra
 
+> ⚠️ **Documento storico.** La fonte aggiornata è [`CLAUDE.md`](CLAUDE.md). In particolare,
+> "l'app usa cookie custom `pro_session`" (sezione TypeScript qui sotto) non è più vero:
+> l'app usa NextAuth v5 (vedi CLAUDE.md §1, corretto il 2026-09-05). Anche `npm run seed`
+> non funziona più come script: lo script vero è `npm run db:seed` (`seed` in `package.json`
+> oggi è solo la chiave di configurazione che Prisma stesso usa per `prisma db seed`, non
+> uno script eseguibile con `npm run`). Il resto — workflow Git, standard di stile
+> (tabular-nums, niente emoji, token shadcn, modelli Prisma zombie), logout via reload
+> assoluto, checklist PR — resta valido e coerente con CLAUDE.md, non riverificato riga per
+> riga in questo passaggio.
+
 Grazie per l'interesse a contribuire. Questo documento spiega come farlo nel modo più efficiente.
 
 ---
