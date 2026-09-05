@@ -63,9 +63,9 @@ RISOLTE in quel lavoro (non sono più aperte, lasciate per la storia):
   utente con già un'azienda ci arrivava scrivendo l'indirizzo a mano. Ora
   chi ha già un'organizzazione (stato `'ok'`) viene rimandato a `/overview`.
 
-ANCORA APERTE (non affrontate, il compito lo vietava esplicitamente per
-alcune di queste — nessuna modifica al modello dati, nessun limite al numero
-di aziende):
+ANCORA APERTE (RIVERIFICATE una per una il 2026-09-05, tutte ancora vere — nessuna
+modifica al modello dati, nessun limite al numero di aziende, come vietato da entrambi i
+lavori che le hanno incontrate):
 - **La creazione di un'organizzazione non scrive nessun audit log.**
   `organization.create` non esiste nel catalogo delle azioni di audit
   (`src/lib/audit/actions.ts` prevede solo `organization.update`). Non c'è
@@ -81,12 +81,23 @@ di aziende):
   un'azienda altrui (ha già una membership pur non avendo creato niente) —
   serve prima il dato del punto successivo.
 - **Il modello dati non distingue un'azienda CREATA da una RICEVUTA per
-  invito.** Né `Organization` né `Membership` registrano chi ha creato cosa;
-  chi crea riceve semplicemente il ruolo `'admin'`, lo stesso ruolo
-  assegnabile per invito. Servirebbe un campo nuovo (per esempio
-  `Organization.createdByUserId`, scritto nella stessa transazione della
-  creazione) — è un cambiamento al modello dati, quindi esplicitamente FUORI
-  da questo lavoro e da quello precedente.
+  invito** — **AGGIORNATO 2026-09-05**: non è più del tutto vero che "chi crea
+  riceve lo stesso ruolo assegnabile per invito". Da un lavoro successivo
+  (branch `claude/billing-owner-only`), chi CREA un'organizzazione riceve ora
+  `'owner'` (per poter usare la fatturazione, riservata a quel ruolo — vedi
+  CLAUDE.md §7), mentre un invito non può MAI assegnare `'owner'`
+  (`VALID_ROLES` in `api/onboarding/organization/route.ts` per gli invitati
+  durante il setup: `'admin' | 'editor' | 'viewer'`, senza `'owner'`). Questo
+  rende `Membership.role === 'owner'` un indizio ragionevole di "questo membro
+  ha creato l'organizzazione" per le organizzazioni create D'ORA IN POI — ma
+  NON un dato affidabile al 100%: il pannello admin può comunque impostare
+  `'owner'` a mano su chiunque (`setMemberRole`/`setMemberRoleByEmail`), e le
+  organizzazioni create PRIMA di questo fix hanno ancora il creatore come
+  `'admin'`, indistinguibile da un `'admin'` invitato legittimamente. Un campo
+  esplicito (`Organization.createdByUserId`, scritto nella stessa transazione
+  della creazione) resterebbe l'unico modo per saperlo con certezza — non
+  implementato: cambiamento al modello dati, fuori da tutti i lavori che
+  hanno incontrato questo punto finora.
 - **Non esiste nessuna rotta per invitare qualcuno in un'azienda già
   esistente.** `prisma.invite.create` compare in un solo punto di tutto il
   repository, dentro `/api/onboarding/organization` — cioè l'UNICO modo di
@@ -98,6 +109,14 @@ di aziende):
   dieci volte su dieci creando organizzazioni di prova. Il fatto generale
   era già registrato più sotto in "## Piani"; qui si aggiunge solo la
   conferma diretta che succede ogni volta, non solo in teoria.
+- **NUOVO 2026-09-05**: conseguenza diretta del cambio di ruolo del creatore
+  (sopra) — le organizzazioni create PRIMA del fix hanno il fondatore/creatore
+  come `'admin'`, che oggi non può più aprire il portale di fatturazione
+  (riservato a `'owner'`, vedi CLAUDE.md §7). Non esiste un modo di contare
+  quante sono con certezza (vedi il punto sopra: `'admin'` da solo non basta a
+  distinguere un creatore pre-fix da un admin invitato). Il pannello admin ha
+  ora scheda Organizzazioni → elenco membri (email + ruolo) → modulo "Cambia
+  ruolo di un membro (per email)", per correggerle a mano una alla volta.
 
 ## Email di prova / abbonamenti (aggiunto 2026-09-04)
 
@@ -208,14 +227,27 @@ di aziende):
 
 ## Qualità del codice
 
-- `npx eslint .` riporta 12 problemi preesistenti (9 errori, 3 avvisi) in file non
-  toccati dai lavori recenti sui crediti. Il più ricorrente è la regola
-  `react-hooks/set-state-in-effect` (setState sincrono dentro un `useEffect`): 8 delle
-  12 segnalazioni, sparse in `two-factor.tsx`, `cookie-banner.tsx`, `NavItem.tsx`,
-  `ThemeToggle.tsx`, `manual-form-financial.tsx`, `onboarding-flow.tsx`,
-  `receivable-form-dialog.tsx`, `recurring-expense-form-dialog.tsx`. Non corretti: sono
-  fuori dallo scope di ogni lavoro recente e toccano componenti delicati (onboarding,
-  2FA, form) dove una correzione affrettata rischia più del problema stesso.
+- `npx eslint .` riporta 12 problemi preesistenti (9 errori, 3 avvisi), sparsi su 12
+  file — **elenco CORRETTO 2026-09-05**: la voce precedente (2026-09-04) elencava 8 file
+  come tutti `react-hooks/set-state-in-effect`, ma due di quegli otto
+  (`manual-form-financial.tsx`, `onboarding-flow.tsx`) sono in realtà
+  `react-hooks/incompatible-library` (un'altra regola, un warning non un errore), e
+  mancavano quattro file comparsi nel frattempo: `postcss.config.mjs`
+  (`import/no-anonymous-default-export`, warning),
+  `settings/billing/page.tsx` (`react-hooks/immutability` su
+  `window.location.href`, errore), `ai/chat/chat-client.tsx` e
+  `components/ai/alert-detail.tsx` (entrambi `react-hooks/set-state-in-effect`, errore).
+  Il conteggio totale (12/9/3) era già giusto: solo l'elenco dei file non lo era più.
+  Elenco vero oggi — **errori** (`react-hooks/set-state-in-effect`, tranne dove
+  indicato): `two-factor.tsx`, `cookie-banner.tsx`, `NavItem.tsx`, `ThemeToggle.tsx`,
+  `receivable-form-dialog.tsx`, `recurring-expense-form-dialog.tsx`,
+  `ai/chat/chat-client.tsx`, `components/ai/alert-detail.tsx` (8), più
+  `settings/billing/page.tsx` (`react-hooks/immutability`, 1) = 9 errori. **Avvisi**:
+  `manual-form-financial.tsx`, `onboarding-flow.tsx` (`react-hooks/incompatible-library`)
+  e `postcss.config.mjs` (`import/no-anonymous-default-export`) = 3 avvisi. Non
+  corretti: sono fuori dallo scope di ogni lavoro recente e toccano componenti delicati
+  (onboarding, 2FA, chat, form) dove una correzione affrettata rischia più del problema
+  stesso. (VERIFICATO eseguendo `npx eslint .` per intero, non solo `tail`, 2026-09-05.)
   (VERIFICATO eseguendo `npx eslint .`, 2026-09-04.)
 
 ## Finestre temporali e date — una zona da rivedere per intero
@@ -241,6 +273,21 @@ usarlo. Vale la pena, prima o poi, un giro con `grep -rn "toISOString().slice"` 
 `src/` per vedere se resta qualche altro punto scoperto, invece di aspettare il prossimo
 bug per scoprirlo. (VERIFICATO su `git log`, 2026-09-04 — non ripetuto il grep di
 verifica in questa sessione: è un suggerimento per la prossima.)
+
+**Il grep suggerito sopra è stato fatto, 2026-09-05**: 4 punti trovano ancora
+`toISOString().slice(...)` in `src/`, di rischio diverso:
+  - `src/components/data/manual-form-financial.tsx:48` (`occurredAt`) e
+    `src/components/data/manual-form-customer.tsx:38` (`period`) — valore di default di
+    un campo data in un modulo, calcolato lato client con `new Date()` (che restituisce
+    UTC, non l'ora locale del browser): stesso pattern di bug già corretto altrove
+    (vicino alla mezzanotte italiana il giorno può risultare quello sbagliato). RISCHIO
+    REALE, non toccato: trovato durante un lavoro di documentazione, non di codice.
+  - `src/app/[locale]/(dashboard)/settings/security/PrivacyPanel.tsx:62` e
+    `src/app/api/gdpr/export/route.ts:240` — solo il NOME del file di export GDPR
+    scaricato (`anlyra-export-2026-09-05.json`). Rischio cosmetico: nel peggiore dei
+    casi il nome del file porta la data di ieri invece di oggi, il contenuto non
+    cambia. Non prioritario.
+  (VERIFICATO su codice, 2026-09-05.)
 
 ## Analisi finanziaria
 
@@ -299,18 +346,95 @@ verifica in questa sessione: è un suggerimento per la prossima.)
   fuori dall'obiettivo dichiarato del compito (che riguardava l'HTML e
   l'oggetto come RISCHI DI SICUREZZA, non l'estetica del sorgente).
   (VERIFICATO su codice, 2026-09-04.)
+- **NUOVO 2026-09-05**: `baseLayout` (`src/lib/email/templates/_layout.ts`) applica
+  `escapeHtml` UNA VOLTA SOLA, al centro, a `title`/`preheader`/`ctaButton.label`/
+  `userEmail` — per costruzione, se un chiamante passasse un valore GIÀ escapato
+  (per esempio perché ha applicato `escapeHtml` anche lui, per abitudine o per copia
+  da un altro modello), il risultato sarebbe un doppio escape (es. `&amp;amp;` invece
+  di `&amp;`), visibile all'utente come testo corrotto. Verificato che NESSUNO degli
+  11 modelli lo fa oggi (grep su `title:`/`preheader:`/`userEmail:` seguiti da
+  `escapeHtml` dentro le chiamate a `baseLayout`: zero risultati) — non è un bug
+  attivo, è un rischio per codice futuro. Non corretto: nessuna modifica necessaria
+  oggi, solo da tenere a mente scrivendo un modello nuovo. (VERIFICATO su codice,
+  2026-09-05.)
 
-## Backlog di sicurezza — righe di CLAUDE.md §10 non riverificate in questa sessione
+## Backlog di sicurezza — righe di CLAUDE.md §10 (RISOLTO 2026-09-05)
 
-Durante la correzione di CLAUDE.md (2026-09-04) sono state riverificate solo cinque
-affermazioni specifiche, indicate dal fondatore. Le altre due righe rimaste in §10 hanno
-un'aria sospetta e vale la pena controllarle alla prossima occasione, invece di fidarsi:
+Durante la correzione di CLAUDE.md (2026-09-04) erano state riverificate solo cinque
+affermazioni specifiche, indicate dal fondatore. Le altre due righe rimaste in §10 avevano
+un'aria sospetta ed erano state segnalate qui per un controllo alla prossima occasione:
   - "Nessun endpoint GDPR export/cancellazione account" — esistono
     `src/app/api/gdpr/export/` e `src/app/api/gdpr/account/`, e CLAUDE.md §12 descrive
-    già un flusso GDPR con `deletionRequestedAt` e il cron `gdpr-purge`. Sembra falsa
-    quanto le cinque corrette, ma non era nell'elenco da correggere: lasciata così com'è
-    in §10, con una nota lì.
+    già un flusso GDPR con `deletionRequestedAt` e il cron `gdpr-purge`.
   - "Webhook Stripe senza idempotency su event.id" — esiste la migration
     `20260822200000_stripe_webhook_idempotency` e una tabella `StripeWebhookEvent`
-    dedicata. Stessa situazione: probabilmente falsa, non corretta perché fuori
-    dall'elenco di questo lavoro.
+    dedicata.
+
+**RISOLTO** nella sessione di riverifica sezione-per-sezione di CLAUDE.md (2026-09-05,
+branch `claude/verify-claude-md-sections`): entrambe verificate fino in fondo, non solo
+"i file esistono" ma che il codice li USA davvero (`prisma.stripeWebhookEvent.create` su
+`event.id` prima di processare l'evento; le due route GDPR lette e confermate reali).
+Entrambe erano FALSE. CLAUDE.md §10 aggiornato di conseguenza. Lasciata qui la voce, come
+richiesto, per la storia — non cancellata.
+
+## Ruoli (aggiunto 2026-09-05)
+
+- **`editor` e `viewer` si comportano in modo IDENTICO oggi.** Cercato in tutto `src/`
+  ogni confronto/controllo sui valori `'editor'` e `'viewer'` di `Membership.role`:
+  esistono solo due guardie in tutto il repository, `isManagerRole` (owner+admin) e
+  `isOwnerRole` (solo owner, vedi sotto) — nessuna delle due, né nient'altro, distingue
+  editor da viewer. Nessun punto del codice impedisce a un `viewer` di creare o
+  modificare dati, nonostante il nome suggerisca un ruolo di sola lettura: quella
+  distinzione non è implementata. Ora anche in CLAUDE.md §7, con lo stesso avviso.
+  (VERIFICATO su codice, 2026-09-05.)
+- **La fatturazione è ora riservata al solo `owner`** (branch
+  `claude/billing-owner-only`) e **chi crea un'organizzazione ne diventa `owner`**, non
+  più `admin` (stesso branch) — entrambe documentate per intero in CLAUDE.md §7, non
+  ripetute qui. Conseguenza pratica registrata sopra, in "Un account, più aziende": le
+  organizzazioni create prima di questo fix hanno ancora il creatore come `admin`, e
+  vanno corrette a mano dal pannello admin (nuovo modulo per email, scheda
+  Organizzazioni — branch `claude/admin-panel-set-role`).
+
+## Duplicazioni nei file di traduzione (aggiunto 2026-09-05)
+
+- **La chiave `"moneyBack"` compare DUE VOLTE in `src/messages/it.json`** (righe 1883 e
+  1980 alla data della verifica), in due namespace diversi del file JSON — non è un
+  errore di sintassi (JSON valido: due oggetti distinti in due punti annidati diversi,
+  non una chiave duplicata nello stesso oggetto), ma vale la pena controllare se sia
+  intenzionale (due usi diversi per la stessa etichetta) o una copia-incolla mai
+  ripulita. Non toccato: trovato durante un lavoro sulla fatturazione che non
+  riguardava i testi. (VERIFICATO su codice, 2026-09-05, grep `"moneyBack"` su
+  `src/messages/it.json`.)
+
+## Dominio: .env.example ancora su anlyra.it (aggiunto 2026-09-05)
+
+- **`.env.example` contiene ancora `anlyra.it`** in due punti: `# AUTH_URL=https://anlyra.it`
+  (commentato) e `RESEND_FROM="Anlyra <noreply@anlyra.it>"` (valore di esempio attivo),
+  più un commento `# In produzione settare a https://anlyra.it`. Il dominio vero, verificato
+  sul codice vivo (`src/lib/company.ts`, `src/app/layout.tsx`, `robots.ts`, `sitemap.ts`,
+  i testi legali in `src/messages/`), è `anlyra.com` — coerente con l'avviso in cima a
+  CLAUDE.md. Già corretto nello stesso senso in `docs/SECURITY.md` (branch
+  `claude/fix-claude-md-accuracy`, 7 punti). `.env.example` non è stato toccato in
+  nessuno dei lavori che hanno incontrato questo dominio finora: è un file di
+  configurazione template, non nominato da nessuno di quei compiti. Da correggere
+  quando capiterà un lavoro che tocca esplicitamente quel file. (VERIFICATO su codice,
+  2026-09-05.)
+
+## Codice legacy scollegato dal sistema reale (aggiunto 2026-09-05)
+
+- **`src/lib/session-store.ts` e `src/components/feature-gate.tsx` usano uno store
+  Zustand legacy** (`useSession`, persistito come `"pro:session"`) **con un campo
+  `plan` finto** (default `'pro'`, mai sincronizzato con `BillingSubscription` o con
+  nessun dato reale) — probabilmente un residuo dell'architettura pre-NextAuth (cookie
+  custom `pro_session`, già segnalata come storica in `HANDOFF_BUNDLE.md`/
+  `CONTRIBUTING.md`, branch `claude/fix-claude-md-accuracy`). NON è codice morto:
+  `FeatureGate` (`feature-gate.tsx`) è usato davvero in almeno due pagine reali
+  (`src/components/security/audit-log.tsx`, `ai/agent/page.tsx` — grep `FeatureGate`
+  su `src/`), quindi il piano finto che legge decide comportamento vero in produzione
+  oggi, non solo in teoria. Scollegato dal vero sistema di ruoli/piano (`Membership.role`,
+  `BillingSubscription.plan`): qualunque componente lo usi per decidere cosa mostrare
+  sta decidendo su un dato finto, non sul piano reale dell'organizzazione. Non toccato:
+  trovato mentre si cercava un modo di portare il ruolo reale lato client per la
+  fatturazione (branch `claude/billing-owner-only`), che ha usato un context nuovo
+  invece di questo store per non ereditarne il problema. (VERIFICATO su codice,
+  2026-09-05.)
