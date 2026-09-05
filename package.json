@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:check-rls": "tsx prisma/check-rls.ts",
     "db:check-purchases": "tsx prisma/check-credit-purchases.ts",
+    "db:check-orgs-per-account": "tsx prisma/check-orgs-per-account.ts",
     "check:company": "tsx scripts/check-company-data.ts",
     "db:push": "tsx prisma/guard.ts \"npm run db:push\" && prisma db push",
     "db:seed": "tsx prisma/seed.ts",
