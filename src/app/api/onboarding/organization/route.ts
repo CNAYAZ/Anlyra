@@ -109,7 +109,11 @@ export async function POST(req: Request) {
       trialStartedAt: now,
       trialEndsAt,
       memberships: {
-        create: { userId, role: 'admin', isDefault: true },
+        // 'owner', not 'admin': the person creating the organization is its
+        // owner. Billing (portal, checkout) is being restricted to 'owner'
+        // only — a creator left at 'admin' would be locked out of their own
+        // organization's billing the moment that restriction ships.
+        create: { userId, role: 'owner', isDefault: true },
       },
     },
   });
