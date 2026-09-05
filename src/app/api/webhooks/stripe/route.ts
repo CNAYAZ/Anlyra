@@ -194,7 +194,13 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       const customer = await stripe.customers.retrieve(customerId);
       const email = (customer as Stripe.Customer).email;
       if (email) {
-        await sendEmail({
+        // sendEmail never throws (it catches internally and returns
+        // {success,error} — see send.ts): a Resend failure here would resolve
+        // normally, not land in the catch below, so it needs its own check to
+        // leave a trace. The catch below still matters — it protects against
+        // getStripe()/customers.retrieve() throwing above — but was never what
+        // stood between an email failure and this webhook's response.
+        const sendResult = await sendEmail({
           to: email,
           subject: "Pagamento confermato — Anlyra",
           html: paymentConfirmedTemplate({
@@ -207,6 +213,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
             invoiceUrl: invoice.hosted_invoice_url || "",
           }),
         });
+        if (!sendResult.success) {
+          console.error('[email] payment-confirmed failed', { to: email, reason: sendResult.error });
+        }
       }
     }
   } catch (e) {

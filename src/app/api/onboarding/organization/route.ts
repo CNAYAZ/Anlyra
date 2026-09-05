@@ -149,7 +149,11 @@ export async function POST(req: Request) {
         expiresAt: new Date(now.getTime() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000),
       },
     });
-    await sendEmail({
+    // sendEmail never throws (it catches internally and returns
+    // {success,error} — see send.ts), so the .catch() this replaces caught
+    // nothing; it only looked like error handling. Checking the result is
+    // what actually leaves a trace when delivery fails, per invite.
+    const inviteSendResult = await sendEmail({
       to: inv.email,
       // inviterSubjectName is free text the inviter typed for themselves
       // (profile name), landing directly in the Subject header of an email
@@ -169,12 +173,15 @@ export async function POST(req: Request) {
         inviteUrl: `${siteUrl()}/it/invite/${token}`,
         expiryHours: INVITE_EXPIRY_HOURS,
       }),
-    }).catch(() => {});
+    });
+    if (!inviteSendResult.success) {
+      console.error('[email] team-invite failed', { to: inv.email, reason: inviteSendResult.error });
+    }
   }
 
   // Welcome email now that setup is complete (best-effort).
   if (inviter?.email) {
-    await sendEmail({
+    const welcomeSendResult = await sendEmail({
       to: inviter.email,
       subject: 'Benvenuto in Anlyra — iniziamo',
       html: welcomeTemplate({
@@ -182,7 +189,10 @@ export async function POST(req: Request) {
         userEmail: inviter.email,
         loginUrl: `${siteUrl()}/it/overview`,
       }),
-    }).catch(() => {});
+    });
+    if (!welcomeSendResult.success) {
+      console.error('[email] welcome failed', { to: inviter.email, reason: welcomeSendResult.error });
+    }
   }
 
   return NextResponse.json({ success: true, organizationId: org.id });

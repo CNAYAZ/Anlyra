@@ -38,7 +38,11 @@ export async function POST(req: Request) {
       });
 
       const resetUrl = `${siteUrl()}/${locale}/reset-password?token=${token}`;
-      await sendEmail({
+      // sendEmail never throws (it catches internally and returns
+      // {success,error} — see send.ts), so a .catch() here caught nothing; it
+      // only looked like error handling. Checking the result is what actually
+      // leaves a trace when delivery fails, without touching the 200 below.
+      const sendResult = await sendEmail({
         to: email,
         subject: 'Reimposta la tua password Anlyra',
         html: passwordResetTemplate({
@@ -47,9 +51,15 @@ export async function POST(req: Request) {
           resetUrl,
           expiryMinutes: RESET_EXPIRY_MINUTES,
         }),
-      }).catch(() => {
-        // best-effort
       });
+      if (!sendResult.success) {
+        console.error('[email] password-reset failed', { to: email, reason: sendResult.error });
+      }
+    } else {
+      // Distinguishes "no matching account" from a successful or failed send in
+      // the logs, without logging the address that was tried in full (it may
+      // not even be a real account) — the response below stays identical either way.
+      console.info('[email] password-reset skipped — no account for this address');
     }
   }
 
