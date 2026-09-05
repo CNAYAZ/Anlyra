@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
+import { DEMO_EMAIL } from '@/lib/session';
 
 // Build the providers list, including OAuth only when credentials are present
 // so the app boots cleanly in environments without OAuth configured.
@@ -60,6 +61,16 @@ const providers = [
       // right after the password, so a correct password no longer grants access.
       if (user.deletionRequestedAt) {
         throw new Error('ACCOUNT_DELETION_PENDING');
+      }
+
+      // Demo account: password sign-in is disabled, regardless of whether the
+      // password is correct. The only legitimate way into the demo experience
+      // is the read-only cookie flow behind "prova la demo" (hasDemoSession,
+      // see src/lib/session.ts) — that path never reaches this provider and
+      // never grants a real, writable session. A genuine NextAuth session for
+      // this address would bypass that read-only boundary entirely.
+      if (email.trim().toLowerCase() === DEMO_EMAIL) {
+        throw new Error('DEMO_LOGIN_DISABLED');
       }
 
       if (!user.emailVerifiedAt) {
