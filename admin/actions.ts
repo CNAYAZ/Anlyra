@@ -206,6 +206,21 @@ export async function setMemberRole(userId: string, organizationId: string, role
 }
 
 /**
+ * Same as setMemberRole, addressed by email instead of userId — for the
+ * "member list under an organization" form, where email is what the operator
+ * has copied from the table, not the user's id. A thin lookup in front of
+ * setMemberRole, not a reimplementation: the actual write, audit row and
+ * fail-closed role check all still happen inside setMemberRole itself.
+ */
+export async function setMemberRoleByEmail(organizationId: string, email: string, role: ValidRole) {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!user) {
+    throw new Error(`Nessun utente con l'indirizzo ${email}.`);
+  }
+  return setMemberRole(user.id, organizationId, role);
+}
+
+/**
  * Deletes insights matching a filter. REFUSES when no filter is given —
  * see buildInsightWhere: an empty where would delete every insight of every
  * organization.

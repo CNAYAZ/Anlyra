@@ -97,6 +97,12 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <div id="orgsTable">Caricamento...</div>
     <button class="act" onclick="loadOrgs()">Aggiorna</button>
 
+    <h3>Membri per organizzazione</h3>
+    <p class="note">Ogni riga è una persona in un'organizzazione, con la sua email e il suo ruolo attuale.
+      Copia l'id organizzazione e l'email da qui per il modulo "Cambia ruolo" qui sotto.</p>
+    <div id="orgMembersTable">Caricamento...</div>
+    <button class="act" onclick="loadOrgMembers()">Aggiorna</button>
+
     <div class="card">
       <h3>Imposta crediti AI</h3>
       <p class="note">Imposta un valore assoluto (non somma). Copia l'id dalla tabella qui sopra.
@@ -126,6 +132,37 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
       </div>
       <button class="act" onclick="doSetPlan()">Imposta piano</button>
       <div id="planOut"></div>
+    </div>
+
+    <div class="card">
+      <h3>Cambia ruolo di un membro (per email)</h3>
+      <p class="note">
+        <b>I quattro ruoli, verificati sul codice — cosa fanno DAVVERO oggi, non cosa suggerisce il nome:</b><br>
+        <b>owner</b>: può fare tutto. È l'UNICO ruolo che può aprire il portale di fatturazione
+        (gestire l'abbonamento, i pagamenti, i pacchetti di crediti) — un <code>admin</code> oggi
+        viene rifiutato da quelle rotte.<br>
+        <b>admin</b>: come owner per tutto il resto — può cancellare dati, cambiare le impostazioni
+        dell'organizzazione, collegare/scollegare le integrazioni, condividere o revocare un
+        report — ma NON può toccare la fatturazione.<br>
+        <b>editor</b> e <b>viewer</b>: possono leggere i dati e aggiungerne/modificarne (fatture,
+        spese ricorrenti, ecc.), ma non possono cancellare righe, cambiare le impostazioni
+        dell'organizzazione, gestire le integrazioni, condividere/revocare un report, né toccare
+        la fatturazione.
+      </p>
+      <div class="warn">
+        <b>Una cosa verificata nel codice, non ovvia dal nome:</b> oggi <code>editor</code> e
+        <code>viewer</code> si comportano in modo IDENTICO. Nessun punto del codice impedisce a un
+        <code>viewer</code> di aggiungere o modificare dati, nonostante il nome suggerisca un ruolo
+        di sola lettura — quella distinzione non è ancora implementata. Non è stata corretta qui:
+        segnalato perché il pannello non deve far credere il contrario.
+      </div>
+      <div class="row">
+        <div><label>ID organizzazione</label><input id="memRoleOrg" placeholder="cl..."></div>
+        <div><label>Email del membro</label><input id="memRoleEmail" placeholder="nome@esempio.it"></div>
+        <div><label>Ruolo nuovo</label><select id="memRoleVal"><option>owner</option><option>admin</option><option>editor</option><option>viewer</option></select></div>
+      </div>
+      <button class="act" onclick="doSetMemberRoleByEmail()">Cambia ruolo</button>
+      <div id="memRoleOut"></div>
     </div>
   </section>
 
@@ -295,6 +332,18 @@ async function loadOrgs() {
     }).join('') + '</table>';
 }
 
+async function loadOrgMembers() {
+  const rows = await get('/api/organizations/members');
+  document.getElementById('orgMembersTable').innerHTML =
+    '<table><tr><th>Organizzazione</th><th>Email</th><th>Ruolo</th><th>Predefinita</th></tr>' +
+    rows.map(m =>
+      '<tr><td>' + esc(m.organizationName) + '<br><code>' + esc(m.organizationId) + '</code></td>' +
+      '<td>' + esc(m.email) + '</td>' +
+      '<td>' + esc(m.role) + '</td>' +
+      '<td>' + (m.isDefault ? 'sì' : '—') + '</td></tr>'
+    ).join('') + '</table>';
+}
+
 async function loadUsers() {
   const rows = await get('/api/users');
   document.getElementById('usersTable').innerHTML =
@@ -402,6 +451,22 @@ async function doSetRole() {
   } catch (e) { show('roleOut', e.message, 'err'); }
 }
 
+async function doSetMemberRoleByEmail() {
+  const organizationId = document.getElementById('memRoleOrg').value.trim();
+  const email = document.getElementById('memRoleEmail').value.trim();
+  const role = document.getElementById('memRoleVal').value;
+  if (!organizationId || !email) return show('memRoleOut', 'Servono id organizzazione ed email del membro.', 'err');
+  let extra = '';
+  if (role === 'viewer' || role === 'editor') extra = '\\n\\nATTENZIONE: editor e viewer oggi si comportano allo stesso modo (nessuno dei due può cancellare dati, cambiare impostazioni, gestire integrazioni o toccare la fatturazione).';
+  if (!confirm('CAMBIARE RUOLO\\n\\nOrganizzazione: ' + organizationId + '\\nEmail: ' + email +
+      '\\nNuovo ruolo: ' + role + extra + '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
+  try {
+    const r = await post('/api/organizations/member-role', { organizationId, email, role });
+    show('memRoleOut', 'Fatto — ' + r.email + ' in ' + r.organizationName + ': ' + r.from + ' -> ' + r.to, 'ok');
+    loadOrgMembers();
+  } catch (e) { show('memRoleOut', e.message, 'err'); }
+}
+
 async function doUnblock() {
   const userId = document.getElementById('unbUser').value.trim();
   const organizationId = document.getElementById('unbOrg').value.trim();
@@ -483,6 +548,7 @@ async function doCron(job) {
 
 loadCounts().catch(e => show('counts', e.message, 'err'));
 loadOrgs().catch(() => {});
+loadOrgMembers().catch(() => {});
 loadUsers().catch(() => {});
 loadAuditActions().catch(() => {});
 loadAudit().catch(() => {});
