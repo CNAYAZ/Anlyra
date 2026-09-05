@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ok, fail } from "@/lib/api/response";
 import { getAuthContext } from "@/lib/session";
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireOwnerRole } from '@/lib/auth/require-role';
 import { getStripe } from "@/lib/stripe/client";
 import { getStripePriceId } from "@/lib/stripe/prices";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest) {
   // Demo organization: read-only. See requireWritableOrg.
   const readOnly = requireWritableOrg(ctx.organizationId);
   if (readOnly) return readOnly;
+  // Billing is owner-only: starting a subscription binds the organization to
+  // a paying plan. See requireOwnerRole.
+  const denied = requireOwnerRole(ctx);
+  if (denied) return denied;
 
   let parsed;
   try {

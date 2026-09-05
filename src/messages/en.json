@@ -1889,6 +1889,7 @@
     },
     "managePortalNoSub": "No active subscription to manage.",
     "managePortalError": "Could not open the billing portal. Please try again.",
+    "ownerOnly": "Only the organization's owner can manage billing.",
     "trialExpiredBanner": {
       "message": "Your trial has ended. Subscribe to keep using all features.",
       "cta": "Subscribe"
