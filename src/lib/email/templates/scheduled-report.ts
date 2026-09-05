@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 
 interface ScheduledReportParams {
   organizationName: string;
@@ -19,20 +20,24 @@ interface ScheduledReportParams {
  */
 export function scheduledReportTemplate(params: ScheduledReportParams): string {
   const { organizationName, reportTitle, scheduleLabel, periodLabel, dashboardUrl, userEmail } = params;
+  const safeOrganizationName = escapeHtml(organizationName);
+  // reportTitle is free text a user typed when creating the scheduled report
+  // (zod max(120), no character filter — src/app/api/reports/route.ts).
+  const safeReportTitle = escapeHtml(reportTitle);
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       Il tuo report ${scheduleLabel} è pronto
     </h1>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      Ecco "${reportTitle}" per ${organizationName}, in allegato a questa email in formato PDF.
+      Ecco "${safeReportTitle}" per ${safeOrganizationName}, in allegato a questa email in formato PDF.
     </p>
 
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
            style="border:1px solid #E8DFD0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
       <tr>
         <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#6B6760;width:40%;">Report</td>
-        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${reportTitle}</td>
+        <td style="padding:12px 16px;border-bottom:1px solid #E8DFD0;font-size:14px;color:#2A2520;font-weight:600;text-align:right;">${safeReportTitle}</td>
       </tr>
       <tr>
         <td style="padding:12px 16px;font-size:14px;color:#6B6760;">Periodo</td>

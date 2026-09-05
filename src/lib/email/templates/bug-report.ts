@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 
 interface BugReportParams {
   description: string;
@@ -38,18 +39,6 @@ export function bugReportTemplate(params: BugReportParams): string {
     occurredAt,
   } = params;
 
-  // User-typed free text — escape before interpolating into HTML. Every other
-  // field here is either server-known (org/plan/credits) or narrow technical
-  // context (page path, User-Agent, screen size), none of which reasonably
-  // contains HTML, but description is the one field a reporter fully controls.
-  const escapeHtml = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
   const row = (label: string, value: string, isLast = false) => `
     <tr>
       <td style="padding:10px 16px;${isLast ? '' : 'border-bottom:1px solid #E8DFD0;'}font-size:13px;color:#6B6760;width:40%;">${label}</td>
@@ -61,7 +50,7 @@ export function bugReportTemplate(params: BugReportParams): string {
       Nuova segnalazione di problema
     </h1>
     <p style="margin:0 0 20px;font-size:14px;color:#6B6760;">
-      Da ${reporterName ? `${reporterName} · ` : ''}${organizationName}
+      Da ${reporterName ? `${escapeHtml(reporterName)} · ` : ''}${escapeHtml(organizationName)}
     </p>
 
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"

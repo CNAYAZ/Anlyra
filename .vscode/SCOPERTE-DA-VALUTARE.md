@@ -157,6 +157,57 @@ verifica in questa sessione: è un suggerimento per la prossima.)
   escludendo `financial.ts`: zero risultati). Campo calcolato e mai mostrato.
   (VERIFICATO su codice, 2026-09-04.)
 
+## Email — HTML e oggetto (aggiunto 2026-09-04, seconda voce del giorno)
+
+- **Il login OAuth (Google, Microsoft Entra ID) può ancora impostare
+  `User.name` senza passare dalla validazione nuova.** `src/auth.ts` usa
+  `PrismaAdapter(prisma)` (riga 128): quando un utente nuovo accede con Google
+  o Microsoft, l'adapter di NextAuth crea la riga `User` leggendo il nome dal
+  profilo OAuth, SENZA passare da `settings/profile`, `register` o
+  `onboarding/organization` — cioè senza incontrare mai il controllo sui
+  caratteri di controllo aggiunto in questa sessione
+  (`src/lib/validation/display-name.ts`). Non corretto: intervenire
+  richiederebbe toccare l'adapter di NextAuth o aggiungere un callback
+  `signIn`/`createUser` dedicato, un cambiamento diverso e più rischioso dei
+  tre punti che il compito nominava esplicitamente (profilo, onboarding,
+  impostazioni organizzazione). Nella pratica il rischio è già coperto
+  all'uscita: qualunque nome, comunque sia arrivato nel database, viene
+  comunque neutralizzato da `escapeHtml` quando finisce in un'email — quindi
+  non è una falla nell'obiettivo di questo lavoro, è un buco nella difesa "in
+  profondità" alla fonte. (VERIFICATO su codice, 2026-09-04.)
+- **I controlli di formato email sono deboli, e permettono caratteri
+  strutturalmente pericolosi per un `mailto:`.** La registrazione accetta
+  `/^[^@\s]+@[^@\s]+\.[^@\s]+$/` (`src/app/api/auth/register/route.ts`) e un
+  invito accetta `/\S+@\S+\.\S+/` per l'indirizzo del destinatario
+  (`src/app/api/onboarding/organization/route.ts`): nessuno dei due vieta
+  `?`, `&`, `=`, `<`, `"` dentro l'indirizzo. Corretto ALLA FONTE DI USCITA
+  (le email adesso codificano l'indirizzo con `encodeURIComponent` prima di
+  metterlo in un `mailto:` — `src/lib/email/templates/_escape.ts`,
+  `escapeMailtoAddress`), quindi oggi non è più sfruttabile per email. Resta
+  però vero che un indirizzo con quei caratteri può essere salvato: se in
+  futuro comparisse un altro punto che usa l'indirizzo email in un contesto
+  diverso da un mailto: (per esempio dentro un URL costruito a mano), quel
+  punto nuovo NON erediterebbe automaticamente la protezione. Vale la pena,
+  prima o poi, stringere quei due controlli di formato alla fonte, non solo
+  proteggere ogni singolo punto di uscita uno per uno. (VERIFICATO su codice,
+  2026-09-04.)
+- **Un ritorno a capo in un nome può ancora finire, letterale, dentro il
+  corpo HTML** (per esempio nel testo del tag `<title>` o nel preheader
+  nascosto) — non è una falla: `escapeHtml` neutralizza i cinque caratteri
+  che permettono di uscire da un tag o un attributo (`< > & " '`), e un
+  ritorno a capo dentro il TESTO di un tag non ne rompe la struttura né
+  inietta nulla. È un difetto puramente estetico (il sorgente HTML dell'email
+  risulterebbe spezzato su più righe in quel punto), non di sicurezza — la
+  sanificazione dei caratteri di controllo/ritorni a capo si applica solo
+  all'OGGETTO dell'email (`sanitizeSubjectText`), dove il rischio è diverso
+  (iniezione di intestazioni), non al corpo HTML. Con la validazione nuova
+  alla fonte (punto 5 del compito) nessun nome NUOVO potrà più contenerne
+  uno; un nome già salvato prima di questa correzione, se ne contenesse uno,
+  lo mostrerebbe ancora così finché non viene risalvato. Non corretto:
+  fuori dall'obiettivo dichiarato del compito (che riguardava l'HTML e
+  l'oggetto come RISCHI DI SICUREZZA, non l'estetica del sorgente).
+  (VERIFICATO su codice, 2026-09-04.)
+
 ## Backlog di sicurezza — righe di CLAUDE.md §10 non riverificate in questa sessione
 
 Durante la correzione di CLAUDE.md (2026-09-04) sono state riverificate solo cinque

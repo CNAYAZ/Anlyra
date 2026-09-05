@@ -3,7 +3,7 @@ import { appDateStartUTC, toAppDateString } from '@/lib/timezone';
 import { resolveReportConfig } from '@/lib/reports/config';
 import { renderReportPdf } from '@/lib/reports/render';
 import { parseRecipients } from '@/lib/reports/recipients';
-import { sendEmail, scheduledReportTemplate, MAX_EMAIL_ATTACHMENT_BYTES } from '@/lib/email';
+import { sendEmail, scheduledReportTemplate, MAX_EMAIL_ATTACHMENT_BYTES, sanitizeSubjectText } from '@/lib/email';
 import { siteUrl } from '@/lib/auth/tokens';
 import { auditLog } from '@/lib/audit/log';
 
@@ -164,7 +164,11 @@ async function processOne(r: ReportRow, now: Date, result: ScheduledReportsResul
 
   const sendResult = await sendEmail({
     to: recipients,
-    subject: `Il tuo report ${scheduleLabelIt(r.schedule!)} è pronto — ${r.title}`,
+    // r.title is free text typed when the report was created (zod max(120),
+    // no character filter) — see sanitizeSubjectText for why a Subject
+    // header needs this even though scheduledReportTemplate escapes it
+    // separately for the HTML body.
+    subject: `Il tuo report ${scheduleLabelIt(r.schedule!)} è pronto — ${sanitizeSubjectText(r.title)}`,
     html,
     attachments: [{ filename: `${safeFilename(r.title)}.pdf`, content: pdf }],
   });

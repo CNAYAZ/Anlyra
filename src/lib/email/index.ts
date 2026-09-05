@@ -1,4 +1,5 @@
 export { sendEmail } from './send';
+export { sanitizeSubjectText } from './subject';
 export { isEmailEnabled, resend } from './client';
 export { baseLayout } from './templates/_layout';
 export { welcomeTemplate } from './templates/welcome';

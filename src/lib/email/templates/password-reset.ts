@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 import { COMPANY } from '@/lib/company';
 
 interface PasswordResetParams {
@@ -12,11 +13,20 @@ interface PasswordResetParams {
 
 export function passwordResetTemplate(params: PasswordResetParams): string {
   const { userName, userEmail, resetUrl, expiryMinutes, ipAddress, userAgent } = params;
+  const safeUserName = escapeHtml(userName);
+  // No current caller supplies ipAddress/userAgent (verified: neither
+  // forgot-password/route.ts nor any other caller passes them), so this block
+  // is dead in practice today. Escaped anyway: both are values read from HTTP
+  // headers (X-Forwarded-For, User-Agent), which a client fully controls —
+  // the same "cannot be trusted as plain HTML" reasoning as any user-typed
+  // field, the moment a future caller wires them in.
+  const safeIpAddress = ipAddress ? escapeHtml(ipAddress) : undefined;
+  const safeUserAgent = userAgent ? escapeHtml(userAgent) : undefined;
 
   const securityNote =
-    ipAddress || userAgent
+    safeIpAddress || safeUserAgent
       ? `<p style="margin:8px 0 0;font-size:12px;color:#6B6760;">
-          Richiesto da: ${ipAddress ? `<strong>${ipAddress}</strong>` : ''}${ipAddress && userAgent ? ' · ' : ''}${userAgent ? userAgent : ''}
+          Richiesto da: ${safeIpAddress ? `<strong>${safeIpAddress}</strong>` : ''}${safeIpAddress && safeUserAgent ? ' · ' : ''}${safeUserAgent ? safeUserAgent : ''}
         </p>`
       : '';
 
@@ -25,7 +35,7 @@ export function passwordResetTemplate(params: PasswordResetParams): string {
       Reimposta la tua password
     </h1>
     <p style="margin:0 0 16px;color:#2A2520;">
-      Ciao ${userName}, abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account Anlyra.
+      Ciao ${safeUserName}, abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account Anlyra.
     </p>
     <p style="margin:0 0 24px;color:#2A2520;">
       Clicca il pulsante qui sotto per scegliere una nuova password. Se non sei stato tu a farne richiesta, puoi ignorare questa email.

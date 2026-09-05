@@ -1,4 +1,5 @@
 import { baseLayout } from './_layout';
+import { escapeHtml } from './_escape';
 
 interface VerifyEmailParams {
   userName: string;
@@ -9,13 +10,14 @@ interface VerifyEmailParams {
 
 export function verifyEmailTemplate(params: VerifyEmailParams): string {
   const { userName, userEmail, verifyUrl, expiryHours } = params;
+  const safeUserName = escapeHtml(userName);
 
   const content = `
     <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       Conferma il tuo indirizzo email
     </h1>
     <p style="margin:0 0 16px;color:#2A2520;">
-      Ciao ${userName}, per completare la registrazione su Anlyra è necessario verificare il tuo indirizzo email.
+      Ciao ${safeUserName}, per completare la registrazione su Anlyra è necessario verificare il tuo indirizzo email.
     </p>
     <p style="margin:0 0 24px;color:#2A2520;">
       Clicca il pulsante qui sotto per confermare che questo indirizzo ti appartiene.
