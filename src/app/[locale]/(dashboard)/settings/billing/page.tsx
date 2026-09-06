@@ -22,6 +22,21 @@ export default function SettingsBillingPage() {
   const plan = usePlan();
   const currentPlanId = plan.plan;
   const currentCycle = plan.cycle;
+  // A plan only counts as "current" when the organization has a REAL,
+  // converted subscription — same definition trial-check.ts's PAID_STATUSES
+  // uses for "this org has already converted to a paid plan": 'active' or
+  // 'past_due'. An organization with NO BillingSubscription row at all gets a
+  // SYNTHETIC status from defaultSubscription() (billing/repository.ts):
+  // 'trialing' while the free trial clock is still running, 'canceled' once
+  // it expires — and the synthetic plan is always "PRO" in both cases.
+  // Without this guard, EVERY organization that has never paid anything sees
+  // the Pro card marked "Piano attuale" and disabled the moment it lands on
+  // this page with the monthly cycle selected (PRO/monthly is exactly what
+  // the synthetic object reports) — the bug this fixes. defaultSubscription
+  // can only ever produce 'trialing' or 'canceled' (verified: those are its
+  // only two return values), so checking the status alone is enough to tell
+  // a real row from the synthetic one — no extra flag needed.
+  const hasRealSubscription = plan.status === 'active' || plan.status === 'past_due';
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
@@ -168,7 +183,7 @@ export default function SettingsBillingPage() {
             // the user's real subscription. ENTERPRISE is a contact plan with no
             // cycle, so it stays current on plan match alone. This lets a monthly
             // subscriber switch to the same plan's yearly price (and vice versa).
-            const isCurrent = planId === currentPlanId && (p.contact || cycle === currentCycle);
+            const isCurrent = hasRealSubscription && planId === currentPlanId && (p.contact || cycle === currentCycle);
             const pricingKey = planId === 'ADVANCED' ? 'advanced' : planId.toLowerCase() as 'pro' | 'enterprise';
             const priceMonthly = tPricing(`plans.${pricingKey}.priceMonthly` as 'plans.pro.priceMonthly');
             const priceAnnual = tPricing(`plans.${pricingKey}.priceAnnual` as 'plans.pro.priceAnnual');
