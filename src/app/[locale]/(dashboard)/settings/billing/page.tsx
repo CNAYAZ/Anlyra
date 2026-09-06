@@ -238,10 +238,12 @@ export default function SettingsBillingPage() {
                       </span>
                     )}
                   </p>
-                  {p.contact && (
+                  {p.contact ? (
                     <p className="text-xs text-fg-3 mt-0.5">
                       {tPricing('plans.enterprise.taglineSub')}
                     </p>
+                  ) : (
+                    <p className="text-xs text-fg-3 mt-0.5">{tPricing('vatNote')}</p>
                   )}
                 </div>
 

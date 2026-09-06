@@ -63,6 +63,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       toggleMonthly={t('toggle.monthly')}
       toggleAnnual={t('toggle.annual')}
       discountBadge={t('toggle.discountBadge')}
+      vatNote={t('vatNote')}
       proName={t('plans.pro.name')}
       proTagline={t('plans.pro.tagline')}
       proPriceMonthly={t('plans.pro.priceMonthly')}

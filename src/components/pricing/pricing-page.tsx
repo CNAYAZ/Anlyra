@@ -17,6 +17,7 @@ export type PricingPageProps = {
   toggleMonthly: string;
   toggleAnnual: string;
   discountBadge: string;
+  vatNote: string;
   // Pro
   proName: string;
   proTagline: string;
@@ -70,6 +71,7 @@ export function PricingPage({
   toggleMonthly,
   toggleAnnual,
   discountBadge,
+  vatNote,
   proName,
   proTagline,
   proPriceMonthly,
@@ -179,6 +181,7 @@ export function PricingPage({
               {annual && (
                 <p className="mt-1 text-xs text-muted-foreground">{proBilledNote}</p>
               )}
+              <p className="mt-1 text-xs text-muted-foreground">{vatNote}</p>
 
               <ul className="mt-6 flex-1 space-y-3 text-sm">
                 {proFeatures.map((f, i) => (
@@ -217,6 +220,7 @@ export function PricingPage({
               {annual && (
                 <p className="mt-1 text-xs text-muted-foreground">{advancedBilledNote}</p>
               )}
+              <p className="mt-1 text-xs text-muted-foreground">{vatNote}</p>
 
               <ul className="mt-6 flex-1 space-y-3 text-sm">
                 <li className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
