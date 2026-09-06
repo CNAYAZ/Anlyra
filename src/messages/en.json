@@ -1892,7 +1892,7 @@
       "subtitle": "If Anlyra doesn't work for you within 14 days of your first payment, we'll refund the full amount. No questions asked."
     },
     "trial": {
-      "info": "7-day trial · Card required · Cancel in 1 click"
+      "info": "7-day trial · No card required · Cancel anytime"
     },
     "managePortalNoSub": "No active subscription to manage.",
     "managePortalError": "Could not open the billing portal. Please try again.",
@@ -1908,6 +1908,7 @@
       "title": "Simple, transparent pricing",
       "subtitle": "Three plans for every growth stage. 7-day trial, 14-day money-back guarantee."
     },
+    "vatNote": "Prices exclude VAT — regime forfetario, no tax is charged.",
     "compareTitle": "Compare plans",
     "faqTitle": "Frequently asked questions",
     "everythingIn": "Everything in {plan}, plus:",
@@ -1936,7 +1937,7 @@
           "Email support (response < 24h)"
         ],
         "cta": "Start 7-day trial",
-        "footerNote": "Card required · Cancel in 1 click"
+        "footerNote": "No card required · Cancel anytime"
       },
       "advanced": {
         "badge": "MOST POPULAR",
@@ -1958,7 +1959,7 @@
           "Priority email support (response < 8h)"
         ],
         "cta": "Start 7-day trial",
-        "footerNote": "Card required · Cancel in 1 click"
+        "footerNote": "No card required · Cancel anytime"
       },
       "enterprise": {
         "name": "Enterprise",
@@ -1999,7 +2000,7 @@
       },
       {
         "q": "What happens after the trial?",
-        "a": "The trial lasts 7 days and requires a credit card. When it expires, the plan activates automatically at the chosen plan's price. You can cancel before expiry in 1 click from settings."
+        "a": "The trial lasts 7 days and does not require a credit card. When it expires, your account stays read-only until you choose a plan from Settings — nothing is billed automatically. Once subscribed, you can cancel anytime in 1 click from the billing portal."
       },
       {
         "q": "What are AI credits?",
