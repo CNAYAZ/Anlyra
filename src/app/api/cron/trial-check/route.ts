@@ -41,6 +41,8 @@ export async function GET(req: Request) {
     console.info(
       `[cron/trial-check] scheduled reports: due=${scheduledReports.due} sent=${scheduledReports.sent} ` +
         `skippedNoData=${scheduledReports.skippedNoData} skippedNoRecipients=${scheduledReports.skippedNoRecipients} ` +
+        `skippedNonMemberRecipients=${scheduledReports.skippedNonMemberRecipients} ` +
+        `skippedNoValidRecipients=${scheduledReports.skippedNoValidRecipients} ` +
         `failed=${scheduledReports.failed}`,
     );
   } catch (e) {
