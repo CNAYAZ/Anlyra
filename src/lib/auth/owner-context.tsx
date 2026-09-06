@@ -30,3 +30,29 @@ export function OwnerProvider({
 export function useIsOwner(): boolean {
   return useContext(OwnerContext);
 }
+
+/**
+ * Same pattern as OwnerContext above, for 'owner' OR 'admin' (isManagerRole)
+ * instead of 'owner' alone — the same three-way split requireManagerRole
+ * enforces server-side for destructive/management actions (delete a
+ * receivable, create a report's share link, and now: edit a scheduled
+ * report's recipients/cadence). A convenience for the UI, never a
+ * protection: every route this gates is refused server-side by
+ * requireManagerRole regardless of what this context says.
+ */
+const ManagerContext = createContext(false);
+
+export function ManagerProvider({
+  isManager,
+  children,
+}: {
+  isManager: boolean;
+  children: React.ReactNode;
+}) {
+  return <ManagerContext.Provider value={isManager}>{children}</ManagerContext.Provider>;
+}
+
+/** True when the current member is the organization's 'owner' or 'admin'. */
+export function useIsManager(): boolean {
+  return useContext(ManagerContext);
+}

@@ -11,7 +11,9 @@ import { validateReportRecipients } from '@/lib/reports/recipients';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const createSchema = z.object({
+// Exported so PATCH /api/reports/[id] can reuse it (via .pick().partial())
+// instead of re-declaring the same rules — see that file.
+export const createSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().optional(),
   sections: z.array(z.string()).min(1),

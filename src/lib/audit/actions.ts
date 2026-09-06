@@ -17,6 +17,7 @@ export const AUDIT_ACTIONS = [
 
   // ── Organization / integration management (also behind requireManagerRole) ──
   'organization.update',
+  'report.update',
   'integration.connect',
   'integration.disconnect',
   'integration.sync',
