@@ -133,9 +133,30 @@ export async function POST(req: Request) {
   // and this cap only work as a pair; neither alone bounds the sends.
   // 20 is above any plausible onboarding team and far below abuse.
   const MAX_INVITES_PER_REQUEST = 20;
-  const invites = (body.invites || [])
+  // Drop the creator's OWN address from the invite list before anything else
+  // is created. Without this, a creator who mistypes their own email into the
+  // invite form gets a real Invite row addressed to themselves; clicking it
+  // later hits invite/accept, which used to overwrite an existing membership's
+  // role with the invite's role — silently demoting the owner in their own
+  // organization (see the accept route below for the other half of that
+  // trap). Excluding it here means the trap can no longer be walked into from
+  // this side, regardless of what accept does; skipped, not rejected: the
+  // rest of a well-formed batch still goes out.
+  const creatorEmail = inviter?.email?.toLowerCase();
+  const rawInvites = body.invites || [];
+  const invites = rawInvites
     .filter((inv) => inv.email && /\S+@\S+\.\S+/.test(inv.email))
+    .filter((inv) => !creatorEmail || inv.email.trim().toLowerCase() !== creatorEmail)
     .slice(0, MAX_INVITES_PER_REQUEST);
+  const skippedSelfInvite =
+    !!creatorEmail && rawInvites.some((inv) => inv.email?.trim().toLowerCase() === creatorEmail);
+  if (skippedSelfInvite) {
+    // No user-facing UI reads this today (the onboarding page discards the
+    // response body and redirects to /overview on any 2xx — see the report
+    // for this commit). Logged so it is at least visible server-side, and the
+    // response field is there for when that page is revisited.
+    console.warn(`[onboarding/organization] org ${org.id}: creator ${creatorEmail} was in their own invite list — skipped`);
+  }
   for (const inv of invites) {
     const role = VALID_ROLES.includes(inv.role || '') ? (inv.role as string) : 'viewer';
     const token = generateToken();
@@ -195,5 +216,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ success: true, organizationId: org.id });
+  return NextResponse.json({ success: true, organizationId: org.id, skippedSelfInvite });
 }
