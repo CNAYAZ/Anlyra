@@ -1476,6 +1476,8 @@
     "teamInviteNote": "Inviting new members will be available in a future release.",
     "roleOwner": "Owner",
     "roleAdmin": "Admin",
+    "roleEditor": "Editor",
+    "roleViewer": "Viewer",
     "roleMember": "Member",
     "billingTitle": "Billing",
     "billingSubtitle": "Current plan and AI credits",

@@ -18,7 +18,14 @@ export async function GET() {
       name: m.user.name,
       email: m.user.email,
       role: m.role,
-      joinedAt: m.user.createdAt,
+      // Membership.joinedAt, not User.createdAt: the column the page labels
+      // "Iscritto il" means when this person joined THIS organization, not
+      // when they first created an Anlyra account. The two coincide only for
+      // whoever created the organization (account and membership are born the
+      // same instant); for anyone invited later, User.createdAt is the date
+      // they registered — possibly with a different organization first, or
+      // long before joining this one.
+      joinedAt: m.joinedAt,
     }));
     return ok({ members });
   } catch (e) {

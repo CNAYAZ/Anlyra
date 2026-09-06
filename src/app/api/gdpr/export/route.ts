@@ -20,6 +20,9 @@ export const dynamic = 'force-dynamic';
  *   • Account.access_token / refresh_token / id_token — OAuth credentials.
  *   • Integration.apiKey and Integration.config — third-party credentials.
  *   • Invite.token — a live join link for the organization.
+ *   • Report_b8.shareToken — a live PUBLIC link to the report's revenue,
+ *     costs and cashflow, requiring no login. Creating one is owner/admin
+ *     only; exporting it would let any member read it out regardless.
  * Everything excluded is a SECRET, never a fact about the person: the export
  * stays complete as a record of the user's data while being safe to email around.
  *
@@ -132,7 +135,33 @@ export async function GET() {
     prisma.alert.findMany({ where: { organizationId } }),
     prisma.aiAlert.findMany({ where: { organizationId } }),
     prisma.aiAlertConfig.findMany({ where: { organizationId } }),
-    prisma.report_b8.findMany({ where: { organizationId } }),
+    prisma.report_b8.findMany({
+      where: { organizationId },
+      // shareToken is a live credential for the report's PUBLIC link (same
+      // reasoning as Invite.token above): whoever holds it can read the
+      // report's revenue, costs and cashflow with no login. Creating that
+      // link is restricted to owner/admin (requireManagerRole in
+      // reports/[id]/share/route.ts); exporting the token here would let any
+      // member — including a 'viewer' — read it out and use it as if they had
+      // created the link themselves. shareCreatedAt/shareExpiresAt travel
+      // without it: they only say a link exists and when it expires, which is
+      // already visible in the product (reports/page.tsx shows "shared").
+      select: {
+        id: true,
+        organizationId: true,
+        title: true,
+        description: true,
+        sections: true,
+        schedule: true,
+        recipients: true,
+        lastRunAt: true,
+        createdAt: true,
+        updatedAt: true,
+        config: true,
+        shareCreatedAt: true,
+        shareExpiresAt: true,
+      },
+    }),
     prisma.customDashboard_b8.findMany({ where: { organizationId } }),
     prisma.notificationPref_b8.findMany({ where: { userId, organizationId } }),
     prisma.kPI.findMany({ where: { organizationId } }),
@@ -194,7 +223,7 @@ export async function GET() {
       requestedBy: { userId, role },
       teamDataIncluded: canSeeTeam,
       note:
-        'Export completo dei dati personali e aziendali. Per sicurezza NON contiene: password, token di verifica/reset, segreto 2FA, token OAuth, chiavi delle integrazioni.',
+        'Export completo dei dati personali e aziendali. Per sicurezza NON contiene: password, token di verifica/reset, segreto 2FA, token OAuth, chiavi delle integrazioni, token dei link di condivisione dei report.',
     },
     user,
     linkedAccounts: accounts,
