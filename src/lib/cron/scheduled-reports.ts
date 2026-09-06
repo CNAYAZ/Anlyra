@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { appDateStartUTC, toAppDateString } from '@/lib/timezone';
 import { resolveReportConfig } from '@/lib/reports/config';
 import { renderReportPdf } from '@/lib/reports/render';
-import { parseRecipients } from '@/lib/reports/recipients';
+import { parseRecipients, splitRecipientsByMembership } from '@/lib/reports/recipients';
 import { sendEmail, scheduledReportTemplate, MAX_EMAIL_ATTACHMENT_BYTES, sanitizeSubjectText } from '@/lib/email';
 import { siteUrl } from '@/lib/auth/tokens';
 import { auditLog } from '@/lib/audit/log';
@@ -91,6 +91,19 @@ export interface ScheduledReportsResult {
   sent: number;
   skippedNoData: number;
   skippedNoRecipients: number;
+  /**
+   * Individual ADDRESSES dropped because they are no longer members of the
+   * report's organization. Counts recipients, not reports: one report can add
+   * several. A report that still has at least one valid recipient is delivered
+   * to the rest and counts in `sent` as well.
+   */
+  skippedNonMemberRecipients: number;
+  /**
+   * REPORTS not delivered at all because none of their recipients is still a
+   * member. Distinct from `skippedNoRecipients` ("the field is empty") and from
+   * `sent`: nothing was rendered and nothing was emailed.
+   */
+  skippedNoValidRecipients: number;
   failed: number;
 }
 
@@ -122,13 +135,47 @@ async function processOne(r: ReportRow, now: Date, result: ScheduledReportsResul
     return;
   }
 
-  const recipients = parseRecipients(r.recipients);
-  if (recipients.length === 0) {
+  if (parseRecipients(r.recipients).length === 0) {
     // Re-checked here even though POST /api/reports now requires recipients at
     // creation time: a report created before that validation existed could
     // still have none, and this must degrade to "skip", never "crash the run".
     result.skippedNoRecipients++;
     console.warn(`[cron/scheduled-reports] report ${r.id} has no recipients — skipped`);
+    return;
+  }
+
+  // MEMBERSHIP IS RE-CHECKED HERE, NOT TRUSTED FROM SAVE TIME. POST /api/reports
+  // validates recipients against the organization's members when the report is
+  // created (validateReportRecipients), but that is a snapshot: the stored
+  // `recipients` text is never revised afterwards, while membership can end at
+  // any time (an account deleted through /api/gdpr/account and purged by the
+  // gdpr-purge cron takes its Membership with it). Without this, a former member
+  // keeps receiving the company's revenue, costs and cashflow by email, with no
+  // login, every cycle, forever.
+  //
+  // The stored configuration is READ, never rewritten: a recipient that stops
+  // being a member is skipped for this run, not deleted from the report. It is
+  // the customer's own text, and if that person rejoins the organization the
+  // report simply starts reaching them again.
+  const { members: recipients, nonMembers } = await splitRecipientsByMembership(
+    r.organizationId,
+    r.recipients,
+  );
+
+  for (const address of nonMembers) {
+    result.skippedNonMemberRecipients++;
+    console.warn(
+      `[cron/scheduled-reports] report ${r.id}: recipient ${address} is no longer a member of organization ${r.organizationId} — not sent`,
+    );
+  }
+
+  if (recipients.length === 0) {
+    // Nobody left to send to. Deliberately BEFORE renderReportPdf: no PDF of the
+    // company's finances is produced at all when there is no valid recipient.
+    result.skippedNoValidRecipients++;
+    console.warn(
+      `[cron/scheduled-reports] report ${r.id}: no recipient is still a member — no PDF rendered, no email sent`,
+    );
     return;
   }
 
@@ -202,6 +249,8 @@ export async function runScheduledReports(now: Date = new Date()): Promise<Sched
     sent: 0,
     skippedNoData: 0,
     skippedNoRecipients: 0,
+    skippedNonMemberRecipients: 0,
+    skippedNoValidRecipients: 0,
     failed: 0,
   };
 
