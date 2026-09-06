@@ -2,18 +2,31 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, CheckCircle2, Crown, Info, Loader2, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
+import type { BillingState } from '@/lib/billing/context';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsOwner } from '@/lib/auth/owner-context';
+import { apiFetch } from '@/lib/api/fetcher';
+import { COMPANY } from '@/lib/company';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
+
+/**
+ * How long we're willing to wait for the webhook after a successful Stripe
+ * checkout before telling the customer to just email us. Every 3s for 10
+ * attempts = 30s total: long enough that a webhook running "a few seconds"
+ * behind (the normal case) resolves well within it, short enough that
+ * nobody is staring at a spinner for minutes if something is actually wrong.
+ */
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_ATTEMPTS = 10;
 
 function BillingPageFallback() {
   return (
@@ -78,11 +91,59 @@ function SettingsBillingPageInner() {
           ? 'canceled'
           : null;
 
-  // No re-check yet in this commit — plan.status is fixed at the moment the
-  // server rendered this page (BillingProvider's initialState) and nothing
-  // here refreshes it. The "pending" message below tells the customer to
-  // reload in a moment instead.
-  const subscriptionConfirmed = hasRealSubscription;
+  // Overrides plan.status once a re-poll (below) sees the subscription go
+  // active. plan.status itself never changes on its own — it is fixed at the
+  // moment the server rendered this page (BillingProvider's initialState) —
+  // so without this override the confirmation could never appear without a
+  // manual reload, which is the exact problem this file exists to fix.
+  const [polledStatus, setPolledStatus] = useState<BillingState['status'] | null>(null);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
+  const effectiveStatus = polledStatus ?? plan.status;
+  const subscriptionConfirmed = effectiveStatus === 'active' || effectiveStatus === 'past_due';
+
+  // Re-check the subscription every few seconds — ONLY when we just came back
+  // from a successful subscription checkout AND it is not already active
+  // (test a: already active → this guard exits immediately, no interval is
+  // ever created). Never runs on an ordinary visit to this page (returnCase
+  // is null whenever the URL carries none of the three params), and never
+  // for the credits or canceled cases (buying a credit pack or backing out
+  // of checkout does not change trial/subscription status, so there is
+  // nothing here worth polling for).
+  useEffect(() => {
+    if (returnCase !== 'success') return;
+    if (plan.status === 'active' || plan.status === 'past_due') return;
+
+    let attempts = 0;
+    const id = setInterval(() => {
+      attempts += 1;
+      apiFetch<BillingState>('/api/billing/status')
+        .then((state) => {
+          if (state.status === 'active' || state.status === 'past_due') {
+            setPolledStatus(state.status);
+            clearInterval(id);
+          } else if (attempts >= POLL_MAX_ATTEMPTS) {
+            setPollTimedOut(true);
+            clearInterval(id);
+          }
+        })
+        .catch(() => {
+          // Transient network hiccup — try again on the next tick rather than
+          // giving up on the first failure; the attempt still counts toward
+          // the cap below so a persistently broken connection still stops.
+          if (attempts >= POLL_MAX_ATTEMPTS) {
+            setPollTimedOut(true);
+            clearInterval(id);
+          }
+        });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(id);
+    // plan.status is read only to decide whether to START polling at all,
+    // and (see the comment above the state declarations) never changes on
+    // its own during this component's life — including it here is correct
+    // per the hook's own rules without causing the interval to be torn down
+    // and recreated on every render.
+  }, [returnCase, plan.status]);
 
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
@@ -167,6 +228,11 @@ function SettingsBillingPageInner() {
           <div role="status" className="flex items-center gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
             <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
             <span>{tBilling('checkoutReturn.subscriptionActive')}</span>
+          </div>
+        ) : pollTimedOut ? (
+          <div role="status" className="flex items-center gap-3 rounded-lg border border-primary-accent/30 bg-primary-accent/10 px-4 py-3 text-sm text-foreground">
+            <Info className="h-4 w-4 shrink-0 text-primary-accent" aria-hidden />
+            <span>{tBilling('checkoutReturn.subscriptionTimeout', { email: COMPANY.contactEmail })}</span>
           </div>
         ) : (
           <div role="status" className="flex items-center gap-3 rounded-lg border border-primary-accent/30 bg-primary-accent/10 px-4 py-3 text-sm text-foreground">
