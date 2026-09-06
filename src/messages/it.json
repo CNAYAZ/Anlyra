@@ -1892,7 +1892,7 @@
       "subtitle": "Se Anlyra non ti convince entro i primi 14 giorni dal primo pagamento, ti rimborsiamo l'intero importo. Nessun vincolo, nessuna burocrazia."
     },
     "trial": {
-      "info": "7 giorni di prova · Carta richiesta · Cancella in 1 click"
+      "info": "7 giorni di prova · Nessuna carta richiesta · Annulla quando vuoi"
     },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
     "managePortalError": "Impossibile aprire il portale. Riprova.",
@@ -1936,7 +1936,7 @@
           "Email support (risposta < 24h)"
         ],
         "cta": "Inizia prova 7 giorni",
-        "footerNote": "Carta richiesta · Cancella in 1 click"
+        "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
       },
       "advanced": {
         "badge": "PIÙ POPOLARE",
@@ -1958,7 +1958,7 @@
           "Email priority support (risposta < 8h)"
         ],
         "cta": "Inizia prova 7 giorni",
-        "footerNote": "Carta richiesta · Cancella in 1 click"
+        "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
       },
       "enterprise": {
         "name": "Enterprise",
@@ -1999,7 +1999,7 @@
       },
       {
         "q": "Cosa succede dopo la prova?",
-        "a": "La prova dura 7 giorni e richiede una carta di credito. Allo scadere, il piano si attiva automaticamente al prezzo del piano scelto. Puoi annullare prima della scadenza in 1 click dalle impostazioni."
+        "a": "La prova dura 7 giorni e non richiede la carta di credito. Allo scadere, l'account resta accessibile in sola lettura finché non scegli un piano dalle impostazioni: nessun addebito automatico. Una volta abbonato, puoi annullare quando vuoi in 1 click dal portale di gestione."
       },
       {
         "q": "Cosa sono i crediti AI?",
