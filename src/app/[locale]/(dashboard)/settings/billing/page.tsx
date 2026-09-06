@@ -2,18 +2,43 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Check, Crown, Shield } from 'lucide-react';
+import { Check, CheckCircle2, Crown, Info, Loader2, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsOwner } from '@/lib/auth/owner-context';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
 
+function BillingPageFallback() {
+  return (
+    <div className="space-y-6 max-w-5xl">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-24 w-full rounded-lg" />
+      <Skeleton className="h-80 w-full rounded-lg" />
+    </div>
+  );
+}
+
+/**
+ * useSearchParams() requires a Suspense boundary around its caller (same
+ * pattern already used by login/page.tsx, reset-password/page.tsx,
+ * verify-email/page.tsx — not a new convention).
+ */
 export default function SettingsBillingPage() {
+  return (
+    <Suspense fallback={<BillingPageFallback />}>
+      <SettingsBillingPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsBillingPageInner() {
   const t = useTranslations('settings');
   const tBilling = useTranslations('billing');
   const tPricing = useTranslations('pricing');
@@ -37,6 +62,28 @@ export default function SettingsBillingPage() {
   // only two return values), so checking the status alone is enough to tell
   // a real row from the synthetic one — no extra flag needed.
   const hasRealSubscription = plan.status === 'active' || plan.status === 'past_due';
+
+  // ── Return from Stripe checkout ──────────────────────────────────────────
+  // checkout/route.ts and credits/checkout/route.ts build these three exact
+  // redirect targets (success_url/cancel_url): /settings/billing?success=1,
+  // ?credits=1, ?canceled=1. Nothing read them before this — the customer
+  // landed back here with no acknowledgement that anything had happened.
+  const searchParams = useSearchParams();
+  const returnCase: 'success' | 'credits' | 'canceled' | null =
+    searchParams.get('success') === '1'
+      ? 'success'
+      : searchParams.get('credits') === '1'
+        ? 'credits'
+        : searchParams.get('canceled') === '1'
+          ? 'canceled'
+          : null;
+
+  // No re-check yet in this commit — plan.status is fixed at the moment the
+  // server rendered this page (BillingProvider's initialState) and nothing
+  // here refreshes it. The "pending" message below tells the customer to
+  // reload in a moment instead.
+  const subscriptionConfirmed = hasRealSubscription;
+
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
@@ -97,6 +144,37 @@ export default function SettingsBillingPage() {
         <h1 className="font-heading text-2xl font-semibold text-foreground">{t('billingTitle')}</h1>
         <p className="text-sm text-fg-2 mt-0.5">{t('billingSubtitle')}</p>
       </div>
+
+      {/* ── Return from Stripe checkout ──
+          Same visual language already used elsewhere on this page (the
+          success/money-back box below) and in the dashboard's other page-level
+          strips (DemoBanner, TrialExpiredBanner): a bordered, tinted box with
+          an icon and role="status", not a new look. */}
+      {returnCase === 'canceled' && (
+        <div role="status" className="flex items-center gap-3 rounded-lg border border-border bg-muted/60 px-4 py-3 text-sm text-foreground">
+          <Info className="h-4 w-4 shrink-0 text-fg-3" aria-hidden />
+          <span>{tBilling('checkoutReturn.canceled')}</span>
+        </div>
+      )}
+      {returnCase === 'credits' && (
+        <div role="status" className="flex items-center gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+          <span>{tBilling('checkoutReturn.credits')}</span>
+        </div>
+      )}
+      {returnCase === 'success' && (
+        subscriptionConfirmed ? (
+          <div role="status" className="flex items-center gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+            <span>{tBilling('checkoutReturn.subscriptionActive')}</span>
+          </div>
+        ) : (
+          <div role="status" className="flex items-center gap-3 rounded-lg border border-primary-accent/30 bg-primary-accent/10 px-4 py-3 text-sm text-foreground">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary-accent" aria-hidden />
+            <span>{tBilling('checkoutReturn.subscriptionPending')}</span>
+          </div>
+        )
+      )}
 
       {/* ── Current plan status ── */}
       <div className="rounded-lg border border-border bg-card p-4 flex flex-wrap items-center gap-4 shadow-elev-1">
