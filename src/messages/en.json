@@ -1933,7 +1933,7 @@
           "Unlimited PDF reports",
           "Unlimited Custom Dashboards",
           "24 months data history",
-          "Standard integrations (Stripe, PSD2 banks, Google Sheets, Excel, CSV)",
+          "Data import from Excel and CSV",
           "Email support (response < 24h)"
         ],
         "cta": "Start 7-day trial",
@@ -2288,7 +2288,7 @@
         {
           "number": "1",
           "title": "Upload your data",
-          "desc": "Financial CSVs, Excel, or connect Stripe and European banks via PSD2. No access to your accounts."
+          "desc": "Upload a CSV or Excel file with your financial data. It only takes seconds."
         },
         {
           "number": "2",
@@ -2480,7 +2480,7 @@
             "Account data: email address, name, organization name. Collected at registration.",
             "Payment data: card numbers are handled entirely by Stripe and never pass through our servers. Anlyra receives only the Stripe transaction ID and subscription ID.",
             "Identity verification (future): for Enterprise customers or anti-fraud checks, Stripe Identity may request an identity document and selfie. Verification is handled entirely by Stripe. Not active by default for Pro and Advanced plans.",
-            "Financial data uploaded by the user: CSV files, data from PSD2 integrations (with the user's explicit consent), manual entries. Stored on our European servers, encrypted at rest and in transit. We never use the identifiable content for any purpose other than providing the Service.",
+            "Financial data uploaded by the user: CSV files, Excel files, manual entries. Stored on our European servers, encrypted at rest and in transit. We never use the identifiable content for any purpose other than providing the Service.",
             "Usage logs: IP address, browser, operating system, in-app actions, timestamps. Required for security, anti-fraud, and technical debugging.",
             "Essential cookies: session token (pro_session), language preference, theme preference. No profiling cookies, no marketing cookies, no third-party trackers."
           ]
@@ -2507,7 +2507,7 @@
             "NEVER sell your data to third parties, under any circumstances.",
             "NEVER use your data to train third-party AI models (Anthropic, OpenAI, Google, others).",
             "NEVER share identifiable data at the level of a single company with customers, partners, or investors.",
-            "NEVER access your bank accounts or perform operations on your behalf. PSD2 requires your active consent for each connection.",
+            "NEVER access your bank accounts or perform operations on your behalf.",
             "NEVER use marketing cookies, behavioral profiling, or third-party trackers.",
             "NEVER waive these rules, even if requested by commercial partners or investors."
           ]

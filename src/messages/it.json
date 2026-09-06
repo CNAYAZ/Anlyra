@@ -1933,7 +1933,7 @@
           "Report PDF illimitati",
           "Custom Dashboards illimitate",
           "Storia dati 24 mesi",
-          "Integrazioni standard (Stripe, PSD2, Google Sheets, Excel, CSV)",
+          "Importazione dati da Excel e CSV",
           "Email support (risposta < 24h)"
         ],
         "cta": "Inizia prova 7 giorni",
@@ -2288,7 +2288,7 @@
         {
           "number": "1",
           "title": "Carica i tuoi dati",
-          "desc": "CSV finanziari, Excel, o connetti Stripe e banche europee via PSD2. Nessun accesso ai tuoi conti."
+          "desc": "Carica un file CSV o Excel con i tuoi dati finanziari. Bastano pochi secondi."
         },
         {
           "number": "2",
@@ -2480,7 +2480,7 @@
             "Dati di account: indirizzo email, nome, nome dell'organizzazione. Raccolti al momento della registrazione.",
             "Dati di pagamento: i numeri di carta sono gestiti interamente da Stripe e non passano mai per i nostri server. Anlyra riceve esclusivamente l'ID transazione di Stripe e l'ID abbonamento.",
             "Verifica identità (futura): per clienti Enterprise o richieste antifrode, Stripe Identity potrà richiedere documento d'identità e selfie. La verifica è gestita interamente da Stripe. Non attiva di default per i piani Pro e Avanzato.",
-            "Dati finanziari caricati dall'utente: file CSV, dati da integrazioni PSD2 (con consenso esplicito dell'utente), inserimenti manuali. Restano sui nostri server europei, crittografati at rest e in transit. Non ne usiamo il contenuto identificabile per alcun fine diverso dall'erogazione del Servizio.",
+            "Dati finanziari caricati dall'utente: file CSV, file Excel, inserimenti manuali. Restano sui nostri server europei, crittografati at rest e in transit. Non ne usiamo il contenuto identificabile per alcun fine diverso dall'erogazione del Servizio.",
             "Log di utilizzo: indirizzo IP, browser, sistema operativo, azioni in-app, timestamp. Necessari per sicurezza, antifrode e debug tecnico.",
             "Cookie essenziali: token di sessione (pro_session), preferenza lingua, preferenza tema. Nessun cookie di profilazione, nessun cookie di marketing, nessun tracker di terze parti."
           ]
@@ -2507,7 +2507,7 @@
             "MAI vendiamo i tuoi dati a terze parti, in nessuna circostanza.",
             "MAI usiamo i tuoi dati per addestrare modelli AI di terze parti (Anthropic, OpenAI, Google, altri).",
             "MAI condividiamo dati identificabili a livello di singola azienda con clienti, partner o investitori.",
-            "MAI accediamo ai tuoi conti correnti né eseguiamo operazioni a tuo nome. PSD2 richiede il tuo consenso attivo per ogni connessione.",
+            "MAI accediamo ai tuoi conti correnti né eseguiamo operazioni a tuo nome.",
             "MAI usiamo cookie di marketing, profilazione comportamentale o tracker di terze parti.",
             "MAI deroghiamo a queste regole, neppure se ne ricevessimo richiesta commerciale o investitore."
           ]
