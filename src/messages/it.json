@@ -1476,6 +1476,8 @@
     "teamInviteNote": "L'invito di nuovi membri sarà disponibile in una prossima versione.",
     "roleOwner": "Proprietario",
     "roleAdmin": "Admin",
+    "roleEditor": "Editor",
+    "roleViewer": "Lettore",
     "roleMember": "Membro",
     "billingTitle": "Fatturazione",
     "billingSubtitle": "Piano corrente e crediti AI",
