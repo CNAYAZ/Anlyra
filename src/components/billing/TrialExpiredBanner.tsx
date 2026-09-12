@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useBilling } from '@/lib/billing/context';
@@ -20,6 +21,7 @@ export function TrialExpiredBanner() {
   const t = useTranslations('billing.trialExpiredBanner');
   const { state } = useBilling();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
 
   if (state.status === 'active' || state.status === 'trialing') return null;
 
@@ -27,6 +29,19 @@ export function TrialExpiredBanner() {
   // so defaultSubscription() always resolves it to 'canceled' — there is no trial
   // and nothing to subscribe to inside a demo, so the banner never applies here.
   if (isDemo) return null;
+
+  // A customer who just paid must never be told their trial expired — the
+  // BillingProvider's status is fixed at server-render time (see
+  // billing/context.tsx) and only turns 'active' once Stripe's webhook lands,
+  // which can trail the redirect back here by a few seconds. `success=1` is
+  // the exact query param checkout/route.ts puts on that redirect target
+  // (/settings/billing?success=1) — safe to check unconditionally here
+  // because nothing else in the product ever sets it: on every OTHER page
+  // this param is simply absent, so this early-return never fires there.
+  // settings/billing/page.tsx shows its own "payment received, activating"
+  // message for exactly this window; this banner just has to stay quiet
+  // during it instead of contradicting that message with "your trial expired".
+  if (searchParams.get('success') === '1') return null;
 
   return (
     <div

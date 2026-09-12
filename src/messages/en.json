@@ -1892,6 +1892,13 @@
     "trial": {
       "info": "7-day trial · No card required · Cancel anytime"
     },
+    "checkoutReturn": {
+      "subscriptionActive": "Payment successful! Your subscription is active.",
+      "subscriptionPending": "Payment received. Activation takes a few seconds — this page will update on its own.",
+      "subscriptionTimeout": "Your payment was received, but activation is taking longer than expected. If your plan still isn't active in a few minutes, email us at {email} with the time of your payment.",
+      "credits": "Payment successful! Your extra credits have been added to your balance.",
+      "canceled": "Checkout canceled — you haven't been charged. You can try again anytime."
+    },
     "managePortalNoSub": "No active subscription to manage.",
     "managePortalError": "Could not open the billing portal. Please try again.",
     "ownerOnly": "Only the organization's owner can manage billing.",
