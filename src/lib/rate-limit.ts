@@ -78,6 +78,11 @@ const BUCKETS = {
   // password reset request (sends an email — anti email-bombing)
   'forgot-ip': { limit: 5, window: '15 m', onFailure: 'closed' },
   'forgot-email': { limit: 3, window: '1 h', onFailure: 'closed' },
+  // resend the email-verification link (sends an email to an arbitrary
+  // address — same risk shape as forgot-password: harassment of one inbox,
+  // and unauthenticated, so the same two limits apply for the same reason.
+  'resend-verification-ip': { limit: 5, window: '15 m', onFailure: 'closed' },
+  'resend-verification-email': { limit: 3, window: '1 h', onFailure: 'closed' },
   // reset token submission (token brute force — defence in depth)
   'reset-ip': { limit: 10, window: '15 m', onFailure: 'closed' },
   // email existence probe (enumeration)
