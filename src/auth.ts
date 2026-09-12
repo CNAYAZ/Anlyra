@@ -6,7 +6,7 @@ import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/auth.config';
-import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
+import { checkRateLimit, resetRateLimit, getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 import { DEMO_EMAIL } from '@/lib/session';
 
@@ -102,6 +102,75 @@ const providers = [
         where: { id: user.id },
         data: { lastLoginAt: new Date() },
       });
+
+      await auditLog({ action: 'auth.login', userId: user.id });
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      };
+    },
+  }),
+
+  // Second way in, used ONLY by the email-confirmation link: exchanges a valid
+  // one-time emailVerifyToken for a session, so a brand-new account reaches
+  // onboarding without signing in again. Its own provider id, so nothing here
+  // changes the password path above.
+  //
+  // WHY THE VALIDATION LIVES HERE and not in the route: like every credentials
+  // provider this is publicly reachable (POST /api/auth/callback/email-verify),
+  // so it must prove the caller holds the secret itself. A provider that
+  // trusted a user id handed to it would be a public session-minting endpoint.
+  // /api/auth/verify-email is a convenience wrapper, never the boundary.
+  Credentials({
+    id: 'email-verify',
+    credentials: { token: { label: 'Token', type: 'text' } },
+    async authorize(credentials, request) {
+      const token = typeof credentials?.token === 'string' ? credentials.token : '';
+      if (!token) return null;
+
+      // Repeated here for exactly the reason the password provider repeats
+      // 'login-email' above: the route's limiter does not cover a direct call
+      // to this endpoint, which would otherwise leave the token-guessing
+      // oracle unmetered. Fail-closed, like the rest of the auth paths.
+      const ipLimit = await checkRateLimit('verify-email-ip', getClientIp(request));
+      if (!ipLimit.success) return null;
+
+      const user = await prisma.user.findUnique({ where: { emailVerifyToken: token } });
+      if (!user || !user.emailVerifyExpiresAt || user.emailVerifyExpiresAt < new Date()) {
+        return null;
+      }
+
+      // The same three refusals as the password path, because a session is a
+      // session however it was obtained. None of them can fire today: a verify
+      // token is only ever written by /api/auth/register (the single write site
+      // in the codebase) on a just-created account, which therefore has no 2FA
+      // configured and is never the demo address. They are here so that adding
+      // a "resend verification" flow later — which would hand a token to an
+      // established account — cannot quietly turn this into a way around 2FA.
+      if (user.deletionRequestedAt) return null;
+      if (user.email?.trim().toLowerCase() === DEMO_EMAIL) return null;
+      if (user.twoFactorEnabledAt && user.twoFactorSecret) return null;
+
+      // Consume the token and mark the address verified in ONE statement, with
+      // the token still required in the WHERE. Two clicks on the same link race
+      // here: only one can match a row that still carries it, the other gets
+      // count 0 and no session. The old two-step (findUnique, then update) left
+      // that window open — harmless when it only meant "verified twice", not
+      // when it mints a session.
+      const consumed = await prisma.user.updateMany({
+        where: { id: user.id, emailVerifyToken: token },
+        data: {
+          emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+          emailVerified: user.emailVerified ?? new Date(),
+          emailVerifyToken: null,
+          emailVerifyExpiresAt: null,
+          lastLoginAt: new Date(),
+        },
+      });
+      if (consumed.count !== 1) return null;
 
       await auditLog({ action: 'auth.login', userId: user.id });
 
