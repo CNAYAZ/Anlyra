@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIsManager } from '@/lib/auth/owner-context';
-import { CheckCircle2, MailWarning, UserCircle2 } from 'lucide-react';
+import { CheckCircle2, MailWarning, Trash2, UserCircle2 } from 'lucide-react';
 
 type Member = {
   id: string;
@@ -101,6 +101,17 @@ export default function SettingsTeamPage() {
     },
   });
 
+  const revokeInvite = useMutation({
+    mutationFn: (inviteId: string) =>
+      apiFetch<{ revoked: boolean }>(`/api/settings/team?id=${inviteId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings-team'] });
+    },
+    onError: (e: Error) => {
+      setErrorKey(ERROR_KEYS[e.message] ?? 'inviteErrorGeneric');
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
@@ -166,6 +177,7 @@ export default function SettingsTeamPage() {
                   <th className="px-4 py-3 text-left">{t('teamColEmail')}</th>
                   <th className="px-4 py-3 text-left">{t('teamColRole')}</th>
                   <th className="px-4 py-3 text-left">{t('invitePendingExpires')}</th>
+                  <th className="px-4 py-3 text-left">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +191,20 @@ export default function SettingsTeamPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
                       {formatDate(inv.expiresAt, locale)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isManager && (
+                        <button
+                          type="button"
+                          onClick={() => revokeInvite.mutate(inv.id)}
+                          disabled={revokeInvite.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-60"
+                          title={t('inviteRevokeTooltip')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t('inviteRevoke')}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

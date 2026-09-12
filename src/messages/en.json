@@ -1482,6 +1482,8 @@
     "inviteManagerOnly": "Only the owner and admins can invite new people.",
     "invitePendingTitle": "Pending invites",
     "invitePendingExpires": "Expires",
+    "inviteRevoke": "Revoke",
+    "inviteRevokeTooltip": "Cancel this invite",
     "inviteErrorSelf": "That is your own address: you are already part of this organization.",
     "inviteErrorAlreadyMember": "This person is already part of this organization.",
     "inviteErrorEmail": "Invalid email address.",

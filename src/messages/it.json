@@ -1482,6 +1482,8 @@
     "inviteManagerOnly": "Solo il proprietario e gli amministratori possono invitare nuove persone.",
     "invitePendingTitle": "Inviti in sospeso",
     "invitePendingExpires": "Scade il",
+    "inviteRevoke": "Revoca",
+    "inviteRevokeTooltip": "Annulla questo invito",
     "inviteErrorSelf": "Questo è il tuo indirizzo: fai già parte dell'organizzazione.",
     "inviteErrorAlreadyMember": "Questa persona fa già parte dell'organizzazione.",
     "inviteErrorEmail": "Indirizzo email non valido.",

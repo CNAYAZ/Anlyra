@@ -1,13 +1,17 @@
 import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getAuthContext } from '@/lib/session';
+import { requireManagerRole } from '@/lib/auth/require-role';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { organizationId } = await getCurrentContext();
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+    const { organizationId } = authCtx;
     const memberships = await prisma.membership.findMany({
       where: { organizationId },
       include: { user: true },
@@ -42,6 +46,43 @@ export async function GET() {
     });
 
     return ok({ members, invites });
+  } catch (e) {
+    return failFromError(e);
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
+
+    const denied = requireManagerRole(authCtx);
+    if (denied) return denied;
+
+    const { searchParams } = new URL(req.url);
+    const inviteId = searchParams.get('id');
+    if (!inviteId) return fail('MISSING_INVITE_ID', 400);
+
+    // Verify the invite belongs to this organization (cross-tenant isolation)
+    const invite = await prisma.invite.findUnique({
+      where: { id: inviteId },
+      select: { id: true, organizationId: true, acceptedAt: true, expiresAt: true },
+    });
+    if (!invite) return fail('NOT_FOUND', 404);
+    if (invite.organizationId !== authCtx.organizationId) return fail('FORBIDDEN', 403);
+
+    // Cannot revoke an already accepted invite
+    if (invite.acceptedAt) return fail('ALREADY_ACCEPTED', 409);
+
+    // Delete the invite row — the token is the credential, removing the row makes
+    // the link stop working immediately. This mirrors how report share tokens
+    // are revoked (DELETE /api/reports/[id]/share removes the shareToken).
+    await prisma.invite.delete({ where: { id: inviteId } });
+
+    return ok({ revoked: true });
   } catch (e) {
     return failFromError(e);
   }
