@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useBilling } from '@/lib/billing/context';
+import { useIsDemo } from '@/lib/demo/context';
 
 /**
  * Informational strip shown at the top of the dashboard when the org's billing
@@ -18,8 +19,14 @@ import { useBilling } from '@/lib/billing/context';
 export function TrialExpiredBanner() {
   const t = useTranslations('billing.trialExpiredBanner');
   const { state } = useBilling();
+  const isDemo = useIsDemo();
 
   if (state.status === 'active' || state.status === 'trialing') return null;
+
+  // The demo org has no trialEndsAt at all (see getDemoContext / prisma/seed.ts),
+  // so defaultSubscription() always resolves it to 'canceled' — there is no trial
+  // and nothing to subscribe to inside a demo, so the banner never applies here.
+  if (isDemo) return null;
 
   return (
     <div
