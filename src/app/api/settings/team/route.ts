@@ -27,7 +27,21 @@ export async function GET() {
       // long before joining this one.
       joinedAt: m.joinedAt,
     }));
-    return ok({ members });
+
+    // Pending invites: created, not yet accepted, not yet expired. The GET did
+    // not expose these at all (there was no way to create one outside
+    // onboarding, so there was nothing to show); now that the Team page can
+    // send invites, it also has to show which ones are still outstanding, or
+    // the same person gets invited twice with no sign of the first attempt.
+    // The token is NOT included: it is the credential that grants membership,
+    // and the page only needs to say who was invited, as what, and until when.
+    const invites = await prisma.invite.findMany({
+      where: { organizationId, acceptedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
+    });
+
+    return ok({ members, invites });
   } catch (e) {
     return failFromError(e);
   }
