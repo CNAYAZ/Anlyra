@@ -111,9 +111,7 @@
   "user": {
     "profile": "Profilo",
     "settings": "Impostazioni",
-    "logout": "Esci",
-    "name": "Utente Demo",
-    "email": "demo@pro-analytics.io"
+    "logout": "Esci"
   },
   "theme": {
     "light": "Chiaro",

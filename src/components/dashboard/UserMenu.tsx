@@ -3,8 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Settings, User } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api/fetcher';
+
+type Profile = { id: string; name: string | null; email: string; locale: string };
 
 export function UserMenu() {
   const t = useTranslations();
@@ -22,8 +26,17 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  const name = t('user.name');
-  const email = t('user.email');
+  // Same endpoint and cache key as settings/profile: resolves the real user
+  // (or, inside the demo, the real demo user/org — getCurrentContext falls
+  // back there for an anonymous visitor with the demo cookie), never the
+  // fixed strings this component used to read from i18n.
+  const { data } = useQuery({
+    queryKey: ['settings-profile'],
+    queryFn: () => apiFetch<Profile>('/api/settings/profile'),
+  });
+
+  const name = data?.name || data?.email || '';
+  const email = data?.email ?? '';
   const initials = name
     .split(' ')
     .map((w) => w[0])
