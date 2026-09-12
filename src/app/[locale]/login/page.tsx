@@ -30,6 +30,7 @@ const COPY = {
     invalid: 'Email o password non corretti.',
     notVerified: 'Devi confermare la tua email prima di accedere.',
     resend: 'Invia di nuovo l’email di verifica',
+    resendingLabel: 'Invio…',
     resent: 'Email di verifica inviata.',
     generic: 'Accesso non riuscito. Riprova.',
     deletionPending:
@@ -63,6 +64,7 @@ const COPY = {
     invalid: 'Incorrect email or password.',
     notVerified: 'You must confirm your email before signing in.',
     resend: 'Resend verification email',
+    resendingLabel: 'Sending…',
     resent: 'Verification email sent.',
     generic: 'Sign-in failed. Please try again.',
     deletionPending:
@@ -112,6 +114,7 @@ function LoginPageInner() {
   const [error, setError] = useState(urlError);
   const [notVerified, setNotVerified] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resending, setResending] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
 
   // Starting the demo is a POST, never a link: a GET would be followed by link
@@ -132,10 +135,46 @@ function LoginPageInner() {
   }
 
   async function resendVerification() {
-    // Reuse register endpoint? Instead re-trigger via a dedicated path is not
-    // available; we just inform the user. Verification can be re-requested by
-    // signing up again is not ideal, so we simply surface the state.
-    setResent(true);
+    // notVerified (which is what renders this button) is only ever set after
+    // a submit whose precheck already required a filled email field, so email
+    // cannot be empty here in practice — guarded anyway since this function
+    // is reachable independently of that flow.
+    if (!email) return;
+
+    setResending(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      // Same two non-2xx cases as handleSubmit's precheck call: a limiter
+      // failure must never look like "email sent", and 429 vs 503 need
+      // different, honest wording (see the comment on rateLimitResponse).
+      if (res.status === 429) {
+        const seconds = Number(res.headers.get('Retry-After'));
+        const minutes = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds / 60) : null;
+        setError(minutes ? t.tooManyAttemptsIn.replace('{minutes}', String(minutes)) : t.rateLimited);
+        return;
+      }
+      if (res.status === 503) {
+        setError(t.serviceUnavailable);
+        return;
+      }
+
+      // The route always answers { success: true } regardless of whether the
+      // address exists or is already verified (email enumeration), so the
+      // vague "email sent" message here is truthful in the same sense it
+      // always was — it means "your request was accepted", not "an inbox now
+      // has a new message".
+      setResent(true);
+    } catch {
+      setError(t.generic);
+    } finally {
+      setResending(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -302,8 +341,13 @@ function LoginPageInner() {
                 {resent ? (
                   <span className="text-primary">{t.resent}</span>
                 ) : (
-                  <button type="button" onClick={resendVerification} className="text-primary-accent underline">
-                    {t.resend}
+                  <button
+                    type="button"
+                    onClick={resendVerification}
+                    disabled={resending}
+                    className="text-primary-accent underline disabled:opacity-60"
+                  >
+                    {resending ? t.resendingLabel : t.resend}
                   </button>
                 )}
               </div>

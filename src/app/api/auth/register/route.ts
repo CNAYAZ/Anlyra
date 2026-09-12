@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { validatePassword, PASSWORD_POLICY } from '@/lib/auth/config';
-import { generateToken, siteUrl } from '@/lib/auth/tokens';
-import { sendEmail, verifyEmailTemplate } from '@/lib/email';
+import { issueVerificationEmail } from '@/lib/auth/verification';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
-
-const VERIFY_EXPIRY_HOURS = 24;
 
 
 export async function POST(req: Request) {
@@ -53,39 +50,14 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + VERIFY_EXPIRY_HOURS * 60 * 60 * 1000);
 
-  await prisma.user.create({
-    data: {
-      email,
-      name: name || null,
-      locale,
-      passwordHash,
-      emailVerifyToken: token,
-      emailVerifyExpiresAt: expiresAt,
-    },
+  const user = await prisma.user.create({
+    data: { email, name: name || null, locale, passwordHash },
   });
 
-  const verifyUrl = `${siteUrl()}/api/auth/verify-email?token=${token}`;
-  // sendEmail never throws (it catches internally and returns
-  // {success,error} — see send.ts), so the .catch() this replaces caught
-  // nothing; it only looked like error handling. Checking the result is what
-  // actually leaves a trace when delivery fails — the response below is
-  // unchanged either way, verification can still be re-requested.
-  const sendResult = await sendEmail({
-    to: email,
-    subject: 'Conferma la tua email per attivare Anlyra',
-    html: verifyEmailTemplate({
-      userName: name || email,
-      userEmail: email,
-      verifyUrl,
-      expiryHours: VERIFY_EXPIRY_HOURS,
-    }),
-  });
-  if (!sendResult.success) {
-    console.error('[email] verify-email failed', { to: email, reason: sendResult.error });
-  }
+  // Same token generation, expiry (24h) and email template as a later resend
+  // (see /api/auth/resend-verification) — one shared function, not two copies.
+  await issueVerificationEmail(user);
 
   return NextResponse.json({ success: true, message: 'CHECK_EMAIL' });
 }
