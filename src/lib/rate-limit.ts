@@ -124,6 +124,16 @@ const BUCKETS = {
   // already generous — it exists to bound retries, not normal use.
   'onboarding-user': { limit: 3, window: '1 h', onFailure: 'closed' },
 
+  // NEW — inviting one person into an EXISTING organization
+  // (POST /api/settings/team/invite). One email per call, not a batch like
+  // onboarding above, and already behind requireManagerRole — so the risk is
+  // narrower than onboarding's and the limit can be looser. 10/1h per user
+  // still covers onboarding a whole new team in one sitting, while bounding
+  // what a hijacked owner/admin session can send from a verified domain.
+  // Fail-closed like every other email bucket: an outage must not turn into
+  // unmetered sending.
+  'team-invite-user': { limit: 10, window: '1 h', onFailure: 'closed' },
+
   // ── AI MODEL CALLS — fail-closed ────────────────────────────────────────
   // Each call is billed by Anthropic. Shared by /api/ai/chat, /api/ai/analyze
   // and /api/ai/insights/generate; keyed per IP+org. NOT shared with the

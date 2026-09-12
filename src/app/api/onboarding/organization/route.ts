@@ -2,17 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { DEMO_EMAIL } from '@/lib/session';
-import { generateToken, siteUrl } from '@/lib/auth/tokens';
-import { sendEmail, teamInviteTemplate, welcomeTemplate, sanitizeSubjectText } from '@/lib/email';
+import { siteUrl } from '@/lib/auth/tokens';
+import { sendEmail, welcomeTemplate } from '@/lib/email';
+import { issueTeamInvite } from '@/lib/invites/issue';
 import { signupCredits } from '@/lib/billing/plan-credits';
-import { COMPANY } from '@/lib/company';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
 
 const TRIAL_DAYS = 7;
-const INVITE_EXPIRY_HOURS = 72;
-const VALID_ROLES = ['admin', 'editor', 'viewer'];
 
 function slugify(name: string): string {
   return (
@@ -126,7 +124,6 @@ export async function POST(req: Request) {
 
   // Create + send invites (best-effort).
   const inviter = await prisma.user.findUnique({ where: { id: userId } });
-  const inviterSubjectName = inviter?.name ? sanitizeSubjectText(inviter.name) : '';
   // Cap the batch. The rate limit above bounds how OFTEN this route runs, but a
   // single call iterates the caller's array and sends one email per entry — so
   // without a cap, 3 permitted calls could still mean 30 000 emails. The limiter
@@ -158,46 +155,19 @@ export async function POST(req: Request) {
     console.warn(`[onboarding/organization] org ${org.id}: creator ${creatorEmail} was in their own invite list — skipped`);
   }
   for (const inv of invites) {
-    const role = VALID_ROLES.includes(inv.role || '') ? (inv.role as string) : 'viewer';
-    const token = generateToken();
-    await prisma.invite.create({
-      data: {
-        email: inv.email.trim().toLowerCase(),
-        organizationId: org.id,
-        invitedById: userId,
-        role,
-        token,
-        expiresAt: new Date(now.getTime() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000),
-      },
+    // Token generation, the 72h expiry, the role whitelist, the email template
+    // and the logging of a failed delivery all live in issueTeamInvite
+    // (src/lib/invites/issue.ts), shared with POST /api/settings/team/invite so
+    // there is only one copy of them.
+    await issueTeamInvite({
+      organizationId: org.id,
+      orgName: org.name,
+      inviterId: userId,
+      inviterName: inviter?.name ?? null,
+      inviterEmail: inviter?.email ?? null,
+      email: inv.email,
+      role: inv.role || '',
     });
-    // sendEmail never throws (it catches internally and returns
-    // {success,error} — see send.ts), so the .catch() this replaces caught
-    // nothing; it only looked like error handling. Checking the result is
-    // what actually leaves a trace when delivery fails, per invite.
-    const inviteSendResult = await sendEmail({
-      to: inv.email,
-      // inviterSubjectName is free text the inviter typed for themselves
-      // (profile name), landing directly in the Subject header of an email
-      // sent to someone else — sanitizeSubjectText strips control characters/
-      // newlines (header-injection risk, e.g. a name ending in a line break
-      // followed by "Bcc: ...") and caps the length; it does not need
-      // HTML-escaping, the Subject header is not HTML. Sanitized BEFORE the
-      // fallback check, not after, so a name that is control characters
-      // through and through (sanitizes down to empty) still falls back to
-      // "Un collega" instead of leaving a blank in the subject.
-      subject: `${inviterSubjectName || 'Un collega'} ti ha invitato su Anlyra`,
-      html: teamInviteTemplate({
-        inviterName: inviter?.name || inviter?.email || 'Un collega',
-        inviterEmail: inviter?.email || COMPANY.noreplyEmail,
-        orgName: org.name,
-        userEmail: inv.email,
-        inviteUrl: `${siteUrl()}/it/invite/${token}`,
-        expiryHours: INVITE_EXPIRY_HOURS,
-      }),
-    });
-    if (!inviteSendResult.success) {
-      console.error('[email] team-invite failed', { to: inv.email, reason: inviteSendResult.error });
-    }
   }
 
   // Welcome email now that setup is complete (best-effort).
