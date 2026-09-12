@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { buildPublicUrl } from '@/lib/url';
+import { DEMO_COOKIE } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Full-reload logout target (see UserMenu): clears the NextAuth JWT session
-// cookie(s) and the legacy demo cookie, then redirects to the localized login.
+// cookie(s) and the demo cookie, then redirects to the localized login.
 export async function GET(req: NextRequest) {
   const raw = req.nextUrl.searchParams.get('locale');
   const validLocale = ['it', 'en'].includes(String(raw)) ? String(raw) : 'it';
@@ -18,8 +19,10 @@ export async function GET(req: NextRequest) {
   response.cookies.set('authjs.session-token', '', expire);
   response.cookies.set('__Secure-authjs.session-token', '', { ...expire, secure: true });
   response.cookies.set('current_org_id', '', expire);
-  // Legacy demo cookie.
-  response.cookies.set('pro_session', '', expire);
+  // Demo cookie (see DELETE /api/demo/start, the button-driven equivalent of this
+  // clear — reused here as the name, not duplicated, since no UI ever calls it and
+  // this handler already needs to expire cookies inline to build the redirect).
+  response.cookies.set(DEMO_COOKIE, '', expire);
 
   return response;
 }
