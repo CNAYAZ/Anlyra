@@ -1892,6 +1892,13 @@
     "trial": {
       "info": "7 giorni di prova · Nessuna carta richiesta · Annulla quando vuoi"
     },
+    "checkoutReturn": {
+      "subscriptionActive": "Pagamento riuscito! Il tuo abbonamento è attivo.",
+      "subscriptionPending": "Pagamento ricevuto. L'attivazione richiede qualche secondo: questa pagina si aggiornerà da sola.",
+      "subscriptionTimeout": "Il pagamento è stato ricevuto, ma l'attivazione sta richiedendo più del previsto. Se il piano non risulta attivo tra qualche minuto, scrivici a {email} indicando l'orario del pagamento.",
+      "credits": "Pagamento riuscito! I crediti extra sono stati aggiunti al tuo saldo.",
+      "canceled": "Checkout annullato — non ti abbiamo addebitato nulla. Puoi riprovare quando vuoi."
+    },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
     "managePortalError": "Impossibile aprire il portale. Riprova.",
     "ownerOnly": "Solo il proprietario dell'organizzazione può gestire la fatturazione.",
