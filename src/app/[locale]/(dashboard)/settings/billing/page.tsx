@@ -263,11 +263,11 @@ function SettingsBillingPageInner() {
   // Same flow as startCheckout below, for a one-time credit pack instead of a
   // recurring plan: POST /api/billing/credits/checkout, redirect to Stripe.
   //
-  // Error mapping: the route can answer "Credit pack price not configured"
-  // (500 — the pack's STRIPE_PRICE_CREDITS_* env var is missing) or
-  // "Unknown credit pack" (400 — a tampered packId). Neither is something a
-  // customer should ever read verbatim, so both map to one honest, actionable
-  // message instead of the raw string; anything else (network failure, an
+  // Error mapping: the route can answer PRICE_NOT_CONFIGURED (500 — the
+  // pack's STRIPE_PRICE_CREDITS_* env var is missing) or "Unknown credit
+  // pack" (400 — a tampered packId). Neither is something a customer should
+  // ever read verbatim, so both map to one honest, actionable message
+  // instead of the raw string; anything else (network failure, an
   // unrecognized error) falls back to the same generic message.
   async function startCreditsCheckout(packId: CreditPack['id']) {
     setBusyPack(packId);
@@ -284,7 +284,7 @@ function SettingsBillingPageInner() {
         return;
       }
       const friendly =
-        json.error === 'Credit pack price not configured' || json.error === 'Unknown credit pack'
+        json.error === 'PRICE_NOT_CONFIGURED' || json.error === 'Unknown credit pack'
           ? tBilling('credits.buyErrorConfig')
           : tBilling('credits.buyErrorGeneric');
       setPackError({ pack: packId, message: friendly });
@@ -310,13 +310,14 @@ function SettingsBillingPageInner() {
       if (json.success && json.data?.url) {
         window.location.href = json.data.url;
       } else {
-        // PAYMENT_PROVIDER_UNAVAILABLE (checkout/route.ts) is a stable code,
-        // not human text — map it to a message that says nothing about why
-        // (missing Stripe key vs. Stripe being down) instead of showing the
-        // code itself. Every other error string the route can produce is
-        // shown as-is, unchanged from before.
+        // PAYMENT_PROVIDER_UNAVAILABLE and PRICE_NOT_CONFIGURED
+        // (checkout/route.ts) are stable codes, not human text — map both to
+        // the same honest message that says nothing about why (missing
+        // Stripe key vs. Stripe being down vs. a missing price env var)
+        // instead of showing the code itself. Every other error string the
+        // route can produce is shown as-is, unchanged from before.
         const message =
-          json.error === 'PAYMENT_PROVIDER_UNAVAILABLE'
+          json.error === 'PAYMENT_PROVIDER_UNAVAILABLE' || json.error === 'PRICE_NOT_CONFIGURED'
             ? tBilling('checkoutErrorProvider')
             : (json.error ?? 'Checkout failed');
         setCheckoutError({ plan: planId, message });

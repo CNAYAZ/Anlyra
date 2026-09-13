@@ -34,7 +34,14 @@ export async function POST(req: NextRequest) {
   if (!pack) return fail("Unknown credit pack", 400);
 
   const priceId = getCreditPackPriceId(parsed.packId);
-  if (!priceId) return fail("Credit pack price not configured", 500);
+  if (!priceId) {
+    // Same class of problem as checkout/route.ts: a STRIPE_PRICE_* env var
+    // for this specific credit pack was never set. PRICE_NOT_CONFIGURED
+    // keeps the client-facing code stable across both routes; the real
+    // reason goes to the log line instead.
+    console.error(`[billing/credits/checkout] price not configured for pack=${parsed.packId}`);
+    return fail("PRICE_NOT_CONFIGURED", 500);
+  }
 
   const sub = await getSubscription(ctx.organizationId);
 
