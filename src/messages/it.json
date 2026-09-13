@@ -1940,6 +1940,7 @@
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
     "managePortalError": "Impossibile aprire il portale. Riprova.",
     "checkoutErrorProvider": "Non riusciamo a completare il pagamento in questo momento. Riprova tra qualche minuto o scrivici.",
+    "checkoutErrorNetwork": "Connessione non riuscita. Controlla la rete e riprova.",
     "ownerOnly": "Solo il proprietario dell'organizzazione può gestire la fatturazione.",
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",

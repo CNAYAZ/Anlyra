@@ -323,8 +323,14 @@ function SettingsBillingPageInner() {
         setCheckoutError({ plan: planId, message });
         setBusyPlan(null);
       }
-    } catch (e) {
-      setCheckoutError({ plan: planId, message: (e as Error).message });
+    } catch {
+      // fetch() itself rejected — the network failed before any response
+      // came back (server down, no connectivity), not something the server
+      // said. The old code showed the raw exception's .message verbatim
+      // (e.g. "Failed to fetch"), the same class of leak as the
+      // PAYMENT_PROVIDER_UNAVAILABLE case above but for the transport layer
+      // instead of the server's own response.
+      setCheckoutError({ plan: planId, message: tBilling('checkoutErrorNetwork') });
       setBusyPlan(null);
     }
   }
