@@ -117,13 +117,14 @@ export const WIDGET_CATALOG: WidgetCatalogEntry[] = [
   // ── Existing engines, reused as-is. ──
   { type: 'forecast',  labelKey: 'widgetForecast',  descKey: 'widgetForecastDesc',
     category: 'analysis', options: ['metric'], emptyHintKey: 'emptyHintForecast' },
-  // No metric option ON PURPOSE: of the three metrics offered elsewhere, only
-  // margin has an industry percentile to compare against (revenue and costs are
-  // absolute amounts — "your revenue vs the industry's" is not a meaningful
-  // comparison without company size). Offering a selector whose other choices
-  // silently showed the margin anyway would be a lie in the interface.
-  { type: 'benchmark', labelKey: 'widgetBenchmark', descKey: 'widgetBenchmarkDesc',
-    category: 'analysis', options: [], emptyHintKey: 'emptyHintFinancial' },
+  // 'benchmark' messo a riposo il 2026-09-13: i valori di riferimento non sono
+  // adatti alle PMI italiane, in attesa di dati veri (stesso motivo di
+  // nav-config.ts). Rimosso SOLO da questo catalogo, non dal type WidgetType
+  // sopra: un widget salvato prima di oggi porta ancora "benchmark" come
+  // stringa nel JSON della dashboard, e catalogEntry(type) deve poterla
+  // riconoscere come "non trovata" (undefined) — che è esattamente il
+  // meccanismo che DashboardWidget.tsx già usa per un tipo ritirato, invece
+  // di inventare un secondo modo di dire "non più disponibile".
 ];
 
 /** Catalogue entry for a stored widget, or undefined for a type no longer offered. */
