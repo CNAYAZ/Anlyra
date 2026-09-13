@@ -94,6 +94,21 @@ export default function ForecastingPage() {
         <EmptyState message={t('insufficientData')} />
       ) : (
         <>
+          {/* How much history this is actually based on — never stated
+              anywhere before this. Shown always; a stronger tone kicks in
+              only when the chosen horizon extrapolates further out than the
+              history itself covers (3 months of data, 12-month horizon —
+              4x beyond what was measured). */}
+          {Number(controls.horizon) > historical.length ? (
+            <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm text-foreground">
+              {t('horizonExceedsHistory', { horizon: controls.horizon, months: historical.length })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t('basedOnMonths', { months: historical.length })}
+            </p>
+          )}
+
           {/* Metrics */}
           {summary && <ForecastMetrics summary={summary} locale={locale} />}
 

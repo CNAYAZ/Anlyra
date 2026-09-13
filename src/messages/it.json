@@ -1186,6 +1186,8 @@
     "tableConfidenceBand": "Banda di confidenza",
     "empty": "Dati insufficienti per la previsione",
     "insufficientData": "Servono almeno 3 mesi di dati storici per calcolare le previsioni.",
+    "basedOnMonths": "Basato su {months} mesi di dati storici.",
+    "horizonExceedsHistory": "L'orizzonte scelto ({horizon} mesi) supera i {months} mesi di dati storici disponibili: oltre questo punto la previsione è un'estrapolazione, non una proiezione sostenuta dai dati.",
     "error": "Errore nel caricamento delle previsioni.",
     "retry": "Riprova"
   },
