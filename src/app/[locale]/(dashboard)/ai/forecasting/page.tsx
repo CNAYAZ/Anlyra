@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calculator, Sparkles } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import { ForecastChart } from '@/components/ai/forecasting/forecast-chart';
@@ -16,7 +16,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/fetcher';
-import { useCreditsStore } from '@/stores/credits-store';
 import type { ForecastSummary } from '@/lib/forecasting';
 import type { HistoricalPoint, ForecastPoint } from '@/components/ai/forecasting/forecast-chart';
 import type { Locale } from '@/lib/utils';
@@ -30,7 +29,6 @@ type ForecastResponse = {
 
 export default function ForecastingPage() {
   const t = useTranslations('forecasting');
-  const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const locale = useLocale() as Locale;
 
   const [controls, setControls] = useState<ForecastControlValues>({
@@ -38,9 +36,6 @@ export default function ForecastingPage() {
     horizon: '6',
     model: 'exponential',
   });
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  const canGenerateAi = aiCreditsBalance >= 5;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['forecasting', controls.metric, controls.horizon, controls.model],
@@ -49,11 +44,6 @@ export default function ForecastingPage() {
         `/api/ai/forecasting?metric=${controls.metric}&horizon=${controls.horizon}&model=${controls.model}`,
       ),
   });
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 4000);
-  };
 
   const historical = data?.historical ?? [];
   const forecast = data?.forecast ?? [];
@@ -76,25 +66,9 @@ export default function ForecastingPage() {
               <Calculator className="h-4 w-4" />
               {t('calculate')}
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!canGenerateAi}
-              onClick={() => showToast(t('generateAiDisabled'))}
-              title={!canGenerateAi ? t('creditsRequired') : undefined}
-            >
-              <Sparkles className="h-4 w-4" />
-              {t('generateAi')}
-            </Button>
           </div>
         }
       />
-
-      {toastMsg && (
-        <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm text-foreground">
-          {toastMsg}
-        </div>
-      )}
 
       {/* Controls */}
       <div className="card">
@@ -120,6 +94,21 @@ export default function ForecastingPage() {
         <EmptyState message={t('insufficientData')} />
       ) : (
         <>
+          {/* How much history this is actually based on — never stated
+              anywhere before this. Shown always; a stronger tone kicks in
+              only when the chosen horizon extrapolates further out than the
+              history itself covers (3 months of data, 12-month horizon —
+              4x beyond what was measured). */}
+          {Number(controls.horizon) > historical.length ? (
+            <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm text-foreground">
+              {t('horizonExceedsHistory', { horizon: controls.horizon, months: historical.length })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t('basedOnMonths', { months: historical.length })}
+            </p>
+          )}
+
           {/* Metrics */}
           {summary && <ForecastMetrics summary={summary} locale={locale} />}
 

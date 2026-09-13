@@ -1186,6 +1186,8 @@
     "tableConfidenceBand": "Confidence band",
     "empty": "Insufficient data for forecast",
     "insufficientData": "At least 3 months of historical data are needed to compute forecasts.",
+    "basedOnMonths": "Based on {months} months of historical data.",
+    "horizonExceedsHistory": "The chosen horizon ({horizon} months) exceeds the {months} months of historical data available: beyond that point, the forecast is an extrapolation, not a projection backed by data.",
     "error": "Error loading forecasts.",
     "retry": "Retry"
   },
