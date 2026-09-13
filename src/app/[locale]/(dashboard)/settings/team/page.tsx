@@ -19,8 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useIsManager } from '@/lib/auth/owner-context';
-import { CheckCircle2, MailWarning, Trash2, UserCircle2 } from 'lucide-react';
+import { useIsManager, useIsOwner } from '@/lib/auth/owner-context';
+import { CheckCircle2, MailWarning, Trash2, UserCircle2, UserMinus } from 'lucide-react';
+
+/** The four roles a member can be set to. 'owner' is assignable only BY an owner. */
+const ASSIGNABLE_ROLES = ['owner', 'admin', 'editor', 'viewer'] as const;
 
 type Member = {
   id: string;
@@ -62,6 +65,21 @@ const ERROR_KEYS: Record<string, string> = {
   ALREADY_ACCEPTED: 'inviteRevokeErrorAccepted',
 };
 
+/**
+ * Separate map for the member controls: NOT_FOUND means something different
+ * here ("that person is no longer in this team") than it does for an invite,
+ * so the two cannot share one table.
+ */
+const MEMBER_ERROR_KEYS: Record<string, string> = {
+  NOT_FOUND: 'memberErrorNotFound',
+  CANNOT_CHANGE_OWN_ROLE: 'memberErrorOwnRole',
+  CANNOT_REMOVE_SELF: 'memberErrorRemoveSelf',
+  OWNER_REQUIRED: 'memberErrorOwnerRequired',
+  LAST_OWNER: 'memberErrorLastOwner',
+  CONFLICT: 'memberErrorConflict',
+  DEMO_READ_ONLY: 'inviteErrorDemo',
+};
+
 const ROLE_BADGE: Record<string, string> = {
   owner: 'border-primary-accent/30 bg-primary-accent/10 text-primary-accent',
   admin: 'border-warning/40 bg-warning/10 text-warning',
@@ -73,10 +91,22 @@ export default function SettingsTeamPage() {
   const locale = useAppLocale();
   const qc = useQueryClient();
   const isManager = useIsManager();
+  const isOwner = useIsOwner();
+
+  // Who am I: needed to grey out the controls on my OWN row, because the
+  // server refuses changing or removing your own membership. Same endpoint and
+  // same cache key the profile menu already uses — no new route.
+  const { data: me } = useQuery({
+    queryKey: ['settings-profile'],
+    queryFn: () => apiFetch<{ id: string }>('/api/settings/profile'),
+  });
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<(typeof INVITABLE_ROLES)[number]>('viewer');
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  // Kept apart from the invite form's error so a failure on the members table
+  // does not appear under the invite button, and vice versa.
+  const [memberErrorKey, setMemberErrorKey] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string; emailSent: boolean } | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -105,6 +135,27 @@ export default function SettingsTeamPage() {
       // apiFetch throws with the route's `error` string as the message.
       setErrorKey(ERROR_KEYS[e.message] ?? 'inviteErrorGeneric');
     },
+  });
+
+  const changeRole = useMutation({
+    mutationFn: ({ membershipId, role }: { membershipId: string; role: string }) =>
+      apiFetch<{ id: string; role: string }>(`/api/settings/team/members/${membershipId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    onMutate: () => setMemberErrorKey(null),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings-team'] }),
+    onError: (e: Error) => setMemberErrorKey(MEMBER_ERROR_KEYS[e.message] ?? 'memberErrorGeneric'),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (membershipId: string) =>
+      apiFetch<{ id: string; removed: boolean }>(`/api/settings/team/members/${membershipId}`, {
+        method: 'DELETE',
+      }),
+    onMutate: () => setMemberErrorKey(null),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings-team'] }),
+    onError: (e: Error) => setMemberErrorKey(MEMBER_ERROR_KEYS[e.message] ?? 'memberErrorGeneric'),
   });
 
   const revokeInvite = useMutation({
@@ -147,32 +198,90 @@ export default function SettingsTeamPage() {
                 <th className="px-4 py-3 text-left">{t('teamColEmail')}</th>
                 <th className="px-4 py-3 text-left">{t('teamColRole')}</th>
                 <th className="px-4 py-3 text-left">{t('teamColJoined')}</th>
+                <th className="px-4 py-3 text-left">{t('teamColActions')}</th>
               </tr>
             </thead>
             <tbody>
-              {data.members.map((m) => (
-                <tr key={m.id} className="border-t border-border">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <UserCircle2 className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium">{m.name ?? m.email.split('@')[0]}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{m.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ROLE_BADGE[m.role] ?? ROLE_BADGE.member}`}>
-                      {t(`role${m.role.charAt(0).toUpperCase()}${m.role.slice(1)}` as 'roleOwner')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {formatDate(m.joinedAt, locale)}
-                  </td>
-                </tr>
-              ))}
+              {data.members.map((m) => {
+                const isSelf = !!me && m.userId === me.id;
+                const targetIsOwner = m.role === 'owner';
+                // Mirrors the server's rules exactly, so the UI never offers a
+                // control the route would refuse. The server is still the
+                // authority — this only decides what is worth showing.
+                const reasonKey = !isManager
+                  ? 'memberManagerOnly'
+                  : isSelf
+                    ? 'memberSelfDisabled'
+                    : targetIsOwner && !isOwner
+                      ? 'memberOwnerOnly'
+                      : null;
+                const locked = reasonKey !== null;
+                const busy = changeRole.isPending || removeMember.isPending;
+
+                return (
+                  <tr key={m.id} className="border-t border-border">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <UserCircle2 className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">{m.name ?? m.email.split('@')[0]}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{m.email}</td>
+                    <td className="px-4 py-3">
+                      {locked ? (
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${ROLE_BADGE[m.role] ?? ROLE_BADGE.member}`}
+                          title={t(reasonKey as 'memberManagerOnly')}
+                        >
+                          {t(`role${m.role.charAt(0).toUpperCase()}${m.role.slice(1)}` as 'roleOwner')}
+                        </span>
+                      ) : (
+                        <Select
+                          value={m.role}
+                          disabled={busy}
+                          onValueChange={(v) =>
+                            changeRole.mutate({ membershipId: m.id, role: v })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[130px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ASSIGNABLE_ROLES.filter((r) => r !== 'owner' || isOwner).map((r) => (
+                              <SelectItem key={r} value={r}>
+                                {t(`role${r.charAt(0).toUpperCase()}${r.slice(1)}` as 'roleOwner')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {formatDate(m.joinedAt, locale)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => removeMember.mutate(m.id)}
+                        disabled={locked || busy}
+                        title={reasonKey ? t(reasonKey as 'memberManagerOnly') : t('memberRemoveTooltip')}
+                        className="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+                      >
+                        <UserMinus className="h-3.5 w-3.5" />
+                        {t('memberRemove')}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <FormError>{memberErrorKey ? t(memberErrorKey as 'memberErrorGeneric') : null}</FormError>
+
+      {!isManager && <p className="text-[11px] text-muted-foreground">{t('memberManagerOnly')}</p>}
 
       {/* Pending invites: shown only when there are any, so a team with
           nothing outstanding does not get an empty box. */}
