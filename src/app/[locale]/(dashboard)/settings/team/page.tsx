@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIsManager } from '@/lib/auth/owner-context';
-import { CheckCircle2, MailWarning, UserCircle2 } from 'lucide-react';
+import { CheckCircle2, MailWarning, Trash2, UserCircle2 } from 'lucide-react';
 
 type Member = {
   id: string;
@@ -54,6 +54,12 @@ const ERROR_KEYS: Record<string, string> = {
   DEMO_READ_ONLY: 'inviteErrorDemo',
   RATE_LIMITED: 'inviteErrorRateLimited',
   RATE_LIMIT_UNAVAILABLE: 'inviteErrorUnavailable',
+  // Revoke-specific: NOT_FOUND covers both "already revoked by someone else"
+  // and "belongs to another organization" — the route answers both alike on
+  // purpose (see the route's comment), so the UI cannot and does not try to
+  // tell them apart either.
+  NOT_FOUND: 'inviteRevokeErrorNotFound',
+  ALREADY_ACCEPTED: 'inviteRevokeErrorAccepted',
 };
 
 const ROLE_BADGE: Record<string, string> = {
@@ -97,6 +103,20 @@ export default function SettingsTeamPage() {
     },
     onError: (e: Error) => {
       // apiFetch throws with the route's `error` string as the message.
+      setErrorKey(ERROR_KEYS[e.message] ?? 'inviteErrorGeneric');
+    },
+  });
+
+  const revokeInvite = useMutation({
+    mutationFn: (inviteId: string) =>
+      apiFetch<{ revoked: boolean }>(`/api/settings/team?id=${inviteId}`, { method: 'DELETE' }),
+    onMutate: () => {
+      setErrorKey(null);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings-team'] });
+    },
+    onError: (e: Error) => {
       setErrorKey(ERROR_KEYS[e.message] ?? 'inviteErrorGeneric');
     },
   });
@@ -166,6 +186,7 @@ export default function SettingsTeamPage() {
                   <th className="px-4 py-3 text-left">{t('teamColEmail')}</th>
                   <th className="px-4 py-3 text-left">{t('teamColRole')}</th>
                   <th className="px-4 py-3 text-left">{t('invitePendingExpires')}</th>
+                  <th className="px-4 py-3 text-left">{t('teamColActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +200,20 @@ export default function SettingsTeamPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
                       {formatDate(inv.expiresAt, locale)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isManager && (
+                        <button
+                          type="button"
+                          onClick={() => revokeInvite.mutate(inv.id)}
+                          disabled={revokeInvite.isPending}
+                          className="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2 py-1 text-xs font-medium text-danger hover:bg-danger/20 disabled:opacity-60"
+                          title={t('inviteRevokeTooltip')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t('inviteRevoke')}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
