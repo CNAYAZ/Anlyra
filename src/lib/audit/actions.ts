@@ -54,6 +54,7 @@ export const AUDIT_ACTIONS = [
   // ── Team management (behind requireManagerRole, changes who can see the
   // company's data and with what powers) ──
   'team.member_role_changed',
+  'team.member_removed',
 
   // ── Support ──
   'support.bug_report',

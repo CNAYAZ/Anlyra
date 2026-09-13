@@ -142,3 +142,110 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return failFromError(e);
   }
 }
+
+/**
+ * DELETE /api/settings/team/members/[id] — remove a person from the team.
+ *
+ * Same guards as PATCH above and, like it, one statement with the
+ * organization row locked first: "keep at least one owner" is the same
+ * cross-row invariant, and a removal breaks it just as a demotion does.
+ *
+ * WHY THIS LIVES HERE AND NOT ON /api/settings/team: that path's DELETE
+ * already means "revoke a pending invite". Two different destructive things
+ * behind one verb on one path, told apart only by a query parameter, is how
+ * the wrong one eventually gets called.
+ *
+ * ── WHAT DELETING A MEMBERSHIP DOES *NOT* TOUCH (verified, deliberate) ──
+ *  • NotificationPref_b8 rows (userId+organizationId, no FK) survive. Nothing
+ *    sends email based on them — the only readers are the settings page, the
+ *    GDPR export and the GDPR purge — so they are inert, and the purge clears
+ *    them if the account itself is ever deleted.
+ *  • Report_b8.recipients keeps the address as text, but the scheduled-report
+ *    cron re-checks every recipient against live membership before sending
+ *    (splitRecipientsByMembership, src/lib/reports/recipients.ts), so a removed
+ *    person stops receiving the company's figures on the very next run.
+ *  • AIConversation rows survive on purpose: they are keyed by organizationId
+ *    and are the ORGANIZATION's data, not the departing person's. Deleting
+ *    them here would destroy company history; the removed person cannot reach
+ *    them because every read resolves the org through a Membership.
+ *  • Report share links are not attributable to a person at all — Report_b8 has
+ *    no creator column — so there is nothing of "theirs" to revoke, and
+ *    revoking the org's own links would break sharing for everyone left.
+ *
+ * Access ends immediately and needs no session invalidation: the JWT still
+ * carries the old currentOrgId and the browser still has current_org_id, but
+ * resolveSessionContext validates EVERY branch (cookie, token, fallback)
+ * against a real Membership row on each request, so both simply stop
+ * resolving. See the test in the report.
+ */
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
+
+    const denied = requireManagerRole(authCtx);
+    if (denied) return denied;
+
+    const membershipId = (await ctx.params).id;
+    const callerIsOwner = isOwnerRole(authCtx.role);
+    const { organizationId, userId } = authCtx;
+
+    const rows = await prisma.$queryRaw<MemberGuardRow[]>`
+      WITH locked AS (
+        SELECT "id" FROM "Organization" WHERE "id" = ${organizationId} FOR UPDATE
+      ), target AS (
+        SELECT m."id", m."role", m."userId"
+        FROM "Membership" m, locked l
+        WHERE m."id" = ${membershipId} AND m."organizationId" = l."id"
+      ), owners AS (
+        SELECT COUNT(*)::int AS n
+        FROM "Membership" m, locked l
+        WHERE m."organizationId" = l."id" AND m."role" = 'owner'
+      ), removed AS (
+        DELETE FROM "Membership" m
+        USING target t, owners o
+        WHERE m."id" = t."id"
+          -- you cannot remove yourself: same reasoning as the role rule, and
+          -- it also stops an owner from emptying their own organization
+          AND t."userId" <> ${userId}
+          -- an admin may not remove an owner
+          AND (${callerIsOwner} OR t."role" <> 'owner')
+          -- the organization must keep at least one owner
+          AND (t."role" <> 'owner' OR o.n > 1)
+        RETURNING m."id"
+      )
+      SELECT
+        (SELECT COUNT(*) FROM target)::int  AS target_found,
+        (SELECT COUNT(*) FROM removed)::int AS updated_rows,
+        (SELECT n FROM owners)              AS owner_count,
+        (SELECT t."role"   FROM target t)   AS old_role,
+        (SELECT t."userId" FROM target t)   AS target_user_id
+    `;
+
+    const r = rows[0];
+    if (!r || r.target_found === 0) return fail('NOT_FOUND', 404);
+
+    if (r.target_user_id === userId) return fail('CANNOT_REMOVE_SELF', 403);
+    if (!callerIsOwner && r.old_role === 'owner') return fail('OWNER_REQUIRED', 403);
+    if (r.old_role === 'owner' && r.owner_count <= 1) return fail('LAST_OWNER', 409);
+    if (r.updated_rows === 0) return fail('CONFLICT', 409);
+
+    await auditLog({
+      action: 'team.member_removed',
+      userId,
+      organizationId,
+      targetType: 'membership',
+      targetId: membershipId,
+      req,
+      // The role that was removed, never the person's name or address.
+      metadata: { role: r.old_role ?? '' },
+    });
+
+    return ok({ id: membershipId, removed: true });
+  } catch (e) {
+    return failFromError(e);
+  }
+}
