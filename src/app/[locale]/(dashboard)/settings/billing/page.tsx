@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, CheckCircle2, Coins, Crown, Info, Loader2, Shield } from 'lucide-react';
@@ -57,6 +57,7 @@ function SettingsBillingPageInner() {
   const tBilling = useTranslations('billing');
   const tPricing = useTranslations('pricing');
   const aiCredits = useCreditsStore((s) => s.credits);
+  const setCredits = useCreditsStore((s) => s.setCredits);
   const isOwner = useIsOwner();
   const locale = useAppLocale();
   const plan = usePlan();
@@ -147,6 +148,87 @@ function SettingsBillingPageInner() {
     // and recreated on every render.
   }, [returnCase, plan.status]);
 
+  // Same mechanism as the subscription poll above (same interval, same
+  // attempt cap, same "give up after 30s" behaviour), extended to the
+  // credits case — which was previously left out on purpose (see the
+  // comment on the effect above: "never for the credits ... case"), leaving
+  // a stale counter on screen until the customer reloaded by hand.
+  //
+  // WHAT TO COMPARE, verified before writing this: a subscription has a
+  // binary state to wait for (active/past_due vs not), available instantly
+  // from BillingProvider's SSR-provided initialState — so the subscription
+  // effect can decide "already done, never poll" from a value it already
+  // has, with no extra read. A credit balance has no such binary "done"
+  // state: any non-negative integer is valid, so "already updated" cannot
+  // be told apart from "not yet updated" by looking at the number alone —
+  // only a RISE in the number, observed during this visit, proves the
+  // webhook landed (applyCreditPurchase, src/lib/billing/repository.ts,
+  // only ever increments the balance, never leaves it flat or lowers it).
+  //
+  // Consequence, verified by testing (see the report for this commit): a
+  // subscription checkout that is already active on arrival skips polling
+  // entirely, because that fact is known up front. A credits checkout that
+  // already reflects the purchase on arrival CANNOT be told apart, up
+  // front, from one that has not landed yet — both look like "some number,"
+  // not "the right number" — so the poll still runs in the background for
+  // up to 30s before giving up quietly. The number on screen is correct
+  // from the first render either way (it always shows the true server
+  // value); what the poll adds is catching a LATE-arriving rise without a
+  // reload, and it never shows anything alarming if nothing was actually
+  // wrong.
+  //
+  // The baseline is the balance THIS VISIT first saw, captured once. It is
+  // deliberately NOT read on the very first render: aiCredits starts at the
+  // store's default (0) for one tick before CreditsHydrator's own effect
+  // (a sibling component, src/components/dashboard/CreditsHydrator.tsx)
+  // hydrates it from the server — locking in that transient 0 as "the
+  // balance before this purchase" would make ANY real balance look like an
+  // increase and confirm falsely on every visit, purchase or not.
+  const [creditsConfirmed, setCreditsConfirmed] = useState(false);
+  const [creditsPollTimedOut, setCreditsPollTimedOut] = useState(false);
+  const creditsBaselineRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (returnCase !== 'credits') return;
+    if (creditsConfirmed || creditsPollTimedOut) return;
+    if (aiCredits === 0 && creditsBaselineRef.current === null) return;
+    if (creditsBaselineRef.current === null) {
+      creditsBaselineRef.current = aiCredits;
+    }
+    const baseline = creditsBaselineRef.current;
+
+    let attempts = 0;
+    const id = setInterval(() => {
+      attempts += 1;
+      apiFetch<{ credits: number }>('/api/billing/credits')
+        .then((data) => {
+          if (data.credits > baseline) {
+            setCredits(data.credits);
+            setCreditsConfirmed(true);
+            clearInterval(id);
+          } else if (attempts >= POLL_MAX_ATTEMPTS) {
+            setCreditsPollTimedOut(true);
+            clearInterval(id);
+          }
+        })
+        .catch(() => {
+          // Transient network hiccup — try again on the next tick, same
+          // reasoning as the subscription poll's catch above.
+          if (attempts >= POLL_MAX_ATTEMPTS) {
+            setCreditsPollTimedOut(true);
+            clearInterval(id);
+          }
+        });
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(id);
+    // aiCredits is a dependency so the effect re-evaluates once the transient
+    // 0 above resolves to a real value — the creditsConfirmed/timedOut guards
+    // stop it from ever creating a second interval once one of those becomes
+    // true (the only other things that change aiCredits during this effect's
+    // life are this same effect's own setCredits call on confirmation).
+  }, [returnCase, aiCredits, creditsConfirmed, creditsPollTimedOut, setCredits]);
+
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [busyPlan, setBusyPlan] = useState<PlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
@@ -228,7 +310,16 @@ function SettingsBillingPageInner() {
       if (json.success && json.data?.url) {
         window.location.href = json.data.url;
       } else {
-        setCheckoutError({ plan: planId, message: json.error ?? 'Checkout failed' });
+        // PAYMENT_PROVIDER_UNAVAILABLE (checkout/route.ts) is a stable code,
+        // not human text — map it to a message that says nothing about why
+        // (missing Stripe key vs. Stripe being down) instead of showing the
+        // code itself. Every other error string the route can produce is
+        // shown as-is, unchanged from before.
+        const message =
+          json.error === 'PAYMENT_PROVIDER_UNAVAILABLE'
+            ? tBilling('checkoutErrorProvider')
+            : (json.error ?? 'Checkout failed');
+        setCheckoutError({ plan: planId, message });
         setBusyPlan(null);
       }
     } catch (e) {
@@ -257,9 +348,21 @@ function SettingsBillingPageInner() {
         </div>
       )}
       {returnCase === 'credits' && (
-        <div role="status" className="flex items-center gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
-          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-          <span>{tBilling('checkoutReturn.credits')}</span>
+        <div role="status" className="flex items-start gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
+          <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+          <div>
+            <p>{tBilling('checkoutReturn.credits')}</p>
+            {/* The purchase succeeded either way (Stripe already told us so
+                by sending the customer back here) — this note is about the
+                COUNTER possibly lagging, not the payment, so it stays calm
+                and factual instead of looking like a second, worse message
+                stacked under the first. */}
+            {creditsPollTimedOut && !creditsConfirmed && (
+              <p className="mt-1 text-xs text-success-700/80 dark:text-success-500/70">
+                {tBilling('checkoutReturn.creditsBalancePending')}
+              </p>
+            )}
+          </div>
         </div>
       )}
       {returnCase === 'success' && (
