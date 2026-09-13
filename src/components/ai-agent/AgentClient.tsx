@@ -25,8 +25,10 @@ import { useIsDemo } from '@/lib/demo/context';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
 
 // Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
-// route's ANALYSIS_CREDIT_COST. Used only to decide when to disable the
-// Generate/Send buttons ahead of a request; the server is the source of truth.
+// route's ANALYSIS_CREDIT_COST. Used both to decide when to disable the
+// Generate/Send buttons ahead of a request AND to show that cost on the
+// buttons themselves (t('generate'/'send', { cost: ... })); the server is
+// the source of truth, this only mirrors it.
 const ANALYSIS_CREDIT_COST = 1;
 
 type AgentMode = 'financial' | 'marketing' | 'kpi' | 'competitor' | 'chat';
@@ -224,7 +226,7 @@ export function AgentClient() {
               title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Sparkles className="h-4 w-4" />
-              {t('generate')}
+              {t('generate', { cost: ANALYSIS_CREDIT_COST })}
             </Button>
             <span className="text-xs text-fg-3">{t('orAsk')}</span>
           </div>
@@ -254,7 +256,7 @@ export function AgentClient() {
               title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Send className="h-4 w-4" />
-              {t('send')}
+              {t('send', { cost: ANALYSIS_CREDIT_COST })}
             </Button>
           </div>
         </div>

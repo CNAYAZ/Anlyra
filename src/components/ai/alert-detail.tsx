@@ -142,7 +142,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  {isAnalyzing ? t('analyzing') : t('analyzeButton')}
+                  {isAnalyzing ? t('analyzing') : t('analyzeButton', { cost: ANALYSIS_CREDIT_COST })}
                 </Button>
               )}
             </div>
