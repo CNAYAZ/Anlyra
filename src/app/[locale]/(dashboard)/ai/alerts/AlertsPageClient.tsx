@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AlertCard } from '@/components/ai/alert-card';
 import { AlertDetail } from '@/components/ai/alert-detail';
@@ -17,7 +17,6 @@ import type { AlertDTO, AlertStatus } from '@/types/ai';
 
 export function AlertsPageClient({ initialCredits }: { initialCredits: number }) {
   const t = useTranslations('alerts');
-  const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
   const qc = useQueryClient();
 
@@ -42,8 +41,6 @@ export function AlertsPageClient({ initialCredits }: { initialCredits: number })
   const [selected, setSelected] = useState<AlertDTO | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  const canGenerateAi = aiCreditsBalance >= 3;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['alerts', filters.severity, filters.status],
@@ -127,19 +124,6 @@ export function AlertsPageClient({ initialCredits }: { initialCredits: number })
             >
               <RefreshCw className={refreshMutation.isPending ? 'animate-spin h-4 w-4' : 'h-4 w-4'} />
               {t('refreshButton')}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!canGenerateAi}
-              onClick={() => {
-                setToastMsg(t('generateAiButtonDisabled'));
-                setTimeout(() => setToastMsg(null), 4000);
-              }}
-              title={!canGenerateAi ? t('creditsRequired') : undefined}
-            >
-              <Sparkles className="h-4 w-4" />
-              {t('generateAiButton')}
             </Button>
           </div>
         }
