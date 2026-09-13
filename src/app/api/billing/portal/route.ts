@@ -23,11 +23,24 @@ export async function POST(req: NextRequest) {
 
   const origin = (req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim();
 
-  const stripe = getStripe();
-  const portal = await stripe.billingPortal.sessions.create({
-    customer: sub.stripeCustomerId,
-    return_url: `${origin}/settings/billing`,
-  });
+  // getStripe() throws when STRIPE_SECRET_KEY is missing, and the Stripe API
+  // call below can itself throw (network failure, Stripe outage). None of
+  // this was caught: the exception reached Next's default handler, which
+  // answers 500 with an EMPTY body — the client's res.json() then fails with
+  // "Unexpected end of JSON input", exactly the raw error the founder hit in
+  // production. PAYMENT_PROVIDER_UNAVAILABLE is stable and deliberately says
+  // nothing about WHY (missing key vs. Stripe being down are the same
+  // problem from the customer's side: this cannot be completed right now).
+  try {
+    const stripe = getStripe();
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: `${origin}/settings/billing`,
+    });
 
-  return ok({ url: portal.url });
+    return ok({ url: portal.url });
+  } catch (e) {
+    console.error("[billing/portal] Stripe call failed:", e);
+    return fail("PAYMENT_PROVIDER_UNAVAILABLE", 500);
+  }
 }

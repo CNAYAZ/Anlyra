@@ -310,7 +310,16 @@ function SettingsBillingPageInner() {
       if (json.success && json.data?.url) {
         window.location.href = json.data.url;
       } else {
-        setCheckoutError({ plan: planId, message: json.error ?? 'Checkout failed' });
+        // PAYMENT_PROVIDER_UNAVAILABLE (checkout/route.ts) is a stable code,
+        // not human text — map it to a message that says nothing about why
+        // (missing Stripe key vs. Stripe being down) instead of showing the
+        // code itself. Every other error string the route can produce is
+        // shown as-is, unchanged from before.
+        const message =
+          json.error === 'PAYMENT_PROVIDER_UNAVAILABLE'
+            ? tBilling('checkoutErrorProvider')
+            : (json.error ?? 'Checkout failed');
+        setCheckoutError({ plan: planId, message });
         setBusyPlan(null);
       }
     } catch (e) {
