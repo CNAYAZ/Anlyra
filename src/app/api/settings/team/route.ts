@@ -1,6 +1,8 @@
 import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getCurrentContext, getAuthContext } from '@/lib/session';
+import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireManagerRole } from '@/lib/auth/require-role';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +44,60 @@ export async function GET() {
     });
 
     return ok({ members, invites });
+  } catch (e) {
+    return failFromError(e);
+  }
+}
+
+/**
+ * DELETE /api/settings/team?id=<inviteId> — revoke a pending invite.
+ *
+ * Unlike GET above, this is a write: getAuthContext() (never falls back to
+ * the demo org) plus requireWritableOrg (demo is read-only) and
+ * requireManagerRole (owner/admin only, same as issuing the invite).
+ *
+ * The lookup filters on { id, organizationId } TOGETHER in one query — the
+ * same shape used by every other route that fetches a resource by id scoped
+ * to the caller's organization (receivables/[id], recurring-expenses/[id],
+ * custom-dashboards/[id], reports/[id]: all `findFirst({ where: { id,
+ * organizationId } })`). An invite that does not exist and an invite that
+ * belongs to a DIFFERENT organization both simply fail to match and get the
+ * same NOT_FOUND — never a 403 that would let a caller distinguish "wrong
+ * organization" from "no such id" and so map out which ids exist elsewhere.
+ */
+export async function DELETE(req: Request) {
+  try {
+    const authCtx = await getAuthContext();
+    if (!authCtx) return fail('Unauthorized', 401);
+
+    const readOnly = requireWritableOrg(authCtx.organizationId);
+    if (readOnly) return readOnly;
+
+    const denied = requireManagerRole(authCtx);
+    if (denied) return denied;
+
+    const { searchParams } = new URL(req.url);
+    const inviteId = searchParams.get('id');
+    if (!inviteId) return fail('MISSING_INVITE_ID', 400);
+
+    const invite = await prisma.invite.findFirst({
+      where: { id: inviteId, organizationId: authCtx.organizationId },
+      select: { id: true, acceptedAt: true },
+    });
+    if (!invite) return fail('NOT_FOUND', 404);
+
+    // Cannot revoke an invite that has already been accepted — it is no
+    // longer a pending offer, it is how an existing member joined.
+    if (invite.acceptedAt) return fail('ALREADY_ACCEPTED', 409);
+
+    // Deleting the row is what makes the link stop working: accept looks the
+    // token up with prisma.invite.findUnique, and a missing row answers
+    // INVITE_INVALID exactly like an unknown or expired token. Same mechanism
+    // already used by report share links (DELETE /api/reports/[id]/share
+    // removes shareToken).
+    await prisma.invite.delete({ where: { id: invite.id } });
+
+    return ok({ revoked: true });
   } catch (e) {
     return failFromError(e);
   }
