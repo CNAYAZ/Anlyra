@@ -107,18 +107,29 @@ export interface ScheduledReportsResult {
   failed: number;
 }
 
-function scheduleLabelIt(schedule: string): string {
+type EmailLocale = 'it' | 'en';
+
+function scheduleLabel(schedule: string, locale: EmailLocale): string {
+  if (locale === 'en') return schedule === 'weekly' ? 'weekly' : 'monthly';
   return schedule === 'weekly' ? 'settimanale' : 'mensile';
 }
 
-function periodLabelForConfig(period: string): string {
-  const map: Record<string, string> = {
+function periodLabelForConfig(period: string, locale: EmailLocale): string {
+  const mapIt: Record<string, string> = {
     '1m': 'Ultimo mese',
     '3m': 'Ultimi 3 mesi',
     '6m': 'Ultimi 6 mesi',
     '12m': 'Ultimi 12 mesi',
     custom: 'Periodo personalizzato',
   };
+  const mapEn: Record<string, string> = {
+    '1m': 'Last month',
+    '3m': 'Last 3 months',
+    '6m': 'Last 6 months',
+    '12m': 'Last 12 months',
+    custom: 'Custom period',
+  };
+  const map = locale === 'en' ? mapEn : mapIt;
   return map[period] ?? map['12m'];
 }
 
@@ -201,34 +212,70 @@ async function processOne(r: ReportRow, now: Date, result: ScheduledReportsResul
     select: { name: true },
   });
 
-  const html = scheduledReportTemplate({
-    organizationName: org?.name ?? '',
-    reportTitle: r.title,
-    scheduleLabel: scheduleLabelIt(r.schedule!),
-    periodLabel: periodLabelForConfig(config.period),
-    dashboardUrl: `${siteUrl()}/it/reports`,
+  // One report can list several recipients, each a different organization
+  // member with their own User.locale — a single email with one hardcoded
+  // language cannot be "correct" for all of them at once. Grouped by locale so
+  // each group gets its own subject, body and dashboard link; recipients are
+  // already validated org members (splitRecipientsByMembership above), so this
+  // is a lookup by the same addresses, not a new trust boundary.
+  const recipientUsers = await prisma.user.findMany({
+    where: { email: { in: recipients } },
+    select: { email: true, locale: true },
   });
+  const localeByEmail = new Map(recipientUsers.map((u) => [u.email.toLowerCase(), u.locale === 'en' ? 'en' as const : 'it' as const]));
+  const groups: Record<EmailLocale, string[]> = { it: [], en: [] };
+  for (const address of recipients) {
+    groups[localeByEmail.get(address) ?? 'it'].push(address);
+  }
 
-  const sendResult = await sendEmail({
-    to: recipients,
-    // r.title is free text typed when the report was created (zod max(120),
-    // no character filter) — see sanitizeSubjectText for why a Subject
-    // header needs this even though scheduledReportTemplate escapes it
-    // separately for the HTML body.
-    subject: `Il tuo report ${scheduleLabelIt(r.schedule!)} è pronto — ${sanitizeSubjectText(r.title)}`,
-    html,
-    attachments: [{ filename: `${safeFilename(r.title)}.pdf`, content: pdf }],
-  });
+  let anyFailed = false;
+  for (const locale of ['it', 'en'] as const) {
+    const group = groups[locale];
+    if (group.length === 0) continue;
 
-  if (!sendResult.success) {
+    const html = scheduledReportTemplate({
+      organizationName: org?.name ?? '',
+      reportTitle: r.title,
+      scheduleLabel: scheduleLabel(r.schedule!, locale),
+      periodLabel: periodLabelForConfig(config.period, locale),
+      dashboardUrl: `${siteUrl()}/${locale}/reports`,
+      locale,
+    });
+
+    const sendResult = await sendEmail({
+      to: group,
+      // r.title is free text typed when the report was created (zod max(120),
+      // no character filter) — see sanitizeSubjectText for why a Subject
+      // header needs this even though scheduledReportTemplate escapes it
+      // separately for the HTML body.
+      subject: locale === 'en'
+        ? `Your ${scheduleLabel(r.schedule!, 'en')} report is ready — ${sanitizeSubjectText(r.title)}`
+        : `Il tuo report ${scheduleLabel(r.schedule!, 'it')} è pronto — ${sanitizeSubjectText(r.title)}`,
+      html,
+      attachments: [{ filename: `${safeFilename(r.title)}.pdf`, content: pdf }],
+    });
+
+    if (!sendResult.success) {
+      anyFailed = true;
+      console.error(
+        `[cron/scheduled-reports] report ${r.id}: email send failed for locale "${locale}" (${group.length} recipient(s)) — ${sendResult.error}`,
+      );
+    }
+  }
+
+  if (anyFailed) {
+    // Not partially marking this "delivered": lastRunAt stays untouched so the
+    // WHOLE report (both locale groups) is retried on the next run, rather
+    // than silently dropping the group that failed. The cost is a possible
+    // duplicate email to the group that already succeeded — accepted as the
+    // lesser problem versus a recipient never hearing from a report again.
     result.failed++;
-    console.error(`[cron/scheduled-reports] report ${r.id}: email send failed — ${sendResult.error}`);
     return;
   }
 
-  // lastRunAt is written ONLY after a confirmed-successful send — same
-  // contract as "Run now" in /api/reports/[id]/route.ts, extended here to mean
-  // "delivered", not merely "rendered".
+  // lastRunAt is written ONLY after every group's send is confirmed
+  // successful — same contract as "Run now" in /api/reports/[id]/route.ts,
+  // extended here to mean "delivered to everyone", not merely "rendered".
   await prisma.report_b8.update({ where: { id: r.id }, data: { lastRunAt: now } });
   result.sent++;
 

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const ipLimit = await checkRateLimit('forgot-ip', getClientIp(req));
   if (!ipLimit.success) return authRateLimitResponse(ipLimit);
 
-  let body: { email?: string; locale?: string };
+  let body: { email?: string };
   try {
     body = await req.json();
   } catch {
@@ -20,7 +20,6 @@ export async function POST(req: Request) {
   }
 
   const email = (body.email || '').trim().toLowerCase();
-  const locale = body.locale === 'en' ? 'en' : 'it';
 
   // Always respond 200 to avoid email enumeration.
   if (email) {
@@ -37,6 +36,12 @@ export async function POST(req: Request) {
         data: { passwordResetToken: token, passwordResetExpiresAt: expiresAt },
       });
 
+      // The account's OWN stored preference (User.locale, set at signup and
+      // changeable in settings/profile), not the locale of the page the reset
+      // form happened to be submitted from — the same field already used for
+      // the AI's response language, so this is the recipient's real language,
+      // not just the page they were browsing at that moment.
+      const locale = user.locale === 'en' ? 'en' : 'it';
       const resetUrl = `${siteUrl()}/${locale}/reset-password?token=${token}`;
       // sendEmail never throws (it catches internally and returns
       // {success,error} — see send.ts), so a .catch() here caught nothing; it
@@ -44,12 +49,13 @@ export async function POST(req: Request) {
       // leaves a trace when delivery fails, without touching the 200 below.
       const sendResult = await sendEmail({
         to: email,
-        subject: 'Reimposta la tua password Anlyra',
+        subject: locale === 'en' ? 'Reset your Anlyra password' : 'Reimposta la tua password Anlyra',
         html: passwordResetTemplate({
           userName: user.name || email,
           userEmail: email,
           resetUrl,
           expiryMinutes: RESET_EXPIRY_MINUTES,
+          locale,
         }),
       });
       if (!sendResult.success) {

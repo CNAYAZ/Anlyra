@@ -13,6 +13,7 @@ import { auditLog } from "@/lib/audit/log";
 import type { PlanId } from "@/lib/billing/plans";
 import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
+import { siteUrl } from "@/lib/auth/tokens";
 
 export const runtime = "nodejs";
 
@@ -194,6 +195,19 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       const customer = await stripe.customers.retrieve(customerId);
       const email = (customer as Stripe.Customer).email;
       if (email) {
+        // No locale on the Stripe customer object at all, and the billing
+        // email is not guaranteed to match any User.email (an accounts-payable
+        // address, say) — so it is looked up via the ORGANIZATION instead,
+        // which this webhook already resolves reliably from its own metadata.
+        // Billing is owner-only (requireOwnerRole, src/lib/auth/require-role.ts),
+        // so the owner's own language is the right one to ask.
+        const ownerMembership = await prisma.membership.findFirst({
+          where: { organizationId: orgId, role: "owner" },
+          select: { user: { select: { locale: true } } },
+        });
+        const locale = ownerMembership?.user?.locale === "en" ? "en" : "it";
+        const dateLocale = locale === "en" ? "en-US" : "it-IT";
+
         // sendEmail never throws (it catches internally and returns
         // {success,error} — see send.ts): a Resend failure here would resolve
         // normally, not land in the catch below, so it needs its own check to
@@ -202,15 +216,17 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
         // stood between an email failure and this webhook's response.
         const sendResult = await sendEmail({
           to: email,
-          subject: "Pagamento confermato — Anlyra",
+          subject: locale === "en" ? "Payment confirmed — Anlyra" : "Pagamento confermato — Anlyra",
           html: paymentConfirmedTemplate({
-            userName: (customer as Stripe.Customer).name || "Cliente",
+            userName: (customer as Stripe.Customer).name || (locale === "en" ? "Customer" : "Cliente"),
             userEmail: email,
             planName: invoice.lines.data[0]?.description || "Anlyra Pro",
             amount: (invoice.amount_paid / 100).toFixed(2),
             currency: invoice.currency.toUpperCase(),
-            nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString("it-IT"),
+            nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString(dateLocale),
             invoiceUrl: invoice.hosted_invoice_url || "",
+            manageUrl: `${siteUrl()}/${locale}/settings/billing`,
+            locale,
           }),
         });
         if (!sendResult.success) {

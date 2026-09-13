@@ -172,13 +172,15 @@ export async function POST(req: Request) {
 
   // Welcome email now that setup is complete (best-effort).
   if (inviter?.email) {
+    const locale = inviter.locale === 'en' ? 'en' : 'it';
     const welcomeSendResult = await sendEmail({
       to: inviter.email,
-      subject: 'Benvenuto in Anlyra — iniziamo',
+      subject: locale === 'en' ? "Welcome to Anlyra — let's get started" : 'Benvenuto in Anlyra — iniziamo',
       html: welcomeTemplate({
         userName: inviter.name || inviter.email,
         userEmail: inviter.email,
-        loginUrl: `${siteUrl()}/it/overview`,
+        loginUrl: `${siteUrl()}/${locale}/overview`,
+        locale,
       }),
     });
     if (!welcomeSendResult.success) {

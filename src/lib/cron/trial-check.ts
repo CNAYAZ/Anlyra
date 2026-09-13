@@ -4,6 +4,7 @@ import { getSubscription } from '@/lib/billing/repository';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { formatCurrency } from '@/lib/format';
 import itMessages from '@/messages/it.json';
+import enMessages from '@/messages/en.json';
 import {
   sendEmail,
   trialThreeDaysTemplate,
@@ -11,18 +12,19 @@ import {
   trialExpiredTemplate,
 } from '@/lib/email';
 
+type EmailLocale = 'it' | 'en';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type PlanEmailInfo = { name: string; amount: string };
 
 /**
- * The plan's real display name and monthly price, in Italian — matching the
- * hardcoded 'it-IT' already used throughout this file (fmtDate, every email
- * subject below). Sourced from the same listing the rest of the app uses
+ * The plan's real display name and monthly price, in the recipient's own
+ * language. Sourced from the same listing the rest of the app uses
  * (PLANS in src/lib/billing/plans.ts, prices in cents) and the same message
  * catalog the billing page reads plan names from
- * (billing.plans.<id>.name in src/messages/it.json) — not a hand-typed copy
- * that can drift from either, which is what this replaces.
+ * (billing.plans.<id>.name in src/messages/it.json / en.json) — not a
+ * hand-typed copy that can drift from either, which is what this replaces.
  *
  * Returns null — never a guessed name or an invented price — when:
  *   • `planId` is not a known PlanId (an unexpected value on
@@ -35,14 +37,15 @@ type PlanEmailInfo = { name: string; amount: string };
  * (skippedUnknownPlan), applied here so a bad or unpriced plan value can
  * never put a wrong number in front of a customer.
  */
-function resolvePlanEmailInfo(planId: string): PlanEmailInfo | null {
+function resolvePlanEmailInfo(planId: string, locale: EmailLocale): PlanEmailInfo | null {
   const plan = PLANS[planId as PlanId];
   if (!plan) return null;
   if (plan.pricing.monthlyCents <= 0) return null;
   const key = planId.toLowerCase() as 'pro' | 'advanced' | 'enterprise';
-  const name = itMessages.billing.plans[key]?.name;
+  const messages = locale === 'en' ? enMessages : itMessages;
+  const name = messages.billing.plans[key]?.name;
   if (!name) return null;
-  return { name, amount: formatCurrency(plan.pricing.monthlyCents / 100, 'it') };
+  return { name, amount: formatCurrency(plan.pricing.monthlyCents / 100, locale) };
 }
 
 /**
@@ -79,14 +82,20 @@ function fmtDate(d: Date, locale = 'it-IT'): string {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-async function orgAdminEmails(organizationId: string): Promise<{ email: string; name: string }[]> {
+async function orgAdminEmails(
+  organizationId: string,
+): Promise<{ email: string; name: string; locale: EmailLocale }[]> {
   const memberships = await prisma.membership.findMany({
     where: { organizationId, role: { in: ['admin', 'owner'] } },
-    include: { user: { select: { email: true, name: true } } },
+    include: { user: { select: { email: true, name: true, locale: true } } },
   });
   return memberships
     .filter((m) => m.user?.email)
-    .map((m) => ({ email: m.user!.email, name: m.user!.name || m.user!.email }));
+    .map((m) => ({
+      email: m.user!.email,
+      name: m.user!.name || m.user!.email,
+      locale: m.user!.locale === 'en' ? 'en' : 'it',
+    }));
 }
 
 export interface TrialCheckResult {
@@ -119,11 +128,6 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     ).map((s) => s.organizationId),
   );
 
-  const upgradeUrl = `${siteUrl()}/it/settings/billing`;
-  const reactivateUrl = upgradeUrl;
-  const cancelUrl = upgradeUrl;
-  const exportUrl = `${siteUrl()}/it/settings/billing`;
-
   for (const org of orgs) {
     // Already converted (or converted-but-currently-failing) — no trial email,
     // ever, whatever a stale trialEndsAt still says. This alone is the fix for
@@ -142,9 +146,16 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     // defaultSubscription) — the SAME fallback getBillingState() and
     // requireActiveAccess already use everywhere else in the app, not a new one
     // invented for this file.
+    //
+    // Checked here once with 'it' as a representative locale, before knowing
+    // any recipient: it.json and en.json carry the same plan keys (verified —
+    // the whole app depends on that alignment), so whether the plan/price is
+    // resolvable at all does not depend on which language asks. The per-
+    // recipient locale is applied below, inside the loop, for the actual name
+    // and formatted amount that recipient sees.
     const sub = await getSubscription(org.id);
-    const plan = resolvePlanEmailInfo(sub.plan);
-    if (!plan) {
+    const planCheck = resolvePlanEmailInfo(sub.plan, 'it');
+    if (!planCheck) {
       // Unknown or unpriced plan value — mirrors credit-renewal.ts's handling of
       // an unknown plan string: skip loudly, never guess a name or a price.
       result.skippedUnknownPlan++;
@@ -158,6 +169,18 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
     if (recipients.length === 0) continue;
 
     for (const r of recipients) {
+      const plan = resolvePlanEmailInfo(sub.plan, r.locale);
+      if (!plan) {
+        // Should not happen given the org-level check above (it.json/en.json
+        // stay aligned) — defensive only, never guesses a name or price.
+        console.warn(
+          `[trial-check] org ${org.id}: plan "${sub.plan}" not resolvable for locale "${r.locale}" — recipient ${r.email} skipped`,
+        );
+        continue;
+      }
+      const dateLocale = r.locale === 'en' ? 'en-US' : 'it-IT';
+      const billingUrl = `${siteUrl()}/${r.locale}/settings/billing`;
+
       // sendEmail never throws (it catches internally and returns
       // {success,error} — see send.ts), so the .catch() these three calls had
       // caught nothing; it only looked like error handling. Checking each
@@ -168,13 +191,16 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
         // Expired within the last day → send once.
         const sendResult = await sendEmail({
           to: r.email,
-          subject: 'Prova scaduta — riattiva il tuo account · Anlyra',
+          subject: r.locale === 'en'
+            ? 'Your trial has ended — reactivate your account · Anlyra'
+            : 'Prova scaduta — riattiva il tuo account · Anlyra',
           html: trialExpiredTemplate({
             userName: r.name,
             userEmail: r.email,
-            expiredAt: fmtDate(org.trialEndsAt),
-            reactivateUrl,
-            exportUrl,
+            expiredAt: fmtDate(org.trialEndsAt, dateLocale),
+            reactivateUrl: billingUrl,
+            exportUrl: billingUrl,
+            locale: r.locale,
           }),
         });
         if (!sendResult.success) {
@@ -185,15 +211,16 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
       } else if (daysLeft === 1) {
         const sendResult = await sendEmail({
           to: r.email,
-          subject: 'Domani inizia il tuo piano · Anlyra',
+          subject: r.locale === 'en' ? 'Your plan starts tomorrow · Anlyra' : 'Domani inizia il tuo piano · Anlyra',
           html: trialOneDayTemplate({
             userName: r.name,
             userEmail: r.email,
-            billingDate: fmtDate(org.trialEndsAt),
+            billingDate: fmtDate(org.trialEndsAt, dateLocale),
             billingAmount: plan.amount,
             planName: plan.name,
-            upgradeUrl,
-            cancelUrl,
+            upgradeUrl: billingUrl,
+            cancelUrl: billingUrl,
+            locale: r.locale,
           }),
         });
         if (!sendResult.success) {
@@ -204,14 +231,17 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
       } else if (daysLeft > 1 && daysLeft <= 3) {
         const sendResult = await sendEmail({
           to: r.email,
-          subject: `${daysLeft} giorni alla fine della prova · Anlyra`,
+          subject: r.locale === 'en'
+            ? `${daysLeft} days left in your trial · Anlyra`
+            : `${daysLeft} giorni alla fine della prova · Anlyra`,
           html: trialThreeDaysTemplate({
             userName: r.name,
             userEmail: r.email,
             daysRemaining: daysLeft,
             planName: plan.name,
-            upgradeUrl,
-            billingDate: fmtDate(org.trialEndsAt),
+            upgradeUrl: billingUrl,
+            billingDate: fmtDate(org.trialEndsAt, dateLocale),
+            locale: r.locale,
           }),
         });
         if (!sendResult.success) {

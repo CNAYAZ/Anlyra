@@ -7,6 +7,8 @@ interface LayoutParams {
   content: string;
   ctaButton?: { label: string; href: string };
   userEmail?: string;
+  /** Recipient's language — drives the <html lang> attribute and the two fixed footer strings this file owns. Every other string is each template's own job. */
+  locale?: 'it' | 'en';
 }
 
 /**
@@ -29,7 +31,7 @@ interface LayoutParams {
  * change here that would double-encode every legitimate URL.
  */
 export function baseLayout(params: LayoutParams): string {
-  const { title, preheader, content, ctaButton, userEmail } = params;
+  const { title, preheader, content, ctaButton, userEmail, locale = 'it' } = params;
   const safeTitle = escapeHtml(title);
   const safePreheader = preheader !== undefined ? escapeHtml(preheader) : undefined;
   const safeCtaLabel = ctaButton ? escapeHtml(ctaButton.label) : undefined;
@@ -53,12 +55,15 @@ export function baseLayout(params: LayoutParams): string {
   // at signup/invite allow through, like `?`/`&`/`=`, could otherwise smuggle
   // extra mailto parameters into the resolved link — see _escape.ts), plain
   // escapeHtml for the text so the address still reads normally.
+  const sentToLabel = locale === 'en' ? 'Sent to' : 'Inviata a';
   const footerEmail = userEmail
-    ? `<p style="margin:4px 0 0;">Inviata a <a href="mailto:${escapeMailtoAddress(userEmail)}" style="color:#5B6F4E;text-decoration:none;">${escapeHtml(userEmail)}</a></p>`
+    ? `<p style="margin:4px 0 0;">${sentToLabel} <a href="mailto:${escapeMailtoAddress(userEmail)}" style="color:#5B6F4E;text-decoration:none;">${escapeHtml(userEmail)}</a></p>`
     : '';
+  const managePrefsLabel = locale === 'en' ? 'Manage email preferences' : 'Gestisci preferenze email';
+  const unsubscribeLabel = locale === 'en' ? 'Unsubscribe' : 'Annulla iscrizione';
 
   return `<!DOCTYPE html>
-<html lang="it">
+<html lang="${locale}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -111,9 +116,9 @@ export function baseLayout(params: LayoutParams): string {
               </p>
               ${footerEmail}
               <p style="margin:8px 0 0;font-size:12px;color:#6B6760;">
-                <a href="#" style="color:#5B6F4E;text-decoration:underline;">Gestisci preferenze email</a>
+                <a href="#" style="color:#5B6F4E;text-decoration:underline;">${managePrefsLabel}</a>
                 &nbsp;·&nbsp;
-                <a href="#" style="color:#5B6F4E;text-decoration:underline;">Annulla iscrizione</a>
+                <a href="#" style="color:#5B6F4E;text-decoration:underline;">${unsubscribeLabel}</a>
               </p>
             </td>
           </tr>

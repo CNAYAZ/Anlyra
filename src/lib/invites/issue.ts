@@ -89,16 +89,28 @@ export async function issueTeamInvite(params: {
   // inviterName and orgName, escapeMailtoAddress on the mailto href).
   const inviterSubjectName = params.inviterName ? sanitizeSubjectText(params.inviterName) : '';
 
+  // The invitee usually has NO Anlyra account yet (that is the point of an
+  // invite), so there is no User.locale to read for them most of the time —
+  // this lookup only ever succeeds for the "already has an account, being
+  // invited into a second organization" case. Anyone not found falls back to
+  // the app's own default locale (defaultLocale in src/i18n/config.ts), same
+  // fallback used everywhere else in this task for an unknown recipient.
+  const existingInvitee = await prisma.user.findUnique({ where: { email }, select: { locale: true } });
+  const locale = existingInvitee?.locale === 'en' ? 'en' : 'it';
+
   const sendResult = await sendEmail({
     to: email,
-    subject: `${inviterSubjectName || 'Un collega'} ti ha invitato su Anlyra`,
+    subject: locale === 'en'
+      ? `${inviterSubjectName || 'A teammate'} invited you to Anlyra`
+      : `${inviterSubjectName || 'Un collega'} ti ha invitato su Anlyra`,
     html: teamInviteTemplate({
-      inviterName: params.inviterName || params.inviterEmail || 'Un collega',
+      inviterName: params.inviterName || params.inviterEmail || (locale === 'en' ? 'A teammate' : 'Un collega'),
       inviterEmail: params.inviterEmail || COMPANY.noreplyEmail,
       orgName: params.orgName,
       userEmail: email,
-      inviteUrl: `${siteUrl()}/it/invite/${token}`,
+      inviteUrl: `${siteUrl()}/${locale}/invite/${token}`,
       expiryHours: INVITE_EXPIRY_HOURS,
+      locale,
     }),
   });
 

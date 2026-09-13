@@ -8,10 +8,12 @@ interface TeamInviteParams {
   userEmail: string;
   inviteUrl: string;
   expiryHours: number;
+  locale?: 'it' | 'en';
 }
 
 export function teamInviteTemplate(params: TeamInviteParams): string {
-  const { inviterName, inviterEmail, orgName, userEmail, inviteUrl, expiryHours } = params;
+  const { inviterName, inviterEmail, orgName, userEmail, inviteUrl, expiryHours, locale = 'it' } = params;
+  const isEn = locale === 'en';
   const safeInviterName = escapeHtml(inviterName);
   const safeOrgName = escapeHtml(orgName);
   // inviterEmail sits in TWO contexts here — the mailto: href AND the visible
@@ -25,7 +27,52 @@ export function teamInviteTemplate(params: TeamInviteParams): string {
   const safeInviterEmailHref = escapeMailtoAddress(inviterEmail);
   const safeInviterEmailText = escapeHtml(inviterEmail);
 
-  const content = `
+  const content = isEn ? `
+    <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
+      You've been invited to join ${safeOrgName}
+    </h1>
+    <p style="margin:0 0 16px;color:#2A2520;">
+      <strong>${safeInviterName}</strong>
+      (<a href="mailto:${safeInviterEmailHref}" style="color:#5B6F4E;text-decoration:none;">${safeInviterEmailText}</a>)
+      invited you to collaborate on <strong>${safeOrgName}</strong> using Anlyra.
+    </p>
+
+    <!-- What is Anlyra -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#F9F4EB;border:1px solid #E8DFD0;border-radius:8px;padding:16px;">
+          <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#2A2520;">What is Anlyra?</p>
+          <p style="margin:0;font-size:13px;color:#6B6760;line-height:1.6;">
+            Anlyra is a business intelligence platform for small and mid-sized businesses: financial dashboards, AI insights and competitive analysis — all in one place, easy to use.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Expiry note -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:10px 16px;border:1px solid #E8DFD0;border-radius:8px;">
+          <p style="margin:0;font-size:13px;color:#6B6760;">
+            This invitation is valid for <strong style="color:#2A2520;">${expiryHours} hours</strong>.
+            After that, ${safeInviterName} will need to send a new one.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Fallback link -->
+    <p style="margin:16px 0 0;font-size:13px;color:#6B6760;">
+      If the button doesn't work, copy and paste this link into your browser:
+    </p>
+    <p style="margin:4px 0 0;font-size:12px;word-break:break-all;">
+      <a href="${inviteUrl}" style="color:#5B6F4E;text-decoration:underline;">${inviteUrl}</a>
+    </p>
+
+    <p style="margin:24px 0 0;font-size:13px;color:#6B6760;">
+      Don't know ${safeInviterName} or weren't expecting this invitation? You can safely ignore this email.
+    </p>
+  ` : `
     <h1 style="margin:0 0 20px;font-size:24px;font-weight:700;color:#2A2520;line-height:1.3;">
       Sei stato invitato a unirti a ${safeOrgName}
     </h1>
@@ -73,10 +120,13 @@ export function teamInviteTemplate(params: TeamInviteParams): string {
   `;
 
   return baseLayout({
-    title: `${inviterName} ti ha invitato a ${orgName} su Anlyra`,
-    preheader: `${inviterName} ti ha invitato a collaborare su ${orgName}. Accetta l'invito entro ${expiryHours} ore.`,
+    title: isEn ? `${inviterName} invited you to ${orgName} on Anlyra` : `${inviterName} ti ha invitato a ${orgName} su Anlyra`,
+    preheader: isEn
+      ? `${inviterName} invited you to collaborate on ${orgName}. Accept within ${expiryHours} hours.`
+      : `${inviterName} ti ha invitato a collaborare su ${orgName}. Accetta l'invito entro ${expiryHours} ore.`,
     content,
-    ctaButton: { label: "Accetta l'invito", href: inviteUrl },
+    ctaButton: { label: isEn ? 'Accept invitation' : "Accetta l'invito", href: inviteUrl },
     userEmail,
+    locale,
   });
 }
