@@ -32,7 +32,17 @@ export async function POST(req: NextRequest) {
   }
 
   const priceId = getStripePriceId(parsed.plan, parsed.cycle);
-  if (!priceId) return fail("Price not configured for plan/cycle", 500);
+  if (!priceId) {
+    // Same symptom as the missing-Stripe-key case below, different cause: a
+    // STRIPE_PRICE_* env var for this specific plan/cycle was never set. The
+    // raw message used to reach the client verbatim (getStripePriceId's own
+    // wording, meant for a developer reading code, not a customer paying
+    // money). PRICE_NOT_CONFIGURED is stable and, like
+    // PAYMENT_PROVIDER_UNAVAILABLE, says nothing about which variable is
+    // missing — the real reason goes to the log line instead.
+    console.error(`[billing/checkout] price not configured for plan=${parsed.plan} cycle=${parsed.cycle}`);
+    return fail("PRICE_NOT_CONFIGURED", 500);
+  }
 
   const sub = await getSubscription(ctx.organizationId);
 
