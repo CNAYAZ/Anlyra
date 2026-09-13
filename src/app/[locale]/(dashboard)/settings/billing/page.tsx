@@ -5,16 +5,17 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Check, CheckCircle2, Crown, Info, Loader2, Shield } from 'lucide-react';
+import { Check, CheckCircle2, Coins, Crown, Info, Loader2, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
-import { PLANS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, CREDIT_PACKS, type PlanId, type CreditPack } from '@/lib/billing/plans';
 import type { BillingState } from '@/lib/billing/context';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsOwner } from '@/lib/auth/owner-context';
 import { apiFetch } from '@/lib/api/fetcher';
 import { COMPANY } from '@/lib/company';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { useAppLocale } from '@/hooks/use-locale';
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
 
@@ -57,6 +58,7 @@ function SettingsBillingPageInner() {
   const tPricing = useTranslations('pricing');
   const aiCredits = useCreditsStore((s) => s.credits);
   const isOwner = useIsOwner();
+  const locale = useAppLocale();
   const plan = usePlan();
   const currentPlanId = plan.plan;
   const currentCycle = plan.cycle;
@@ -150,6 +152,8 @@ function SettingsBillingPageInner() {
   const [checkoutError, setCheckoutError] = useState<{ plan: PlanId; message: string } | null>(null);
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const [busyPack, setBusyPack] = useState<CreditPack['id'] | null>(null);
+  const [packError, setPackError] = useState<{ pack: CreditPack['id']; message: string } | null>(null);
 
   // Same flow as components/billing/CurrentPlanCard.openPortal: POST the portal
   // session, redirect to the returned Stripe URL. The org's stripeCustomerId is
@@ -171,6 +175,41 @@ function SettingsBillingPageInner() {
       setPortalError(tBilling('managePortalError'));
     } finally {
       setPortalBusy(false);
+    }
+  }
+
+  // Same flow as startCheckout below, for a one-time credit pack instead of a
+  // recurring plan: POST /api/billing/credits/checkout, redirect to Stripe.
+  //
+  // Error mapping: the route can answer "Credit pack price not configured"
+  // (500 — the pack's STRIPE_PRICE_CREDITS_* env var is missing) or
+  // "Unknown credit pack" (400 — a tampered packId). Neither is something a
+  // customer should ever read verbatim, so both map to one honest, actionable
+  // message instead of the raw string; anything else (network failure, an
+  // unrecognized error) falls back to the same generic message.
+  async function startCreditsCheckout(packId: CreditPack['id']) {
+    setBusyPack(packId);
+    setPackError(null);
+    try {
+      const res = await fetch('/api/billing/credits/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packId }),
+      });
+      const json = (await res.json()) as { success: boolean; data?: { url: string }; error?: string };
+      if (json.success && json.data?.url) {
+        window.location.href = json.data.url;
+        return;
+      }
+      const friendly =
+        json.error === 'Credit pack price not configured' || json.error === 'Unknown credit pack'
+          ? tBilling('credits.buyErrorConfig')
+          : tBilling('credits.buyErrorGeneric');
+      setPackError({ pack: packId, message: friendly });
+      setBusyPack(null);
+    } catch {
+      setPackError({ pack: packId, message: tBilling('credits.buyErrorGeneric') });
+      setBusyPack(null);
     }
   }
 
@@ -281,6 +320,53 @@ function SettingsBillingPageInner() {
         </button>
         {portalError && <p className="w-full text-[11px] text-danger">{portalError}</p>}
         {!isOwner && <p className="w-full text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
+      </div>
+
+      {/* ── Credit packs: one-time top-up, separate from the recurring plan.
+          POST /api/billing/credits/checkout existed and worked (Stripe
+          session + webhook crediting aiCreditsPurchased) but nothing in the
+          product called it — this is the missing button. Owner-only, same
+          guard and same UI precedent as the portal/plan buttons above
+          (requireOwnerRole server-side, isOwner + tBilling('ownerOnly')
+          here). */}
+      <div>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-1">
+          {tBilling('credits.title')}
+        </h2>
+        <p className="text-xs text-fg-3 mb-4">{tBilling('credits.explainer')}</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {CREDIT_PACKS.map((pack) => (
+            <div
+              key={pack.id}
+              className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 shadow-elev-1"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-sage-50 text-sage-600 dark:bg-sage-700/30 dark:text-sage-300">
+                <Coins className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="font-heading text-xl font-semibold text-foreground tabular-nums">
+                  {pack.credits} {tBilling('credits.credits')}
+                </p>
+                <p className="text-sm text-fg-3 tabular-nums">
+                  {formatCurrency(pack.priceCents / 100, locale)}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={busyPack === pack.id || !isOwner}
+                title={!isOwner ? tBilling('ownerOnly') : undefined}
+                onClick={isOwner ? () => startCreditsCheckout(pack.id) : undefined}
+                className="mt-auto w-full rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-sage-700 transition-colors hover:bg-muted hover:border-sage-500 disabled:opacity-70 dark:text-sage-300"
+              >
+                {busyPack === pack.id ? '…' : tBilling('credits.buyPack')}
+              </button>
+              {packError?.pack === pack.id && (
+                <p className="text-center text-[11px] text-danger">{packError.message}</p>
+              )}
+            </div>
+          ))}
+        </div>
+        {!isOwner && <p className="mt-2 text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
       </div>
 
       {/* ── Plans ── */}

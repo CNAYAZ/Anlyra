@@ -1842,7 +1842,10 @@
       "buyPack": "Acquista Pacchetto",
       "history": "Storico",
       "credit": "credito",
-      "credits": "crediti"
+      "credits": "crediti",
+      "explainer": "I crediti del piano si azzerano a ogni rinnovo mensile. I crediti acquistati non scadono e vengono usati solo dopo aver esaurito quelli del piano.",
+      "buyErrorConfig": "Questo pacchetto non è ancora disponibile per l'acquisto. Riprova più tardi o scrivici.",
+      "buyErrorGeneric": "Acquisto non riuscito. Riprova."
     },
     "invoices": {
       "title": "Storico Fatture",
