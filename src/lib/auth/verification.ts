@@ -19,24 +19,31 @@ export async function issueVerificationEmail(user: {
   id: string;
   email: string;
   name: string | null;
+  locale?: string | null;
 }): Promise<void> {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + VERIFY_EXPIRY_HOURS * 60 * 60 * 1000);
+  const locale = user.locale === 'en' ? 'en' : 'it';
 
   await prisma.user.update({
     where: { id: user.id },
     data: { emailVerifyToken: token, emailVerifyExpiresAt: expiresAt },
   });
 
+  // The link itself stays locale-agnostic on purpose: /api/auth/verify-email
+  // (route.ts) re-reads the SAME User.locale from the token at click time and
+  // redirects to the right /${locale}/welcome — see the comment there. Only
+  // the email TEXT needs the locale resolved here.
   const verifyUrl = `${siteUrl()}/api/auth/verify-email?token=${token}`;
   const sendResult = await sendEmail({
     to: user.email,
-    subject: 'Conferma la tua email per attivare Anlyra',
+    subject: locale === 'en' ? 'Confirm your email to activate Anlyra' : 'Conferma la tua email per attivare Anlyra',
     html: verifyEmailTemplate({
       userName: user.name || user.email,
       userEmail: user.email,
       verifyUrl,
       expiryHours: VERIFY_EXPIRY_HOURS,
+      locale,
     }),
   });
   if (!sendResult.success) {
