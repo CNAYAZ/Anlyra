@@ -418,7 +418,13 @@ async function seedKpis(organizationId: string) {
       { organizationId, name: 'NPS', value: 42, unit: null, target: 50 },
       { organizationId, name: 'Conversion rate', value: 2.8, unit: '%', target: 4 },
       { organizationId, name: 'CAC', value: 320, unit: 'EUR', target: 250 },
-      { organizationId, name: 'LTV', value: 4800, unit: 'EUR', target: 5000 },
+      // Renamed from 'LTV' on 2026-09-13: the benchmarks route (now hidden,
+      // not deleted — see nav-config.ts) matched KPI names by substring and
+      // 'ltv'.includes('ltv') pulled this euro amount into ltvCacRatio (a
+      // dimensionless multiple), rendering as "4800x — Eccellente" against a
+      // benchmark median of 3.5x. Spelled out so it no longer matches that
+      // needle; the euro amount itself was always correct.
+      { organizationId, name: 'Lifetime value', value: 4800, unit: 'EUR', target: 5000 },
       { organizationId, name: 'Active customers', value: 312, unit: null, target: 400 },
     ],
   });

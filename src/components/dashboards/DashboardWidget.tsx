@@ -127,22 +127,25 @@ export function DashboardWidget({ widget }: { widget: WidgetConfig }) {
   // ever enabled for a given widget.
   const kind = widget.type === 'forecast' ? 'forecast' : widget.type === 'benchmark' ? 'benchmark' : 'financial';
 
+  // !!entry guards all three: a widget type no longer in the catalogue (like
+  // 'benchmark' as of 2026-09-13) must not fetch anything at all, not just
+  // render the "retired" message below — see that check further down.
   const financial = useQuery({
     queryKey: ['dashboard-financial', period],
     queryFn: () => apiFetch<FinancialPayload>(`/api/analysis/financial?period=${period}`),
-    enabled: kind === 'financial',
+    enabled: kind === 'financial' && !!entry,
   });
 
   const forecast = useQuery({
     queryKey: ['dashboard-forecast', metric],
     queryFn: () => apiFetch<ForecastPayload>(`/api/ai/forecasting?metric=${metric}&horizon=6&model=exponential`),
-    enabled: kind === 'forecast',
+    enabled: kind === 'forecast' && !!entry,
   });
 
   const benchmark = useQuery({
     queryKey: ['dashboard-benchmark'],
     queryFn: () => apiFetch<BenchmarkPayload>('/api/ai/benchmarks'),
-    enabled: kind === 'benchmark',
+    enabled: kind === 'benchmark' && !!entry,
   });
 
   const active = kind === 'financial' ? financial : kind === 'forecast' ? forecast : benchmark;

@@ -105,7 +105,10 @@ export const mainNav: NavItemConfig[] = [
       { key: 'aiChat', labelKey: 'nav.aiChat', href: '/ai/chat', icon: MessageSquare },
       { key: 'aiInsights', labelKey: 'nav.aiInsights', href: '/ai/insights', icon: Sparkles },
       { key: 'aiForecasting', labelKey: 'nav.aiForecasting', href: '/ai/forecasting', icon: LineChart },
+      // BENCHMARK messo a riposo il 2026-09-13 — pagina e API restano nel repo, solo nascosta dal menu. I valori di riferimento non sono adatti alle PMI italiane, in attesa di dati veri.
+      /*
       { key: 'aiBenchmarks', labelKey: 'nav.aiBenchmarks', href: '/ai/benchmarks', icon: BarChart3 },
+      */
       { key: 'aiAlerts', labelKey: 'nav.aiAlerts', href: '/ai/alerts', icon: AlertTriangle },
     ],
   },
@@ -177,5 +180,5 @@ export const footerNav: NavItemConfig[] = [
 ];
 
 // Suppress unused import warning for icons reserved for future child sections.
-const _reservedIcons: LucideIcon[] = [PieChart];
+const _reservedIcons: LucideIcon[] = [PieChart, BarChart3];
 void _reservedIcons;
