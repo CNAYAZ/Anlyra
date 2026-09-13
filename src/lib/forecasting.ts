@@ -145,10 +145,14 @@ export function computeForecastSummary(
     historical.reduce((s, v) => s + (v - mean) ** 2, 0) / historical.length,
   );
   const cv = mean > 0 ? stdDev / mean : 1;
-  const baseConfidence = Math.max(0.4, Math.min(0.95, 1 - cv));
-  // Exponential gets slight confidence bonus for recent weighting
-  const modelBonus = model === 'exponential' ? 0.05 : model === 'linear' ? 0.02 : 0;
-  const confidence = Math.min(0.95, baseConfidence + modelBonus);
+  // Floor at 0, not 0.4: a 0.4 floor told the customer "at least moderate
+  // confidence" even when cv >= 1 (the standard deviation matches or exceeds
+  // the mean — the data has no discernible pattern at all). 0 lets the
+  // number say "the model has essentially no confidence in this" when that
+  // is true, while (1 - cv) alone could go negative for cv > 1, which would
+  // render as a nonsensical negative percentage — the ceiling at 0.95 stays
+  // for the same reason on the other end (never claim total certainty).
+  const confidence = Math.max(0, Math.min(0.95, 1 - cv));
 
   return {
     nextQuarter,
