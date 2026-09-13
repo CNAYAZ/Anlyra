@@ -1934,6 +1934,7 @@
       "subscriptionPending": "Pagamento ricevuto. L'attivazione richiede qualche secondo: questa pagina si aggiornerà da sola.",
       "subscriptionTimeout": "Il pagamento è stato ricevuto, ma l'attivazione sta richiedendo più del previsto. Se il piano non risulta attivo tra qualche minuto, scrivici a {email} indicando l'orario del pagamento.",
       "credits": "Pagamento riuscito! I crediti extra sono stati aggiunti al tuo saldo.",
+      "creditsBalancePending": "Il saldo potrebbe impiegare qualche istante in più ad aggiornarsi. Il pagamento è comunque andato a buon fine: se il numero qui sopra non cambia, ricarica la pagina fra poco.",
       "canceled": "Checkout annullato — non ti abbiamo addebitato nulla. Puoi riprovare quando vuoi."
     },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
