@@ -39,6 +39,15 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 /**
+ * How many recent messages /api/ai/chat actually sends to the model — mirrors
+ * CHAT_HISTORY_WINDOW in that route (same convention as ANALYSIS_CREDIT_COST in
+ * AgentClient.tsx and alert-detail.tsx). Used ONLY to decide when to tell the
+ * user that older messages no longer reach the AI; the route is the source of
+ * truth for what is actually sent.
+ */
+const CHAT_HISTORY_WINDOW = 40;
+
+/**
  * Carries the HTTP status and the API error code from a failed /api/ai/chat
  * call, so the render below can pick the right message — same distinction
  * AgentClient.tsx makes for /api/ai/analyze (402 has two different meanings,
@@ -158,13 +167,18 @@ export function ChatClient({ companyName, initialCredits }: Props) {
         ? tAgent('errors.noCredits')
         : sendError.code === 'RATE_LIMIT_UNAVAILABLE'
           ? tAgent('errors.rateLimitUnavailable')
-          : sendError.status === 402
-            ? tAgent('errors.trialExpired')
-            : sendError.status === 429
-              ? tAgent('errors.rateLimit')
-              : sendError.status === 503
-                ? tAgent('errors.notConfigured')
-                : t('errorSending')
+          : // The thread outgrew the model's context window: permanent for THIS
+            // conversation, and the route refunded the credit before answering —
+            // so the message says both, and what to do about it.
+            sendError.code === 'CONVERSATION_TOO_LONG'
+            ? t('conversationTooLong')
+            : sendError.status === 402
+              ? tAgent('errors.trialExpired')
+              : sendError.status === 429
+                ? tAgent('errors.rateLimit')
+                : sendError.status === 503
+                  ? tAgent('errors.notConfigured')
+                  : t('errorSending')
       : t('errorSending');
 
   return (
@@ -197,6 +211,17 @@ export function ChatClient({ companyName, initialCredits }: Props) {
             <p className="text-center text-sm text-danger">{tCommon('errorGeneric')}</p>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4">
+              {/* Past this length the route sends the model only the most
+                  recent slice of the thread (CHAT_HISTORY_WINDOW). Saying so
+                  is the honest half of that trade: the older messages are
+                  still here to read, but the AI no longer sees them, and a
+                  customer asking "do you remember what I said earlier?"
+                  deserves to know why the answer is no. */}
+              {messages.length > CHAT_HISTORY_WINDOW && (
+                <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-center text-xs text-muted-foreground">
+                  {t('historyTrimmedNotice', { count: CHAT_HISTORY_WINDOW })}
+                </p>
+              )}
               {messages.map((m) => (
                 <ChatMessage key={m.id} role={m.role} content={m.content} />
               ))}

@@ -899,6 +899,8 @@
     "noCreditsDescription": "Your plan's AI credits have run out. A higher plan includes more credits every month.",
     "creditsCost": "Costs 1 credit",
     "errorSending": "Error sending message. Please try again.",
+    "conversationTooLong": "This conversation has grown too long to process. You were not charged a credit: start a new conversation to continue.",
+    "historyTrimmedNotice": "Long conversation: the AI takes the last {count} messages into account. Earlier ones stay here for you to read back, but no longer feed into its answers.",
     "dataHandlingLinkLabel": "How we handle your data"
   },
   "insights": {

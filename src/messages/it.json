@@ -899,6 +899,8 @@
     "noCreditsDescription": "I crediti AI del tuo piano sono terminati. Con un piano superiore hai più crediti inclusi ogni mese.",
     "creditsCost": "Costa 1 credito",
     "errorSending": "Errore nell'invio del messaggio. Riprova.",
+    "conversationTooLong": "Questa conversazione è diventata troppo lunga per essere elaborata. Non ti è stato addebitato nessun credito: apri una nuova conversazione per continuare.",
+    "historyTrimmedNotice": "Conversazione lunga: l'AI tiene conto degli ultimi {count} messaggi. I precedenti restano qui e puoi rileggerli, ma non entrano più nelle sue risposte.",
     "dataHandlingLinkLabel": "Come trattiamo i tuoi dati"
   },
   "insights": {
