@@ -172,6 +172,74 @@ export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
   }));
 }
 
+export type CreditEntryPage = {
+  items: CreditEntry[];
+  total: number;
+};
+
+/**
+ * One PAGE of an organization's credit ledger, newest first.
+ *
+ * NOT a rewrite of listCreditEntries above — that function is left completely
+ * untouched (it has no caller anywhere in the codebase today; the GDPR export
+ * that might look like one reads CreditEntry with its own direct
+ * `prisma.creditEntry.findMany`, see the export route). Unbounded is the
+ * right shape for a data export; it is the wrong shape for a customer-facing
+ * page, because an active organization's ledger can run to hundreds of rows a
+ * month (see the report) and this is read on every page turn. So this is a
+ * SEPARATE function, not an added parameter on the old one — the old one's
+ * behaviour cannot regress for a hypothetical future caller if nothing about
+ * it changed.
+ *
+ * Server-side `skip`/`take`, not a fetch-everything-then-slice: the point is
+ * to never pull a customer's whole history over the wire to show them 20 rows
+ * of it.
+ */
+export async function listCreditEntriesPage(
+  orgId: string,
+  { page, pageSize }: { page: number; pageSize: number },
+): Promise<CreditEntryPage> {
+  const [rows, total] = await Promise.all([
+    prisma.creditEntry.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.creditEntry.count({ where: { organizationId: orgId } }),
+  ]);
+  return {
+    items: rows.map((r) => ({
+      id: r.id,
+      orgId: r.organizationId,
+      delta: r.delta,
+      reason: r.reason as CreditEntry["reason"],
+      createdAt: r.createdAt,
+    })),
+    total,
+  };
+}
+
+/**
+ * SUM of every delta this organization's ledger has EVER recorded — every
+ * page of it, not just one. Compared against getCreditBalance() by the
+ * history route to tell whether the ledger accounts for the WHOLE balance or
+ * only part of it: an organization whose credits predate this ledger (or
+ * predate a specific movement type being wired into it — see the report on
+ * the ledger's own rollout) has a real balance the visible rows do not add up
+ * to, and pretending otherwise would be the wrong kind of honest.
+ *
+ * A single indexed SUM done by Postgres, not "fetch every row and add in
+ * JS" — cheap regardless of how long the history is.
+ */
+export async function getCreditLedgerSum(orgId: string): Promise<number> {
+  const result = await prisma.creditEntry.aggregate({
+    where: { organizationId: orgId },
+    _sum: { delta: true },
+  });
+  return result._sum.delta ?? 0;
+}
+
 /**
  * Applies a PAID credit pack: increments the usable balance AND records the
  * ledger row, atomically.
