@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { auth } from '@/auth';
 import { signupCredits } from '@/lib/billing/plan-credits';
+import { getSubscription } from '@/lib/billing/repository';
 
 // Exported so a route can recognize the demo ACCOUNT before it has resolved
 // (or created) an organization to check with isDemoOrganization — see
@@ -278,15 +279,37 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   };
 }
 
+/**
+ * The current organization's id and the plan it is ACTUALLY on.
+ *
+ * ── WHY THIS NO LONGER READS Organization.plan ──
+ * There are two columns carrying a plan, and only one of them is true:
+ *  • BillingSubscription.plan is AUTHORITATIVE — feature gating
+ *    (billing/server-gate.ts), plan limits, and how many credits the monthly
+ *    renewal grants (cron/credit-renewal.ts) all read it, and nothing else.
+ *  • Organization.plan is LEGACY. Its schema default is "STARTER", which is not
+ *    a plan that exists in PLANS at all, and NEITHER path that creates an
+ *    organization (api/onboarding/organization and the demo upsert below) ever
+ *    sets it — so it says "STARTER" for essentially every organization, paying
+ *    customers included, and the Stripe webhook never corrects it.
+ * This function used to hand out that legacy value under the name `plan`. Its
+ * only caller (the dashboard layout) destructures just `id` and throws the plan
+ * away, so nothing was deciding anything on it — but a helper called
+ * "getCurrentOrganization().plan" is exactly what someone reaches for when they
+ * need a plan, and it would have answered "STARTER" for a paying PRO customer.
+ * That is the trap this closes: the name now tells the truth.
+ *
+ * Same number of queries as before, just against the right table:
+ * getSubscription() falls back to a synthesized "PRO"/trialing-or-canceled for
+ * an organization that never had a subscription row, which is the same thing
+ * the rest of the app already believes about a trial org.
+ */
 export async function getCurrentOrganization() {
   const { organizationId } = await getCurrentContext();
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { plan: true },
-  });
+  const subscription = await getSubscription(organizationId);
   return {
     id: organizationId,
-    plan: (org?.plan as string) || 'PRO',
+    plan: subscription.plan as string,
   };
 }
 

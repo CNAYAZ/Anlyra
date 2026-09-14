@@ -132,9 +132,18 @@ export async function runCreditRenewal(now = new Date()): Promise<CreditRenewalR
 
     const allowance = creditsForPlan(sub.plan);
     if (allowance === null) {
-      // Unknown plan string (legacy "STARTER", or a plan added to the DB but not
-      // to PLANS). Skipped loudly rather than guessing an allowance — silently
-      // picking a number here would be inventing a commercial rule.
+      // Unknown plan string. NOTE, because it used to say "legacy STARTER" here
+      // and that was misleading: this reads BillingSubscription.plan, NOT the
+      // legacy Organization.plan, and no writer of this column can produce
+      // "STARTER" — the webhook refuses metadata that is not PRO/ADVANCED/
+      // ENTERPRISE (planFromMetadata, then `if (!plan) return`), the admin panel
+      // only offers those three, and the schema default is "PRO". So an org
+      // whose Organization.plan says "STARTER" is NOT excluded from renewal by
+      // that; this branch is for a value already stored by older code, or a plan
+      // added to the DB but not to PLANS. `npm run db:check-plans` says whether
+      // any real organization is actually sitting in here.
+      // Skipped loudly rather than guessing an allowance — silently picking a
+      // number here would be inventing a commercial rule.
       result.skippedUnknownPlan += 1;
       console.warn(
         `[credit-renewal] org ${sub.organizationId}: unknown plan "${sub.plan}" — skipped, balance untouched.`,

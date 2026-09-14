@@ -49,6 +49,15 @@ model Organization {
   id               String   @id @default(cuid())
   name             String
   slug             String   @unique
+  // LEGACY. NON leggere questa colonna per decidere niente.
+  // Il piano VERO è BillingSubscription.plan: lo leggono il gate delle funzioni
+  // (src/lib/billing/server-gate.ts), i limiti, e il rinnovo mensile dei crediti
+  // (src/lib/cron/credit-renewal.ts). Questa qui dice "STARTER" — che non è
+  // nemmeno un piano esistente nel listino PLANS — per quasi ogni
+  // organizzazione, clienti paganti compresi: nessuna delle due strade che
+  // creano un'organizzazione la imposta, e il webhook Stripe non la corregge
+  // mai. L'unico punto che la scrive con un valore valido è il pannello admin.
+  // Per contare quante organizzazioni ne sono toccate: npm run db:check-plans
   plan             String   @default("STARTER")
   /// PLAN credits — the monthly allowance, and ONLY that.
   ///

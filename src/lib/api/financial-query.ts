@@ -11,6 +11,7 @@ import type {
 } from '@/lib/demo/data';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
+import { getSubscription } from '@/lib/billing/repository';
 
 export const periodSchema = z.enum(['1m', '3m', '6m', '12m', 'custom']);
 export const sortOrderSchema = z.enum(['asc', 'desc']).default('desc');
@@ -189,7 +190,15 @@ export async function getOrgData(organizationIdArg?: string): Promise<DemoDatase
       id: org.id,
       name: org.name,
       slug: org.slug,
-      plan: org.plan,
+      // The plan the org is ACTUALLY on (BillingSubscription), not
+      // Organization.plan — that legacy column reads "STARTER" for essentially
+      // every organization, paying ones included, because nothing that creates
+      // an organization ever sets it and the Stripe webhook never corrects it.
+      // Nothing reads this field today, which is exactly why it had to change
+      // now: the first thing that ever does read it would otherwise have been
+      // handed the wrong plan with no warning. One extra lookup on a function
+      // that already runs seven queries.
+      plan: (await getSubscription(organizationId)).plan,
       currency: org.currency,
     },
     transactions,

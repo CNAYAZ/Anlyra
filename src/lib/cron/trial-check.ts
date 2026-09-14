@@ -111,9 +111,15 @@ export interface TrialCheckResult {
 export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult> {
   const result: TrialCheckResult = { threeDays: 0, oneDay: 0, expired: 0, skippedUnknownPlan: 0, failed: 0 };
 
+  // Organization.plan is deliberately NOT selected. It used to be, from back
+  // when the trial emails took the plan name and price from it; they now take
+  // both from BillingSubscription via getSubscription() (see below), and the
+  // legacy column was left in the select, read by nobody. Selecting a value
+  // that says "STARTER" for a paying customer and leaving it sitting in scope
+  // is how it gets used again by accident.
   const orgs = await prisma.organization.findMany({
     where: { trialEndsAt: { not: null } },
-    select: { id: true, name: true, plan: true, trialEndsAt: true },
+    select: { id: true, name: true, trialEndsAt: true },
   });
 
   // Bulk lookup, not one query per org: which of these candidates already have

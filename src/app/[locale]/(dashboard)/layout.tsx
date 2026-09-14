@@ -54,7 +54,9 @@ export default async function DashboardLayout({
   }
 
   // 'ok' → the real signed-in org; anonymous WITH the demo cookie → the demo org.
-  // The plan comes from the real Organization record, never from a client cookie.
+  // Only the id is taken here: the plan this layout acts on comes from
+  // getBillingState() below (BillingSubscription, the authoritative column) —
+  // never from a client cookie, and never from the legacy Organization.plan.
   const { id: orgId } = await getCurrentOrganization();
 
   // Read-only applies to the demo organization however it was reached: an
