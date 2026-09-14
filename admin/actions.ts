@@ -125,9 +125,14 @@ export async function setCredits(
  *    it drives feature gating, plan limits, and how many credits the monthly
  *    renewal grants (src/lib/cron/credit-renewal.ts).
  *  • Organization.plan is LEGACY (schema default "STARTER", which is not even a
- *    valid PlanId). It is read in only two places: getCurrentOrganization(),
- *    whose plan value no caller currently uses, and trial-check.ts, where it
- *    picks the plan NAME AND PRICE printed in trial emails.
+ *    valid PlanId). RE-VERIFIED: the two readers this comment used to name are
+ *    both gone. getCurrentOrganization() now resolves the plan through
+ *    getSubscription() (the authoritative column), and trial-check.ts takes the
+ *    email's plan NAME AND PRICE from BillingSubscription — it had already
+ *    stopped using the legacy value and was only still selecting it, which is
+ *    now removed too. Outside this panel, NOTHING in the product reads
+ *    Organization.plan for any decision; it survives as a stored value shown
+ *    here and included in the customer's GDPR export.
  * Writing only one of them is exactly what produces an org that behaves as PRO
  * while its emails advertise something else, so the panel always writes both
  * and reports what it did.
