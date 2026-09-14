@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
@@ -7,7 +8,12 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { prisma } from '@/lib/prisma';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
-import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import {
+  consumeCredits,
+  refundCredits,
+  InsufficientCreditsError,
+  type CreditSpend,
+} from '@/lib/credits';
 import {
   chatComplete,
   isAnthropicConfigured,
@@ -16,6 +22,37 @@ import {
 import { buildSystemPrompt, loadBusinessContext } from '@/lib/ai-context';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * How many of the conversation's most recent messages are resent to the model.
+ *
+ * ── WHY A CAP EXISTS AT ALL ──
+ * Every turn used to resend the ENTIRE thread (findMany with no take). The
+ * credit is charged BEFORE the model call and deliberately not refunded on
+ * failure (see credits.ts), which is fine for an occasional outage — but once a
+ * thread outgrows the model's context window the failure is PERMANENT and
+ * repeats on every retry: each attempt costs a credit and none can ever
+ * succeed, and the conversation can never be used again. That is the trap this
+ * cap removes.
+ *
+ * ── WHY 40 ──
+ * Measured against what this route actually sends. The system prompt is bounded
+ * (3 months of financials, at most 8 facts, at most 10 receivables, at most 10
+ * recurring expenses, plus a static tone block) at roughly 2,000 tokens. A user
+ * message is capped at 4,000 characters by SendSchema (~1,100 tokens) and a
+ * reply at ANTHROPIC_MAX_TOKENS (4,096) — so an absolute worst-case exchange is
+ * ~5,200 tokens. 40 messages is 20 exchanges: ~104k tokens worst case, plus the
+ * system prompt and room for the reply, still comfortably inside the 200k
+ * window of the configured model with room to spare. A realistic exchange (a
+ * short question, a ~900-token answer) is ~1,000 tokens, so an ordinary
+ * conversation never reaches this cap at all — only the rare very long thread
+ * does, and for that one the alternative was a dead conversation.
+ *
+ * The older messages are NOT deleted: they stay in the conversation, are still
+ * shown to the user and still returned by the conversation endpoints. They are
+ * only left out of the REQUEST to the model.
+ */
+const CHAT_HISTORY_WINDOW = 40;
 
 const SendSchema = z.object({
   conversationId: z.string().nullable().optional(),
@@ -44,6 +81,25 @@ function toMessageDTO(m: DbMessage) {
     content: m.content,
     createdAt: m.createdAt.toISOString(),
   };
+}
+
+/**
+ * True only for "the request was larger than the model's context window".
+ *
+ * Anthropic answers that with HTTP 400 / invalid_request_error and a message of
+ * the form "prompt is too long: N tokens > 200000 maximum", which the SDK throws
+ * as BadRequestError (verified against the installed SDK's error shape). Both
+ * the status AND the wording are checked: a 400 from this route could in
+ * principle mean something else, and refunding the wrong failure would hand back
+ * credits for calls Anthropic did charge us for.
+ *
+ * This is the ONLY failure this route treats as refundable, and it is the one
+ * failure that is permanent rather than transient — every other error keeps the
+ * pre-existing no-refund behaviour that chat and analyze have always had.
+ */
+function isContextWindowError(err: unknown): boolean {
+  if (!(err instanceof Anthropic.BadRequestError)) return false;
+  return /prompt is too long/i.test(err.message);
 }
 
 function toConversationDTO(c: DbConversation) {
@@ -94,15 +150,20 @@ export async function POST(req: NextRequest) {
   // `remaining` is the SUM of the plan and purchased balances — the single
   // number the user sees. Which column the credit came out of is decided inside
   // consumeCredits (plan first) and is not this route's business.
-  let creditsRemaining: number;
+  //
+  // The whole CreditSpend is kept, not just `remaining`: the one refundable
+  // failure below (a thread past the context window) has to put the credit back
+  // in the column it came out of, exactly as /api/ai/insights/generate does.
+  let spend: CreditSpend;
   try {
-    creditsRemaining = (await consumeCredits(organizationId, 1)).remaining;
+    spend = await consumeCredits(organizationId, 1);
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);
     }
     throw err;
   }
+  const creditsRemaining = spend.remaining;
 
   let conversation = conversationId
     ? await prisma.aIConversation.findFirst({
@@ -126,9 +187,14 @@ export async function POST(req: NextRequest) {
   const businessCtx = await loadBusinessContext(organizationId);
   const systemPrompt = buildSystemPrompt(businessCtx, 'IT');
 
+  // The LAST CHAT_HISTORY_WINDOW messages, still in chronological order:
+  // Prisma's negative `take` counts from the end of the ordered result, so the
+  // model receives the most recent part of the thread, oldest-to-newest, which
+  // is the order it needs. Older messages stay in the database untouched.
   const priorMessages = await prisma.aIMessage.findMany({
     where: { conversationId: conversation.id },
     orderBy: { createdAt: 'asc' },
+    take: -CHAT_HISTORY_WINDOW,
   });
 
   let assistantText = '';
@@ -150,10 +216,14 @@ export async function POST(req: NextRequest) {
         // nothing inside it changes call to call absent new underlying data).
         // Reused across conversations, not just within one.
         cacheSystemPrompt: true,
-        // Conversation history: every message resends the full prior thread.
-        // Marking the last one lets each new turn build on what the previous
-        // turn already cached, instead of reprocessing the whole history at
-        // full price on every single message.
+        // Conversation history: every message resends the most recent
+        // CHAT_HISTORY_WINDOW messages (it used to be the whole thread — see
+        // that constant). Marking the last one lets each new turn build on
+        // what the previous turn already cached, instead of reprocessing that
+        // history at full price on every single message. The cap does not
+        // weaken the caching: the window is a suffix of the thread, so
+        // consecutive turns still share the same long common prefix until the
+        // window starts sliding.
         cacheLastMessage: true,
         logLabel: 'chat',
         // Full business context + open-ended question: stays on the default
@@ -165,11 +235,36 @@ export async function POST(req: NextRequest) {
     tokensIn = result.tokensIn;
     tokensOut = result.tokensOut;
   } catch (err) {
+    // ── L'UNICO caso rimborsabile: la richiesta ha superato la finestra ──
+    // Con il taglio a CHAT_HISTORY_WINDOW questo non dovrebbe più accadere per
+    // crescita della cronologia; resta come rete di sicurezza (un domani con un
+    // cap più alto, un system prompt più grande o un modello con finestra più
+    // piccola). È l'unico errore PERMANENTE: ritentare non può funzionare, e
+    // senza rimborso ogni tentativo costerebbe un credito per niente.
+    //
+    // RIMBORSO UNA VOLTA SOLA, GARANTITO DALLA STRUTTURA: questo è l'unico
+    // punto dell'intera rotta che chiama refundCredits, sta in un singolo ramo
+    // di un singolo catch, non è dentro nessun ciclo e nessun retry, e dopo
+    // esce subito con return. Una richiesta HTTP passa di qui al massimo una
+    // volta, e un secondo tentativo del cliente è una NUOVA richiesta con un
+    // proprio consumeCredits da annullare.
+    if (isContextWindowError(err)) {
+      console.error('[ai:error] surface=chat conversation beyond context window', err);
+      try {
+        await refundCredits(organizationId, spend);
+      } catch (refundErr) {
+        // Best-effort, stessa regola di insights/generate: se il rimborso
+        // stesso fallisce, al cliente va comunque l'errore giusto e lo
+        // scostamento sul saldo resta nei log per una correzione manuale.
+        console.error('[ai/chat] credit refund FAILED after context-window error:', refundErr);
+      }
+      return fail('CONVERSATION_TOO_LONG', 413);
+    }
     // L'errore VERO resta nei log del server, per intero, con il marcatore
     // [ai:error] per ritrovarlo. Al browser va solo un messaggio generico: il
     // testo di un errore Anthropic puo' contenere dettagli sulla nostra
     // configurazione (modello, quote, forma della richiesta) che non hanno
-    // motivo di uscire. Lo status 502 non cambia.
+    // motivo di uscire. Lo status 502 non cambia. Nessun rimborso, come prima.
     console.error('[ai:error] surface=chat', err);
     return fail('AI_REQUEST_FAILED', 502);
   }
