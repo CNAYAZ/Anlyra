@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { CreditReason } from "@/lib/credits";
 import type { PlanId } from "./plans";
 import type { BillingState } from "./context";
 
@@ -29,7 +30,10 @@ export interface CreditEntry {
   id: string;
   orgId: string;
   delta: number;
-  reason: "monthly_grant" | "purchase" | "ai_call" | "refund";
+  // Single source of truth in @/lib/credits, which is where rows are written
+  // from. This used to be its own hardcoded list of four; it now also covers the
+  // signup grant and operator adjustments, which move credits too.
+  reason: CreditReason;
   createdAt: Date;
 }
 
@@ -173,10 +177,13 @@ export async function listCreditEntries(orgId: string): Promise<CreditEntry[]> {
  * ledger row, atomically.
  *
  * Replaces the previous ledger-only addCreditEntry(), which wrote a CreditEntry
- * and nothing else. Because consumeCredits (src/lib/credits.ts) reads exclusively
- * from Organization.aiCredits, that meant a customer could complete a Stripe
- * payment and receive nothing usable — the purchase showed in the history while
- * the balance stayed put.
+ * and nothing else. Because spending read only Organization.aiCredits at the
+ * time (consumeCredits now draws on both columns), that meant a customer could
+ * complete a Stripe payment and receive nothing usable — the purchase showed in
+ * the history while the balance stayed put. VERIFIED on the history: the deleted
+ * addCreditEntry did write the row without touching any balance, and the Stripe
+ * webhook did call it, so CreditEntry rows created before that fix can describe
+ * purchases that never became spendable credit.
  *
  * ── WHICH COLUMN, AND WHY IT MATTERS ──
  * Credits aiCreditsPurchased, NEVER aiCredits. aiCredits is the monthly plan

@@ -6,6 +6,7 @@ import { siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, welcomeTemplate } from '@/lib/email';
 import { issueTeamInvite } from '@/lib/invites/issue';
 import { signupCredits } from '@/lib/billing/plan-credits';
+import { recordCreditEntry } from '@/lib/credits';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
@@ -115,6 +116,16 @@ export async function POST(req: Request) {
       },
     },
   });
+
+  // The welcome credits above are the org's FIRST balance movement, so they get
+  // the ledger's first row — otherwise every later row would describe changes to
+  // a starting balance that appears from nowhere, and the trail would never add
+  // up to what the org actually holds. Its own causale: this grant happens once,
+  // at signup, and is not the monthly one.
+  // Best-effort (recordCreditEntry never throws): an organization that exists
+  // with its credits must not be reported as a failed signup because of a
+  // bookkeeping row.
+  await recordCreditEntry(org.id, signupCredits(), 'signup_grant');
 
   // Demote any prior default membership for this user so the new org becomes active.
   await prisma.membership.updateMany({
