@@ -881,7 +881,11 @@ model CreditEntry {
   id             String   @id @default(cuid())
   organizationId String
   delta          Int // +grant/purchase/refund, -consumption
-  reason         String // monthly_grant | purchase | ai_call | refund
+  // monthly_grant | purchase | ai_call | refund | signup_grant | admin_adjustment
+  // Source of truth: CreditReason in src/lib/credits.ts, which is also where the
+  // rows are written from. Plain String, not an enum, so adding a causale is a
+  // code change and never a migration.
+  reason         String
   createdAt      DateTime @default(now())
 
   @@index([organizationId, createdAt])

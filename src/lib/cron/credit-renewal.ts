@@ -143,23 +143,65 @@ export async function runCreditRenewal(now = new Date()): Promise<CreditRenewalR
     }
 
     try {
-      // Both writes in ONE transaction. If the marker write failed after the
+      // All THREE writes in ONE transaction. If the marker write failed after the
       // balance write, the next run would reset the balance again (the org would
       // get a second full period); if the balance write failed after the marker,
       // the org would silently lose a period. Neither half is acceptable alone.
-      await prisma.$transaction([
-        prisma.organization.update({
+      //
+      // ── WHY THE LEDGER ROW IS INSIDE THIS TRANSACTION ──
+      // Everywhere else a ledger row is written AFTER the movement and is allowed
+      // to fail on its own (see recordCreditEntry), because there the movement
+      // cannot be replayed. Here it can: a failed transaction leaves
+      // creditsRenewedAt untouched, so this subscription is still due and the next
+      // daily run renews it. Nothing is lost, only postponed by a day. That makes
+      // the stronger guarantee affordable — the balance and the row explaining it
+      // can never disagree — so this is the one movement where they share a fate.
+      await prisma.$transaction(async (tx) => {
+        // The balance BEFORE the reset, read under a row lock so the delta below
+        // is the movement that really happened. Without FOR UPDATE a chat message
+        // landing between this read and the update would make the recorded delta
+        // wrong by one — the balance would still be correct (it is `set`, not
+        // computed from this read), but the ledger would no longer add up. The
+        // lock is held for the few milliseconds of this transaction.
+        const [locked] = await tx.$queryRaw<{ aiCredits: number }[]>`
+          SELECT "aiCredits" FROM "Organization" WHERE "id" = ${sub.organizationId} FOR UPDATE
+        `;
+        // No such organization: the subscription points at a row that is gone.
+        // Nothing to renew, and nothing to record.
+        if (!locked) {
+          throw new Error(`organization ${sub.organizationId} not found`);
+        }
+
+        await tx.organization.update({
           where: { id: sub.organizationId },
           // `set`, not `increment` — the founder's rule is reset, not accumulate.
           // aiCredits ONLY: aiCreditsPurchased is deliberately absent from this
           // update, so paid credit packs survive every renewal. See the header.
           data: { aiCredits: { set: allowance } },
-        }),
-        prisma.billingSubscription.update({
+        });
+
+        await tx.billingSubscription.update({
           where: { organizationId: sub.organizationId },
           data: { creditsRenewedAt: now },
-        }),
-      ]);
+        });
+
+        // The DELTA, not the allowance. Because the reset is a `set`, the balance
+        // moves by allowance minus whatever was left — an org that spent 195 of
+        // 200 gains 195, not 200. Recording the allowance would make the ledger
+        // claim credits that were never added, and the sum of the rows would stop
+        // matching the balance. The delta is negative when a plan was downgraded
+        // mid-period (the reset takes credits away), and that is recorded too.
+        const delta = allowance - locked.aiCredits;
+        if (delta !== 0) {
+          await tx.creditEntry.create({
+            data: {
+              organizationId: sub.organizationId,
+              delta,
+              reason: 'monthly_grant',
+            },
+          });
+        }
+      });
 
       result.renewed += 1;
 

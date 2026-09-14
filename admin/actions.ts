@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { auditLog } from '@/lib/audit/log';
+import { recordCreditEntry } from '@/lib/credits';
 import { buildInsightWhere } from './queries';
 
 /**
@@ -75,6 +76,22 @@ export async function setCredits(
     plan: values.plan ?? before.aiCredits,
     purchased: values.purchased ?? before.aiCreditsPurchased,
   };
+
+  // ONE ledger row for the whole edit, carrying the change to the SPENDABLE
+  // balance — the two columns summed. Two rows (one per column) would read like
+  // two separate events, and CreditEntry has no column saying which balance a row
+  // refers to, so they would be indistinguishable anyway. Absolute values in,
+  // delta out: the panel sets balances, the ledger records movements.
+  // Best-effort and after the update, for the same reason as everywhere else: a
+  // correction the founder made for a customer must not be undone by a failure to
+  // write a note about it. The audit row below is a separate, richer trail (it
+  // keeps both columns, before and after); this one exists so the CUSTOMER's
+  // credit history is complete, not just the operator log.
+  await recordCreditEntry(
+    organizationId,
+    after.plan - before.aiCredits + (after.purchased - before.aiCreditsPurchased),
+    'admin_adjustment',
+  );
 
   await auditLog({
     action: 'admin.credits_set',
