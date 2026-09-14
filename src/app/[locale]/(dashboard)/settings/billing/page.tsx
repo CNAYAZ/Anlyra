@@ -3,19 +3,25 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, CheckCircle2, Coins, Crown, Info, Loader2, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
 import { PLANS, CREDIT_PACKS, type PlanId, type CreditPack } from '@/lib/billing/plans';
 import type { BillingState } from '@/lib/billing/context';
+import type { CreditHistoryResponse } from '@/types/billing';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsOwner } from '@/lib/auth/owner-context';
 import { apiFetch } from '@/lib/api/fetcher';
 import { COMPANY } from '@/lib/company';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, formatCurrency } from '@/lib/utils';
+import { Pagination } from '@/components/ui/pagination';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useAppLocale } from '@/hooks/use-locale';
+
+/** Rows per page for the credit history table — mirrors the API's own default. */
+const CREDIT_HISTORY_PAGE_SIZE = 20;
 
 const VISIBLE_PLANS: PlanId[] = ['PRO', 'ADVANCED', 'ENTERPRISE'];
 
@@ -56,6 +62,7 @@ function SettingsBillingPageInner() {
   const t = useTranslations('settings');
   const tBilling = useTranslations('billing');
   const tPricing = useTranslations('pricing');
+  const tCommon = useTranslations('common');
   const aiCredits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
   const isOwner = useIsOwner();
@@ -236,6 +243,27 @@ function SettingsBillingPageInner() {
   const [portalError, setPortalError] = useState<string | null>(null);
   const [busyPack, setBusyPack] = useState<CreditPack['id'] | null>(null);
   const [packError, setPackError] = useState<{ pack: CreditPack['id']; message: string } | null>(null);
+
+  // ── Credit ledger (Storico) ──────────────────────────────────────────────
+  // useQuery, not a hand-rolled useEffect+useState: same tool the rest of the
+  // app already uses for exactly this shape (fetch, paginated, page in the
+  // key) — see ai/insights/page.tsx's identical queryKey-includes-page
+  // pattern. Not tied to `aiCredits` or any other balance signal: a fresh
+  // purchase/consumption shows up next time the customer turns a page or
+  // reloads, same staleness the rest of this page already accepts for
+  // everything that isn't the balance counter itself.
+  const [historyPage, setHistoryPage] = useState(1);
+  const {
+    data: history,
+    isLoading: historyLoading,
+    isError: historyError,
+  } = useQuery({
+    queryKey: ['credit-history', historyPage],
+    queryFn: () =>
+      apiFetch<CreditHistoryResponse>(
+        `/api/billing/credits/history?page=${historyPage}&pageSize=${CREDIT_HISTORY_PAGE_SIZE}`,
+      ),
+  });
 
   // Same flow as components/billing/CurrentPlanCard.openPortal: POST the portal
   // session, redirect to the returned Stripe URL. The org's stripeCustomerId is
@@ -477,6 +505,87 @@ function SettingsBillingPageInner() {
           ))}
         </div>
         {!isOwner && <p className="mt-2 text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
+      </div>
+
+      {/* ── Credit history (Storico): every ledger movement, paginated, newest
+          first. Open to every member — same tier as the balance itself, no
+          isOwner gate here (see api/billing/credits/history/route.ts for why).
+          historyLegacyNotice is NOT tied to whether this page happens to have
+          rows: `incomplete` compares the WHOLE ledger's sum against the real
+          balance server-side, so it is correct on every page, including an
+          empty one. */}
+      <div>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-1">
+          {tBilling('credits.history')}
+        </h2>
+        {history?.incomplete && (
+          <p className="mb-3 text-xs text-fg-3">{tBilling('credits.historyLegacyNotice')}</p>
+        )}
+        {historyLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        ) : historyError ? (
+          <p className="rounded-lg border border-border bg-card p-4 text-sm text-danger">
+            {tBilling('credits.historyError')}
+          </p>
+        ) : !history || history.entries.length === 0 ? (
+          // "A message, not an empty table" — a table with a header row and
+          // nothing under it reads as broken; this reads as "nothing has
+          // happened yet", which is the actual state for a brand-new org.
+          <p className="rounded-lg border border-border bg-card p-4 text-sm text-fg-3">
+            {tBilling('credits.historyEmpty')}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-lg border border-border bg-card shadow-elev-1">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 text-left">{tCommon('date')}</th>
+                      <th className="px-4 py-3 text-left">{tBilling('credits.historyReasonHeader')}</th>
+                      <th className="px-4 py-3 text-right">{tBilling('credits.historyChangeHeader')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.entries.map((entry) => {
+                      const positive = entry.delta > 0;
+                      return (
+                        <tr key={entry.id} className="border-t border-border">
+                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                            {formatDate(entry.createdAt, locale)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {tBilling(`credits.reasons.${entry.reason}`)}
+                          </td>
+                          <td
+                            className={cn(
+                              'px-4 py-3 text-right font-medium tabular-nums',
+                              positive ? 'text-success' : 'text-danger',
+                            )}
+                          >
+                            {positive ? '+' : ''}
+                            {entry.delta}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <Pagination
+              page={history.pagination.page}
+              pageSize={history.pagination.pageSize}
+              total={history.pagination.total}
+              totalPages={history.pagination.totalPages}
+              onPageChange={setHistoryPage}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Plans ── */}

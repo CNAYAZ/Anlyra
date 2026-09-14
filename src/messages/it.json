@@ -1849,7 +1849,20 @@
       "credits": "crediti",
       "explainer": "I crediti del piano si azzerano a ogni rinnovo mensile. I crediti acquistati non scadono e vengono usati solo dopo aver esaurito quelli del piano.",
       "buyErrorConfig": "Questo pacchetto non è ancora disponibile per l'acquisto. Riprova più tardi o scrivici.",
-      "buyErrorGeneric": "Acquisto non riuscito. Riprova."
+      "buyErrorGeneric": "Acquisto non riuscito. Riprova.",
+      "historyReasonHeader": "Movimento",
+      "historyChangeHeader": "Variazione",
+      "historyEmpty": "Nessun movimento di crediti ancora registrato.",
+      "historyError": "Non è stato possibile caricare lo storico crediti. Riprova più tardi.",
+      "historyLegacyNotice": "Il saldo attuale include crediti concessi prima dell'inizio di questo storico: la somma dei movimenti qui sotto può quindi non coincidere con il saldo mostrato in alto.",
+      "reasons": {
+        "monthly_grant": "Rinnovo mensile del piano",
+        "purchase": "Acquisto pacchetto crediti",
+        "ai_call": "Utilizzo AI",
+        "refund": "Rimborso",
+        "signup_grant": "Crediti di benvenuto",
+        "admin_adjustment": "Correzione manuale"
+      }
     },
     "invoices": {
       "title": "Storico Fatture",
