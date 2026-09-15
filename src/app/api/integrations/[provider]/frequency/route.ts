@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthContext } from "@/lib/session";
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from "@/lib/auth/require-role";
+import { requireIntegrationPlan } from "@/lib/billing/server-gate";
 import { auditLog } from '@/lib/audit/log';
 import { getIntegration } from "@/lib/integrations/registry";
 
@@ -25,7 +26,13 @@ export async function POST(req: Request, props: { params: Promise<{ provider: st
   const denied = requireManagerRole(authCtx);
   if (denied) return denied;
   const { organizationId } = authCtx;
-  const org = { id: organizationId, plan: 'PRO' as const };
+  // Plan gate, same source as the interface (registry requiredPlan +
+  // planMeets). Setting how often a provider syncs is configuring it, so it
+  // belongs on the same side of the line as connect and sync.
+  const lockedByPlan = await requireIntegrationPlan(organizationId, definition.requiredPlan);
+  if (lockedByPlan) return lockedByPlan;
+  // `plan: 'PRO' as const` used to sit here — a hardcoded plan nothing read.
+  const org = { id: organizationId };
   const integration = await prisma.integration.update({
     where: {
       organizationId_provider: {

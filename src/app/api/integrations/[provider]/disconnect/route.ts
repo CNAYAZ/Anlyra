@@ -19,7 +19,21 @@ export async function POST(_req: Request, props: { params: Promise<{ provider: s
   const denied = requireManagerRole(authCtx);
   if (denied) return denied;
   const { organizationId } = authCtx;
-  const org = { id: organizationId, plan: 'PRO' as const };
+  // ── NO PLAN GATE HERE, AND IT IS DELIBERATE ──
+  // Its three siblings (connect, sync, frequency) now refuse a provider the
+  // org's plan does not include. This one does not, because it is the only one
+  // that TAKES access away rather than granting it. Gate it and a customer who
+  // downgrades while a provider is connected can never switch that connection
+  // off: the interface hides the button on a locked card and the route would
+  // refuse the manual call, leaving a connection they no longer pay for and
+  // cannot remove. Letting someone turn off what they are no longer entitled to
+  // is not an escalation.
+  // This does not put the interface and the server at odds in the direction
+  // that hurts: the failure mode worth preventing is an ENABLED button the
+  // route then refuses, and here the button is hidden while the route allows —
+  // nothing a customer can see promises something that fails.
+  // `plan: 'PRO' as const` used to sit here — a hardcoded plan nothing read.
+  const org = { id: organizationId };
   await prisma.integration.update({
     where: {
       organizationId_provider: {
