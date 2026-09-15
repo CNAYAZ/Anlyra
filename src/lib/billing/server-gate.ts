@@ -7,6 +7,8 @@ import {
   planHasIntegration,
 } from "./plans";
 import { getSubscription, type Subscription } from "./repository";
+import { fail } from "@/lib/api";
+import { planMeets, type RequiredPlan } from "@/lib/plan/feature-gate";
 
 // Statuses that grant full (write/produce) access. Everything else — most
 // importantly "canceled" (an expired trial with no paid subscription) — is
@@ -49,6 +51,57 @@ export async function assertIntegration(
       requiredIntegration: integration,
     });
   }
+}
+
+/**
+ * Plan gate for the integration ROUTES. Returns a ready-to-return 403 when the
+ * organization's plan does not reach `requiredPlan`, or null when it does —
+ * the same shape as requireManagerRole/requireWritableOrg, which these routes
+ * already use, so it slots in as one more line in the same guard block.
+ *
+ * ── WHY NOT assertIntegration, WHICH IS RIGHT THERE ──
+ * Three reasons, all verified before writing this:
+ *  1. WRONG SOURCE. assertIntegration asks planHasIntegration(), i.e. the
+ *     BILLING catalog (PLANS[...].integrations). The interface gates on
+ *     registry.requiredPlan via planMeets(). Those two disagree today —
+ *     the billing catalog gives HubSpot to ADVANCED, the registry demands
+ *     ENTERPRISE — so using assertIntegration here would have produced exactly
+ *     the split this gate exists to prevent: an ADVANCED customer shown a
+ *     locked card by the UI and let through by the server. Which of the two is
+ *     commercially right is the founder's call and is NOT decided here; what
+ *     matters is that server and interface answer from ONE source, and the
+ *     interface's source is the registry.
+ *  2. IT CANNOT EXPRESS HALF THE PROVIDERS. Its IntegrationKey type is
+ *     stripe | quickbooks | xero | salesforce | hubspot | sap. The registry
+ *     ships google-analytics and shopify, which are not in that union at all,
+ *     so the call would not even compile for two of the six providers.
+ *  3. IT THROWS, AND NOTHING TRANSLATES IT. It throws a plain Error carrying a
+ *     `code` property, while failFromError only recognises errors by `name`
+ *     ('NotAuthenticatedError', 'NoOrganizationError') and turns everything
+ *     else into INTERNAL_ERROR 500. A customer on the wrong plan would have
+ *     received a generic server error, and the thrown message
+ *     ("Integration 'x' not available on plan 'PRO'") leaks the org's plan and
+ *     an internal key if anyone ever did surface it.
+ * assertIntegration is left exactly as it is: it is not wrong, it answers a
+ * different question (what the BILLING catalog sells), and it still has no
+ * callers.
+ *
+ * ── WHAT THE CUSTOMER IS TOLD ──
+ * The required plan and nothing else. That name is public — it is on the
+ * pricing page and already printed on the locked card in the interface — while
+ * the org's current plan, the provider's internal key and the shape of the
+ * check stay on the server.
+ */
+export async function requireIntegrationPlan(
+  orgId: string,
+  requiredPlan: RequiredPlan,
+) {
+  const sub = await getSubscription(orgId);
+  if (planMeets(sub.plan, requiredPlan)) return null;
+  return fail(
+    `Questa integrazione è disponibile dal piano ${requiredPlan}. Aggiorna il piano per attivarla.`,
+    403,
+  );
 }
 
 export async function assertWithinLimit(
