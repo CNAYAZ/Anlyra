@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentContext } from "@/lib/session";
+import { getBillingState } from "@/lib/billing/repository";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
 import { IntegrationManager } from "@/components/integrations/IntegrationManager";
@@ -26,9 +27,27 @@ export default async function ProviderPage(props: Props) {
   const t = await getTranslations("integrations");
   const tCommon = await getTranslations("common");
   const { organizationId } = await getCurrentContext();
-  const org = { id: organizationId, plan: 'PRO' as const };
+  const org = { id: organizationId };
 
-  if (!planMeets(org.plan, definition.requiredPlan)) {
+  // The plan the organization is ACTUALLY on, read on the server from
+  // BillingSubscription — the same getBillingState() the dashboard layout uses.
+  //
+  // ── WHY NOT usePlan()/BillingProvider ──
+  // This page lives OUTSIDE the (dashboard) route group (it is
+  // app/[locale]/integrations/[provider], while the list page is
+  // app/[locale]/(dashboard)/integrations), so the dashboard layout — and with
+  // it BillingProvider — never wraps it. It does not need them: this is a
+  // server component, so it can read the real plan directly instead of waiting
+  // for a client context.
+  //
+  // This used to be `{ plan: 'PRO' as const }`, a plan written by hand. The
+  // consequence was not theoretical: planMeets('PRO', 'ENTERPRISE') is false,
+  // so an ENTERPRISE customer opening one of the three ENTERPRISE integrations
+  // was shown "locked, upgrade your plan" for something they had already paid
+  // for.
+  const { plan } = await getBillingState(organizationId);
+
+  if (!planMeets(plan, definition.requiredPlan)) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-10">
         <h1 className="mb-2 font-heading text-2xl font-bold">

@@ -57,7 +57,7 @@ export function AuditLog() {
   });
 
   return (
-    <FeatureGate required="enterprise">
+    <FeatureGate feature="audit_log">
       <Card>
         <CardHeader>
           <CardTitle>{t('title')}</CardTitle>

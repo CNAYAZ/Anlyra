@@ -8,8 +8,14 @@ export async function GET(_req: Request, props: { params: Promise<{ provider: st
   const definition = getIntegration(params.provider);
   if (!definition) return fail("Unknown provider", 404);
 
+  // No plan is resolved here on purpose. This route reports CONNECTION status,
+  // it does not gate on the plan — and it used to carry a `plan: 'PRO' as const`
+  // literal that nothing read. A hardcoded plan sitting one line away from a
+  // gate is how it ends up inside one, so it is gone rather than left to be
+  // copied. If this route ever needs to gate, the plan comes from
+  // getBillingState(organizationId), never from a literal.
   const { organizationId } = await getCurrentContext();
-  const org = { id: organizationId, plan: 'PRO' as const };
+  const org = { id: organizationId };
   const integration = await prisma.integration.findUnique({
     where: {
       organizationId_provider: {
