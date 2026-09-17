@@ -1,6 +1,7 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { PricingPage, type FaqItem } from '@/components/pricing/pricing-page';
 import { productSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
+import { PLANS, isUnlimited, type PlanId } from '@/lib/billing/plans';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com').trim();
 
@@ -15,6 +16,14 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'pricing' });
 
+  // How many people a plan includes is read from the price list
+  // (PLANS[...].limits.users) — the same source checkSeatAvailability enforces
+  // on the server — so the bullet can never drift from the real limit.
+  const seatBullet = (planId: PlanId) => {
+    const users = PLANS[planId].limits.users;
+    return isUnlimited(users) ? t('seatsUnlimited') : t('seats', { count: users });
+  };
+
   return (
     <>
       <script
@@ -24,7 +33,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
             productSchema({
               name: 'Pro',
               description:
-                'Analytics AI per piccoli team. 200 crediti AI, fino a 5 utenti.',
+                `Analytics AI per piccoli team. ${PLANS.PRO.limits.aiCredits} crediti AI, fino a ${PLANS.PRO.limits.users} utenti.`,
               priceMonthly: 49,
               priceYearly: 490,
             }),
@@ -38,7 +47,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
             productSchema({
               name: 'Avanzato',
               description:
-                'Analytics AI per team in crescita. 700 crediti AI, fino a 15 utenti.',
+                `Analytics AI per team in crescita. ${PLANS.ADVANCED.limits.aiCredits} crediti AI, fino a ${PLANS.ADVANCED.limits.users} utenti.`,
               priceMonthly: 149,
               priceYearly: 1490,
               isPopular: true,
@@ -71,7 +80,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       proBilledMonthly={t('plans.pro.billedMonthly')}
       proBilledAnnual={t('plans.pro.billedAnnual')}
       proBilledNote={t('plans.pro.billedNote')}
-      proFeatures={t.raw('plans.pro.features') as string[]}
+      proFeatures={[seatBullet('PRO'), ...(t.raw('plans.pro.features') as string[])]}
       proCta={t('plans.pro.cta')}
       proFooterNote={t('plans.pro.footerNote')}
       advancedBadge={t('plans.advanced.badge')}
@@ -83,7 +92,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       advancedBilledAnnual={t('plans.advanced.billedAnnual')}
       advancedBilledNote={t('plans.advanced.billedNote')}
       advancedFeaturesPrefix={t('plans.advanced.featuresPrefix')}
-      advancedFeatures={t.raw('plans.advanced.features') as string[]}
+      advancedFeatures={[seatBullet('ADVANCED'), ...(t.raw('plans.advanced.features') as string[])]}
       advancedCta={t('plans.advanced.cta')}
       advancedFooterNote={t('plans.advanced.footerNote')}
       enterpriseName={t('plans.enterprise.name')}
@@ -91,7 +100,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       enterpriseTaglineSub={t('plans.enterprise.taglineSub')}
       enterprisePriceLabel={t('plans.enterprise.priceLabel')}
       enterpriseFeaturesPrefix={t('plans.enterprise.featuresPrefix')}
-      enterpriseFeatures={t.raw('plans.enterprise.features') as string[]}
+      enterpriseFeatures={[seatBullet('ENTERPRISE'), ...(t.raw('plans.enterprise.features') as string[])]}
       enterpriseCta={t('plans.enterprise.cta')}
       enterpriseFooterNote={t('plans.enterprise.footerNote')}
       moneyBackTitle={t('moneyBack.title')}

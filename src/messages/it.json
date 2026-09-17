@@ -1973,6 +1973,8 @@
       "subtitle": "Tre piani per ogni fase di crescita. 7 giorni di prova, 14 giorni di garanzia rimborso."
     },
     "vatNote": "Prezzi senza IVA — regime forfetario, nessuna imposta addebitata.",
+    "seats": "{count, plural, one {Fino a # persona nel team} other {Fino a # persone nel team}}",
+    "seatsUnlimited": "Persone illimitate nel team",
     "compareTitle": "Confronta i piani",
     "faqTitle": "Domande frequenti",
     "everythingIn": "Tutto incluso in {plan}, più:",
@@ -2034,7 +2036,6 @@
         "priceAnnual": "Custom",
         "featuresPrefix": "Tutto del piano Avanzato, più:",
         "features": [
-          "Utenti illimitati",
           "Crediti AI illimitati",
           "SSO via SAML 2.0",
           "Audit log avanzato",

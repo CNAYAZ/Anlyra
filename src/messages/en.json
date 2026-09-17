@@ -1973,6 +1973,8 @@
       "subtitle": "Three plans for every growth stage. 7-day trial, 14-day money-back guarantee."
     },
     "vatNote": "Prices exclude VAT — regime forfetario, no tax is charged.",
+    "seats": "{count, plural, one {Up to # person in your team} other {Up to # people in your team}}",
+    "seatsUnlimited": "Unlimited people in your team",
     "compareTitle": "Compare plans",
     "faqTitle": "Frequently asked questions",
     "everythingIn": "Everything in {plan}, plus:",
@@ -2034,7 +2036,6 @@
         "priceAnnual": "Custom",
         "featuresPrefix": "Everything in Advanced, plus:",
         "features": [
-          "Unlimited users",
           "Unlimited AI credits",
           "SSO via SAML 2.0",
           "Advanced audit log",

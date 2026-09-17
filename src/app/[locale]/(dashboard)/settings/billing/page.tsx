@@ -8,7 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, CheckCircle2, Coins, Crown, Info, Loader2, Shield } from 'lucide-react';
 import { usePlan } from '@/lib/billing/context';
-import { PLANS, CREDIT_PACKS, type PlanId, type CreditPack } from '@/lib/billing/plans';
+import { PLANS, CREDIT_PACKS, isUnlimited, type PlanId, type CreditPack } from '@/lib/billing/plans';
 import type { BillingState } from '@/lib/billing/context';
 import type { CreditHistoryResponse } from '@/types/billing';
 import { useCreditsStore } from '@/stores/credits-store';
@@ -637,7 +637,16 @@ function SettingsBillingPageInner() {
             const priceMonthly = tPricing(`plans.${pricingKey}.priceMonthly` as 'plans.pro.priceMonthly');
             const priceAnnual = tPricing(`plans.${pricingKey}.priceAnnual` as 'plans.pro.priceAnnual');
             const priceLabel = p.contact ? tPricing('plans.enterprise.priceLabel') : undefined;
-            const features = tPricing.raw(`plans.${pricingKey}.features` as 'plans.pro.features') as string[];
+            // First bullet: how many people the plan includes, read from the
+            // price list (p.limits.users) — the same source the server gate
+            // enforces — instead of being written by hand in the messages.
+            const seatBullet = isUnlimited(p.limits.users)
+              ? tPricing('seatsUnlimited')
+              : tPricing('seats', { count: p.limits.users });
+            const features = [
+              seatBullet,
+              ...(tPricing.raw(`plans.${pricingKey}.features` as 'plans.pro.features') as string[]),
+            ];
             const featuresPrefix = planId !== 'PRO'
               ? tPricing(`plans.${pricingKey}.featuresPrefix` as 'plans.advanced.featuresPrefix')
               : undefined;
