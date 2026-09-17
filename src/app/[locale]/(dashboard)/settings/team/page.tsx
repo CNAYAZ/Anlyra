@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIsManager, useIsOwner } from '@/lib/auth/owner-context';
-import { CheckCircle2, MailWarning, Trash2, UserCircle2, UserMinus } from 'lucide-react';
+import { usePlan } from '@/lib/billing/context';
+import { isUnlimited } from '@/lib/billing/plans';
+import { CheckCircle2, MailWarning, Trash2, UserCircle2, UserMinus, Users } from 'lucide-react';
 
 /** The four roles a member can be set to. 'owner' is assignable only BY an owner. */
 const ASSIGNABLE_ROLES = ['owner', 'admin', 'editor', 'viewer'] as const;
@@ -118,6 +120,42 @@ export default function SettingsTeamPage() {
       apiFetch<{ members: Member[]; invites: PendingInvite[] }>('/api/settings/team'),
   });
 
+  // ── How many people the plan includes, and how many are taken ──
+  // The limit comes from the plan catalog through BillingProvider, which the
+  // dashboard layout feeds with the real BillingSubscription plan — the same
+  // catalog value (PLANS[plan].limits.users) that checkSeatAvailability
+  // enforces on the server.
+  //
+  // "Taken" is counted the way the server counts it for an invite: people
+  // already in PLUS invites still open. The GET above selects invites with the
+  // very same condition the check uses (acceptedAt: null, expiresAt in the
+  // future), so the number shown here and the number enforced cannot drift.
+  const { limits } = usePlan();
+  const seatLimit = limits.users;
+  const seatsAreUnlimited = isUnlimited(seatLimit);
+  const membersCount = data?.members.length ?? 0;
+  const invitesCount = data?.invites.length ?? 0;
+  const seatsUsed = membersCount + invitesCount;
+  // Only once the counts have actually loaded: while `data` is undefined both
+  // are 0, and a plan with 0 seats does not exist, so nothing is ever blocked
+  // on a number we do not have yet.
+  const seatsFull = !!data && !seatsAreUnlimited && seatsUsed >= seatLimit;
+  // Already past the limit — a downgrade leaves the team as it is (nothing in
+  // the code removes memberships by plan), so this is a normal state to land
+  // in, not a fault. Shown as two plain facts instead of "7 di 5", which reads
+  // like a broken counter.
+  const seatsOver = !!data && !seatsAreUnlimited && seatsUsed > seatLimit;
+
+  // Why the invite form is unavailable, or null when it is not. Same idea as
+  // the members table's `reasonKey` above, and the same precedence: not being
+  // a manager is the stronger block, so it wins. `teamSeatsFull` is worded to
+  // hold for the over-the-limit case too — there are no free seats either way.
+  const inviteBlockedReason = !isManager
+    ? t('inviteManagerOnly')
+    : seatsFull
+      ? t('teamSeatsFull')
+      : null;
+
   const invite = useMutation({
     mutationFn: (body: { email: string; role: string }) =>
       apiFetch<{ email: string; role: string; reissued: boolean; emailSent: boolean }>(
@@ -181,6 +219,33 @@ export default function SettingsTeamPage() {
         <h1 className="font-heading text-2xl font-semibold">{t('teamTitle')}</h1>
         <p className="text-sm text-muted-foreground">{t('teamSubtitle')}</p>
       </div>
+
+      {/* Seat counter. Rendered only once the team has loaded: before that the
+          counts are 0, and "0 di 5" would be a number we have not read yet.
+          For an unlimited plan it states the headcount and says there is no
+          limit, instead of dividing by a total that does not exist. */}
+      {data && (
+        <div className="flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-medium tabular-nums">
+            <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span>
+              {seatsAreUnlimited
+                ? t('teamSeatsCounterUnlimited', { used: seatsUsed })
+                : seatsOver
+                  ? t('teamSeatsCounterOver', { used: seatsUsed, limit: seatLimit })
+                  : t('teamSeatsCounter', { used: seatsUsed, limit: seatLimit })}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {t('teamSeatsBreakdown', { members: membersCount, invites: invitesCount })}
+          </p>
+          {seatsOver && (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {t('teamSeatsOver', { limit: seatLimit })}
+            </p>
+          )}
+        </div>
+      )}
 
       {isLoading || !data ? (
         <div className="space-y-2">
@@ -335,11 +400,16 @@ export default function SettingsTeamPage() {
         </div>
       )}
 
-      {/* Invite form. Disabled rather than hidden for a non-manager, with the
-          reason written out — same choice as settings/billing's ownerOnly:
-          a control that explains why it is unavailable beats one that silently
-          is not there. The real check is server-side (requireManagerRole);
-          useIsManager only decides what the UI offers. */}
+      {/* Invite form. Disabled rather than hidden for a non-manager, and now
+          also when the plan has no free seats left, with the reason written
+          out — same choice as settings/billing's ownerOnly: a control that
+          explains why it is unavailable beats one that silently is not there,
+          and beats one the customer only discovers is refused by pressing it.
+          The real checks stay server-side (requireManagerRole and
+          checkSeatAvailability); this only decides what the UI offers, which
+          is also why inviteErrorSeatLimit is still mapped below — two managers
+          inviting at the same moment can still race past a count read a
+          second ago. */}
       <form
         className="card space-y-4"
         onSubmit={(e) => {
@@ -359,7 +429,7 @@ export default function SettingsTeamPage() {
               id="invite-email"
               type="email"
               required
-              disabled={!isManager || invite.isPending}
+              disabled={inviteBlockedReason !== null || invite.isPending}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('inviteEmailPlaceholder')}
@@ -370,7 +440,7 @@ export default function SettingsTeamPage() {
             <Label htmlFor="invite-role">{t('teamColRole')}</Label>
             <Select
               value={role}
-              disabled={!isManager || invite.isPending}
+              disabled={inviteBlockedReason !== null || invite.isPending}
               onValueChange={(v) => setRole(v as (typeof INVITABLE_ROLES)[number])}
             >
               <SelectTrigger id="invite-role">
@@ -406,12 +476,14 @@ export default function SettingsTeamPage() {
 
         <FormError>{errorKey ? t(errorKey as 'inviteErrorGeneric') : null}</FormError>
 
-        {!isManager && <p className="text-[11px] text-muted-foreground">{t('inviteManagerOnly')}</p>}
+        {inviteBlockedReason && (
+          <p className="text-[11px] text-muted-foreground">{inviteBlockedReason}</p>
+        )}
 
         <button
           type="submit"
-          disabled={!isManager || invite.isPending || !email.trim()}
-          title={!isManager ? t('inviteManagerOnly') : undefined}
+          disabled={inviteBlockedReason !== null || invite.isPending || !email.trim()}
+          title={inviteBlockedReason ?? undefined}
           className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
         >
           {invite.isPending ? t('inviteSending') : t('inviteSubmit')}
