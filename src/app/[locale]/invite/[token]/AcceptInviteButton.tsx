@@ -8,7 +8,25 @@ const LABELS = {
   en: { accept: 'Accept invite', accepting: 'Accepting…', error: 'Error. Please retry.' },
 } as const;
 
-export default function AcceptInviteButton({ token, locale }: { token: string; locale: 'it' | 'en' }) {
+/**
+ * `seatLimitMessage` arrives as a prop, already translated, from the server
+ * page. The route can refuse an acceptance because the inviting organization
+ * has run out of the people its plan includes, and the generic "Error. Please
+ * retry." below would be both wrong (retrying changes nothing) and useless
+ * (it does not say who can fix it). The text lives in it.json/en.json like
+ * every other message; it is passed down rather than read here because this is
+ * a client component on a public page with no next-intl provider around it,
+ * and wiring one in would be a bigger change than this needs.
+ */
+export default function AcceptInviteButton({
+  token,
+  locale,
+  seatLimitMessage,
+}: {
+  token: string;
+  locale: 'it' | 'en';
+  seatLimitMessage: string;
+}) {
   const l = LABELS[locale];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +42,7 @@ export default function AcceptInviteButton({ token, locale }: { token: string; l
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(l.error);
+        setError(data?.error === 'SEAT_LIMIT_REACHED' ? seatLimitMessage : l.error);
         return;
       }
       // Switch into the joined org and land on the dashboard.

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { checkSeatAvailability } from '@/lib/billing/server-gate';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -41,6 +42,19 @@ export async function POST(req: Request) {
     where: { userId_organizationId: { userId, organizationId: invite.organizationId } },
   });
   if (!existingMembership) {
+    // Seat limit, checked AGAIN here and not only when the invite was issued.
+    // Between the two moments the organization can have been DOWNGRADED to a
+    // smaller plan, or other invites can have been accepted first — neither of
+    // those re-runs the check that passed at invite time, so without this the
+    // seat count could be walked past by invites that were legal when sent.
+    // Counts members only: the seat this person is about to take is the one
+    // being decided, so counting it as already used would refuse the last legal
+    // seat. The invite is left OPEN (acceptedAt untouched) so it stays clickable
+    // once room is freed or the plan is raised.
+    const seats = await checkSeatAvailability(invite.organizationId, 'join');
+    if (!seats.allowed) {
+      return NextResponse.json({ error: 'SEAT_LIMIT_REACHED' }, { status: 403 });
+    }
     await prisma.membership.create({
       data: { userId, organizationId: invite.organizationId, role: invite.role },
     });

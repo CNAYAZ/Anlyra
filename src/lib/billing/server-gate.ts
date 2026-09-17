@@ -7,6 +7,7 @@ import {
   planHasIntegration,
 } from "./plans";
 import { getSubscription, type Subscription } from "./repository";
+import { prisma } from "@/lib/prisma";
 import { fail } from "@/lib/api";
 import { planMeets, type RequiredPlan } from "@/lib/plan/feature-gate";
 
@@ -120,4 +121,70 @@ export async function assertWithinLimit(
       plan: sub.plan as PlanId,
     });
   }
+}
+
+export type SeatCheck = {
+  /** False when adding one more person would go past the plan's seat count. */
+  allowed: boolean;
+  /** Seats the plan includes; -1 means unlimited (ENTERPRISE). */
+  limit: number;
+  /** Seats already taken, counted per `when` below. */
+  used: number;
+};
+
+/**
+ * Is there room for ONE more person in this organization?
+ *
+ * ── WHAT COUNTS AS A TAKEN SEAT, AND WHY IT DEPENDS ON THE MOMENT ──
+ *  • 'invite'  → members ALREADY IN plus invites STILL OPEN (not accepted, not
+ *    expired). Counting only members here would leave the limit trivially
+ *    bypassable: send twenty invites in one sitting while under the cap and
+ *    every one of them is accepted later, putting the organization far past a
+ *    limit that was never checked again.
+ *  • 'join' → members only. The invite being accepted is the seat about to be
+ *    filled, so counting it as already taken would refuse the very last legal
+ *    seat. This second check is not redundant with the first: between issuing
+ *    an invite and someone clicking it the plan can be DOWNGRADED, or other
+ *    invites can be accepted first, and neither of those re-runs the check
+ *    that happened at invite time.
+ *
+ * ── RETURNS A RESULT, DOES NOT THROW ──
+ * Same shape and same reason as requireActiveAccess above: the two callers
+ * answer in two different response formats (settings/team/invite uses fail(),
+ * invite/accept writes its own NextResponse.json), so the decision is handed
+ * back and each route says it in its own voice. It deliberately does NOT reuse
+ * assertWithinLimit, which throws: both call sites funnel their errors into
+ * failFromError, and failFromError only recognises errors by `name`
+ * ('NotAuthenticatedError', 'NoOrganizationError') — an Error carrying a `code`
+ * property, which is what assertWithinLimit throws, would reach the customer as
+ * a generic INTERNAL_ERROR 500. assertWithinLimit is left untouched and still
+ * has no callers.
+ *
+ * ── AN ORGANIZATION ALREADY OVER THE LIMIT LOSES NOTHING ──
+ * The test is "is there room for one MORE", never "is the current state legal".
+ * An organization sitting at eight people on a five-seat plan keeps all eight,
+ * keeps their access, and keeps every invite already accepted; it simply cannot
+ * add a ninth. Nothing here removes or downgrades anyone.
+ */
+export async function checkSeatAvailability(
+  orgId: string,
+  when: "invite" | "join",
+): Promise<SeatCheck> {
+  const sub = await getSubscription(orgId);
+  const limit = PLANS[sub.plan].limits.users;
+
+  if (limit === -1) {
+    return { allowed: true, limit, used: 0 };
+  }
+
+  const members = await prisma.membership.count({ where: { organizationId: orgId } });
+  const openInvites =
+    when === "invite"
+      ? await prisma.invite.count({
+          where: { organizationId: orgId, acceptedAt: null, expiresAt: { gt: new Date() } },
+        })
+      : 0;
+
+  const used = members + openInvites;
+  return { allowed: used < limit, limit, used };
 }

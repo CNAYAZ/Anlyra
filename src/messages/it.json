@@ -1505,6 +1505,8 @@
     "inviteRevokeErrorAccepted": "Questo invito è già stato accettato: non si può revocare.",
     "inviteErrorSelf": "Questo è il tuo indirizzo: fai già parte dell'organizzazione.",
     "inviteErrorAlreadyMember": "Questa persona fa già parte dell'organizzazione.",
+    "inviteErrorSeatLimit": "Hai già usato tutte le persone incluse nel tuo piano, contando anche gli inviti in attesa di risposta. Per aggiungerne un'altra, revoca un invito che non serve più, rimuovi una persona dal team, oppure passa a un piano superiore.",
+    "inviteAcceptSeatLimit": "L'organizzazione che ti ha invitato ha già raggiunto il numero di persone incluse nel suo piano. L'invito resta valido: avvisa chi te l'ha mandato, potrà liberare un posto o passare a un piano superiore, e poi potrai accettarlo.",
     "inviteErrorEmail": "Indirizzo email non valido.",
     "inviteErrorDemo": "Nella dimostrazione non è possibile invitare persone.",
     "inviteErrorRateLimited": "Hai inviato troppi inviti. Attendi qualche minuto e riprova.",

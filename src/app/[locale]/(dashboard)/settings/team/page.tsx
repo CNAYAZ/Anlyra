@@ -54,6 +54,9 @@ const ERROR_KEYS: Record<string, string> = {
   SELF_INVITE: 'inviteErrorSelf',
   ALREADY_MEMBER: 'inviteErrorAlreadyMember',
   INVALID_EMAIL: 'inviteErrorEmail',
+  // The plan's seats are all taken — counting people already in PLUS invites
+  // still waiting to be accepted, which is how the route counts them.
+  SEAT_LIMIT_REACHED: 'inviteErrorSeatLimit',
   DEMO_READ_ONLY: 'inviteErrorDemo',
   RATE_LIMITED: 'inviteErrorRateLimited',
   RATE_LIMIT_UNAVAILABLE: 'inviteErrorUnavailable',
