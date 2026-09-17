@@ -1,4 +1,4 @@
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
@@ -74,7 +74,13 @@ export default async function InvitePage({
 
   return (
     <Shell title={t.inviteTitle(invite.organization.name)} description={t.inviteBody(invite.role)}>
-      <AcceptInviteButton token={token} locale={locale === 'en' ? 'en' : 'it'} />
+      <AcceptInviteButton
+        token={token}
+        locale={locale === 'en' ? 'en' : 'it'}
+        // Read here, on the server, because this page is the only place in this
+        // flow with a translator. See the note in AcceptInviteButton.
+        seatLimitMessage={(await getTranslations('settings'))('inviteAcceptSeatLimit')}
+      />
     </Shell>
   );
 }

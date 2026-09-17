@@ -7,6 +7,7 @@ import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
+import { checkSeatAvailability } from '@/lib/billing/server-gate';
 import { issueTeamInvite, INVITABLE_ROLES } from '@/lib/invites/issue';
 
 export const runtime = 'nodejs';
@@ -115,6 +116,20 @@ export async function POST(req: NextRequest) {
       select: { id: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Seat limit. Checked HERE — after the "already a member" and "open invite"
+    // branches above, before anything is written — on purpose: re-sending an
+    // invite that is already open (openInvite is set) takes no NEW seat, it
+    // refreshes a seat already counted, so refusing it would block a person
+    // from fixing a lost email while at the cap. Only a genuinely new invite is
+    // measured against the plan.
+    // checkSeatAvailability counts members PLUS still-open invites, which is
+    // what stops the limit being walked around by sending twenty invites in one
+    // sitting while still under the cap.
+    if (!openInvite) {
+      const seats = await checkSeatAvailability(organizationId, 'invite');
+      if (!seats.allowed) return fail('SEAT_LIMIT_REACHED', 403);
+    }
 
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
