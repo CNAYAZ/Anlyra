@@ -2510,7 +2510,8 @@
     },
     "errors": {
       "companyRequired": "Please enter your company details to continue.",
-      "createFailed": "We couldn't create your organization. Please try again."
+      "createFailed": "We couldn't create your organization. Please try again.",
+      "orgLimitReached": "{count, plural, one {Your plan includes one company and you have already created it.} other {Your plan includes # companies and you have already created them all.}} Companies you were invited into do not count. To open another one you need a higher plan: write to contact@anlyra.com and we'll find the right fit."
     }
   },
   "legal": {

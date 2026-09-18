@@ -1,0 +1,44 @@
+-- Records WHICH USER created an organization.
+--
+-- WHY A NEW COLUMN: the schema cannot currently tell an organization somebody
+-- CREATED from one they were INVITED into. The only link between a user and an
+-- organization is Membership, and a membership row looks identical either way.
+-- Membership.role does not settle it: the creator is given 'owner', but 'owner'
+-- can also be handed out later by another owner from Settings > Team or by the
+-- local admin panel, so the role is a hint and not a fact. Without this column,
+-- enforcing the per-account organization limit (PLANS[...].limits.orgs, which no
+-- code reads today) could only be done by counting memberships — which would
+-- punish exactly the wrong person: a consultant invited into three client
+-- companies would be unable to open their own.
+--
+-- NO FOREIGN KEY, on purpose. A foreign key here would have to choose between
+-- two bad outcomes when a user account is deleted. ON DELETE RESTRICT (Prisma's
+-- default for a required relation) would make GDPR deletion FAIL for anyone who
+-- ever created an organization that still exists — and that is most founders.
+-- ON DELETE SET NULL would work, but it would make deleting a user silently
+-- write into an Organization row, which contradicts the purge's own safety
+-- contract in src/lib/gdpr/purge.ts: that file deletes every row explicitly,
+-- in a stated order, precisely "so the purge never depends on a cascade rule
+-- staying in place", and its user purge NEVER touches company data. A plain
+-- column keeps that promise intact and matches how this schema already carries
+-- most of its user/organization references (NotificationPref_b8.userId, and the
+-- organizationId columns listed in that same purge file, are plain columns with
+-- no relation). The cost is that a deleted user's id can linger here; that is
+-- harmless, because the value is only ever compared against the id of a user who
+-- is signed in right now, and an id belonging to nobody matches nobody.
+--
+-- NULLABLE, NO DEFAULT — deliberately: every organization that exists today was
+-- created before this column did, and there is no record anywhere of who created
+-- it. NULL means exactly that, "not known", and inventing a value would be worse
+-- than the gap: guessing from Membership.role could attribute an organization to
+-- a member who was merely promoted to owner, and lock them out of creating their
+-- own company. No backfill statement is included, wanted, or safe.
+--
+-- SAFETY: this migration only ADDS one nullable column to one table. It drops
+-- nothing, rewrites no existing row, and changes no existing value. Every row
+-- already in Organization keeps every column it has and simply gains a NULL in
+-- the new one. Running it on the live database cannot lose data, cannot change
+-- any organization's plan, credits or members, and changes no behaviour on its
+-- own: at the moment this column is applied, nothing reads it.
+
+ALTER TABLE "Organization" ADD COLUMN "createdByUserId" TEXT;
