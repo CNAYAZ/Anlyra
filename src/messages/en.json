@@ -1359,6 +1359,10 @@
     "previewSuspectedSkipOn": "{count, plural, one {Everything will be imported except that row.} other {Everything will be imported except those # rows.}}",
     "previewSuspectedSkipOff": "{count, plural, one {Everything will be imported, that row included.} other {Everything will be imported, those # rows included.}}",
     "previewSuspectedChecking": "Checking for rows already present…",
+    "previewFreeTextTitle": "Check the column you picked as Category",
+    "previewFreeTextBody": "Column \"{column}\" holds {distinct} different values across {total} rows: almost one per movement. It looks like the free text of a bank statement, not a category.",
+    "previewFreeTextSamples": "For example: {samples}",
+    "previewFreeTextWhatToDo": "Imported like this, your category analytics will have a different category for every movement and will tell you nothing. Go back and pick as Category a column with a few repeating entries (marketing, payroll, rent…), or add one to the file before importing.",
     "previewTotalRows": "total rows",
     "cancelledBatch": "Import cancelled. No data was saved.",
     "cancelling": "Cancelling..."

@@ -6,6 +6,7 @@ import { AlertTriangle, Check, Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ImportTarget } from '@/lib/import-targets';
 import { applyMapping, validateRows } from '@/lib/import/validate';
+import { analyzeCategoryColumn } from '@/lib/import/free-text';
 
 type Props = {
   target: ImportTarget;
@@ -45,6 +46,20 @@ export function ImportPreview({
   );
   const invalidRowNumbers = useMemo(() => new Set(errors.map((e) => e.row)), [errors]);
   const suspectedSet = useMemo(() => new Set(suspectedRows), [suspectedRows]);
+
+  // Is the column the customer is about to import as CATEGORY actually the free
+  // text of a bank statement? Computed here, on the preview step, because this
+  // is the only place that holds EVERY row: the mapping step only carries ten
+  // sample values per column, which is too thin to judge the shape of a column.
+  // Judged on the values, so it works whatever the column is called.
+  const categoryColumn = useMemo(
+    () => Object.entries(mapping).find(([, field]) => field === 'category')?.[0] ?? null,
+    [mapping],
+  );
+  const freeText = useMemo(() => {
+    if (!categoryColumn) return null;
+    return analyzeCategoryColumn(rows.map((r) => r[categoryColumn]));
+  }, [rows, categoryColumn]);
 
   const previewRows = useMemo(
     () =>
@@ -139,6 +154,30 @@ export function ImportPreview({
           </tbody>
         </table>
       </div>
+
+      {/* The category column does not look like a category. Placed FIRST,
+          above the validation errors, because it is the problem that produces
+          no errors at all: the file would import perfectly and the damage
+          would only show up later, in the pages that group by category. */}
+      {freeText?.suspect && categoryColumn && (
+        <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <h3 className="text-sm font-semibold">{t('previewFreeTextTitle')}</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t('previewFreeTextBody', {
+              column: categoryColumn,
+              distinct: freeText.distinctCount,
+              total: freeText.valueCount,
+            })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t('previewFreeTextSamples', { samples: freeText.samples.join(' · ') })}
+          </p>
+          <p className="text-xs font-medium">{t('previewFreeTextWhatToDo')}</p>
+        </div>
+      )}
 
       {errors.length > 0 && (
         <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
