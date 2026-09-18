@@ -2510,7 +2510,8 @@
     },
     "errors": {
       "companyRequired": "Inserisci i dati della tua azienda per continuare.",
-      "createFailed": "Non è stato possibile creare l'organizzazione. Riprova."
+      "createFailed": "Non è stato possibile creare l'organizzazione. Riprova.",
+      "orgLimitReached": "{count, plural, one {Il tuo piano comprende una sola azienda e l'hai già creata.} other {Il tuo piano comprende # aziende e le hai già create tutte.}} Le aziende in cui sei stato invitato non contano. Per aprirne un'altra serve un piano superiore: scrivici a contact@anlyra.com e vediamo insieme."
     }
   },
   "legal": {

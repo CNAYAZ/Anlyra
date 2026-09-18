@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,7 @@ export default function OnboardingOrganizationPage() {
   const params = useParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
   const t = COPY[locale];
+  const tOnboarding = useTranslations('onboarding');
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -93,7 +95,21 @@ export default function OnboardingOrganizationPage() {
         }),
       });
       if (!res.ok) {
-        setError(t.error);
+        // Same handling as the other onboarding form
+        // (components/onboarding/onboarding-flow.tsx): only ORG_LIMIT_REACHED
+        // has something specific to say, everything else keeps this page's
+        // generic message. The new text is read from the message catalogue
+        // rather than added to the COPY block above, so it lives in it.json
+        // and en.json like the rest of the product's strings; the existing
+        // COPY entries are left exactly as they were.
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string; limit?: number }
+          | null;
+        setError(
+          data?.error === 'ORG_LIMIT_REACHED'
+            ? tOnboarding('errors.orgLimitReached', { count: data.limit ?? 1 })
+            : t.error,
+        );
         return;
       }
       window.location.href = `/${locale}/overview`;

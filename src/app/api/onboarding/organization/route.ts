@@ -8,6 +8,7 @@ import { issueTeamInvite } from '@/lib/invites/issue';
 import { signupCredits } from '@/lib/billing/plan-credits';
 import { recordCreditEntry } from '@/lib/credits';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
 
@@ -80,6 +81,23 @@ export async function POST(req: Request) {
   // to other people this org invites (team-invite email) and in bug reports.
   if (name.length > 120 || hasControlChars(name)) {
     return NextResponse.json({ error: 'INVALID_NAME' }, { status: 400 });
+  }
+
+  // Per-account organization limit (PLANS[...].limits.orgs). Checked HERE —
+  // after the body is known to be valid, before anything is written — so a
+  // refusal costs nothing and leaves no half-made organization behind.
+  // It counts organizations this account CREATED, never the ones it belongs to:
+  // see checkOrganizationAllowance for why, and for how organizations that
+  // predate the createdByUserId column are treated.
+  const allowance = await checkOrganizationAllowance(userId);
+  if (!allowance.allowed) {
+    // `limit` travels with the code so the message can name the real number
+    // from the price list instead of hardcoding "one" in two message files.
+    // It is the plan's published limit, not anything private.
+    return NextResponse.json(
+      { error: 'ORG_LIMIT_REACHED', limit: allowance.limit },
+      { status: 403 },
+    );
   }
 
   // Ensure a unique slug.

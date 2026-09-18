@@ -80,7 +80,20 @@ export function OnboardingFlow() {
         }),
       });
       if (!res.ok) {
-        setError(t('errors.createFailed'));
+        // The route answers with a stable code. Only ORG_LIMIT_REACHED has
+        // something specific and actionable to say ("your plan includes one
+        // company, here is who to write to"); every other code keeps the
+        // generic failure, because retrying is genuinely the right advice for
+        // them. The body is parsed defensively: a 5xx from the platform is not
+        // guaranteed to be JSON at all.
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string; limit?: number }
+          | null;
+        setError(
+          data?.error === 'ORG_LIMIT_REACHED'
+            ? t('errors.orgLimitReached', { count: data.limit ?? 1 })
+            : t('errors.createFailed'),
+        );
         setBusy(false);
         return;
       }

@@ -188,3 +188,69 @@ export async function checkSeatAvailability(
   const used = members + openInvites;
   return { allowed: used < limit, limit, used };
 }
+
+export type OrganizationAllowance = {
+  allowed: boolean;
+  /** How many organizations the plan includes. -1 means unlimited. */
+  limit: number;
+  /** How many this account has CREATED — never how many it belongs to. */
+  used: number;
+};
+
+/**
+ * May this user create one more organization? (PLANS[...].limits.orgs)
+ *
+ * ── WHY IT COUNTS CREATIONS, NOT MEMBERSHIPS ──
+ * Belonging to an organization and having opened one are different things, and
+ * only the second one spends the account's allowance. Counting Membership rows
+ * would refuse a consultant invited into three client companies the right to
+ * open their own — the opposite of what the limit is for. So the count is on
+ * Organization.createdByUserId, the column written by the one route that
+ * creates an organization.
+ *
+ * ── ORGANIZATIONS CREATED BEFORE THAT COLUMN EXISTED ──
+ * They carry NULL and are therefore NOT counted, so the limit applies from here
+ * on: an account that already had a company when this shipped can open one more
+ * before the limit starts to bite. That is deliberate. The alternative — reading
+ * NULL plus an 'owner' membership as "probably created by this person" — would
+ * guess, and it would guess against someone who was merely promoted to owner by
+ * a colleague, locking them out of opening their own company. Between letting a
+ * handful of existing accounts create one extra organization and blocking a real
+ * person from a legitimate one, the founder's standing rule is not to invent a
+ * value that is not in the database. Filling the column in for the existing rows
+ * is a separate, deliberate operation, not something this check should fake.
+ *
+ * ── WHICH PLAN ──
+ * Plans live on organizations, not on accounts, so "the user's plan" has to be
+ * derived: this takes the most permissive limit among the organizations the user
+ * created. Paying for ENTERPRISE in one of your own companies is what buys the
+ * right to open more. A user who has created NONE is always allowed — no plan in
+ * the catalogue includes fewer than one organization — and that case never
+ * reaches a plan lookup at all.
+ *
+ * ── RETURNS A RESULT, DOES NOT THROW ──
+ * Same reason as checkSeatAvailability above: its caller writes its own
+ * NextResponse.json, so the decision is handed back rather than thrown.
+ */
+export async function checkOrganizationAllowance(
+  userId: string,
+): Promise<OrganizationAllowance> {
+  const created = await prisma.organization.findMany({
+    where: { createdByUserId: userId },
+    select: { id: true },
+  });
+  const used = created.length;
+
+  // No plan to read, and nothing to refuse: every plan includes at least one.
+  if (used === 0) return { allowed: true, limit: 1, used: 0 };
+
+  const plans = await Promise.all(created.map((o) => getSubscription(o.id)));
+  let limit = 0;
+  for (const sub of plans) {
+    const orgs = PLANS[sub.plan].limits.orgs;
+    if (orgs === -1) return { allowed: true, limit: -1, used };
+    if (orgs > limit) limit = orgs;
+  }
+
+  return { allowed: used < limit, limit, used };
+}
