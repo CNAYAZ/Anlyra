@@ -109,6 +109,28 @@ model Organization {
   // default, purged by the cron after 30 days.
   deletionRequestedAt DateTime?
 
+  /// Who CREATED this organization. Written once, by the only route that creates
+  /// one (api/onboarding/organization), and never updated afterwards.
+  ///
+  /// It exists because Membership cannot tell "I opened this company" from "I was
+  /// invited into it", and Membership.role cannot either: the creator gets
+  /// 'owner', but so can anyone promoted later from Settings > Team or the admin
+  /// panel. Counting memberships to enforce the per-account organization limit
+  /// would block the consultant invited into three client companies from opening
+  /// their own.
+  ///
+  /// NO RELATION on purpose — a plain column, like the other user/organization
+  /// references this schema carries (see src/lib/gdpr/purge.ts). A foreign key
+  /// would either block GDPR account deletion (RESTRICT) or make that deletion
+  /// silently rewrite an Organization row (SET NULL), and the purge is written to
+  /// depend on no implicit referential action at all. See the migration
+  /// 20260918120000_organization_created_by for the full reasoning.
+  ///
+  /// NULL means "not known", not "created by nobody": every organization that
+  /// existed before this column did carries NULL, and no backfill can honestly
+  /// fill it in.
+  createdByUserId String?
+
   memberships     Membership[]
   transactions    Transaction[]
   cashflowEntries CashflowEntry[]

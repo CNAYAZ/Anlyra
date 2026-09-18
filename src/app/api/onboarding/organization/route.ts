@@ -104,6 +104,13 @@ export async function POST(req: Request) {
       // field was left unset, so every new org silently inherited the schema's
       // @default(100) regardless of plan.
       aiCredits: signupCredits(),
+      // Who opened this company. This is the ONLY place in the product that
+      // creates an Organization, so it is the only place that can record it —
+      // and it can only be recorded at this instant, because afterwards nothing
+      // distinguishes the creator from any other 'owner'. Nothing reads this
+      // column yet: it is written now so the data exists when the per-account
+      // organization limit is turned on.
+      createdByUserId: userId,
       setupCompletedAt: now,
       trialStartedAt: now,
       trialEndsAt,
