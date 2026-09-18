@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FormError } from '@/components/ui/form-error';
+import { Link } from '@/i18n/routing';
+import { useIsDemo } from '@/lib/demo/context';
 
 type Org = {
   id: string;
@@ -22,16 +24,40 @@ type Org = {
   currency: string;
 };
 
+type OrgAllowance = { allowed: boolean; limit: number; used: number };
+
 export default function SettingsOrganizationPage() {
   const t = useTranslations('settings');
+  // Reused as-is rather than duplicated: this is the exact text the creation
+  // form itself shows when the server refuses ORG_LIMIT_REACHED, so the
+  // explanation the customer reads here and the one they would read after
+  // clicking through and submitting are the same words.
+  const tOnboarding = useTranslations('onboarding');
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: '', industry: '', employees: 1, country: 'IT', currency: 'EUR' });
   const [toast, setToast] = useState<'ok' | 'err' | null>(null);
   const initRef = useRef(false);
+  // The demo visitor is not a real account: there is no allowance to explain
+  // (checkOrganizationAllowance needs a real signed-in userId, which the
+  // anonymous demo session never has — GET /api/orgs/allowance would just
+  // 401). The card is skipped entirely for the demo rather than shown
+  // disabled, same as integrations show "in arrivo" instead of a control
+  // that would fail.
+  const isDemo = useIsDemo();
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings-org'],
     queryFn: () => apiFetch<Org>('/api/settings/organization'),
+  });
+
+  // Account-level, not org-level: whether THIS ACCOUNT may create one more
+  // organization, regardless of its role in the org selected above. Same
+  // check the creation route enforces (checkOrganizationAllowance), read
+  // here only to decide what the button says — never to decide anything.
+  const { data: allowance, isLoading: allowanceLoading } = useQuery({
+    queryKey: ['orgs-allowance'],
+    queryFn: () => apiFetch<OrgAllowance>('/api/orgs/allowance'),
+    enabled: !isDemo,
   });
 
   useEffect(() => {
@@ -128,6 +154,58 @@ export default function SettingsOrganizationPage() {
             {mutation.isPending ? t('saving') : t('save')}
           </button>
         </form>
+      )}
+
+      {/* Entry point to create a SECOND organization — there was previously
+          no way to reach it anywhere in the product. Placed here, in the
+          existing Organization settings page, rather than in the OrgSwitcher
+          dropdown in the topbar: OrgSwitcher hides itself entirely when there
+          is only one organization to show (orgs.length < 2), which is
+          precisely the case for most people who would want this — someone
+          member of a single company, who has created none, still has the
+          right to open their own. Putting the entry there would have meant
+          also reworking when the switcher shows itself; this page needs no
+          such change and is where "manage my company" already lives.
+          Visible to every role, not just owner/admin: creating a NEW
+          organization is an account-level action, unrelated to what the
+          caller may do inside the org they currently have selected. */}
+      {!isDemo && (
+        <div className="card space-y-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-heading text-lg font-semibold">{t('orgCreateAnotherTitle')}</h2>
+            <p className="text-sm text-muted-foreground">{t('orgCreateAnotherSubtitle')}</p>
+          </div>
+
+          {allowanceLoading || !allowance ? (
+            <Skeleton className="h-10 w-48 rounded-lg" />
+          ) : allowance.allowed ? (
+            <Link
+              href="/onboarding/organization"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              {t('orgCreateAnotherCta')}
+            </Link>
+          ) : (
+            <>
+              {/* Disabled with an explanation, not hidden — same precedent as
+                  settings/billing's ownerOnly button and the Team page's
+                  seat-limit invite form: a control that says why it cannot be
+                  used beats one the customer only discovers is refused by
+                  clicking it. */}
+              <button
+                type="button"
+                disabled
+                title={tOnboarding('errors.orgLimitReached', { count: allowance.limit })}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white opacity-60 cursor-not-allowed"
+              >
+                {t('orgCreateAnotherCta')}
+              </button>
+              <p className="text-[11px] text-muted-foreground">
+                {tOnboarding('errors.orgLimitReached', { count: allowance.limit })}
+              </p>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
