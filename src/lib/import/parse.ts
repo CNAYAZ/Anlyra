@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
 import { parseItalianAmount } from '@/lib/import/amount';
+import { decodeImportText } from '@/lib/import/encoding';
 
 export type ParsedRow = Record<string, unknown>;
 export type ParsedFile = { columns: string[]; rows: ParsedRow[] };
@@ -120,7 +121,11 @@ export function deriveTypeAndAmount(parsed: ParsedFile): ParsedFile {
 }
 
 export function parseCsv(buf: Buffer): ParsedFile {
-  const text = buf.toString('utf8');
+  // Not buf.toString('utf8'): a CSV saved by Excel in Italian is Windows-1252,
+  // and read as UTF-8 every accented letter became a replacement character
+  // silently. decodeImportText recognizes which of the two it is from the bytes
+  // themselves and leaves valid UTF-8 (BOM included) on exactly the old path.
+  const { text } = decodeImportText(buf);
   const delimiter = detectCsvDelimiter(text);
   const parsed = Papa.parse<ParsedRow>(text, {
     header: true,

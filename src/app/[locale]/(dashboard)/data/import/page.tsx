@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, ArrowRight, Check, Info, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,13 @@ type PreviewResponse = {
 };
 
 type ApiResult<T> = { success: true; data: T } | { success: false; error: string };
+
+type DuplicateReport = {
+  /** 1-based row numbers that look already present in this organization. */
+  suspectedRows: number[];
+  checkedRows: number;
+  comparedAgainst: number;
+};
 
 const STEPS: Step[] = ['target', 'upload', 'mapping', 'preview', 'result'];
 
@@ -58,8 +65,39 @@ export default function DataImportPage() {
   const [suggested, setSuggested] = useState<Record<string, string | null>>({});
   const [result, setResult] = useState<ImportBatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Default OFF: doing nothing imports exactly what this product imports today.
+  // The founder's decision is to REPORT rows that look already present, not to
+  // block them, so the safe-by-default choice here would silently change what
+  // gets written for anyone who clicks straight through. See the report.
+  const [skipSuspected, setSkipSuspected] = useState(false);
 
   const target = targetKey ? getImportTarget(targetKey) : null;
+
+  // Which rows look already present in this organization. Owned by the page,
+  // not by the preview, because the page is what builds the commit payload and
+  // therefore what has to drop these rows when the customer asks for it.
+  // Runs only on the preview step, and only once the mapping is settled — the
+  // fingerprint depends on it (see the duplicates route).
+  const { data: duplicates, isFetching: duplicatesLoading } = useQuery({
+    queryKey: ['import-duplicates', previewData?.batchId, mapping],
+    enabled: step === 'preview' && !!previewData && !!targetKey,
+    queryFn: async () => {
+      const res = await fetch('/api/data/import/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetKey,
+          mapping,
+          rows: previewData?.allRows ?? [],
+        }),
+      });
+      const body = (await res.json()) as ApiResult<DuplicateReport>;
+      if (!body.success) throw new Error(body.error);
+      return body.data;
+    },
+  });
+
+  const suspectedRows = duplicates?.suspectedRows ?? [];
 
   function describeError(code: string | null): string | null {
     if (!code) return null;
@@ -91,6 +129,15 @@ export default function DataImportPage() {
   const commitMutation = useMutation({
     mutationFn: async () => {
       if (!previewData || !targetKey) throw new Error('NO_PREVIEW');
+      // The customer's choice on rows that look already present is applied HERE,
+      // by leaving those rows out of the payload. The commit route is untouched:
+      // it still validates and writes whatever array it is handed, so nothing
+      // that works today can start refusing.
+      const suspected = new Set(suspectedRows);
+      const rowsToSend =
+        skipSuspected && suspected.size > 0
+          ? previewData.allRows.filter((_, idx) => !suspected.has(idx + 1))
+          : previewData.allRows;
       const res = await fetch('/api/data/import/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,7 +145,7 @@ export default function DataImportPage() {
           batchId: previewData.batchId,
           targetKey,
           mapping,
-          rows: previewData.allRows,
+          rows: rowsToSend,
           fileName: previewData.fileName,
           fileSize: previewData.fileSize,
         }),
@@ -136,6 +183,7 @@ export default function DataImportPage() {
     setSuggested({});
     setResult(null);
     setError(null);
+    setSkipSuspected(false);
   }
 
   function cancelImport() {
@@ -221,7 +269,15 @@ export default function DataImportPage() {
       )}
 
       {step === 'preview' && previewData && target && (
-        <ImportPreview target={target} rows={previewData.allRows} mapping={mapping} />
+        <ImportPreview
+          target={target}
+          rows={previewData.allRows}
+          mapping={mapping}
+          suspectedRows={suspectedRows}
+          suspectedLoading={duplicatesLoading}
+          skipSuspected={skipSuspected}
+          onSkipSuspectedChange={setSkipSuspected}
+        />
       )}
 
       {step === 'importing' && (
