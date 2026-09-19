@@ -197,15 +197,30 @@ export async function POST(req: NextRequest) {
       allErrors.push({ row: 0, message: (e as Error).message });
     }
 
-    const errorRate = rows.length === 0 ? 0 : allErrors.length / rows.length;
+    // 'FAILED' now means exactly one thing: NOTHING was written.
+    //
+    // It used to also mean "more than 10% of the rows had errors", while the
+    // valid rows had ALREADY been inserted a few lines above. So an import that
+    // saved 35 rows out of 50 told the customer "Importazione fallita", which
+    // reads as "nothing happened" — and the natural reaction to that is to
+    // upload the same file again, which (before the duplicate check) silently
+    // doubled those 35 rows. The 10% threshold was arbitrary and described
+    // nothing the customer could act on: 9% errors and 91% errors led to two
+    // opposite messages about the same kind of outcome, a partial import.
+    //
+    // The three cases are now facts, not ratios:
+    //   • nothing written, and there WAS something to write  → FAILED
+    //   • everything written, no problems found              → COMPLETED
+    //   • something written AND something discarded          → COMPLETED_WITH_ERRORS
+    // The empty-rows case (every row skipped as already present, see the
+    // duplicates route) stays COMPLETED: there was nothing to write and
+    // nothing failed.
     const finalStatus =
       imported === 0 && rows.length > 0
         ? 'FAILED'
         : allErrors.length === 0
           ? 'COMPLETED'
-          : errorRate < 0.1
-            ? 'COMPLETED_WITH_ERRORS'
-            : 'FAILED';
+          : 'COMPLETED_WITH_ERRORS';
 
     await prisma.importBatch.update({
       where: { id: batch.id },

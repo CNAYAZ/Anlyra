@@ -27,6 +27,13 @@ export function ImportResult({ result, onReset }: Props) {
   const partial = result.status === 'COMPLETED_WITH_ERRORS';
   const ok = result.status === 'COMPLETED';
 
+  // How many rows were DISCARDED. Not `rowsErrors`: that counts error ENTRIES,
+  // and one row can produce several (a row with a bad amount AND a bad type
+  // yields two). Measured: a single row with two broken fields reports 2 in
+  // rowsErrors. The exact number of rows that did not make it is the
+  // subtraction, so that is what the customer is told.
+  const discarded = Math.max(0, result.rowsTotal - result.rowsImported);
+
   return (
     <div className="space-y-4">
       <div
@@ -49,9 +56,27 @@ export function ImportResult({ result, onReset }: Props) {
         </span>
         <div className="flex-1 space-y-2">
           <div>
+            {/* The headline carries the real numbers, so it cannot disagree
+                with what happened. A partial import used to be announced as
+                "Importazione fallita"; now it says how many rows went in and
+                how many were left out, in the title itself. */}
             <h2 className="font-heading text-lg font-semibold">
-              {ok ? t('resultSuccess') : partial ? t('resultPartial') : t('resultFailed')}
+              {ok
+                ? t('resultSuccess')
+                : partial
+                  ? t('resultPartialHeadline', {
+                      imported: result.rowsImported,
+                      total: result.rowsTotal,
+                    })
+                  : t('resultFailedHeadline')}
             </h2>
+            <p className="text-sm">
+              {ok
+                ? t('resultSuccessBody', { count: result.rowsImported })
+                : partial
+                  ? t('resultPartialBody', { count: discarded })
+                  : t('resultFailedBody')}
+            </p>
             <p className="text-sm text-muted-foreground">{result.fileName}</p>
           </div>
           <div className="flex flex-wrap gap-4 text-sm">
@@ -60,10 +85,20 @@ export function ImportResult({ result, onReset }: Props) {
               <span className="text-muted-foreground">/ {result.rowsTotal}</span>{' '}
               <span className="text-muted-foreground">{t('resultRowsImported')}</span>
             </span>
+            {discarded > 0 && (
+              <span>
+                <strong className="font-heading text-2xl text-danger">{discarded}</strong>{' '}
+                <span className="text-muted-foreground">{t('resultRowsDiscarded')}</span>
+              </span>
+            )}
+            {/* Kept, but named for what it is: problems FOUND, which can be
+                more than the rows discarded. */}
             {result.rowsErrors > 0 && (
               <span>
-                <strong className="font-heading text-2xl text-danger">{result.rowsErrors}</strong>{' '}
-                <span className="text-muted-foreground">{t('resultErrors')}</span>
+                <strong className="font-heading text-2xl text-muted-foreground">
+                  {result.rowsErrors}
+                </strong>{' '}
+                <span className="text-muted-foreground">{t('resultIssuesFound')}</span>
               </span>
             )}
           </div>
