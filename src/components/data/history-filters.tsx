@@ -61,6 +61,12 @@ export function HistoryFilters({ filters, onChange }: Props) {
             <SelectItem value="PROCESSING">{t('statusProcessing')}</SelectItem>
             <SelectItem value="FAILED">{t('statusFailed')}</SelectItem>
             <SelectItem value="ROLLED_BACK">{t('statusRolledBack')}</SelectItem>
+            {/* PENDING and CANCELLED existed in the database and appeared in
+                the table, but had no label and no filter: an abandoned preview
+                leaves a PENDING batch, so a real customer does have these
+                rows. */}
+            <SelectItem value="PENDING">{t('statusPending')}</SelectItem>
+            <SelectItem value="CANCELLED">{t('statusCancelled')}</SelectItem>
           </SelectContent>
         </Select>
       </div>

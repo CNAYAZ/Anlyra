@@ -26,6 +26,7 @@ const STATUS_BADGE: Record<string, string> = {
   FAILED: 'bg-danger/10 text-danger border-danger/40',
   ROLLED_BACK: 'bg-muted text-muted-foreground border-border',
   PENDING: 'bg-muted text-muted-foreground border-border',
+  CANCELLED: 'bg-muted text-muted-foreground border-border',
 };
 
 type Props = {
