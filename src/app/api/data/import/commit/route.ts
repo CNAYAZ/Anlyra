@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
@@ -22,7 +23,35 @@ const bodySchema = z.object({
   fileSize: z.number().int().nonnegative().default(0),
 });
 
+/**
+ * The batch's final status, from facts rather than ratios.
+ *
+ * 'FAILED' means exactly one thing: NOTHING was written. It used to ALSO mean
+ * "more than 10% of the rows had errors", while the valid rows had already been
+ * inserted — so an import that saved 35 rows out of 50 announced "Importazione
+ * fallita", which reads as "nothing happened", and the natural reaction to that
+ * is to upload the same file again. The 10% threshold described nothing the
+ * customer could act on either: 9% errors and 91% errors produced two opposite
+ * messages about the same kind of outcome, a partial import.
+ *
+ * The empty-rows case (every row skipped because it looked already present, see
+ * the duplicates route) stays COMPLETED: there was nothing to write, and
+ * nothing failed.
+ *
+ * One definition, used by both write paths below, so the two cannot drift.
+ */
+function decideStatus(imported: number, submitted: number, issues: number): string {
+  if (imported === 0 && submitted > 0) return 'FAILED';
+  return issues === 0 ? 'COMPLETED' : 'COMPLETED_WITH_ERRORS';
+}
+
+/**
+ * Takes the client instead of using the global one, so the same function can
+ * run inside a transaction together with the batch's status update. That is
+ * the only reason its first argument changed.
+ */
 async function insertFinancialRecords(
+  db: Prisma.TransactionClient,
   organizationId: string,
   importBatchId: string,
   rows: Record<string, unknown>[],
@@ -37,7 +66,7 @@ async function insertFinancialRecords(
     description: buildFinancialDescription(r),
     source: (r.source as string | undefined) ?? 'import',
   }));
-  await prisma.financialRecord.createMany({ data });
+  await db.financialRecord.createMany({ data });
   return data.length;
 }
 
@@ -178,10 +207,52 @@ export async function POST(req: NextRequest) {
     const allErrors: RowError[] = [...errors];
 
     let imported = 0;
+    // The financial path writes its own final status INSIDE its transaction, so
+    // the shared update below must not run a second time for it.
+    let statusAlreadyWritten = false;
     try {
       switch (targetKey as ImportTargetKey) {
         case 'financial_records':
-          imported = await insertFinancialRecords(organizationId, batch.id, validRows);
+          // ── WRITE AND STATUS IN THE SAME TRANSACTION ──
+          // They used to be two separate statements: the rows went in, and only
+          // then the batch was moved off 'PROCESSING'. Anything that killed the
+          // request in between — and the measurements below say that is not
+          // hypothetical — left the rows written and the batch stuck on
+          // 'PROCESSING' forever, with the customer never seeing a result.
+          //
+          // MEASURED, on a throwaway Postgres, for the single createMany this
+          // path uses: 1.000 rows 100 ms, 10.000 rows 1,6 s, 100.000 rows
+          // (MAX_EXCEL_ROWS, the parser's ceiling) 12,7 s. The transaction adds
+          // no work of its own — the createMany costs the same inside or out —
+          // so nothing here got slower. What changed is the failure: if the
+          // platform kills the function mid-flight the connection drops, an
+          // uncommitted transaction is rolled back by Postgres, and the
+          // customer is left with clean data to retry instead of half a file.
+          //
+          // The explicit timeout exists because Prisma aborts an interactive
+          // transaction at its own default otherwise — measured at 5.005 ms, so
+          // 5 seconds — which a large file would cross (it did: 10.000 rows in
+          // a per-row loop aborted with P2028 at exactly that mark). 30 s is
+          // set well above the 12,7 s worst case so that Prisma is never what
+          // fails first; the platform's own function limit is the real ceiling
+          // and it is documented in the report.
+          imported = await prisma.$transaction(
+            async (tx) => {
+              const written = await insertFinancialRecords(tx, organizationId, batch.id, validRows);
+              await tx.importBatch.update({
+                where: { id: batch.id },
+                data: {
+                  rowsImported: written,
+                  rowsErrors: allErrors.length,
+                  status: decideStatus(written, rows.length, allErrors.length),
+                  errors: JSON.stringify(allErrors.slice(0, 200)),
+                },
+              });
+              return written;
+            },
+            { timeout: 30_000, maxWait: 10_000 },
+          );
+          statusAlreadyWritten = true;
           break;
         case 'kpis':
           imported = await insertKpis(organizationId, batch.id, validRows);
@@ -195,42 +266,26 @@ export async function POST(req: NextRequest) {
       }
     } catch (e) {
       allErrors.push({ row: 0, message: (e as Error).message });
+      // The transaction rolled back: nothing was written and no status was
+      // recorded, so the shared update below has to run and say so.
+      imported = 0;
+      statusAlreadyWritten = false;
     }
 
-    // 'FAILED' now means exactly one thing: NOTHING was written.
-    //
-    // It used to also mean "more than 10% of the rows had errors", while the
-    // valid rows had ALREADY been inserted a few lines above. So an import that
-    // saved 35 rows out of 50 told the customer "Importazione fallita", which
-    // reads as "nothing happened" — and the natural reaction to that is to
-    // upload the same file again, which (before the duplicate check) silently
-    // doubled those 35 rows. The 10% threshold was arbitrary and described
-    // nothing the customer could act on: 9% errors and 91% errors led to two
-    // opposite messages about the same kind of outcome, a partial import.
-    //
-    // The three cases are now facts, not ratios:
-    //   • nothing written, and there WAS something to write  → FAILED
-    //   • everything written, no problems found              → COMPLETED
-    //   • something written AND something discarded          → COMPLETED_WITH_ERRORS
-    // The empty-rows case (every row skipped as already present, see the
-    // duplicates route) stays COMPLETED: there was nothing to write and
-    // nothing failed.
-    const finalStatus =
-      imported === 0 && rows.length > 0
-        ? 'FAILED'
-        : allErrors.length === 0
-          ? 'COMPLETED'
-          : 'COMPLETED_WITH_ERRORS';
-
-    await prisma.importBatch.update({
-      where: { id: batch.id },
-      data: {
-        rowsImported: imported,
-        rowsErrors: allErrors.length,
-        status: finalStatus,
-        errors: JSON.stringify(allErrors.slice(0, 200)),
-      },
-    });
+    // Only for the three targets that do NOT write their status inside a
+    // transaction (see the report: their per-row loops are too long to hold one
+    // open). For them the behaviour is exactly what it was before.
+    if (!statusAlreadyWritten) {
+      await prisma.importBatch.update({
+        where: { id: batch.id },
+        data: {
+          rowsImported: imported,
+          rowsErrors: allErrors.length,
+          status: decideStatus(imported, rows.length, allErrors.length),
+          errors: JSON.stringify(allErrors.slice(0, 200)),
+        },
+      });
+    }
 
     // Re-read from DB: the response reflects what was actually persisted.
     const persisted = await prisma.importBatch.findUniqueOrThrow({ where: { id: batch.id } });
