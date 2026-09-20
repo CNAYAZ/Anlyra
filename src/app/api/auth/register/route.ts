@@ -7,6 +7,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
 import { auditLog } from '@/lib/audit/log';
+import { CURRENT_LEGAL_VERSION } from '@/lib/legal/version';
 
 
 export async function POST(req: Request) {
@@ -70,24 +71,28 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
-    data: { email, name: name || null, locale, passwordHash },
+    data: { email, name: name || null, locale, passwordHash, termsAcceptedVersion: CURRENT_LEGAL_VERSION },
   });
 
-  // ── LA PROVA CHE HA ACCETTATO, E QUANDO ──
-  // Registrata nell'audit log, che è l'unico posto durevole disponibile senza
-  // aggiungere una colonna: `userId` dice CHI, `createdAt` dice QUANDO, `ip`
-  // dice DA DOVE.
-  // ATTENZIONE: questa riga è una prova contrattuale, non un log di sicurezza.
-  // Qualunque regola di conservazione che cancelli righe di audit per anzianità
-  // DEVE saltare questa azione, altrimenti la prova sparisce da sola.
-  // Quello che NON viene registrato è QUALE versione dei documenti è stata
-  // accettata: servirebbe un numero di versione dei testi legali, e quello è
-  // una decisione del fondatore (vedi il rapporto della sessione).
+  // ── LA PROVA CHE HA ACCETTATO, QUANDO, E QUALE VERSIONE ──
+  // L'EVENTO va nell'audit log, che è l'unico posto durevole disponibile senza
+  // aggiungere una colonna per l'evento stesso: `userId` dice CHI, `createdAt`
+  // dice QUANDO, `ip` dice DA DOVE, e ora `metadata.version` dice QUALE testo.
+  // Lo STATO corrente — quale versione vale ORA per questa persona — vive
+  // invece in User.termsAcceptedVersion (colonna aggiunta dalla migration
+  // 20260920120000_terms_accepted_version): è quella che un controllo futuro
+  // confronterà con CURRENT_LEGAL_VERSION per sapere se va richiesta una
+  // nuova accettazione, non l'audit log, che non è pensato per essere
+  // interrogato ad ogni richiesta.
+  // ATTENZIONE: questa riga di audit è una prova contrattuale, non un log di
+  // sicurezza. Qualunque regola di conservazione che cancelli righe di audit
+  // per anzianità DEVE saltare questa azione, altrimenti la prova sparisce da
+  // sola (vedi AUDIT_RETENTION_EXEMPT_ACTIONS in @/lib/audit/retention).
   await auditLog({
     action: 'auth.terms_accepted',
     userId: user.id,
     req,
-    metadata: { ageConfirmed: true, locale },
+    metadata: { ageConfirmed: true, locale, version: CURRENT_LEGAL_VERSION },
   });
 
   // Same token generation, expiry (24h) and email template as a later resend

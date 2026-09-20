@@ -2958,6 +2958,14 @@
       "description": "Anlyra usa solo cookie tecnici necessari (per esempio per tenerti collegato e ricordare le tue preferenze). Le statistiche di utilizzo del sito sono anonime e non usano cookie. Maggiori dettagli nella Cookie Policy.",
       "accept": "Ho capito",
       "cookiePolicyLink": "Cookie Policy"
+    },
+    "reaccept": {
+      "message": "Abbiamo aggiornato la Privacy Policy e i Termini di Servizio. Continuando a usare Anlyra confermi di averli letti:",
+      "privacyLink": "Privacy Policy",
+      "termsLink": "Termini di Servizio",
+      "accept": "Accetto i documenti aggiornati",
+      "accepting": "Registrazione…",
+      "error": "Non siamo riusciti a registrare l'accettazione. Riprova."
     }
   },
   "security": {

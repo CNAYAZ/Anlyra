@@ -39,6 +39,15 @@ model User {
   // untouched and a NULL means "no deletion requested".
   deletionRequestedAt DateTime?
 
+  // Which version of the Privacy Policy + Terms of Service this person last
+  // accepted, as the ISO date in src/lib/legal/version.ts (CURRENT_LEGAL_VERSION).
+  // Written once at registration (see /api/auth/register) and again on
+  // re-acceptance after a document update. NULL means no version is on record —
+  // every account created before this column existed, and nothing else. See
+  // migration 20260920120000_terms_accepted_version for why it is nullable with
+  // no default and no backfill.
+  termsAcceptedVersion String?
+
   memberships Membership[]
   accounts    Account[]
   sessions    Session[]
