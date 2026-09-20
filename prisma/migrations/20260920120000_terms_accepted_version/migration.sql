@@ -1,0 +1,36 @@
+-- Records WHICH VERSION of the Privacy Policy + Terms of Service a user
+-- accepted, as an ISO date matching CURRENT_LEGAL_VERSION in
+-- src/lib/legal/version.ts.
+--
+-- WHY A NEW COLUMN: registration now writes an `auth.terms_accepted` audit row
+-- (see src/lib/audit/actions.ts and /api/auth/register), which proves THAT a
+-- person accepted and WHEN, but not WHICH TEXT they accepted. The founder is
+-- about to publish new legal pages, and without this column a user who
+-- accepted the old wording and one who accepted the new one become
+-- indistinguishable the moment the audit row's timestamp is no longer close
+-- enough to either publication date to tell them apart on its own. The audit
+-- log stays the record of the EVENT (who, when, from where); this column is
+-- the current, queryable STATE (which version, right now) — the same relation
+-- passwordHash has to a password.change audit row: the log proves a change
+-- happened, the column holds the current value.
+--
+-- NULLABLE, NO DEFAULT — deliberately: every user created before this column
+-- existed has no record of which version, if any, they read. NULL means
+-- exactly that, "not known", and it is not the same fact as "never accepted
+-- anything" (they DID accept something, under the previous, checkbox-less
+-- flow — see the report of the session that added the checkbox: no consent
+-- was ever collected before it existed). Writing CURRENT_LEGAL_VERSION into
+-- every existing row would assert that all of them read text most of them
+-- never saw. No default and no backfill statement is included, wanted, or
+-- safe.
+--
+-- SAFETY: this migration only ADDS one nullable column to one table. It drops
+-- nothing, rewrites no existing row, and changes no existing value. Every row
+-- already in User keeps every column it has and simply gains a NULL in the
+-- new one. Running it on the live database cannot lose data, cannot log
+-- anyone out, and changes no behaviour on its own: at the moment this column
+-- is applied, nothing reads it — see the commit that adds this migration,
+-- which only writes the column on new registrations, and the separate commit
+-- that first reads it to prompt re-acceptance.
+
+ALTER TABLE "User" ADD COLUMN "termsAcceptedVersion" TEXT;
