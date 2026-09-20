@@ -3118,6 +3118,10 @@
     "forgotPasswordLink": "Password dimenticata?",
     "errorInvalid": "Email o password non validi."
   },
+  "signup": {
+    "consent": "Dichiaro di aver letto la <privacy>Privacy Policy</privacy> e i <terms>Termini di Servizio</terms>, e di avere almeno 18 anni.",
+    "consentRequired": "Per creare un account devi accettare la Privacy Policy e i Termini di Servizio e dichiarare di avere almeno 18 anni."
+  },
   "demo": {
     "banner": {
       "message": "Stai esplorando una dimostrazione di Anlyra. I dati che vedi sono inventati a scopo dimostrativo e non appartengono a nessuna azienda reale. In questa modalità puoi solo consultare: nulla può essere modificato.",

@@ -33,6 +33,11 @@ export const AUDIT_ACTIONS = [
   // ── Account security ──
   'auth.login',
   'auth.login_failed',
+  // Not a security event but the RECORD OF A CONTRACT: written once, when the
+  // account is created, by whoever ticked "I have read privacy and terms and I
+  // am at least 18". It is what makes that sentence in the legal pages true, so
+  // it is the one action a retention sweep must never remove.
+  'auth.terms_accepted',
   'password.change',
   'two_factor.enable',
   'two_factor.disable',
