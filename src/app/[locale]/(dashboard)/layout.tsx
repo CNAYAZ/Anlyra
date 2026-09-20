@@ -4,6 +4,9 @@ import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { CreditsHydrator } from '@/components/dashboard/CreditsHydrator';
 import { TrialExpiredBanner } from '@/components/billing/TrialExpiredBanner';
+import { LegalReacceptBanner } from '@/components/legal/LegalReacceptBanner';
+import { prisma } from '@/lib/prisma';
+import { needsLegalReaccept } from '@/lib/legal/version';
 import {
   getCurrentOrganization,
   getSessionState,
@@ -85,6 +88,22 @@ export default async function DashboardLayout({
   // requireManagerRole would refuse server-side.
   const isManager = authCtx ? isManagerRole(authCtx.role) : false;
 
+  // Same gating as isOwner/isManager above: only for a real signed-in member,
+  // never the demo (no account exists there to accept anything for). Read
+  // fresh from the DB every render — this is the one value in this layout
+  // that must never be trusted from a client cookie or a stale session claim,
+  // because it decides whether to ask for a legal acceptance.
+  const needsReaccept = authCtx
+    ? needsLegalReaccept(
+        (
+          await prisma.user.findUnique({
+            where: { id: authCtx.userId },
+            select: { termsAcceptedVersion: true },
+          })
+        )?.termsAcceptedVersion,
+      )
+    : false;
+
   return (
     <BillingProvider initialState={billingState}>
       {/* Makes `isDemo` available to every client component below, so the UI can
@@ -105,6 +124,9 @@ export default async function DashboardLayout({
                 {/* Read-only strip for expired trials (renders null for active/trialing).
                     A strip that pushes content down, never an overlay — data stays visible. */}
                 <TrialExpiredBanner />
+                {/* Same shape again: asks for acceptance of updated legal documents
+                    without blocking anything. Renders null when needsReaccept is false. */}
+                <LegalReacceptBanner needsReaccept={needsReaccept} />
                 <main className="flex-1 p-6">
                   <div className="mx-auto w-full max-w-[1440px]">{children}</div>
                 </main>

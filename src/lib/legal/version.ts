@@ -37,8 +37,27 @@
  * An ISO date (YYYY-MM-DD), so versions compare with plain string/date
  * comparison and sort chronologically without parsing.
  *
- * This commit only DEFINES and WRITES this value (on registration). Nothing
- * reads it back to decide anything yet — that is deliberately a second,
- * separate change (see needsLegalReaccept in this same file, added there).
+ * The registration commit only defined and wrote this value. This function is
+ * the second, separate change: the first thing in the codebase that reads it
+ * back to decide anything.
  */
 export const CURRENT_LEGAL_VERSION = '2026-05-17';
+
+/**
+ * Whether a person needs to (re)accept the current Privacy Policy + Terms.
+ *
+ * `null`/`undefined` counts as needing acceptance. This covers TWO different
+ * facts with one answer, deliberately:
+ *   • an account created before the termsAcceptedVersion column existed —
+ *     they accepted SOMETHING, under the old checkbox-less flow, but there is
+ *     no record of which text;
+ *   • an account created after, whose write somehow failed.
+ * Either way the true, honest answer is "we hold no record that this person
+ * accepted the current documents", so both are treated the same: asked, not
+ * blocked (see LegalReacceptBanner — this is a judgment call, not a fact read
+ * off the code; see the session report for the reasoning and the alternative
+ * that was rejected).
+ */
+export function needsLegalReaccept(acceptedVersion: string | null | undefined): boolean {
+  return acceptedVersion !== CURRENT_LEGAL_VERSION;
+}
