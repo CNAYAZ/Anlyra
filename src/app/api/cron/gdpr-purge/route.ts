@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runGdprPurge } from '@/lib/gdpr/purge';
 import { purgeOldWebhookEvents } from '@/lib/billing/webhook-retention';
+import { purgeOldAuditLogs, AUDIT_LOG_RETENTION_MONTHS } from '@/lib/audit/retention';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,5 +39,19 @@ export async function GET(req: Request) {
     console.error('[cron/gdpr-purge] stripe idempotency purge failed:', e);
   }
 
-  return NextResponse.json({ success: true, ...result, webhookEventsPurged });
+  // Audit-log retention, on the same nightly run and with the same best-effort
+  // contract as the housekeeping above: the Privacy Policy promises audit rows
+  // live at most 12 months, and until now nothing enforced it. A failure here
+  // must not turn a completed GDPR purge into a 500 either.
+  let auditLogRowsPurged = 0;
+  try {
+    auditLogRowsPurged = await purgeOldAuditLogs();
+    console.info(
+      `[cron/gdpr-purge] audit rows older than ${AUDIT_LOG_RETENTION_MONTHS} months purged=${auditLogRowsPurged}`,
+    );
+  } catch (e) {
+    console.error('[cron/gdpr-purge] audit log retention purge failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, webhookEventsPurged, auditLogRowsPurged });
 }

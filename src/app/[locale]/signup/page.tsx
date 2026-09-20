@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { signIn } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,11 +66,17 @@ export default function SignupPage() {
   const params = useParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
   const t = COPY[locale];
+  // The rest of this page predates next-intl and keeps its own COPY table; the
+  // consent text is NEW text, so it lives in src/messages/{it,en}.json like
+  // every other string in the product. The two coexist deliberately — moving
+  // COPY into the catalogs is a separate job, not this one.
+  const tSignup = useTranslations('signup');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [accepted, setAccepted] = useState(false);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -82,7 +89,7 @@ export default function SignupPage() {
     special: /[^A-Za-z0-9]/.test(password),
   };
   const passwordValid = Object.values(checks).every(Boolean);
-  const canSubmit = email && passwordValid && password === confirm && !loading;
+  const canSubmit = email && passwordValid && password === confirm && accepted && !loading;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,15 +98,23 @@ export default function SignupPage() {
       setError(t.mismatch);
       return;
     }
+    if (!accepted) {
+      setError(tSignup('consentRequired'));
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, locale }),
+        body: JSON.stringify({ name, email, password, locale, termsAccepted: accepted }),
       });
       if (!res.ok) {
-        setError(t.genericError);
+        // The route rejects a missing acceptance on its own (the checkbox is not
+        // the enforcement, it is the interface) — say WHICH thing was refused
+        // instead of the generic message.
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(body?.error === 'TERMS_NOT_ACCEPTED' ? tSignup('consentRequired') : t.genericError);
         return;
       }
       setDone(true);
@@ -125,11 +140,69 @@ export default function SignupPage() {
           <CardDescription>{t.subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* ── ACCETTAZIONE, PRIMA DI OGNI VIA D'INGRESSO ──
+              Sopra i pulsanti social e sopra il modulo, perché governa
+              entrambi: senza la spunta non si crea un account da nessuna
+              delle due strade. Il rifiuto vero sta sul server
+              (api/auth/register): questo è solo il modo di dirlo all'utente.
+              Per Google e Microsoft il server NON vede questa spunta — vedi
+              il rapporto della sessione: lì il blocco è solo di interfaccia. */}
+          <div className="mb-4 flex items-start gap-2">
+            <input
+              id="terms"
+              name="terms"
+              type="checkbox"
+              required
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-input"
+            />
+            <label htmlFor="terms" className="text-xs leading-snug text-muted-foreground">
+              {tSignup.rich('consent', {
+                privacy: (chunks) => (
+                  <Link
+                    href="/legal/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    // Il link sta dentro la label: senza questo, aprirlo in una
+                    // nuova scheda spunterebbe anche la casella per rimbalzo
+                    // del click.
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-primary-accent hover:underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+                terms: (chunks) => (
+                  <Link
+                    href="/legal/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-primary-accent hover:underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </label>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" type="button" onClick={() => signIn('google', { callbackUrl: `/${locale}/welcome` })}>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={!accepted}
+              onClick={() => signIn('google', { callbackUrl: `/${locale}/welcome` })}
+            >
               {t.google}
             </Button>
-            <Button variant="secondary" type="button" onClick={() => signIn('microsoft-entra-id', { callbackUrl: `/${locale}/welcome` })}>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={!accepted}
+              onClick={() => signIn('microsoft-entra-id', { callbackUrl: `/${locale}/welcome` })}
+            >
               {t.microsoft}
             </Button>
           </div>
