@@ -29,6 +29,27 @@ export const dynamic = 'force-dynamic';
  * TENANT ISOLATION: organizationId comes from getAuthContext(), which resolves it
  * only through a Membership row. Every org-scoped query below filters on that
  * single id, so this endpoint can never reach another tenant's data.
+ *
+ * ── PERCHÉ L'AUDIT LOG ESCE, E SOLO LE RIGHE DI CHI CHIEDE ──
+ * Era l'unico dato personale che questa rotta non restituiva, ed era proprio
+ * quello che sopravvive alla cancellazione dell'account (id utente, indirizzo
+ * IP, storico delle azioni): un buco sull'art. 15 esattamente nel punto più
+ * delicato. Ora esce, filtrato su `userId` e nient'altro:
+ *   • le righe degli ALTRI membri non escono — sono la loro attività, non la
+ *     tua, e un export che consegna i dati di un collega sarebbe un problema
+ *     peggiore di quello che stiamo chiudendo;
+ *   • le righe del pannello admin non escono di conseguenza, perché non
+ *     portano nessun userId (il pannello non ha login) e alcune contengono
+ *     dati aziendali — es. `admin.row_deleted` scrive nome fornitore e importo
+ *     della riga cancellata;
+ *   • le righe `auth.login_failed` per un indirizzo inesistente non escono,
+ *     sempre per assenza di userId — e non sono di nessuno.
+ * NESSUN CAMPO viene tolto dalle righe che escono: verificati tutti i punti di
+ * chiamata di auditLog(), nessun `metadata` contiene l'email o il nome di
+ * un'altra persona (i due casi sul team registrano ruoli e l'id della
+ * membership, non chi è), e il token dei link di condivisione è escluso già
+ * alla fonte. Vale il criterio del resto del file: si escludono i segreti, non
+ * i fatti — e l'IP di chi chiede è un fatto che lo riguarda.
  */
 export async function GET() {
   const ctx = await getAuthContext();
@@ -70,6 +91,7 @@ export async function GET() {
     billingInvoices,
     creditEntries,
     legacySubscriptions,
+    activityLog,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -211,6 +233,14 @@ export async function GET() {
     prisma.billingInvoice.findMany({ where: { organizationId } }),
     prisma.creditEntry.findMany({ where: { organizationId } }),
     prisma.subscription.findMany({ where: { organizationId } }),
+    // Filtered on userId ALONE — deliberately not on organizationId too, which
+    // would pull in other members' rows and the admin panel's. See the note at
+    // the top of the file. Newest first: this is the one group a person reads
+    // rather than re-imports.
+    prisma.auditLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    }),
   ]);
 
   if (!user) return fail('NOT_FOUND', 404);
@@ -223,10 +253,12 @@ export async function GET() {
       requestedBy: { userId, role },
       teamDataIncluded: canSeeTeam,
       note:
-        'Export completo dei dati personali e aziendali. Per sicurezza NON contiene: password, token di verifica/reset, segreto 2FA, token OAuth, chiavi delle integrazioni, token dei link di condivisione dei report.',
+        'Export completo dei dati personali e aziendali. Per sicurezza NON contiene: password, token di verifica/reset, segreto 2FA, token OAuth, chiavi delle integrazioni, token dei link di condivisione dei report. Il registro delle attività (activityLog) contiene soltanto le azioni registrate a tuo nome: quelle degli altri membri sono dati loro e non compaiono qui.',
     },
     user,
     linkedAccounts: accounts,
+    // Le azioni registrate a nome di chi chiede l'export, e solo le sue.
+    activityLog,
     memberships,
     organization,
     invites,
