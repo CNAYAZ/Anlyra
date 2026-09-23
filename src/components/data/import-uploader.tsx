@@ -6,7 +6,15 @@ import { UploadCloud, FileText, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const MAX_SIZE = 10 * 1024 * 1024;
-const ACCEPTED = ['.csv', '.tsv', '.txt', '.xlsx', '.xls', '.xlsm'];
+// .xls (legacy binary Excel, pre-2007) deliberately NOT here: exceljs — the
+// only spreadsheet library this project has (verified: its lib/ has xlsx,
+// csv, doc, stream, utils, nothing BIFF/CFB/OLE2-shaped, and neither its
+// source nor its README mentions .xls anywhere) — can only read the
+// XLSX/XLSM zip-based format. parseExcel already detects a genuine legacy
+// file by its OLE2 signature and refuses it with a clear message
+// (LEGACY_XLS_UNSUPPORTED → errorLegacyXls) — see validate() below, which
+// gives that same message immediately instead of waiting on a round trip.
+const ACCEPTED = ['.csv', '.tsv', '.txt', '.xlsx', '.xlsm'];
 
 type Props = {
   onFileAccepted: (file: File) => void;
@@ -23,6 +31,10 @@ export function ImportUploader({ onFileAccepted, pending, error }: Props) {
   function validate(file: File): string | null {
     if (file.size > MAX_SIZE) return t('uploadTooLarge');
     const ext = '.' + (file.name.toLowerCase().split('.').pop() ?? '');
+    // Same message the server would eventually give (parseExcel sniffs the
+    // OLE2 signature and refuses with LEGACY_XLS_UNSUPPORTED) — given here
+    // right away, by extension, so a genuine .xls never even reaches upload.
+    if (ext === '.xls') return t('errorLegacyXls');
     if (!ACCEPTED.includes(ext)) return t('uploadInvalidFormat');
     return null;
   }
