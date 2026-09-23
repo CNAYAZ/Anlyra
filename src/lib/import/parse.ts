@@ -31,15 +31,28 @@ export const MAX_EXCEL_COLUMNS = 256;
 export const MAX_EXCEL_SHEETS = 50;
 
 /**
- * Detect ';' vs ',' from the header line. Italian/bank CSV exports use ';'
- * because ',' is the decimal separator in their own amount columns.
- * Papa.parse auto-detects most of the time, but an explicit count keeps the
- * behavior deterministic for files where the heuristic could be ambiguous.
+ * Detect '\t' vs ';' vs ',' from the header line. Italian/bank CSV exports
+ * use ';' because ',' is the decimal separator in their own amount columns;
+ * a .tsv (or a .txt saved the same way) uses a literal tab.
+ *
+ * CORRECTED — the comment here used to say "Papa.parse auto-detects most of
+ * the time, but an explicit count keeps the behavior deterministic for files
+ * where the heuristic could be ambiguous", as if this function only broke a
+ * tie. Checked against papaparse's own source before touching this: passing
+ * a non-empty `delimiter` to Papa.parse (node_modules/papaparse/papaparse.js,
+ * around line 1093) skips its OWN guessDelimiter entirely — this function's
+ * answer is not a tie-breaker, it is the ONLY thing deciding the delimiter,
+ * every time, for every file. That is also why it used to get tab-separated
+ * files wrong: it only ever compared ';' against ',', so a .tsv with neither
+ * in its header (0 vs 0) fell through to the ',' default and every column
+ * landed in one.
  */
-export function detectCsvDelimiter(text: string): ',' | ';' {
+export function detectCsvDelimiter(text: string): ',' | ';' | '\t' {
   const headerLine = text.split(/\r?\n/, 1)[0] ?? '';
+  const tabs = (headerLine.match(/\t/g) ?? []).length;
   const semicolons = (headerLine.match(/;/g) ?? []).length;
   const commas = (headerLine.match(/,/g) ?? []).length;
+  if (tabs > semicolons && tabs > commas) return '\t';
   return semicolons > commas ? ';' : ',';
 }
 
