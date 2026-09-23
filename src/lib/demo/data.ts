@@ -8,7 +8,15 @@ export type DemoTransaction = {
   subcategory?: string;
   amount: number;
   description: string;
-  source: 'manual' | 'stripe' | 'import' | 'bank';
+  // Was a closed union ('manual' | 'stripe' | 'import' | 'bank') — that only
+  // ever described what THIS FILE's own random seed generates below, never a
+  // real constraint on the FinancialRecord.source column it mirrors: file
+  // imports have always been able to write arbitrary text here (any column a
+  // user maps to "source"/"fonte"/"origine"/"canale" — see the synonyms list
+  // in src/lib/import-targets.ts), and manual entry now does too (the form's
+  // own free-text "Fonte" field, previously collected and discarded). Widened
+  // to `string` to stop the type claiming a guarantee the data never had.
+  source: string;
 };
 
 export type DemoCashflow = {

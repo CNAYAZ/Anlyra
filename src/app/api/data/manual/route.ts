@@ -86,7 +86,18 @@ export async function POST(req: NextRequest) {
             type: r.type as string,
             occurredAt: new Date(r.occurredAt as string),
             description: buildFinancialDescription(r),
-            source: 'manual',
+            // Was hardcoded to the literal 'manual', discarding whatever the
+            // user actually typed in the form's "Fonte" field — the field
+            // was collected, validated (target.schema already trims it and
+            // turns '' into undefined, same as every optional text field),
+            // and then thrown away. Same fallback and same shape as the file
+            // import path (src/app/api/data/import/commit/route.ts: `source:
+            // (r.source as string | undefined) ?? 'import'`), which already
+            // treats this column as free text from a mapped "source"/"fonte"
+            // column — so an EMPTY field still writes 'manual', exactly like
+            // before this fix, and only a value the user actually typed
+            // overrides it.
+            source: (r.source as string | undefined) ?? 'manual',
           })),
         });
         imported = validRows.length;
