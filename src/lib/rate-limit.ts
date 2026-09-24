@@ -111,6 +111,14 @@ const BUCKETS = {
   // authenticated and security-adjacent; 10/10m stops a loop, never a person.
   '2fa-setup-user': { limit: 10, window: '10 m', onFailure: 'closed' },
 
+  // NEW — "sign out of all other devices" (POST /api/auth/sessions/revoke-
+  // others). No password check, unlike change-password and 2fa-disable above
+  // — see that route's own comment for why — so nothing here bcrypt-compares
+  // anything expensive to brute-force; the risk this bounds is a hijacked or
+  // scripted session hammering the write itself. Same budget as
+  // change-password-user: generous for honest re-clicks, still a real bound.
+  'sessions-revoke-user': { limit: 10, window: '15 m', onFailure: 'closed' },
+
   // ── OUTBOUND EMAIL — fail-closed ────────────────────────────────────────
   // Every send costs money and burns the sending domain's reputation.
   // Bug report submission (sends an email to the contact address).

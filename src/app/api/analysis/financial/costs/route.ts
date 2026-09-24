@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { fail, ok } from '@/lib/api/response';
+import { failFromError } from '@/lib/api';
 import { getOrgData, listQuerySchema } from '@/lib/api/financial-query';
 import {
   categoryBreakdown,
@@ -80,7 +81,13 @@ export async function GET(req: NextRequest) {
       pagination: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return fail(message === 'Unauthorized' ? 'Unauthorized' : 'Internal error', message === 'Unauthorized' ? 401 : 500);
+    // Was comparing err.message === 'Unauthorized' — but getCurrentContext()
+    // throws NotAuthenticatedError with message 'Anonymous visitor without an
+    // explicit demo session' (src/lib/session.ts), never the literal string
+    // 'Unauthorized', so that comparison never matched and every anonymous
+    // request fell through to 500 Internal error. failFromError (src/lib/api.ts,
+    // already used by ai/insights, receivables and others) maps by error NAME
+    // instead, and never forwards the raw message to the client.
+    return failFromError(err);
   }
 }

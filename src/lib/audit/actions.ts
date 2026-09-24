@@ -39,6 +39,12 @@ export const AUDIT_ACTIONS = [
   // it is the one action a retention sweep must never remove.
   'auth.terms_accepted',
   'password.change',
+  // Distinct from password.change: this one happens with NO session at all,
+  // proven only by holding the emailed reset link (/api/auth/reset-password),
+  // never by a bcrypt check of the old password. Kept separate so the trail
+  // can tell "signed in and changed it" apart from "used a reset link" —
+  // the second is the one to look at first if it was not the account owner.
+  'password.reset',
   // "Sign out of all other devices" from Settings → Security. A password
   // change revokes sessions too, but is already recorded as password.change.
   'auth.sessions_revoked',

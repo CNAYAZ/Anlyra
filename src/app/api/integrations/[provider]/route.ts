@@ -1,4 +1,5 @@
 import { fail, ok } from "@/lib/api/response";
+import { failFromError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { getCurrentContext } from "@/lib/session";
 import { getIntegration } from "@/lib/integrations/registry";
@@ -14,25 +15,32 @@ export async function GET(_req: Request, props: { params: Promise<{ provider: st
   // gate is how it ends up inside one, so it is gone rather than left to be
   // copied. If this route ever needs to gate, the plan comes from
   // getBillingState(organizationId), never from a literal.
-  const { organizationId } = await getCurrentContext();
-  const org = { id: organizationId };
-  const integration = await prisma.integration.findUnique({
-    where: {
-      organizationId_provider: {
-        organizationId: org.id,
-        provider: definition.id,
+  //
+  // getCurrentContext() throws for an anonymous caller — was uncaught, so
+  // Next.js's own default error handling answered instead of a proper 401.
+  try {
+    const { organizationId } = await getCurrentContext();
+    const org = { id: organizationId };
+    const integration = await prisma.integration.findUnique({
+      where: {
+        organizationId_provider: {
+          organizationId: org.id,
+          provider: definition.id,
+        },
       },
-    },
-    include: {
-      syncLogs: { orderBy: { startedAt: "desc" }, take: 10 },
-    },
-  });
+      include: {
+        syncLogs: { orderBy: { startedAt: "desc" }, take: 10 },
+      },
+    });
 
-  return ok({
-    provider: definition.id,
-    status: integration?.status ?? "DISCONNECTED",
-    frequency: integration?.frequency ?? "H24",
-    lastSyncAt: integration?.lastSyncAt ?? null,
-    logs: integration?.syncLogs ?? [],
-  });
+    return ok({
+      provider: definition.id,
+      status: integration?.status ?? "DISCONNECTED",
+      frequency: integration?.frequency ?? "H24",
+      lastSyncAt: integration?.lastSyncAt ?? null,
+      logs: integration?.syncLogs ?? [],
+    });
+  } catch (e) {
+    return failFromError(e);
+  }
 }

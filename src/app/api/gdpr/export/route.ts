@@ -108,6 +108,12 @@ export async function GET() {
         twoFactorEnabledAt: true,
         lastLoginAt: true,
         deletionRequestedAt: true,
+        // A fact about the account's security state, same category as the
+        // three fields above it — not a secret (the SESSIONS it invalidates
+        // are what would be secrets, and none are exported; this is only the
+        // instant). Missing here since it was added: belongs on this list by
+        // the same rule the doc comment above states for everything else.
+        sessionsRevokedAt: true,
       },
     }),
     prisma.account.findMany({
