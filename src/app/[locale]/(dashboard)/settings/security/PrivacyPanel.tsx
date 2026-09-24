@@ -182,7 +182,7 @@ export default function PrivacyPanel() {
         )}
 
         {done ? (
-          <p className="text-sm text-muted-foreground">{t('privacyDeleteDone')}</p>
+          <p className="text-sm text-muted-foreground">{t('privacyDeleteDone', { days })}</p>
         ) : scope?.alreadyRequested ? (
           // Visible ONLY while a request is actually pending for THIS account
           // (test e: nobody without one sees this block or its button). The
