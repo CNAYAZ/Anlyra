@@ -23,5 +23,8 @@ declare module 'next-auth/jwt' {
   interface JWT {
     currentOrgId?: string;
     currentOrgRole?: string;
+    // Milliseconds; when THIS session was opened. Set once at sign-in and kept
+    // through every refresh, unlike `iat` — see src/lib/auth/session-revocation.ts.
+    sessionIssuedAt?: number;
   }
 }

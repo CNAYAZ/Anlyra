@@ -12,6 +12,7 @@ import { apiFetch } from '@/lib/api/fetcher';
 import { validatePassword } from '@/lib/auth/config';
 import TwoFactorPanel from './TwoFactorPanel';
 import PrivacyPanel from './PrivacyPanel';
+import SessionsPanel from './SessionsPanel';
 
 // Maps a server error code (thrown by apiFetch as Error.message) to an i18n key,
 // so the user understands exactly what went wrong.
@@ -115,6 +116,8 @@ export default function SettingsSecurityPage() {
           {t('securityUpdatePassword')}
         </button>
       </form>
+
+      <SessionsPanel />
 
       <TwoFactorPanel />
 

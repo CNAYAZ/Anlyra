@@ -10,6 +10,7 @@ import { checkRateLimit, resetRateLimit, getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 import { DEMO_EMAIL } from '@/lib/session';
 import { isPastGrace } from '@/lib/gdpr/constants';
+import { isSessionRevoked } from '@/lib/auth/session-revocation';
 
 // Build the providers list, including OAuth only when credentials are present
 // so the app boots cleanly in environments without OAuth configured.
@@ -242,6 +243,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // carry it in the token so the Edge session callback stays DB-free.
       if (user?.id) {
         token.sub = user.id;
+        // When this session was opened — kept unchanged through every refresh,
+        // unlike `iat`. Compared with User.sessionsRevokedAt in the session
+        // callback below; see src/lib/auth/session-revocation.ts.
+        token.sessionIssuedAt = Date.now();
         const defaultMembership =
           (await prisma.membership.findFirst({
             where: { userId: user.id, isDefault: true },
@@ -281,6 +286,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // throws (lib/actions/session.js), so a database blip would log everyone
     // out. On error the answer is "nobody, for this request" — fail-closed, and
     // the same outcome getSessionState already gives when auth() fails.
+    //
+    // ── REVOKED SESSIONS ── (same lookup, one more column)
+    // A token opened before the user's last "sign out everywhere" (password
+    // change, password reset, or the button in Settings → Security) gets the
+    // same user-less session, and WITHOUT deletionPendingUserId: it is treated
+    // as whoever holds it now, which may be the intruder the revocation was
+    // for, so it reaches nothing at all — not even the cancellation screen.
+    // Checked first for that reason. See src/lib/auth/session-revocation.ts.
     async session(params) {
       const session = await authConfig.callbacks.session(params);
       const userId = params.token?.sub;
@@ -288,9 +301,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         const account = await prisma.user.findUnique({
           where: { id: userId },
-          select: { deletionRequestedAt: true },
+          select: { deletionRequestedAt: true, sessionsRevokedAt: true },
         });
         if (!account) return { expires: session.expires, user: undefined };
+        if (isSessionRevoked(params.token, account.sessionsRevokedAt)) {
+          return { expires: session.expires, user: undefined };
+        }
         if (account.deletionRequestedAt) {
           return { expires: session.expires, user: undefined, deletionPendingUserId: userId };
         }
