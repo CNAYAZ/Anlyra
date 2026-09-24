@@ -6,6 +6,7 @@ import { Loader2, RotateCcw } from 'lucide-react';
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsManager } from '@/lib/auth/owner-context';
 
 type BatchDetail = {
   batch: Record<string, unknown>;
@@ -24,6 +25,10 @@ type Props = {
 export function HistoryDetailDialog({ batchId, onClose, onRollback }: Props) {
   const t = useTranslations('dataHistory');
   const open = batchId !== null;
+  // Second path to the same requireManagerRole DELETE route as the table row
+  // button (history-table.tsx): the "view detail" dialog has its own
+  // rollback control, gated the same way.
+  const isManager = useIsManager();
 
   const { data, isLoading } = useQuery({
     queryKey: ['batch-detail', batchId],
@@ -114,7 +119,7 @@ export function HistoryDetailDialog({ batchId, onClose, onRollback }: Props) {
               </TabsContent>
             </Tabs>
 
-            {status && status !== 'ROLLED_BACK' && (
+            {status && status !== 'ROLLED_BACK' && isManager && (
               <div className="mt-4 flex justify-end border-t border-border pt-4">
                 <button
                   type="button"

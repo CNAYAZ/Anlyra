@@ -141,13 +141,15 @@ ambiente principale**. Regole di collaborazione:
 **DATABASE (VERIFICATO 2026-09-05)**: **Supabase PostgreSQL**, NON più SQLite.
 - `prisma/schema.prisma`: `provider = "postgresql"`, `url = env("DATABASE_URL")`,
   `directUrl = env("DIRECT_URL")` (pooler eu-west-1).
-- 11 migration applicate (contate su `prisma/migrations/`, non più 3 come diceva questa
-  riga fino al 2026-09-04): `20260702225830_init_postgres`, `20260710231614_billing_tables`,
-  `20260712142054_repoint_integration_fk_drop_org_b12`, `20260726190000_gdpr_deletion_requested_at`,
-  `20260728180000_report_config_and_share_token`, `20260821120000_insight_source`,
-  `20260822200000_stripe_webhook_idempotency`, `20260822200100_audit_log`,
-  `20260823120000_credits_renewed_at`, `20260825150000_enable_row_level_security`,
-  `20260904120000_ai_credits_purchased`.
+- 14 migration applicate (RIVERIFICATO 2026-09-24 contando su `prisma/migrations/`, non
+  più 11 come diceva questa riga fino ad oggi): `20260702225830_init_postgres`,
+  `20260710231614_billing_tables`, `20260712142054_repoint_integration_fk_drop_org_b12`,
+  `20260726190000_gdpr_deletion_requested_at`, `20260728180000_report_config_and_share_token`,
+  `20260821120000_insight_source`, `20260822200000_stripe_webhook_idempotency`,
+  `20260822200100_audit_log`, `20260823120000_credits_renewed_at`,
+  `20260825150000_enable_row_level_security`, `20260904120000_ai_credits_purchased`,
+  `20260918120000_organization_created_by`, `20260920120000_terms_accepted_version`,
+  `20260924120000_user_sessions_revoked_at`.
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
   **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
@@ -240,28 +242,61 @@ repo): **Mercato** (competitors/trends/positioning) e **Operations**
 
 ## 7. Regole di sicurezza (dalle correzioni di luglio 2026)
 
-**Ruoli** (VERIFICATO 2026-09-05): valori reali lowercase `'owner' | 'admin' | 'editor' |
+**Ruoli** (VERIFICATO 2026-09-24): valori reali lowercase `'owner' | 'admin' | 'editor' |
 'viewer'` su `Membership.role`, letti da `src/lib/auth/require-role.ts`. Decisione del
-fondatore: **cancellare dati e cambiare impostazioni org = solo owner/admin; leggere e
-creare/modificare dati = tutti i membri.**
-- `requireManagerRole` blocca (403) in 12 file/13 punti di chiamata (VERIFICATO con grep,
-  2026-09-05 — non più 11 come diceva questa riga: mancava `reports/[id]/share`): le 6
-  DELETE già elencate in precedenza (receivables, recurring-expenses, reports,
-  custom-dashboards, data/import/batches, market/competitors), PATCH
-  `settings/organization`, le 4 route integrazioni (connect, disconnect, sync,
-  frequency), e le 2 chiamate di `reports/[id]/share` (POST che crea il link
-  condivisibile, DELETE che lo revoca — "il link espone il fatturato dell'azienda",
-  commento nel file). C'è anche una TERZA chiamata in `reports/[id]/route.ts` (GET), ma
-  NON blocca nessuno: decide solo se includere il token nella risposta
-  (`canSeeToken = !requireManagerRole(...)`), quindi non va contata come guardia.
-- **Ogni nuova azione distruttiva DEVE usare `requireManagerRole`.**
-- Nota onesta: il blocco per un utente `viewer` è attivo nel codice ma **NON è ancora
-  stato provato dal vivo** (DA VERIFICARE); verificato invece a runtime che un `owner`
-  può ancora cancellare.
-- **`editor` e `viewer` si comportano in modo IDENTICO oggi** (VERIFICATO 2026-09-05,
-  nessun punto del codice li distingue): nessuna guardia impedisce a un `viewer` di
-  creare o modificare dati, nonostante il nome suggerisca sola lettura — quella
-  distinzione non è implementata. Vedi `.vscode/SCOPERTE-DA-VALUTARE.md`.
+fondatore: **cancellare dati e cambiare impostazioni org = solo owner/admin; creare e
+modificare dati = tutti tranne `viewer`; leggere = tutti i membri; fatturazione = solo
+`owner`.**
+
+**Cosa può fare ciascun ruolo** (ricavato dalle tre guardie in `require-role.ts`, non da
+supposizioni — leggerle prima di cambiarle):
+- `owner`: tutto. Solo lui passa `requireOwnerRole` (fatturazione: portale Stripe,
+  checkout abbonamento, checkout pacchetti crediti) ed è l'unico che può nominare un
+  altro `owner` o toccare la riga di un altro `owner` nel team (deroga in
+  `settings/team/members/[id]/route.ts`).
+- `admin`: passa `requireManagerRole` e `requireEditorRole`, MAI `requireOwnerRole`.
+  Cancella dati, gestisce team (tranne altri owner) e integrazioni, cambia le
+  impostazioni dell'azienda; nessun accesso alla fatturazione.
+- `editor`: passa solo `requireEditorRole`. Crea e modifica dati, usa l'assistente AI;
+  non passa `requireManagerRole`, quindi niente cancellazioni, niente impostazioni org,
+  niente team, niente integrazioni, niente condivisione report.
+- `viewer`: non passa nessuna delle tre guardie. **Sola lettura per davvero** — vedi
+  sotto perché non era così fino a poco fa.
+Tutte e tre fail-closed: un ruolo mancante, vuoto o sconosciuto viene sempre negato, mai
+ammesso per default.
+
+- `requireManagerRole` blocca (403) in 15 file/18 punti di chiamata (RIVERIFICATO con
+  grep, 2026-09-24 — non più 12 file/13 punti come diceva questa riga fino ad oggi: nel
+  frattempo sono comparse le 4 chiamate di team — `settings/team/invite`,
+  `settings/team/members/[id]` con 2 chiamate PATCH+DELETE, `settings/team/route.ts`
+  DELETE per revocare un invito — e la PATCH di `reports/[id]/route.ts` per modificare
+  destinatari/cadenza di un report pianificato, nessuna delle due elencata dalla
+  versione precedente di questa riga): le 6 DELETE già note (receivables,
+  recurring-expenses, reports, custom-dashboards, data/import/batches,
+  market/competitors — quest'ultima senza alcun comando che la raggiunga
+  dall'interfaccia, la pagina è di sola lettura), la PATCH di `reports/[id]` appena
+  citata, PATCH `settings/organization`, le 4 route integrazioni (connect, disconnect,
+  sync, frequency), le 2 chiamate di `reports/[id]/share` (POST che crea il link
+  condivisibile, DELETE che lo revoca), e le 4 chiamate di team appena citate. C'è anche
+  una chiamata NON bloccante in `reports/[id]/route.ts` (GET): decide solo se includere
+  il token di condivisione nella risposta (`canSeeToken = !requireManagerRole(...)`),
+  quindi non è contata fra i 18 punti.
+- `requireEditorRole` (non ancora censita in questo file finché non l'ha aggiunta una
+  sessione precedente): blocca in 18 file — le rotte AI (chat, analyze, insights
+  generate/PATCH, alert check/refresh/analyze/PATCH), le scritture su receivables,
+  recurring-expenses, custom-dashboards, reports (creazione), data/manual e
+  data/import (preview/commit), e la PATCH dei competitor di mercato.
+- **Ogni nuova azione distruttiva DEVE usare `requireManagerRole`; ogni nuova azione che
+  scrive dati o consuma crediti AI DEVE usare almeno `requireEditorRole`.**
+- Il blocco per `viewer` è stato provato dal vivo più volte in sessioni recenti (login
+  reale, sessione owner/admin/editor/viewer, Playwright su otto pagine diverse):
+  **`editor` e `viewer` NON sono più identici** (lo erano fino a quando non esisteva
+  `requireEditorRole` — vedi lo storico di questo file). Oggi un `viewer` non passa
+  `requireEditorRole`: non crea, non modifica, non cancella nulla, non usa l'assistente
+  AI. Le uniche azioni che un `viewer` raggiunge senza 403 sono quelle "di lettura
+  travestite da scrittura": la bozza di un sollecito (mai salvata), il PDF di un report
+  già generato, il controllo duplicati di un import — nessuna delle tre scrive dati
+  dell'organizzazione.
 - Nello schema `Membership.role` ha `@default("owner")` — da cambiare in `'viewer'`
   (default sicuro) quando si costruirà la gestione team.
 - **La fatturazione (portale Stripe, checkout abbonamento, checkout pacchetti crediti)
@@ -412,12 +447,12 @@ Fino al 2026-09-04 questa sezione si intitolava "Stato verificato al 2026-07-26"
 conteneva righe datate agosto e settembre — un titolo che prometteva una data unica non
 più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria data.
 
-- `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-05, a runtime, in questo
+- `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-24, a runtime, in questo
   passaggio).
-- `next build` → **134 pagine, non più 137** (RIVERIFICATO 2026-09-05 con `npx next build`,
+- `next build` → **140 pagine, non più 134** (RIVERIFICATO 2026-09-24 con `npx next build`,
   non `npm run build`: quest'ultimo esegue anche `prisma migrate deploy` contro il database
   remoto, cosa che questo lavoro doveva evitare — `next build` da solo non tocca il
-  database).
+  database. Contro un Postgres locale usa-e-getta, mai il database remoto).
 - Pagina `/situazione` funzionante con fatti reali — **NON RIVERIFICATO**: richiede una
   sessione autenticata dal vivo in un browser, non disponibile in un lavoro di sola
   verifica documenti. Ultima conferma nota: nel browser, 2026-07-26.
@@ -478,8 +513,17 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
   su `event.id` PRIMA di processare l'evento (rivendica l'idempotenza) e lo cancella se il
   processing fallisce; se la rivendicazione stessa fallisce (event.id già presente) risponde
   500 così Stripe ritenta più tardi invece di processare due volte lo stesso evento.
-- `change-password` **non invalida le sessioni JWT** esistenti (RIVERIFICATO 2026-09-05: il
-  file aggiorna solo `passwordHash`, nessuna chiamata a `signOut`/revoca sessione).
+- ~~`change-password` non invalida le sessioni JWT esistenti.~~ **RISOLTO (RIVERIFICATO
+  2026-09-24)**: `User.sessionsRevokedAt` (migration `20260924120000_user_sessions_revoked_at`,
+  nullable, nessun default — non tocca nessuna sessione esistente finché non viene scritta)
+  registra l'istante da cui ogni token emesso PRIMA smette di valere; le sessioni sono JWT
+  stateless, quindi non c'è una lista da cui cancellarle — il controllo confronta l'istante
+  di emissione del token con questa colonna a ogni richiesta
+  (`src/lib/auth/session-revocation.ts`). `change-password` ora scrive
+  `sessionsRevokedAt: new Date()` nella stessa transazione che aggiorna `passwordHash`, poi
+  riemette subito un token nuovo per LA SESSIONE CORRENTE (`reissueCurrentSession`), cosicché
+  chi ha appena cambiato la password resta collegato mentre ogni altra sessione aperta prima
+  smette di valere.
 
 Corrette il 2026-09-04, RIVERIFICATE 2026-09-05 (salvo dove segnalato):
 - Rate-limit: NON è fail-open. 17 dei 20 secchielli in `src/lib/rate-limit.ts` sono
@@ -596,7 +640,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.4 · **Aggiornato**: 2026-09-05 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.5 · **Aggiornato**: 2026-09-24 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -641,3 +685,21 @@ admin. Aggiunta a §2 la regola sui riferimenti a file/riga nei compiti, verific
 sempre esatti in questa sessione. §5, §6, §9, §13 NON riverificate in questo passaggio
 (§12 riverificata solo per le due aggiunte citate, il resto della sezione riportato dalla
 v5.3) — vedi il rapporto di questa sessione per il giudizio di rischio sezione per sezione.
+La v5.5 corregge §3 (14 migration, non più 11 — ne sono comparse tre nel frattempo, non di
+questa sessione) e §8 (140 pagine con `next build`, non più 134). Riscrive §7 "Ruoli":
+aggiunta una sezione "Cosa può fare ciascun ruolo" derivata dalle tre guardie
+(`requireOwnerRole`/`requireManagerRole`/`requireEditorRole`) — quest'ultima non era mai
+stata censita in questo file — e tolta l'affermazione ormai falsa "`editor` e `viewer` si
+comportano in modo identico": da quando esiste `requireEditorRole` (aggiunta in una
+sessione precedente, non censita qui finora) un `viewer` è davvero di sola lettura,
+provato dal vivo. Aggiornato anche il conteggio di `requireManagerRole` (15 file/18 punti,
+non più 12/13: nel frattempo sono comparse le rotte team e la PATCH di `reports/[id]`) e
+segnato risolto in §10 `change-password` non invalidava le sessioni (ora lo fa,
+`User.sessionsRevokedAt`). `.vscode/SCOPERTE-DA-VALUTARE.md` aggiornato in parallelo:
+quattro voci segnate risolte (editor/viewer identici, l'assenza di una rotta invito in
+un'azienda esistente, i consumi di crediti mai registrati, `feature-gate.tsx` sul dato di
+piano finto) e il conteggio eslint (13/10/3, non più 12/9/3 — `settings/billing/page.tsx`
+vale due errori, non uno). Non toccate le altre voci di quel file (decine, su email,
+piani, codice morto, fuso orario, sicurezza): fuori dallo scope di un lavoro a bassa
+intensità — chi apre quel file trova comunque data e riga di ogni voce non toccata, per
+riverificarla quando servirà.

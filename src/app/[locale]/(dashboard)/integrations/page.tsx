@@ -11,6 +11,7 @@ import { planMeets } from '@/lib/plan/feature-gate';
 import { INTEGRATIONS } from '@/lib/integrations/registry';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useIsManager } from '@/lib/auth/owner-context';
 
 type IntegrationStatus = {
   provider: string;
@@ -29,8 +30,14 @@ function useIntegrationStatus(provider: string) {
 
 function IntegrationCard({ defn }: { defn: (typeof INTEGRATIONS)[0] }) {
   const t = useTranslations('integrations');
+  const tSettings = useTranslations('settings');
   const { plan } = usePlan();
   const qc = useQueryClient();
+  // Sync/disconnect below are requireManagerRole server-side (same routes as
+  // the provider detail page's IntegrationManager): false disables them
+  // instead of offering a 403.
+  const isManager = useIsManager();
+  const managerOnlyTitle = !isManager ? tSettings('managerOnlyShort') : undefined;
 
   const { data, isLoading } = useIntegrationStatus(defn.id);
 
@@ -99,7 +106,8 @@ function IntegrationCard({ defn }: { defn: (typeof INTEGRATIONS)[0] }) {
               <button
                 type="button"
                 onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending}
+                disabled={syncMutation.isPending || !isManager}
+                title={managerOnlyTitle}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium hover:bg-muted disabled:opacity-60"
               >
                 <RefreshCw className={cn('h-3 w-3', syncMutation.isPending && 'animate-spin')} />
@@ -108,7 +116,8 @@ function IntegrationCard({ defn }: { defn: (typeof INTEGRATIONS)[0] }) {
               <button
                 type="button"
                 onClick={() => disconnectMutation.mutate()}
-                disabled={disconnectMutation.isPending}
+                disabled={disconnectMutation.isPending || !isManager}
+                title={managerOnlyTitle}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
               >
                 <Link2Off className="h-3 w-3" />

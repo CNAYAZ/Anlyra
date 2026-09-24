@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FormError } from '@/components/ui/form-error';
 import { Link } from '@/i18n/routing';
 import { useIsDemo } from '@/lib/demo/context';
+import { useIsManager } from '@/lib/auth/owner-context';
 
 type Org = {
   id: string;
@@ -44,6 +45,11 @@ export default function SettingsOrganizationPage() {
   // disabled, same as integrations show "in arrivo" instead of a control
   // that would fail.
   const isDemo = useIsDemo();
+  // PATCH /api/settings/organization is requireManagerRole server-side: this
+  // form had no role check at all, so an editor or viewer could fill it in
+  // and only discover the 403 on submit. Same disable+tooltip precedent as
+  // settings/billing's ownerOnly button.
+  const isManager = useIsManager();
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings-org'],
@@ -110,7 +116,7 @@ export default function SettingsOrganizationPage() {
           }}
           className="card space-y-4"
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <fieldset disabled={!isManager} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="org-name">{t('orgName')}</Label>
               <Input id="org-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -141,18 +147,20 @@ export default function SettingsOrganizationPage() {
               <Label htmlFor="org-currency">{t('orgCurrency')}</Label>
               <Input id="org-currency" maxLength={3} value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} />
             </div>
-          </div>
+          </fieldset>
 
           {/* Failure shown with the button, not in a banner above the form. */}
           <FormError>{toast === 'err' ? t('saveError') : null}</FormError>
 
           <button
             type="submit"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !isManager}
+            title={!isManager ? t('managerOnlyShort') : undefined}
             className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
           >
             {mutation.isPending ? t('saving') : t('save')}
           </button>
+          {!isManager && <p className="text-[11px] text-muted-foreground">{t('managerOnlyShort')}</p>}
         </form>
       )}
 
