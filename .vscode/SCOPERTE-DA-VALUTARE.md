@@ -98,11 +98,13 @@ lavori che le hanno incontrate):
   della creazione) resterebbe l'unico modo per saperlo con certezza — non
   implementato: cambiamento al modello dati, fuori da tutti i lavori che
   hanno incontrato questo punto finora.
-- **Non esiste nessuna rotta per invitare qualcuno in un'azienda già
-  esistente.** `prisma.invite.create` compare in un solo punto di tutto il
-  repository, dentro `/api/onboarding/organization` — cioè l'UNICO modo di
-  invitare un collega oggi è creare una nuova azienda. `/api/settings/team`
-  espone solo GET.
+- ~~**Non esiste nessuna rotta per invitare qualcuno in un'azienda già
+  esistente.**~~ **RISOLTO (RIVERIFICATO 2026-09-24)**: esiste ora
+  `POST /api/settings/team/invite` (`requireManagerRole`, tabella
+  `INVITABLE_ROLES = ['admin','editor','viewer']` — mai `'owner'`), più
+  `DELETE /api/settings/team` per revocare un invito in sospeso e
+  `PATCH`/`DELETE /api/settings/team/members/[id]` per cambiare ruolo o
+  rimuovere un membro. Interfaccia in `settings/team/page.tsx`, già gestita.
 - **Ogni organizzazione creata dalla rotta di onboarding resta con
   `Organization.plan = "STARTER"`** (il default dello schema, mai
   sovrascritto da quella rotta) — non è una deduzione: osservato dal vivo
@@ -174,15 +176,15 @@ lavori che le hanno incontrate):
   `STRIPE_PRICE_CREDITS_50`, `STRIPE_PRICE_CREDITS_200`, `STRIPE_PRICE_CREDITS_500`
   (`src/lib/stripe/prices.ts:27-29`) e senza quelle variabili risponde 500 "Credit pack
   price not configured". (VERIFICATO su codice, 2026-09-04.)
-- `CreditEntry.reason` (`prisma/schema.prisma`, commento a fianco del campo in
-  `src/lib/billing/repository.ts:32`) prevede quattro causali —
-  `monthly_grant | purchase | ai_call | refund` — ma l'unico punto che scrive righe
-  (`src/lib/billing/repository.ts:215`, dentro `applyCreditPurchase`) scrive sempre e
-  solo `"purchase"` (riga 219). I CONSUMI di crediti non vengono registrati da nessuna
-  parte: non esiste modo di ricostruire, per un'organizzazione con un saldo misto
-  piano/acquistati, quanto di quel saldo sia già stato speso da quale colonna.
-  (VERIFICATO su codice, 2026-09-04 — grep di `creditEntry.create` su tutto `src/`: un
-  solo risultato.)
+- ~~`CreditEntry.reason` ... I CONSUMI di crediti non vengono registrati da nessuna
+  parte~~ **RISOLTO (RIVERIFICATO 2026-09-24)**: esiste ora `recordCreditEntry()`
+  (`src/lib/credits.ts`), chiamata con tutte e quattro le causali —
+  `'monthly_grant'` (rinnovo mensile, `credit-renewal.ts`), `'purchase'`
+  (`billing/repository.ts`), `'ai_call'` (consumo, delta negativo) e `'refund'`
+  (rimborso) — più una quinta non ancora nel commento del campo, `'signup_grant'`
+  (crediti di benvenuto all'onboarding). Il ledger oggi RICOSTRUISCE davvero i
+  consumi. (Era VERIFICATO su codice il 2026-09-04 con un solo risultato per
+  `creditEntry.create`; oggi ce ne sono tre.)
 
 ## Crediti — cancelli che non corrispondono al costo reale
 
@@ -227,27 +229,22 @@ lavori che le hanno incontrate):
 
 ## Qualità del codice
 
-- `npx eslint .` riporta 12 problemi preesistenti (9 errori, 3 avvisi), sparsi su 12
-  file — **elenco CORRETTO 2026-09-05**: la voce precedente (2026-09-04) elencava 8 file
-  come tutti `react-hooks/set-state-in-effect`, ma due di quegli otto
-  (`manual-form-financial.tsx`, `onboarding-flow.tsx`) sono in realtà
-  `react-hooks/incompatible-library` (un'altra regola, un warning non un errore), e
-  mancavano quattro file comparsi nel frattempo: `postcss.config.mjs`
-  (`import/no-anonymous-default-export`, warning),
-  `settings/billing/page.tsx` (`react-hooks/immutability` su
-  `window.location.href`, errore), `ai/chat/chat-client.tsx` e
-  `components/ai/alert-detail.tsx` (entrambi `react-hooks/set-state-in-effect`, errore).
-  Il conteggio totale (12/9/3) era già giusto: solo l'elenco dei file non lo era più.
-  Elenco vero oggi — **errori** (`react-hooks/set-state-in-effect`, tranne dove
-  indicato): `two-factor.tsx`, `cookie-banner.tsx`, `NavItem.tsx`, `ThemeToggle.tsx`,
+- `npx eslint .` riporta 13 problemi preesistenti (10 errori, 3 avvisi, RIVERIFICATO
+  2026-09-24 — non più 12/9/3 come diceva questa riga fino ad oggi), sparsi sempre su 12
+  file: `settings/billing/page.tsx` da solo ne vale DUE, non uno — due assegnazioni
+  separate a `window.location.href` (righe 311 e 339, entrambe `react-hooks/immutability`,
+  il redirect al portale Stripe e quello al checkout), non una sola come contava questa
+  riga finora. Elenco vero oggi — **errori** (`react-hooks/set-state-in-effect`, tranne
+  dove indicato): `two-factor.tsx`, `cookie-banner.tsx`, `NavItem.tsx`, `ThemeToggle.tsx`,
   `receivable-form-dialog.tsx`, `recurring-expense-form-dialog.tsx`,
   `ai/chat/chat-client.tsx`, `components/ai/alert-detail.tsx` (8), più
-  `settings/billing/page.tsx` (`react-hooks/immutability`, 1) = 9 errori. **Avvisi**:
+  `settings/billing/page.tsx` (`react-hooks/immutability`, 2) = 10 errori. **Avvisi**:
   `manual-form-financial.tsx`, `onboarding-flow.tsx` (`react-hooks/incompatible-library`)
   e `postcss.config.mjs` (`import/no-anonymous-default-export`) = 3 avvisi. Non
   corretti: sono fuori dallo scope di ogni lavoro recente e toccano componenti delicati
   (onboarding, 2FA, chat, form) dove una correzione affrettata rischia più del problema
-  stesso. (VERIFICATO eseguendo `npx eslint .` per intero, non solo `tail`, 2026-09-05.)
+  stesso. (RIVERIFICATO eseguendo `npx eslint .` per intero, non solo `tail`, 2026-09-24.)
+  (VERIFICATO eseguendo `npx eslint .` per intero, 2026-09-05.)
   (VERIFICATO eseguendo `npx eslint .`, 2026-09-04.)
 
 ## Finestre temporali e date — una zona da rivedere per intero
@@ -379,14 +376,18 @@ richiesto, per la storia — non cancellata.
 
 ## Ruoli (aggiunto 2026-09-05)
 
-- **`editor` e `viewer` si comportano in modo IDENTICO oggi.** Cercato in tutto `src/`
-  ogni confronto/controllo sui valori `'editor'` e `'viewer'` di `Membership.role`:
-  esistono solo due guardie in tutto il repository, `isManagerRole` (owner+admin) e
-  `isOwnerRole` (solo owner, vedi sotto) — nessuna delle due, né nient'altro, distingue
-  editor da viewer. Nessun punto del codice impedisce a un `viewer` di creare o
-  modificare dati, nonostante il nome suggerisca un ruolo di sola lettura: quella
-  distinzione non è implementata. Ora anche in CLAUDE.md §7, con lo stesso avviso.
-  (VERIFICATO su codice, 2026-09-05.)
+- ~~**`editor` e `viewer` si comportano in modo IDENTICO oggi.**~~ **RISOLTO
+  (RIVERIFICATO 2026-09-24)**: esiste ora una terza guardia, `requireEditorRole`
+  (`src/lib/auth/require-role.ts`), che `isManagerRole`/`isOwnerRole` da sole non
+  davano — blocca in 18 file ogni scrittura di dati e ogni consumo di crediti AI a
+  chi non è `owner`/`admin`/`editor`. Un `viewer` non la passa: oggi è davvero di
+  sola lettura, provato dal vivo (login reale, sessioni owner/admin/editor/viewer,
+  Playwright) su più pagine in sessioni successive a questa. Anche i comandi che il
+  server rifiutava con 403 ma che l'interfaccia mostrava ancora a un `editor`
+  (cancellare un credito, una spesa ricorrente, un report, una dashboard, annullare
+  un import, sincronizzare/disconnettere un'integrazione) sono stati via via
+  nascosti/disattivati lato interfaccia, ultimo il 2026-09-24. Dettaglio completo in
+  CLAUDE.md §7, sezione "Cosa può fare ciascun ruolo".
 - **La fatturazione è ora riservata al solo `owner`** (branch
   `claude/billing-owner-only`) e **chi crea un'organizzazione ne diventa `owner`**, non
   più `admin` (stesso branch) — entrambe documentate per intero in CLAUDE.md §7, non
@@ -422,19 +423,14 @@ richiesto, per la storia — non cancellata.
 
 ## Codice legacy scollegato dal sistema reale (aggiunto 2026-09-05)
 
-- **`src/lib/session-store.ts` e `src/components/feature-gate.tsx` usano uno store
-  Zustand legacy** (`useSession`, persistito come `"pro:session"`) **con un campo
-  `plan` finto** (default `'pro'`, mai sincronizzato con `BillingSubscription` o con
-  nessun dato reale) — probabilmente un residuo dell'architettura pre-NextAuth (cookie
-  custom `pro_session`, già segnalata come storica in `HANDOFF_BUNDLE.md`/
-  `CONTRIBUTING.md`, branch `claude/fix-claude-md-accuracy`). NON è codice morto:
-  `FeatureGate` (`feature-gate.tsx`) è usato davvero in almeno due pagine reali
-  (`src/components/security/audit-log.tsx`, `ai/agent/page.tsx` — grep `FeatureGate`
-  su `src/`), quindi il piano finto che legge decide comportamento vero in produzione
-  oggi, non solo in teoria. Scollegato dal vero sistema di ruoli/piano (`Membership.role`,
-  `BillingSubscription.plan`): qualunque componente lo usi per decidere cosa mostrare
-  sta decidendo su un dato finto, non sul piano reale dell'organizzazione. Non toccato:
-  trovato mentre si cercava un modo di portare il ruolo reale lato client per la
-  fatturazione (branch `claude/billing-owner-only`), che ha usato un context nuovo
-  invece di questo store per non ereditarne il problema. (VERIFICATO su codice,
-  2026-09-05.)
+- ~~**`src/lib/session-store.ts` e `src/components/feature-gate.tsx` usano uno store
+  Zustand legacy con un campo `plan` finto**~~ **RISOLTO (RIVERIFICATO 2026-09-24)**:
+  `feature-gate.tsx` oggi importa `useFeatureGate` da `@/lib/billing/context` (il
+  piano VERO, via `BillingSubscription`), non più lo store Zustand — il file stesso
+  porta un commento che racconta il cambio ("WHAT THIS USED TO DO, AND WHY IT WAS
+  WRONG"). Lo store legacy (`session-store.ts`) esiste ancora ed è importato da UN
+  solo punto rimasto, `onboarding-flow.tsx`, ma solo per `completeOnboarding` (un
+  flag di progresso), mai per il campo `plan` finto — quindi il rischio concreto
+  descritto qui ("un componente decide su un dato finto") non c'è più. Il file
+  `session-store.ts` resta comunque codice morto per la parte `plan`: da valutare se
+  rimuoverlo del tutto in un lavoro dedicato, non fatto qui.
