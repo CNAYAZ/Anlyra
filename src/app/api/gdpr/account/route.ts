@@ -5,7 +5,12 @@ import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { isManagerRole } from '@/lib/auth/require-role';
 import { getStripe } from '@/lib/stripe/client';
-import { DELETION_GRACE_DAYS, daysRemainingInGrace, isPastGrace } from '@/lib/gdpr/constants';
+import {
+  DELETION_GRACE_DAYS,
+  daysRemainingInGrace,
+  isPastGrace,
+  GDPR_STRIPE_CANCELLATION_MARKER,
+} from '@/lib/gdpr/constants';
 import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
@@ -122,7 +127,7 @@ export async function POST(req: Request) {
     return ok({
       requestedAt: user.deletionRequestedAt.toISOString(),
       organizationIncluded: false,
-      subscriptionCancelled: false,
+      subscriptionScheduledForCancellation: false,
       alreadyRequested: true,
       graceDays: DELETION_GRACE_DAYS,
     });
@@ -150,24 +155,48 @@ export async function POST(req: Request) {
     await tx.session.deleteMany({ where: { userId } });
   });
 
-  // Stop the billing clock, but only when the organization itself is going away.
-  // A member leaving must never cancel the company's subscription.
-  let subscriptionCancelled = false;
+  // Schedule the subscription to end at period end, but only when the
+  // organization itself is going away. A member leaving must never touch the
+  // company's subscription.
+  //
+  // NOT an immediate cancel.cancel() any more (founder's decision): whoever
+  // paid for the current period keeps using the service until it runs out,
+  // no refund either way — the same rule the pricing FAQ already states for
+  // an ordinary plan cancellation ("L'abbonamento resta attivo fino alla
+  // fine del periodo di fatturazione corrente"). An immediate hard cancel
+  // also could not be undone if the request is itself cancelled within the
+  // 30 days: the owner would have to re-subscribe for a period they had
+  // already paid for.
+  //
+  // Skipped when the subscription is ALREADY scheduled to cancel
+  // (`cancelAtPeriodEnd`, mirrored from Stripe by the webhook): it may be
+  // scheduled for a reason that has nothing to do with this request — the
+  // owner cancelled through the Stripe customer portal on their own, before
+  // ever asking to delete the account. Calling update() again would stamp
+  // the GDPR marker (below) over that independent decision, and the
+  // un-schedule on DELETE would then wrongly reactivate it. Nothing to
+  // schedule here either way: it is already going to end.
+  let subscriptionScheduledForCancellation = false;
   if (deletesOrganization) {
     try {
       const billing = await prisma.billingSubscription.findUnique({
         where: { organizationId },
-        select: { stripeSubscriptionId: true, status: true },
+        select: { stripeSubscriptionId: true, status: true, cancelAtPeriodEnd: true },
       });
-      if (billing?.stripeSubscriptionId && billing.status !== 'canceled') {
-        await getStripe().subscriptions.cancel(billing.stripeSubscriptionId);
-        subscriptionCancelled = true;
+      if (billing?.stripeSubscriptionId && billing.status !== 'canceled' && !billing.cancelAtPeriodEnd) {
+        // The comment marks THIS as the origin of the schedule — read back by
+        // DELETE below before ever undoing it. See GDPR_STRIPE_CANCELLATION_MARKER.
+        await getStripe().subscriptions.update(billing.stripeSubscriptionId, {
+          cancel_at_period_end: true,
+          cancellation_details: { comment: GDPR_STRIPE_CANCELLATION_MARKER },
+        });
+        subscriptionScheduledForCancellation = true;
       }
     } catch (e) {
       // Deliberately non-fatal: the deletion request stands. Logged loudly so an
-      // operator can cancel by hand in the Stripe dashboard.
+      // operator can schedule the cancellation by hand in the Stripe dashboard.
       console.error(
-        `[gdpr/account] Stripe cancellation FAILED for organization ${organizationId} — cancel it manually:`,
+        `[gdpr/account] Stripe cancel_at_period_end FAILED for organization ${organizationId} — schedule it manually:`,
         e,
       );
     }
@@ -178,13 +207,13 @@ export async function POST(req: Request) {
     userId,
     organizationId,
     req,
-    metadata: { organizationIncluded: deletesOrganization, subscriptionCancelled },
+    metadata: { organizationIncluded: deletesOrganization, subscriptionScheduledForCancellation },
   });
 
   return ok({
     requestedAt: requestedAt.toISOString(),
     organizationIncluded: deletesOrganization,
-    subscriptionCancelled,
+    subscriptionScheduledForCancellation,
     alreadyRequested: false,
     graceDays: DELETION_GRACE_DAYS,
   });
@@ -228,6 +257,14 @@ export async function POST(req: Request) {
  * no user for them. And only within the 30 days: a request past the grace
  * period is definitive (isPastGrace, the purge's own test) and is refused with
  * GRACE_EXPIRED rather than undone the night before the purge would run.
+ *
+ * SUBSCRIPTION: when `cancelOrganization` is true, this also un-schedules the
+ * `cancel_at_period_end` that POST may have set — but ONLY if the marker on
+ * the Stripe subscription (GDPR_STRIPE_CANCELLATION_MARKER) shows THIS
+ * request set it. If the owner had already scheduled their own cancellation
+ * through the Stripe customer portal before ever requesting deletion, that
+ * schedule is left exactly as it was: cancelling a deletion request must
+ * never reactivate a subscription the owner separately chose to end.
  */
 export async function DELETE(req: Request) {
   const ctx = await getAuthContext({ allowDeletionPending: true });
@@ -268,13 +305,56 @@ export async function DELETE(req: Request) {
     }
   });
 
+  // Un-schedule the subscription's end, but only when the ORGANIZATION's
+  // request is the one being cancelled (a member cancelling their own
+  // personal request never touched Stripe in the first place — see POST's
+  // `deletesOrganization` gate) and only when GDPR is what scheduled it.
+  // DB dates are already cleared above regardless of what happens here: a
+  // Stripe outage must not be able to leave the deletion state stuck.
+  let subscriptionRestored = false;
+  if (cancelOrganization) {
+    try {
+      const billing = await prisma.billingSubscription.findUnique({
+        where: { organizationId },
+        select: { stripeSubscriptionId: true, status: true, cancelAtPeriodEnd: true },
+      });
+      if (billing?.stripeSubscriptionId && billing.status !== 'canceled' && billing.cancelAtPeriodEnd) {
+        // Read the LIVE object: cancellation_details is Stripe-side state, not
+        // mirrored into BillingSubscription by the webhook (only
+        // cancel_at_period_end itself is).
+        const stripe = getStripe();
+        const live = await stripe.subscriptions.retrieve(billing.stripeSubscriptionId);
+        if (
+          live.cancel_at_period_end &&
+          live.cancellation_details?.comment === GDPR_STRIPE_CANCELLATION_MARKER
+        ) {
+          await stripe.subscriptions.update(billing.stripeSubscriptionId, {
+            cancel_at_period_end: false,
+            cancellation_details: { comment: null },
+          });
+          subscriptionRestored = true;
+        }
+        // Else: scheduled for a reason that predates or is unrelated to this
+        // request (e.g. the owner's own cancellation via the Stripe customer
+        // portal) — left untouched on purpose, see the doc comment above.
+      }
+    } catch (e) {
+      // Deliberately non-fatal, same reasoning as POST: logged loudly so an
+      // operator can un-schedule it by hand in the Stripe dashboard.
+      console.error(
+        `[gdpr/account] Stripe un-schedule FAILED for organization ${organizationId} — restore it manually:`,
+        e,
+      );
+    }
+  }
+
   await auditLog({
     action: 'gdpr.account_deletion_cancelled',
     userId,
     organizationId,
     req,
-    metadata: { personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization },
+    metadata: { personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization, subscriptionRestored },
   });
 
-  return ok({ personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization });
+  return ok({ personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization, subscriptionRestored });
 }

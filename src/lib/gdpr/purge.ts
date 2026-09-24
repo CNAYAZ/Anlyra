@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getStripe } from '@/lib/stripe/client';
 import { deletionCutoff } from './constants';
 
 /**
@@ -25,6 +26,13 @@ import { deletionCutoff } from './constants';
  * Organization row, whose real relations (Membership, Invite, Transaction,
  * CashflowEntry, BudgetEntry, CustomerStat, Subscription, Insight, Integration →
  * SyncLog) cascade away on their own.
+ *
+ * STRIPE: an organization purge also cancels its Stripe subscription
+ * immediately, OUTSIDE this file's own transaction and before it (see the
+ * comment in purgeOrganization) — deleting the local BillingSubscription row
+ * has never stopped Stripe from billing the actual subscription; nothing here
+ * did that until this was added. Non-fatal: a Stripe outage must not be able
+ * to block the DB purge itself.
  */
 
 export type PurgeResult = {
@@ -56,6 +64,34 @@ async function findEligibleUserIds(cutoff: Date): Promise<string[]> {
  * grace period, so it must never be called with an arbitrary id.
  */
 async function purgeOrganization(organizationId: string): Promise<void> {
+  // Stripe FIRST and OUTSIDE the transaction below — network I/O has no
+  // business holding a DB transaction open — and non-fatal: a Stripe outage
+  // must never be the reason a legally-required purge does not happen.
+  // Logged loudly instead, for a human to cancel by hand.
+  //
+  // IMMEDIATE cancel() here, unlike the cancel_at_period_end the GDPR
+  // request itself schedules (src/app/api/gdpr/account/route.ts POST): this
+  // point is reached only once the 30-day grace period is over and the
+  // organization is being destroyed for good, so there is no "period end"
+  // left worth honouring, and no organization left to keep using what was
+  // already paid for. A subscription still active here (the period had not
+  // yet ended, or it was never scheduled to cancel at all) must not go on
+  // charging a company that no longer exists.
+  try {
+    const billing = await prisma.billingSubscription.findUnique({
+      where: { organizationId },
+      select: { stripeSubscriptionId: true, status: true },
+    });
+    if (billing?.stripeSubscriptionId && billing.status !== 'canceled') {
+      await getStripe().subscriptions.cancel(billing.stripeSubscriptionId);
+    }
+  } catch (e) {
+    console.error(
+      `[gdpr/purge] Stripe cancellation FAILED for organization ${organizationId} — cancel it manually:`,
+      e,
+    );
+  }
+
   await prisma.$transaction(async (tx) => {
     // 1. Tables with a bare organizationId column and NO cascade. Each one is
     //    scoped to this single organization.
