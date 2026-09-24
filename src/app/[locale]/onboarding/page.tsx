@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { OnboardingFlow } from '@/components/onboarding/onboarding-flow';
-import { getSessionState } from '@/lib/session';
+import { getSessionState, DELETION_PENDING_PATH } from '@/lib/session';
 import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 
 export default async function OnboardingPage({
@@ -32,11 +32,17 @@ export default async function OnboardingPage({
   //
   // Cannot loop with (dashboard)/layout.tsx's redirect to /onboarding on
   // 'no-org': the two states are mutually exclusive by construction
-  // (getSessionState returns exactly one of 'ok' | 'no-org' | 'anonymous'),
-  // so a user bounced away from here for having used up their allowance can
-  // never be bounced back here for lacking an organization — they have one,
-  // that is exactly why they were bounced.
+  // (getSessionState returns exactly one of 'ok' | 'no-org' | 'anonymous' |
+  // 'deletion-pending'), so a user bounced away from here for having used up
+  // their allowance can never be bounced back here for lacking an
+  // organization — they have one, that is exactly why they were bounced.
   const state = await getSessionState();
+  // Pending deletion request: onboarding would create a new organization
+  // for an account that is being deleted. The creation route refuses it
+  // anyway (auth() hides the user); this keeps the form itself closed too.
+  if (state.status === 'deletion-pending') {
+    redirect(`/${locale}${DELETION_PENDING_PATH}`);
+  }
   if (state.status === 'ok') {
     const allowance = await checkOrganizationAllowance(state.userId);
     if (!allowance.allowed) {

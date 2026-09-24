@@ -44,6 +44,11 @@ const AUTH_ONLY_PATHS = [
   '/scadenzario',
   '/situazione',
   '/spese-ricorrenti',
+  // Schermata di annullamento della cancellazione (DELETION_PENDING_PATH in
+  // src/lib/session.ts, non importabile qui): serve una sessione. Chi ha una
+  // richiesta pendente passa questo controllo — il middleware non legge il
+  // database — e viene confinato lì dai layout e dal callback di sessione.
+  '/deletion-pending',
 ];
 
 // Onboarding creates a real organization and sends invite emails, so it stays

@@ -5,7 +5,7 @@ import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { isManagerRole } from '@/lib/auth/require-role';
 import { getStripe } from '@/lib/stripe/client';
-import { DELETION_GRACE_DAYS, daysRemainingInGrace } from '@/lib/gdpr/constants';
+import { DELETION_GRACE_DAYS, daysRemainingInGrace, isPastGrace } from '@/lib/gdpr/constants';
 import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
@@ -221,9 +221,16 @@ export async function POST(req: Request) {
  * REFUSED, server-side, when there is nothing to cancel — never just hidden by
  * the UI: a request with nothing pending for this caller gets NOTHING_TO_CANCEL
  * rather than a silent no-op success.
+ *
+ * THE ONE ROUTE A PENDING ACCOUNT MAY CALL: `allowDeletionPending` below is
+ * what lets the owner who requested deletion sign back in and cancel from the
+ * cancellation screen (app/[locale]/deletion-pending) — every other route sees
+ * no user for them. And only within the 30 days: a request past the grace
+ * period is definitive (isPastGrace, the purge's own test) and is refused with
+ * GRACE_EXPIRED rather than undone the night before the purge would run.
  */
 export async function DELETE(req: Request) {
-  const ctx = await getAuthContext();
+  const ctx = await getAuthContext({ allowDeletionPending: true });
   if (!ctx) return fail('UNAUTHORIZED', 401);
   // Demo organization: read-only. See requireWritableOrg. (The demo org can
   // never actually reach this state, but every write path here uses the same
@@ -241,11 +248,15 @@ export async function DELETE(req: Request) {
   ]);
   if (!user) return fail('NOT_FOUND', 404);
 
-  const cancelPersonal = !!user.deletionRequestedAt;
-  const cancelOrganization = isManager && !!organization?.deletionRequestedAt;
+  const personalAt = user.deletionRequestedAt;
+  const organizationAt = isManager ? (organization?.deletionRequestedAt ?? null) : null;
+  const cancelPersonal = !!personalAt && !isPastGrace(personalAt);
+  const cancelOrganization = !!organizationAt && !isPastGrace(organizationAt);
 
   if (!cancelPersonal && !cancelOrganization) {
-    return fail('NOTHING_TO_CANCEL', 400);
+    return personalAt || organizationAt
+      ? fail('GRACE_EXPIRED', 410)
+      : fail('NOTHING_TO_CANCEL', 400);
   }
 
   await prisma.$transaction(async (tx) => {

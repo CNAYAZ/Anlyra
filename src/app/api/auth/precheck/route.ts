@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
+import { isPastGrace } from '@/lib/gdpr/constants';
 
 
 // Lightweight credential pre-check so the login UI can branch (reveal the 2FA
@@ -55,6 +56,10 @@ export async function POST(req: Request) {
     // "CredentialsSignin", so the reason travels here instead: it lets the login
     // form tell a closed account apart from a wrong password. The account is
     // blocked in authorize() regardless of what this pre-check reports.
+    // Inside the 30 days the sign-in goes ahead and lands on the cancellation
+    // screen; past them the account is closed for good (src/auth.ts refuses it
+    // too) and the login page says so instead of trying.
     deletionRequested: !!user.deletionRequestedAt,
+    deletionGraceExpired: !!user.deletionRequestedAt && isPastGrace(user.deletionRequestedAt),
   });
 }

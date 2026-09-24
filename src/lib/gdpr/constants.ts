@@ -4,20 +4,29 @@
  * (/api/cron/gdpr-purge). Keeping the window in one place means the UI copy,
  * the grace period and the purge cutoff can never drift apart.
  *
- * CORRECTED — the login block in src/auth.ts was listed here as a third
- * consumer of this constant, which does not hold: checked before writing this,
- * that block only tests `if (user.deletionRequestedAt)` — it blocks login for
- * the WHOLE grace period, from the moment the request is made, and never reads
- * DELETION_GRACE_DAYS or deletionCutoff to decide anything. Its behaviour is
- * conceptually consistent with this window (a blocked account stays blocked
- * for as long as the row survives), but there is no code dependency to keep in
- * sync — nothing there would break if this number changed.
+ * Third consumer, since login was reopened during the grace period (the
+ * founder's decision — sign in, but ONLY to cancel): src/auth.ts and
+ * /api/auth/precheck refuse a pending account only once it is past this window
+ * (isPastGrace below). Inside the window the account signs in and is confined
+ * to the cancellation screen — see `deletionPendingUserId` in src/auth.ts.
+ * Changing this number now changes how long that door stays open, too.
  */
 export const DELETION_GRACE_DAYS = 30;
 
 /** Cutoff instant: rows requested BEFORE this are past the grace period. */
 export function deletionCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * True once a request made at `requestedAt` is past the grace period — the
+ * exact same test the purge applies (`lt: cutoff`, src/lib/gdpr/purge.ts), so
+ * "too late to cancel" and "the next purge run deletes it" can never disagree.
+ * Between that instant and the nightly cron the rows still exist, but the
+ * deletion is already definitive: login and cancellation are both refused.
+ */
+export function isPastGrace(requestedAt: Date, now: Date = new Date()): boolean {
+  return requestedAt < deletionCutoff(now);
 }
 
 /**

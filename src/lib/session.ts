@@ -4,6 +4,7 @@
 // working out of the box. Dashboard consumers migrate to the real session
 // transparently as users sign in.
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { prisma } from './prisma';
 import { auth } from '@/auth';
 import { signupCredits } from '@/lib/billing/plan-credits';
@@ -45,7 +46,14 @@ export const DEMO_COOKIE = 'anlyra_demo';
 export type SessionState =
   | { status: 'anonymous' }
   | { status: 'no-org'; userId: string }
-  | { status: 'ok'; userId: string; organizationId: string };
+  | { status: 'ok'; userId: string; organizationId: string }
+  // Signed in, but the account has a pending deletion request: the only page
+  // it may see is the cancellation screen (see the session callback in
+  // src/auth.ts). Never resolves to an organization.
+  | { status: 'deletion-pending'; userId: string };
+
+/** The one page an account with a pending deletion request may open. */
+export const DELETION_PENDING_PATH = '/deletion-pending';
 
 /**
  * Thrown by getCurrentContext when a signed-in user has no organization. It must
@@ -100,7 +108,11 @@ async function resolveSessionContext(): Promise<SessionState> {
     return { status: 'anonymous' };
   }
   const userId = session?.user?.id;
-  if (!userId) return { status: 'anonymous' };
+  if (!userId) {
+    return session?.deletionPendingUserId
+      ? { status: 'deletion-pending', userId: session.deletionPendingUserId }
+      : { status: 'anonymous' };
+  }
 
   // Selected org: cookie override → session default → any membership.
   const cookieStore = await cookies();
@@ -138,6 +150,18 @@ async function resolveSessionContext(): Promise<SessionState> {
  */
 export async function getSessionState(): Promise<SessionState> {
   return resolveSessionContext();
+}
+
+/**
+ * Sends an account with a pending deletion request to the cancellation screen.
+ * For the pages that sit OUTSIDE the (dashboard) layout (which does the same
+ * with getSessionState) and would otherwise render their shell: nothing they
+ * fetch would answer — the data is refused at the source — but the page itself
+ * must not open either.
+ */
+export async function redirectIfDeletionPending(locale: string): Promise<void> {
+  const state = await resolveSessionContext();
+  if (state.status === 'deletion-pending') redirect(`/${locale}${DELETION_PENDING_PATH}`);
 }
 
 async function getDemoContext(): Promise<{ userId: string; organizationId: string }> {
@@ -192,6 +216,11 @@ export async function getCurrentContext() {
   if (state.status === 'no-org') {
     throw new NoOrganizationError();
   }
+  // Pending deletion: refused like an anonymous visitor (401 through
+  // failFromError), and never offered the demo fallback below either.
+  if (state.status === 'deletion-pending') {
+    throw new NotAuthenticatedError();
+  }
 
   // Anonymous visitor. The demo is now an EXPLICIT choice, not the default:
   // only a visitor who pressed "try the demo" (and so carries DEMO_COOKIE)
@@ -221,15 +250,24 @@ export type AuthContext = {
  * Returns null when there is no valid signed-in user with an organization, so
  * the caller can respond 401. Use this for anything that reads/writes real
  * business data on behalf of a specific user (billing, cross-tenant mutations).
+ *
+ * An account with a pending deletion request gets null too — unless the caller
+ * passes `allowDeletionPending`, which exactly ONE route does on purpose: the
+ * one that cancels the request (DELETE /api/gdpr/account). Never add it
+ * anywhere else: it is the whole difference between "may come back to cancel"
+ * and "may use the product".
  */
-export async function getAuthContext(): Promise<AuthContext | null> {
+export async function getAuthContext(
+  options: { allowDeletionPending?: boolean } = {},
+): Promise<AuthContext | null> {
   let session;
   try {
     session = await auth();
   } catch {
     return null;
   }
-  const userId = session?.user?.id;
+  const userId =
+    session?.user?.id ?? (options.allowDeletionPending ? session?.deletionPendingUserId : undefined);
   if (!userId) return null;
 
   // The org must be one this user actually belongs to (Membership). Resolution

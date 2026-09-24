@@ -13,6 +13,7 @@ import {
   hasDemoSession,
   isDemoOrganization,
   getAuthContext,
+  DELETION_PENDING_PATH,
 } from '@/lib/session';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { DemoProvider } from '@/lib/demo/context';
@@ -45,6 +46,11 @@ export default async function DashboardLayout({
   const state = await getSessionState();
   if (state.status === 'no-org') {
     redirect(`/${locale}/onboarding`);
+  }
+  // Pending deletion request: every dashboard page leads to the one screen
+  // where it can be cancelled. Outside this segment, so it cannot loop.
+  if (state.status === 'deletion-pending') {
+    redirect(`/${locale}${DELETION_PENDING_PATH}`);
   }
 
   // An anonymous visitor is sent to the login page unless they explicitly

@@ -3147,5 +3147,20 @@
     },
     "readOnly": "This action is not available in the demo: the data is read-only. Sign up to use Anlyra with your own data.",
     "readOnlyShort": "Not available in the demo"
+  },
+  "deletionPending": {
+    "title": "Your account is scheduled for deletion",
+    "body": "You asked to delete your account. If you do nothing, it will be permanently deleted in {days, plural, one {# day} other {# days}}.",
+    "bodyWithOrganization": "The company “{organization}” and all its data will be deleted together with the account.",
+    "reassurance": "If you have changed your mind, you can cancel now: your account and your data stay exactly as you left them.",
+    "subscriptionNote": "If you had a paid subscription, it was stopped when you asked for the deletion: after cancelling you can reactivate it from Settings, Billing.",
+    "onlyThisPage": "While the request is active, this is the only page you can use.",
+    "cancelButton": "Cancel the deletion",
+    "cancelling": "Cancelling…",
+    "cancelled": "Done: the deletion is cancelled. Taking you back to Anlyra…",
+    "cancelFailed": "The deletion could not be cancelled. Try again in a moment; if the problem persists, contact support.",
+    "logoutButton": "Sign out",
+    "expiredTitle": "The time to cancel is over",
+    "expiredBody": "Thirty days have passed since the request: the deletion is final and will be completed shortly. It can no longer be cancelled."
   }
 }
