@@ -39,3 +39,23 @@ export function daysRemainingInGrace(requestedAt: Date, now: Date = new Date()):
   const purgeAt = requestedAt.getTime() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000;
   return Math.max(0, Math.ceil((purgeAt - now.getTime()) / (24 * 60 * 60 * 1000)));
 }
+
+/**
+ * Written to Stripe's `cancellation_details.comment` (src/app/api/gdpr/account/
+ * route.ts, POST) when the deletion request is what schedules
+ * `cancel_at_period_end`, and read back (route.ts, DELETE) before ever
+ * un-scheduling it.
+ *
+ * WHY: a subscription can already be scheduled to cancel at period end for a
+ * reason that has nothing to do with this request — the owner used the Stripe
+ * customer portal to cancel their plan, then separately asked to delete the
+ * account. `BillingSubscription.cancelAtPeriodEnd` (mirrored from Stripe by
+ * the webhook) only says WHETHER it is scheduled, not WHY. Without this
+ * marker, cancelling the deletion request could not tell "GDPR scheduled
+ * this, undo it" apart from "the owner scheduled this on their own, leave it"
+ * — and would silently reactivate a subscription the owner meant to end.
+ * No schema change was available to record that distinction locally, so it
+ * is recorded on the Stripe object itself, which is already the durable
+ * store for `cancel_at_period_end`.
+ */
+export const GDPR_STRIPE_CANCELLATION_MARKER = 'anlyra-gdpr-deletion-request';
