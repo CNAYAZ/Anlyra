@@ -5,17 +5,19 @@ import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { isManagerRole } from '@/lib/auth/require-role';
 import { getStripe } from '@/lib/stripe/client';
-import { DELETION_GRACE_DAYS } from '@/lib/gdpr/constants';
+import { DELETION_GRACE_DAYS, daysRemainingInGrace } from '@/lib/gdpr/constants';
 import { auditLog } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GDPR art. 17 — right to erasure. This endpoint REQUESTS deletion; it never
+ * GDPR art. 17 — right to erasure. POST here REQUESTS deletion; it never
  * deletes anything itself. It stamps `deletionRequestedAt` and the purge cron
- * (/api/cron/gdpr-purge) removes the rows for good after the grace period, so a
- * mistaken or malicious click is recoverable by an operator until then.
+ * (/api/cron/gdpr-purge) removes the rows for good after the grace period —
+ * and DELETE below (added later) UNDOES that stamp within the same window, so
+ * a mistaken or malicious click is recoverable, self-service where reachable,
+ * by an operator always.
  *
  * SCOPE, per the founder's rule:
  *   • owner/admin → their account AND the organization (with all of its data).
@@ -33,23 +35,57 @@ export const dynamic = 'force-dynamic';
  * Scope preview for the confirmation dialog: tells the UI EXACTLY what a POST
  * would destroy, decided by the same server-side role check, so the warning text
  * can never disagree with what actually happens.
+ *
+ * Also reports two INDEPENDENT pending states, each with its own cancel button
+ * in the UI (see DELETE below):
+ *   • the caller's OWN account (`alreadyRequested`/`requestedAt`), exactly as
+ *     before this addition;
+ *   • `organizationPending`, NEW — the current organization's own request,
+ *     visible to ANY manager (owner/admin) of it, not only the one who made it.
+ *     This matters: only the requester's OWN User row is ever stamped (see the
+ *     POST handler), so a co-owner who did not request anything has an
+ *     unstamped `deletionRequestedAt` and would see `alreadyRequested: false`
+ *     even while their COMPANY is counting down to deletion. Without this
+ *     field, that co-owner has no way to even see it from here.
  */
 export async function GET() {
   const ctx = await getAuthContext();
   if (!ctx) return fail('UNAUTHORIZED', 401);
+  const isManager = isManagerRole(ctx.role);
 
-  const user = await prisma.user.findUnique({
-    where: { id: ctx.userId },
-    select: { deletionRequestedAt: true, passwordHash: true },
-  });
+  const [user, organization] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { deletionRequestedAt: true, passwordHash: true },
+    }),
+    // Only a manager can act on the organization's request (same boundary the
+    // POST handler already enforces for CREATING one), so this is skipped
+    // entirely for anyone else — a plain member never learns the organization's
+    // deletion state through this endpoint.
+    isManager
+      ? prisma.organization.findUnique({
+          where: { id: ctx.organizationId },
+          select: { deletionRequestedAt: true },
+        })
+      : Promise.resolve(null),
+  ]);
   if (!user) return fail('NOT_FOUND', 404);
 
   return ok({
-    organizationIncluded: isManagerRole(ctx.role),
+    organizationIncluded: isManager,
     graceDays: DELETION_GRACE_DAYS,
     alreadyRequested: !!user.deletionRequestedAt,
     requestedAt: user.deletionRequestedAt?.toISOString() ?? null,
+    daysRemaining: user.deletionRequestedAt
+      ? daysRemainingInGrace(user.deletionRequestedAt)
+      : null,
     canConfirmWithPassword: !!user.passwordHash,
+    organizationPending: organization?.deletionRequestedAt
+      ? {
+          requestedAt: organization.deletionRequestedAt.toISOString(),
+          daysRemaining: daysRemainingInGrace(organization.deletionRequestedAt),
+        }
+      : null,
   });
 }
 
@@ -152,4 +188,82 @@ export async function POST(req: Request) {
     alreadyRequested: false,
     graceDays: DELETION_GRACE_DAYS,
   });
+}
+
+/**
+ * Cancels a deletion request inside the 30-day grace period — the only way to
+ * do so today short of the founder's local admin panel (admin/actions.ts,
+ * unblockAccount): VERIFIED before writing this by searching every write to
+ * `deletionRequestedAt` in the codebase — the admin panel was the only place
+ * that ever set it back to null.
+ *
+ * NO PASSWORD REQUIRED, unlike POST above — deliberately. Cancelling is the
+ * SAFE direction: it undoes a destructive action rather than causing one, the
+ * same asymmetry the report-sharing routes already use (creating a public
+ * share link requires nothing extra beyond the role check either; only the
+ * destructive step, in this file the deletion REQUEST, is behind a password).
+ * A session that reached this handler is already authenticated.
+ *
+ * TWO INDEPENDENT CANCELLATIONS, exactly mirroring how the POST above decides
+ * what to stamp:
+ *   • the caller's own account, if `deletionRequestedAt` is set on it;
+ *   • the organization's, if `deletionRequestedAt` is set on it AND the caller
+ *     is currently owner/admin — the same boundary POST uses to decide whether
+ *     to stamp the organization in the first place. This is NOT restricted to
+ *     "only the person who originally requested it": any manager already has
+ *     the authority to REQUEST the company's deletion, so any manager also has
+ *     the authority to cancel a pending one, whoever made it.
+ * Neither depends on the other: a manager whose own account is not pending can
+ * still cancel a company-wide request (see GET's `organizationPending`), and a
+ * plain member can still cancel their own personal request without touching
+ * the organization at all.
+ *
+ * REFUSED, server-side, when there is nothing to cancel — never just hidden by
+ * the UI: a request with nothing pending for this caller gets NOTHING_TO_CANCEL
+ * rather than a silent no-op success.
+ */
+export async function DELETE(req: Request) {
+  const ctx = await getAuthContext();
+  if (!ctx) return fail('UNAUTHORIZED', 401);
+  // Demo organization: read-only. See requireWritableOrg. (The demo org can
+  // never actually reach this state, but every write path here uses the same
+  // guard as POST for the same reason POST does.)
+  const readOnly = requireWritableOrg(ctx.organizationId);
+  if (readOnly) return readOnly;
+  const { userId, organizationId, role } = ctx;
+  const isManager = isManagerRole(role);
+
+  const [user, organization] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { deletionRequestedAt: true } }),
+    isManager
+      ? prisma.organization.findUnique({ where: { id: organizationId }, select: { deletionRequestedAt: true } })
+      : Promise.resolve(null),
+  ]);
+  if (!user) return fail('NOT_FOUND', 404);
+
+  const cancelPersonal = !!user.deletionRequestedAt;
+  const cancelOrganization = isManager && !!organization?.deletionRequestedAt;
+
+  if (!cancelPersonal && !cancelOrganization) {
+    return fail('NOTHING_TO_CANCEL', 400);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (cancelPersonal) {
+      await tx.user.update({ where: { id: userId }, data: { deletionRequestedAt: null } });
+    }
+    if (cancelOrganization) {
+      await tx.organization.update({ where: { id: organizationId }, data: { deletionRequestedAt: null } });
+    }
+  });
+
+  await auditLog({
+    action: 'gdpr.account_deletion_cancelled',
+    userId,
+    organizationId,
+    req,
+    metadata: { personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization },
+  });
+
+  return ok({ personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization });
 }

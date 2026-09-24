@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = [
   // ── GDPR ──
   'gdpr.export',
   'gdpr.account_deletion_request',
+  'gdpr.account_deletion_cancelled',
 
   // ── Data imports ──
   'import.commit',

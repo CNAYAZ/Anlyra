@@ -12,7 +12,13 @@ type Scope = {
   graceDays: number;
   alreadyRequested: boolean;
   requestedAt: string | null;
+  daysRemaining: number | null;
   canConfirmWithPassword: boolean;
+  // Set only for a manager (owner/admin) whose ORGANIZATION has a pending
+  // deletion request — regardless of whether THIS account also requested one.
+  // See the comment on GET in src/app/api/gdpr/account/route.ts for why this
+  // has to be independent of `alreadyRequested`.
+  organizationPending: { requestedAt: string; daysRemaining: number } | null;
 };
 
 // Server error code → i18n key, same approach as the password form above it.
@@ -39,12 +45,50 @@ export default function PrivacyPanel() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [cancellingPersonal, setCancellingPersonal] = useState(false);
+  const [cancellingOrg, setCancellingOrg] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [cancelledMessage, setCancelledMessage] = useState('');
 
-  useEffect(() => {
-    apiFetch<Scope>('/api/gdpr/account')
+  function loadScope() {
+    return apiFetch<Scope>('/api/gdpr/account')
       .then(setScope)
       .catch(() => setScope(null));
+  }
+
+  useEffect(() => {
+    loadScope();
   }, []);
+
+  /**
+   * Cancels whatever is pending for the signed-in caller. ONE endpoint for
+   * both buttons below — DELETE /api/gdpr/account decides server-side what
+   * this specific caller may cancel (their own account, the organization, or
+   * both at once when the SAME manager requested both together — see the
+   * route's comment for why splitting this into two separate server calls
+   * would risk clearing only half of one combined request). After a
+   * SUCCESSFUL cancellation the scope is RE-FETCHED from the server rather
+   * than guessed locally, so the panel only ever shows what is actually true
+   * in the database.
+   */
+  async function cancelDeletion(
+    setBusy: (v: boolean) => void,
+    messageKey: 'privacyDeleteCancelled' | 'privacyOrgDeleteCancelled',
+    errorKey: 'privacyDeleteCancelFailed' | 'privacyOrgDeleteCancelFailed',
+  ) {
+    setBusy(true);
+    setCancelError('');
+    setCancelledMessage('');
+    try {
+      await apiFetch('/api/gdpr/account', { method: 'DELETE' });
+      setCancelledMessage(t(messageKey));
+      await loadScope();
+    } catch {
+      setCancelError(t(errorKey));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function downloadExport() {
     if (exporting) return;
@@ -127,12 +171,38 @@ export default function PrivacyPanel() {
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-danger">{t('privacyDeleteTitle')}</h3>
 
+        {cancelError && (
+          <div className="flex items-start gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{cancelError}</span>
+          </div>
+        )}
+        {cancelledMessage && (
+          <p className="text-sm text-muted-foreground">{cancelledMessage}</p>
+        )}
+
         {done ? (
           <p className="text-sm text-muted-foreground">{t('privacyDeleteDone')}</p>
         ) : scope?.alreadyRequested ? (
-          <p className="text-sm text-muted-foreground">
-            {t('privacyDeleteGrace', { days })}
-          </p>
+          // Visible ONLY while a request is actually pending for THIS account
+          // (test e: nobody without one sees this block or its button). The
+          // button fires ONE DELETE call that clears both the account and the
+          // organization together when this same manager's request stamped
+          // both (test c/f) — see cancelDeletion's comment above.
+          <div className="space-y-2 rounded-lg border border-danger/40 bg-danger/5 p-4">
+            <p className="text-sm font-medium">
+              {t('privacyDeleteGrace', { days: scope.daysRemaining ?? days })}
+            </p>
+            <p className="text-sm text-muted-foreground">{t('privacyDeleteHowToCancel')}</p>
+            <button
+              type="button"
+              onClick={() => cancelDeletion(setCancellingPersonal, 'privacyDeleteCancelled', 'privacyDeleteCancelFailed')}
+              disabled={cancellingPersonal}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
+            >
+              {cancellingPersonal ? t('privacyDeleteCancelling') : t('privacyDeleteCancelRequestButton')}
+            </button>
+          </div>
         ) : !confirming ? (
           <>
             <p className="text-sm text-muted-foreground">{t('privacyDeleteDesc', { days })}</p>
@@ -193,6 +263,30 @@ export default function PrivacyPanel() {
           </form>
         )}
       </div>
+
+      {/* ── Organization deletion, independent of the block above ──
+          Only for a manager whose ORGANIZATION is pending deletion from a
+          request THIS account did not itself make (scope.alreadyRequested is
+          false here) — e.g. a co-owner checking after a colleague requested
+          it. When the SAME manager caused both, the block above already
+          covers cancelling the organization too (see cancelDeletion), so this
+          one stays hidden to avoid offering two buttons for one action. */}
+      {!scope?.alreadyRequested && scope?.organizationPending && (
+        <div className="space-y-2 rounded-lg border border-danger/40 bg-danger/5 p-4">
+          <h3 className="text-sm font-medium text-danger">{t('privacyOrgDeleteTitle')}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t('privacyOrgDeleteGrace', { days: scope.organizationPending.daysRemaining })}
+          </p>
+          <button
+            type="button"
+            onClick={() => cancelDeletion(setCancellingOrg, 'privacyOrgDeleteCancelled', 'privacyOrgDeleteCancelFailed')}
+            disabled={cancellingOrg}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
+          >
+            {cancellingOrg ? t('privacyDeleteCancelling') : t('privacyOrgDeleteCancelButton')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
