@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext, getCurrentContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -45,7 +45,11 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
       },
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): getCurrentContext() throwing for an
+    // anonymous caller forwarded its own message and always answered 500.
+    // failFromError maps by error name instead — 401 here — and never
+    // forwards any other error's raw text either.
+    return failFromError(e);
   }
 }
 
@@ -75,6 +79,9 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     });
     return ok({ id: params.id });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Same fix as GET above: no more raw error text to the client, and this
+    // handler already answers 401 itself when !authCtx, so this catch is only
+    // ever an unexpected failure — failFromError still keeps it from leaking.
+    return failFromError(e);
   }
 }

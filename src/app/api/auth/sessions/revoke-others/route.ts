@@ -3,6 +3,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { auditLog } from '@/lib/audit/log';
 import { reissueCurrentSession } from '@/lib/auth/session-revocation';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +28,13 @@ export async function POST(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return fail('UNAUTHORIZED', 401);
+
+  // No password to brute-force here (see the note above), but a hijacked or
+  // scripted session could still hammer the write itself — bounded, and
+  // FAIL-CLOSED like every other auth-security bucket: an Upstash outage
+  // refuses the call rather than leaving it unmetered.
+  const rl = await checkRateLimit('sessions-revoke-user', userId);
+  if (!rl.success) return rateLimitResponse(rl);
 
   await prisma.user.update({
     where: { id: userId },

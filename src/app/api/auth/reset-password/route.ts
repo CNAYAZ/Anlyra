@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { validatePassword, PASSWORD_POLICY } from '@/lib/auth/config';
 import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
+import { auditLog } from '@/lib/audit/log';
 
 
 export async function POST(req: Request) {
@@ -58,6 +59,8 @@ export async function POST(req: Request) {
   // Valid token, password changed: the caller proved they hold the reset link,
   // so the token-guessing budget starts over. Invalid tokens keep consuming it.
   await resetRateLimit('reset-ip', getClientIp(req));
+
+  await auditLog({ action: 'password.reset', userId: user.id, req });
 
   return NextResponse.json({ success: true });
 }
