@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -90,6 +90,10 @@ export async function POST(req: NextRequest) {
       allRows: parsed.rows,
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text. The
+    // file-parsing errors this route means to explain to the caller are
+    // already handled above (ImportParseError) — this is only the fallback
+    // for something unexpected.
+    return failFromError(e);
   }
 }

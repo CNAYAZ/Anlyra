@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -74,7 +74,8 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
       ttlDays: SHARE_LINK_TTL_DAYS,
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -103,6 +104,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
 
     return ok({ revoked: true });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }

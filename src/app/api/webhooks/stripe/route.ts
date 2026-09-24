@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { Prisma } from "@prisma/client";
+import { failFromError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe/client";
 import {
@@ -261,10 +262,13 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(raw, sig, secret);
   } catch (err) {
-    return NextResponse.json(
-      { error: `Webhook signature failed: ${(err as Error).message}` },
-      { status: 400 },
-    );
+    // A deliberate, expected rejection (wrong/rotated secret, replay, a
+    // malformed payload) — not routed through failFromError, which is for
+    // the unexpected case below. Was interpolating (err as Error).message
+    // into the response; Stripe's own SDK text for this can describe the
+    // computed vs expected signature, so it stays in the log only.
+    console.error("[stripe-webhook] signature verification failed:", err);
+    return NextResponse.json({ error: "WEBHOOK_SIGNATURE_INVALID" }, { status: 400 });
   }
 
   // ── IDEMPOTENCY ──────────────────────────────────────────────────────────
@@ -339,7 +343,11 @@ export async function POST(req: NextRequest) {
         releaseErr,
       );
     }
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    // Was returning (err as Error).message. Logged here — nowhere above logs
+    // THIS error, only a failed release of the idempotency claim — then
+    // failFromError answers with a fixed 500 instead of the raw text.
+    console.error("[stripe-webhook] event processing failed:", err);
+    return failFromError(err);
   }
 
   return NextResponse.json({ received: true });

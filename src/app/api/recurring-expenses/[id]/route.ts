@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -61,7 +61,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
     return ok({ expense: toRecurringExpenseDTO(updated) });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -92,6 +93,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     });
     return ok({ id: existing.id });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }

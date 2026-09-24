@@ -4,7 +4,7 @@ import { getAuthContext } from "@/lib/session";
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from "@/lib/auth/require-role";
 import { auditLog } from '@/lib/audit/log';
-import { ok, fail } from "@/lib/api";
+import { ok, fail, failFromError } from "@/lib/api";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -43,8 +43,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     });
     return ok(updated);
   } catch (e) {
+    // Deliberate validation feedback — preserved as-is.
     if (e instanceof z.ZodError) return fail(e.issues[0]?.message ?? "Invalid input");
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -74,6 +76,6 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     });
     return ok({ id: competitor.id });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return failFromError(e);
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -265,7 +265,14 @@ export async function POST(req: NextRequest) {
           break;
       }
     } catch (e) {
-      allErrors.push({ row: 0, message: (e as Error).message });
+      // Was `message: (e as Error).message` — a whole-batch write failure
+      // (Prisma/DB level, row:0 meaning "not one row in particular"), not a
+      // per-row validation message like the ones validateRows produces above.
+      // Those describe the CALLER's own bad data and are meant to be read;
+      // this one is an unexpected server-side failure and could say anything,
+      // including column/schema details — logged instead, generic to the client.
+      console.error('[data/import/commit] batch write failed:', e);
+      allErrors.push({ row: 0, message: 'IMPORT_BATCH_FAILED' });
       // The transaction rolled back: nothing was written and no status was
       // recorded, so the shared update below has to run and say so.
       imported = 0;
@@ -322,6 +329,7 @@ export async function POST(req: NextRequest) {
       createdAt: persisted.createdAt,
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
