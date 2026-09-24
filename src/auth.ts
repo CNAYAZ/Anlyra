@@ -9,6 +9,7 @@ import { authConfig } from '@/auth.config';
 import { checkRateLimit, resetRateLimit, getClientIp } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit/log';
 import { DEMO_EMAIL } from '@/lib/session';
+import { isPastGrace } from '@/lib/gdpr/constants';
 
 // Build the providers list, including OAuth only when credentials are present
 // so the app boots cleanly in environments without OAuth configured.
@@ -56,10 +57,14 @@ const providers = [
         return null;
       }
 
-      // GDPR deletion pending: the account is closed the moment it is requested,
-      // even though the rows survive for the 30-day grace period. Checked here,
-      // right after the password, so a correct password no longer grants access.
-      if (user.deletionRequestedAt) {
+      // GDPR deletion: refused only once the 30-day grace period is over — the
+      // deletion is definitive from then on, even if the nightly purge has not
+      // run yet. INSIDE the period the sign-in goes through (founder's decision:
+      // the owner must be able to come back and cancel on their own), but the
+      // session it creates reaches nothing except the cancellation screen: the
+      // session callback below hides the user from every other consumer. The
+      // checks after this one (demo, verified email, 2FA) still apply to them.
+      if (user.deletionRequestedAt && isPastGrace(user.deletionRequestedAt)) {
         throw new Error('ACCOUNT_DELETION_PENDING');
       }
 
@@ -144,7 +149,10 @@ const providers = [
       }
 
       // The same three refusals as the password path, because a session is a
-      // session however it was obtained. None of them can fire today: a verify
+      // session however it was obtained — the deletion one deliberately
+      // STRICTER here: the password path now lets a pending account in to
+      // cancel, this link never does (cancelling is the password path's job,
+      // and a pending account never needs this link). None of them can fire today: a verify
       // token is only ever written by /api/auth/register (the single write site
       // in the codebase) on a just-created account, which therefore has no 2FA
       // configured and is never the demo address. They are here so that adding
@@ -214,10 +222,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account?.provider === 'google' || account?.provider === 'microsoft-entra-id') {
         if (user.email) {
           const existing = await prisma.user.findUnique({ where: { email: user.email } });
-          // Second half of the deletion block: authorize() above only guards the
-          // Credentials provider, so Google/Microsoft are stopped here. Denying in
-          // this callback closes the OAuth path without creating a session.
-          if (existing?.deletionRequestedAt) return false;
+          // Second half of the deletion rule: authorize() above only guards the
+          // Credentials provider, so Google/Microsoft follow the same rule here —
+          // refused once past the grace period, otherwise signed in and confined
+          // to the cancellation screen by the session callback below.
+          if (existing?.deletionRequestedAt && isPastGrace(existing.deletionRequestedAt)) return false;
           if (existing && !existing.emailVerifiedAt) {
             await prisma.user.update({
               where: { id: existing.id },
@@ -243,6 +252,53 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
       return token;
+    },
+    // ── THE DELETION GATE ──
+    // Runs on every server-side auth() and on /api/auth/session, in the Node
+    // runtime only (the Edge middleware has its own instance built from
+    // authConfig and never gets here). Reads the account's state FRESH from the
+    // database each time, so a request made on another device, or a
+    // cancellation, takes effect on the very next request of every open
+    // session — never from a claim frozen in the cookie.
+    //
+    // A pending account keeps its session (it signed in legitimately, and must
+    // be able to cancel) but the session carries NO `user`: every consumer that
+    // asks "who is signed in?" — getAuthContext, getSessionState and the ten
+    // API routes that call auth() themselves — gets nobody and refuses, without
+    // a single one of them having to know this rule exists. The id travels in
+    // `deletionPendingUserId` instead, which only the cancellation screen and
+    // the cancel route read. Fail-closed by construction: a route written
+    // tomorrow is refused too, unless it opts in on purpose.
+    //
+    // `user: undefined` must be explicit: next-auth's server-side wrapper
+    // (node_modules/next-auth/lib/index.js) returns `{ user: token, ...session }`,
+    // so leaving the key out would hand the raw token back as `user`.
+    //
+    // An account that no longer exists (purged) gets the same user-less
+    // session: its cookie can outlive it, and it must reach nothing.
+    //
+    // Never throws: @auth/core CLEARS the session cookie when this callback
+    // throws (lib/actions/session.js), so a database blip would log everyone
+    // out. On error the answer is "nobody, for this request" — fail-closed, and
+    // the same outcome getSessionState already gives when auth() fails.
+    async session(params) {
+      const session = await authConfig.callbacks.session(params);
+      const userId = params.token?.sub;
+      if (!userId) return session;
+      try {
+        const account = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { deletionRequestedAt: true },
+        });
+        if (!account) return { expires: session.expires, user: undefined };
+        if (account.deletionRequestedAt) {
+          return { expires: session.expires, user: undefined, deletionPendingUserId: userId };
+        }
+        return session;
+      } catch (e) {
+        console.error('[auth:session] deletion check failed, session hidden for this request:', e);
+        return { expires: session.expires, user: undefined };
+      }
     },
   },
 });

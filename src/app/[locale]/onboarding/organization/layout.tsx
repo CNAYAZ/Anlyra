@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSessionState } from '@/lib/session';
+import { getSessionState, DELETION_PENDING_PATH } from '@/lib/session';
 import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 
 // Same guard as src/app/[locale]/onboarding/page.tsx, and for the same
@@ -21,10 +21,10 @@ import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 //
 // Cannot loop with (dashboard)/layout.tsx's redirect to /onboarding on
 // 'no-org': the two states are mutually exclusive by construction
-// (getSessionState returns exactly one of 'ok' | 'no-org' | 'anonymous'), so
-// a user bounced away from here for having used up their allowance can
-// never be bounced back here for lacking an organization — they have one,
-// that is exactly why they were bounced.
+// (getSessionState returns exactly one of 'ok' | 'no-org' | 'anonymous' |
+// 'deletion-pending'), so a user bounced away from here for having used up
+// their allowance can never be bounced back here for lacking an organization
+// — they have one, that is exactly why they were bounced.
 export default async function OnboardingOrganizationLayout({
   children,
   params,
@@ -35,6 +35,11 @@ export default async function OnboardingOrganizationLayout({
   const { locale } = await params;
 
   const state = await getSessionState();
+  // Same as onboarding/page.tsx: no organization creation for an account
+  // with a pending deletion request.
+  if (state.status === 'deletion-pending') {
+    redirect(`/${locale}${DELETION_PENDING_PATH}`);
+  }
   if (state.status === 'ok') {
     const allowance = await checkOrganizationAllowance(state.userId);
     if (!allowance.allowed) {

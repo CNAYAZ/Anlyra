@@ -1588,7 +1588,7 @@
     "privacyExportPreparing": "Preparing the file…",
     "privacyExportFailed": "Download failed. Please try again.",
     "privacyDeleteTitle": "Delete my account",
-    "privacyDeleteDesc": "Deletion is permanent and happens {days} days after the request. Access is blocked immediately in the meantime.",
+    "privacyDeleteDesc": "Deletion is permanent and happens {days} days after the request. From then on Anlyra is suspended for you: you can sign in only to cancel the request.",
     "privacyDeleteButton": "Delete my account",
     "privacyDeleteDialogTitle": "Confirm deletion?",
     "privacyDeleteScopeOrg": "You are an owner or admin: this will delete your account, the company and ALL of its data (transactions, receivables, expenses, reports, dashboards, AI conversations, billing). Other members will lose access to this workspace; their personal accounts are not deleted. Any active subscription is cancelled.",
@@ -1597,11 +1597,11 @@
     "privacyDeletePasswordLabel": "Confirm with your password",
     "privacyDeleteConfirm": "Yes, delete my account",
     "privacyDeleteCancel": "Cancel",
-    "privacyDeleteDone": "Request recorded. You are about to be signed out.",
+    "privacyDeleteDone": "Request recorded. You are about to be signed out: if you change your mind, sign in again within {days} days and you can cancel it.",
     "privacyDeletePasswordInvalid": "Incorrect password.",
     "privacyDeleteNoPassword": "This account signs in with Google or Microsoft and has no password: contact support to delete it.",
     "privacyDeleteFailed": "Request failed. Please try again.",
-    "privacyDeleteHowToCancel": "Access is blocked immediately: if you still have this page open you can cancel the request below; if you have already been signed out and cannot get back in, contact support before the deadline.",
+    "privacyDeleteHowToCancel": "While the request is active you can cancel it here, or by signing in again before the deadline.",
     "privacyDeleteCancelRequestButton": "Cancel the deletion request",
     "privacyDeleteCancelling": "Cancelling…",
     "privacyDeleteCancelFailed": "Could not cancel the request. Please try again.",
@@ -3147,5 +3147,20 @@
     },
     "readOnly": "This action is not available in the demo: the data is read-only. Sign up to use Anlyra with your own data.",
     "readOnlyShort": "Not available in the demo"
+  },
+  "deletionPending": {
+    "title": "Your account is scheduled for deletion",
+    "body": "You asked to delete your account. If you do nothing, it will be permanently deleted in {days, plural, one {# day} other {# days}}.",
+    "bodyWithOrganization": "The company “{organization}” and all its data will be deleted together with the account.",
+    "reassurance": "If you have changed your mind, you can cancel now: your account and your data stay exactly as you left them.",
+    "subscriptionNote": "If you had a paid subscription, it was stopped when you asked for the deletion: after cancelling you can reactivate it from Settings, Billing.",
+    "onlyThisPage": "While the request is active, this is the only page you can use.",
+    "cancelButton": "Cancel the deletion",
+    "cancelling": "Cancelling…",
+    "cancelled": "Done: the deletion is cancelled. Taking you back to Anlyra…",
+    "cancelFailed": "The deletion could not be cancelled. Try again in a moment; if the problem persists, contact support.",
+    "logoutButton": "Sign out",
+    "expiredTitle": "The time to cancel is over",
+    "expiredBody": "Thirty days have passed since the request: the deletion is final and will be completed shortly. It can no longer be cancelled."
   }
 }

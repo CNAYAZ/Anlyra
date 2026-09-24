@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentContext } from "@/lib/session";
+import { getCurrentContext, redirectIfDeletionPending } from "@/lib/session";
 import { getBillingState } from "@/lib/billing/repository";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
@@ -26,6 +26,9 @@ export default async function ProviderPage(props: Props) {
 
   const t = await getTranslations("integrations");
   const tCommon = await getTranslations("common");
+  // Outside the (dashboard) layout, so its deletion redirect does not cover
+  // this page: without this line getCurrentContext below would throw instead.
+  await redirectIfDeletionPending(params.locale);
   const { organizationId } = await getCurrentContext();
   const org = { id: organizationId };
 

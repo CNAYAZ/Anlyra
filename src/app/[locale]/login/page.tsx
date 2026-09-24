@@ -33,8 +33,8 @@ const COPY = {
     resendingLabel: 'Invio…',
     resent: 'Email di verifica inviata.',
     generic: 'Accesso non riuscito. Riprova.',
-    deletionPending:
-      'Questo account è stato chiuso su tua richiesta e non è più accessibile. Se si tratta di un errore, scrivi all’assistenza prima che la cancellazione diventi definitiva.',
+    deletionExpired:
+      'Questo account è stato cancellato su tua richiesta: i trenta giorni per annullare sono passati e non è più possibile accedere.',
     tokenInvalid: 'Il link di verifica non è valido o è scaduto. Richiedine uno nuovo.',
     rateLimited: 'Troppi tentativi di accesso. Attendi qualche minuto e riprova.',
     tooManyAttemptsIn:
@@ -67,8 +67,8 @@ const COPY = {
     resendingLabel: 'Sending…',
     resent: 'Verification email sent.',
     generic: 'Sign-in failed. Please try again.',
-    deletionPending:
-      'This account was closed at your request and can no longer be accessed. If this is a mistake, contact support before the deletion becomes permanent.',
+    deletionExpired:
+      'This account was deleted at your request: the thirty days to cancel have passed and it can no longer be accessed.',
     tokenInvalid: 'This verification link is invalid or has expired. Request a new one.',
     rateLimited: 'Too many sign-in attempts. Wait a few minutes and try again.',
     tooManyAttemptsIn:
@@ -215,11 +215,12 @@ function LoginPageInner() {
         setError(t.invalid);
         return;
       }
-      // Account closed by a GDPR deletion request: say so plainly instead of
-      // letting signIn() fail with the generic message. authorize() blocks it
-      // server-side either way — this only makes the reason visible.
-      if (pre.deletionRequested) {
-        setError(t.deletionPending);
+      // GDPR deletion request past its 30 days: closed for good — say so
+      // plainly instead of letting signIn() fail with the generic message.
+      // authorize() refuses it server-side either way. A request still INSIDE
+      // the 30 days is not an error any more: the sign-in goes ahead (below).
+      if (pre.deletionGraceExpired) {
+        setError(t.deletionExpired);
         return;
       }
       if (!pre.emailVerified) {
@@ -242,7 +243,10 @@ function LoginPageInner() {
         setError(t.generic);
         return;
       }
-      window.location.href = callbackUrl;
+      // Pending deletion request: straight to the only screen this account may
+      // open, where it can cancel. Any other destination would redirect there
+      // anyway — this just skips the detour.
+      window.location.href = pre.deletionRequested ? `/${locale}/deletion-pending` : callbackUrl;
     } catch {
       setError(t.generic);
     } finally {
