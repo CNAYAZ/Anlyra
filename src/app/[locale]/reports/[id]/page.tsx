@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FileText } from 'lucide-react';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatDate } from '@/lib/utils';
+import { useIsManager } from '@/lib/auth/owner-context';
 
 type ReportDetail = {
   id: string;
@@ -39,6 +40,9 @@ export default function ReportDetailPage() {
   const tReports = useTranslations('reports');
   const tShare = useTranslations('reports.share');
   const qc = useQueryClient();
+  // "Create link" is requireManagerRole server-side (POST reports/[id]/share):
+  // hidden for anyone who is not owner/admin, same as the rest of the product.
+  const isManager = useIsManager();
 
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -208,8 +212,10 @@ export default function ReportDetailPage() {
                 {revokeMutation.isPending ? tShare('revoking') : tShare('revokeLink')}
               </button>
             </>
-          ) : report.shared ? (
-            // Shared, but this member is not owner/admin so the token is withheld.
+          ) : report.shared || !isManager ? (
+            // Either shared already (and this member is not owner/admin, so the
+            // token is withheld), or not shared yet and this member cannot
+            // create the link either way — same message covers both.
             <p className="text-xs text-muted-foreground">{tShare('managerOnly')}</p>
           ) : (
             <button

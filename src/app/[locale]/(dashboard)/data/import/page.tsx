@@ -15,7 +15,7 @@ import { ImportMapper, type ColumnInfo } from '@/components/data/import-mapper';
 import { ImportPreview } from '@/components/data/import-preview';
 import { ImportResult, type ImportBatchResult } from '@/components/data/import-result';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
-import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 
 type Step = 'target' | 'upload' | 'mapping' | 'preview' | 'importing' | 'result';
 
@@ -61,6 +61,10 @@ export default function DataImportPage() {
   const tBilling = useTranslations('billing');
   const tSettings = useTranslations('settings');
   const readOnlyRole = useIsReadOnlyRole();
+  // The "Cancel" button below deletes/cancels the in-progress batch
+  // (requireManagerRole server-side, same route as the History rollback):
+  // an editor can run the whole import flow but not this one step.
+  const isManager = useIsManager();
   const [step, setStep] = useState<Step>('target');
   const [targetKey, setTargetKey] = useState<ImportTargetKey | null>(null);
   const [previewData, setPreviewData] = useState<PreviewResponse | null>(null);
@@ -323,7 +327,8 @@ export default function DataImportPage() {
             <button
               type="button"
               onClick={cancelImport}
-              disabled={cancelMutation.isPending}
+              disabled={cancelMutation.isPending || !isManager}
+              title={!isManager ? tSettings('managerOnlyShort') : undefined}
               className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
             >
               {cancelMutation.isPending ? t('cancelling') : t('cancel')}

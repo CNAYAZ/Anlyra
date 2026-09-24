@@ -15,6 +15,9 @@ interface Props {
   status: "CONNECTED" | "ERROR";
   frequency: SyncFrequency;
   lastSyncAt: string | null;
+  /** Sync, disconnect and frequency below are requireManagerRole
+   * server-side: false disables them instead of offering a 403. */
+  isManager: boolean;
 }
 
 const FREQUENCIES: SyncFrequency[] = ["H6", "H12", "H24"];
@@ -24,10 +27,13 @@ export function IntegrationManager({
   status,
   frequency,
   lastSyncAt,
+  isManager,
 }: Props) {
   const t = useTranslations("integrations");
   const tCommon = useTranslations("common");
+  const tSettings = useTranslations("settings");
   const locale = useLocale();
+  const managerOnlyTitle = !isManager ? tSettings("managerOnlyShort") : undefined;
   const router = useRouter();
   const [currentFreq, setCurrentFreq] = useState<SyncFrequency>(frequency);
   const [pending, startTransition] = useTransition();
@@ -108,7 +114,8 @@ export function IntegrationManager({
             id="freq"
             value={currentFreq}
             onChange={(e) => changeFrequency(e.target.value as SyncFrequency)}
-            disabled={pending}
+            disabled={pending || !isManager}
+            title={managerOnlyTitle}
             className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-primary-accent focus:outline-none focus:ring-1 focus:ring-primary-accent"
           >
             {FREQUENCIES.map((f) => (
@@ -120,12 +127,13 @@ export function IntegrationManager({
         </div>
         {actionError && <p className="text-sm text-danger">{actionError}</p>}
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={syncNow} disabled={pending}>
+          <Button onClick={syncNow} disabled={pending || !isManager} title={managerOnlyTitle}>
             {t("actions.syncNow")}
           </Button>
           <Button
             onClick={disconnect}
-            disabled={pending}
+            disabled={pending || !isManager}
+            title={managerOnlyTitle}
             variant="danger"
           >
             {t("actions.disconnect")}

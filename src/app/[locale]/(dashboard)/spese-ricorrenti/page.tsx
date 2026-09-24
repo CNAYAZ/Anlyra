@@ -24,7 +24,7 @@ import {
   type RecurringExpenseFormValues,
 } from '@/components/recurring-expenses/recurring-expense-form-dialog';
 import { apiFetch } from '@/lib/api/fetcher';
-import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type {
@@ -51,8 +51,12 @@ export default function SpeseRicorrentiPage() {
   // Viewer: create/edit/cancel/delete disabled (refused server-side by
   // requireEditorRole / requireManagerRole anyway).
   const readOnlyRole = useIsReadOnlyRole();
+  // Editor: can create/edit/cancel but not delete (server-side
+  // requireManagerRole on DELETE) — narrower gate for that one button.
+  const isManager = useIsManager();
   const tSettings = useTranslations('settings');
   const readOnlyTitle = readOnlyRole ? tSettings('readOnlyRoleShort') : undefined;
+  const managerOnlyTitle = !isManager ? tSettings('managerOnlyShort') : undefined;
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpenseDTO | null>(null);
@@ -252,9 +256,9 @@ export default function SpeseRicorrentiPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={rowPending || readOnlyRole}
+                        disabled={rowPending || !isManager}
                         onClick={() => handleDelete(r.id)}
-                        title={readOnlyTitle ?? t('actions.delete')}
+                        title={readOnlyTitle ?? managerOnlyTitle ?? t('actions.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
