@@ -1,4 +1,4 @@
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -42,6 +42,10 @@ export async function POST() {
 
     return ok({ triggered: upserted.length, sources: upserted });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): forwarded the raw error text to
+    // the client and always answered 500, even for the getAuthContext-based
+    // 401 case above having already returned. failFromError never leaks the
+    // real message — only the server log gets it.
+    return failFromError(e);
   }
 }

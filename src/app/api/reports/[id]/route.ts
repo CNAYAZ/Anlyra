@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -56,7 +56,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
       shareExpiresAt: r.shareExpiresAt,
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -164,7 +165,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       recipients: updated.recipients,
     });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -192,7 +194,8 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: s
     });
     return ok({ id: params.id });
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }
 
@@ -231,6 +234,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
 
     return pdfResponse(pdf, r.title);
   } catch (e) {
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text.
+    return failFromError(e);
   }
 }

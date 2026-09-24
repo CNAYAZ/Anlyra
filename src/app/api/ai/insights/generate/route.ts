@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ok, fail } from '@/lib/api';
+import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
@@ -167,6 +167,8 @@ export async function POST(req: NextRequest) {
     return ok({ created: generated.length, creditsRemaining: spend.remaining });
   } catch (e) {
     console.error('[ai/insights/generate] unexpected error:', e);
-    return fail((e as Error).message, 500);
+    // Was fail((e as Error).message, 500): leaked the raw error text — the
+    // console.error above already keeps it for diagnosis.
+    return failFromError(e);
   }
 }
