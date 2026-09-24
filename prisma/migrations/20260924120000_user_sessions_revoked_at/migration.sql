@@ -1,0 +1,30 @@
+-- Records, per user, the instant from which every session opened BEFORE it
+-- stops being valid.
+--
+-- WHY A NEW COLUMN: sessions are stateless JWTs (session.strategy 'jwt' in
+-- src/auth.config.ts). Nothing on the server holds a list of them, so there is
+-- nothing to delete when a user wants the others gone: a token stays good until
+-- its own expiry, up to fourteen days of inactivity. Changing the password today
+-- updates passwordHash and nothing else, so whoever already holds a session —
+-- the very intruder the password change is meant to shut out — stays signed in.
+-- The only way to invalidate stateless tokens without storing them is to store
+-- ONE instant per user and refuse every token issued before it. That instant
+-- has to live on the User row, because the check runs on every request and must
+-- be a single lookup the session callback already makes.
+--
+-- NULLABLE, NO DEFAULT — deliberately: no user has ever revoked anything, and
+-- NULL means exactly that, "no revocation on record". A default of now() would
+-- be actively harmful: it would stamp every existing account with the moment
+-- this migration ran, and as soon as the code that reads the column shipped,
+-- every session opened before that moment would be refused — logging out every
+-- customer at once. No backfill statement is included, wanted, or safe.
+--
+-- SAFETY: this migration only ADDS one nullable column to one table. It drops
+-- nothing, rewrites no existing row, and changes no existing value. Every row
+-- already in User keeps every column it has and simply gains a NULL in the
+-- new one. Running it on the live database cannot lose data, cannot log
+-- anyone out, and changes no behaviour on its own: at the moment this column
+-- is applied, nothing reads it or writes it — see the separate commit that
+-- first does both.
+
+ALTER TABLE "User" ADD COLUMN "sessionsRevokedAt" TIMESTAMP(3);

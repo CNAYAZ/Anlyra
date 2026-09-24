@@ -45,6 +45,13 @@ export async function POST(req: Request) {
       // A password reset implicitly proves email ownership.
       emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
       emailVerified: user.emailVerified ?? new Date(),
+      // And it signs out every session opened before it, like a password
+      // change does (src/lib/auth/session-revocation.ts). A reset is the
+      // usual next step after "someone may have my password": leaving a
+      // session the old password opened alive would defeat it. No session is
+      // renewed here — the person resetting is not signed in through this
+      // link, and signs in with the new password afterwards.
+      sessionsRevokedAt: new Date(),
     },
   });
 

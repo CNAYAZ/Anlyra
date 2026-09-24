@@ -6,6 +6,7 @@ import { validatePassword } from '@/lib/auth/config';
 import { auditLog } from '@/lib/audit/log';
 import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
+import { reissueCurrentSession } from '@/lib/auth/session-revocation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -55,16 +56,28 @@ export async function POST(req: Request) {
     return fail('WEAK_PASSWORD', 400);
   }
 
-  // 7. Hash and persist (cost factor 12, as register/reset-password).
+  // 7. Hash and persist (cost factor 12, as register/reset-password) — and, in
+  //    the same write, revoke every session opened before now. Someone who
+  //    changes their password because they suspect an intrusion must not leave
+  //    the intruder signed in for up to fourteen days (see
+  //    src/lib/auth/session-revocation.ts).
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash },
+    data: { passwordHash, sessionsRevokedAt: new Date() },
   });
 
   // The current password was correct, so this was not a guess: clear the budget.
   await resetRateLimit('change-password-user', userId);
 
   await auditLog({ action: 'password.change', userId, req });
-  return ok({ success: true });
+
+  // 8. The revocation above also covers THIS request's own session: hand it a
+  //    fresh token, issued after the revocation, so the person who changed the
+  //    password stays signed in on this device. Written after the DB update on
+  //    purpose, so the new token can never predate the revocation instant.
+  const res = ok({ success: true });
+  const renewed = await reissueCurrentSession(req);
+  if (renewed) res.cookies.set(renewed.name, renewed.value, renewed.options);
+  return res;
 }

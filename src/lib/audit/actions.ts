@@ -39,6 +39,9 @@ export const AUDIT_ACTIONS = [
   // it is the one action a retention sweep must never remove.
   'auth.terms_accepted',
   'password.change',
+  // "Sign out of all other devices" from Settings → Security. A password
+  // change revokes sessions too, but is already recorded as password.change.
+  'auth.sessions_revoked',
   'two_factor.enable',
   'two_factor.disable',
 
