@@ -48,6 +48,13 @@ model User {
   // no default and no backfill.
   termsAcceptedVersion String?
 
+  // From this instant on, every session token issued BEFORE it is no longer
+  // valid ("sign out everywhere"). NULL means no revocation was ever made —
+  // every account that existed before this column, and nothing else. See
+  // migration 20260924120000_user_sessions_revoked_at for why it is nullable
+  // with no default and no backfill.
+  sessionsRevokedAt DateTime?
+
   memberships Membership[]
   accounts    Account[]
   sessions    Session[]
