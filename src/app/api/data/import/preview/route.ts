@@ -3,6 +3,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { getImportTarget, suggestMapping } from '@/lib/import-targets';
 import { ImportParseError, parseImportFile } from '@/lib/import/parse';
 import { ensureImportBatchFkRows } from '@/lib/import/batch-fk';
@@ -19,6 +20,9 @@ export async function POST(req: NextRequest) {
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { userId, organizationId } = authCtx;
 
     const form = await req.formData();

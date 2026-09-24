@@ -15,6 +15,7 @@ import { ImportMapper, type ColumnInfo } from '@/components/data/import-mapper';
 import { ImportPreview } from '@/components/data/import-preview';
 import { ImportResult, type ImportBatchResult } from '@/components/data/import-result';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 
 type Step = 'target' | 'upload' | 'mapping' | 'preview' | 'importing' | 'result';
 
@@ -58,6 +59,8 @@ const UPLOAD_ERROR_KEYS: Record<string, string> = {
 export default function DataImportPage() {
   const t = useTranslations('dataImport');
   const tBilling = useTranslations('billing');
+  const tSettings = useTranslations('settings');
+  const readOnlyRole = useIsReadOnlyRole();
   const [step, setStep] = useState<Step>('target');
   const [targetKey, setTargetKey] = useState<ImportTargetKey | null>(null);
   const [previewData, setPreviewData] = useState<PreviewResponse | null>(null);
@@ -206,6 +209,21 @@ export default function DataImportPage() {
   function startImport() {
     setStep('importing');
     commitMutation.mutate();
+  }
+
+  // Viewer: the whole flow writes (the upload step already creates an import
+  // batch), so it is not offered at all — refused server-side anyway by
+  // requireEditorRole. Reading past imports stays on Data › History.
+  if (readOnlyRole) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t('title')} subtitle={t('subtitle')} />
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{tSettings('readOnlyRoleShort')}</span>
+        </div>
+      </div>
+    );
   }
 
   return (

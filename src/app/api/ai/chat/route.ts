@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { prisma } from '@/lib/prisma';
@@ -122,6 +123,9 @@ export async function POST(req: NextRequest) {
   // Demo organization: read-only. See requireWritableOrg.
   const readOnly = requireWritableOrg(ctx.organizationId);
   if (readOnly) return readOnly;
+  // Viewer: read-only role — see requireEditorRole.
+  const viewerOnly = requireEditorRole(ctx);
+  if (viewerOnly) return viewerOnly;
   const { userId, organizationId } = ctx;
 
   // Trial/subscription gate: an expired trial (or past_due) is read-only and may

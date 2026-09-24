@@ -13,6 +13,7 @@ import { NoCredits } from '@/components/ai/no-credits';
 import { TypingIndicator } from '@/components/ai/typing-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCreditsStore } from '@/stores/credits-store';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import type { ApiResponse } from '@/lib/api';
 import type {
   ChatMessageDTO,
@@ -83,6 +84,11 @@ async function sendChatMessage(vars: {
 
 export function ChatClient({ companyName, initialCredits }: Props) {
   const t = useTranslations('chat');
+  // Viewer: past conversations stay readable; asking a new question spends
+  // the organization's credits and adds to its shared conversation list, so it
+  // is disabled — refused server-side by requireEditorRole anyway.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
   const tCommon = useTranslations('common');
   // Reuses the AI Agent's disclaimer copy/key on purpose: one source of truth
   // for "you're talking to an AI" across both surfaces (AI Act art. 50).
@@ -197,7 +203,9 @@ export function ChatClient({ companyName, initialCredits }: Props) {
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
-          {noCredits && messages.length === 0 ? (
+          {readOnlyRole && messages.length === 0 ? (
+            <p className="mx-auto max-w-md pt-12 text-center text-sm text-muted-foreground">{tSettings('readOnlyRoleShort')}</p>
+          ) : noCredits && messages.length === 0 ? (
             <NoCredits />
           ) : showEmpty ? (
             <ChatEmpty company={companyName} onPickSuggestion={handleSend} />
@@ -261,7 +269,11 @@ export function ChatClient({ companyName, initialCredits }: Props) {
           </Link>
         </p>
 
-        <ChatInput onSend={handleSend} disabled={noCredits || sendMutation.isPending} />
+        <ChatInput
+          onSend={handleSend}
+          disabled={readOnlyRole || noCredits || sendMutation.isPending}
+          placeholder={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
+        />
       </section>
     </div>
   );

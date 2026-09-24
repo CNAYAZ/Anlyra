@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, Info, X } from 'lucide-react';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ManualFormFinancial, type FinancialFormValues } from '@/components/data/manual-form-financial';
 import { ManualFormKpi, type KpiFormValues } from '@/components/data/manual-form-kpi';
@@ -30,6 +31,8 @@ async function saveRecord(targetKey: ImportTargetKey, record: Record<string, unk
 
 export default function DataManualPage() {
   const t = useTranslations('dataManual');
+  const tSettings = useTranslations('settings');
+  const readOnlyRole = useIsReadOnlyRole();
   const [tab, setTab] = useState<ImportTargetKey>('financial_records');
   const [toast, setToast] = useState<'success' | 'error' | null>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -50,6 +53,23 @@ export default function DataManualPage() {
 
   function submit(key: ImportTargetKey, record: Record<string, unknown>) {
     mutation.mutate({ key, record });
+  }
+
+  // Viewer: data entry is writing, refused server-side by requireEditorRole —
+  // the forms are not offered at all.
+  if (readOnlyRole) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-2xl font-semibold">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{tSettings('readOnlyRoleShort')}</span>
+        </div>
+      </div>
+    );
   }
 
   return (

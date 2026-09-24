@@ -21,8 +21,9 @@ import { getCreditBalance, getBillingState } from '@/lib/billing/repository';
 import { BillingProvider } from '@/lib/billing/context';
 import { PLANS } from '@/lib/billing/plans';
 import type { PlanId } from '@/lib/billing/plans';
-import { isOwnerRole, isManagerRole } from '@/lib/auth/require-role';
-import { OwnerProvider, ManagerProvider } from '@/lib/auth/owner-context';
+import { isOwnerRole, isManagerRole, isEditorRole } from '@/lib/auth/require-role';
+import { OwnerProvider, ManagerProvider, ReadOnlyRoleProvider } from '@/lib/auth/owner-context';
+import { ReadOnlyRoleBanner } from '@/components/auth/ReadOnlyRoleBanner';
 
 // Authenticated per-user surface: never statically prerendered. The previous
 // getSession() bailed to dynamic implicitly via a synchronous cookie read; now
@@ -93,6 +94,9 @@ export default async function DashboardLayout({
   // reports page disable the edit control instead of offering an action that
   // requireManagerRole would refuse server-side.
   const isManager = authCtx ? isManagerRole(authCtx.role) : false;
+  // Same reasoning again, for the widest split: a member who may only read
+  // ('viewer'). False for the demo, which has its own read-only handling.
+  const isReadOnlyRole = authCtx ? !isEditorRole(authCtx.role) : false;
 
   // Same gating as isOwner/isManager above: only for a real signed-in member,
   // never the demo (no account exists there to accept anything for). Read
@@ -120,6 +124,7 @@ export default async function DashboardLayout({
             controls instead of offering a button that would 403. */}
         <OwnerProvider isOwner={isOwner}>
           <ManagerProvider isManager={isManager}>
+            <ReadOnlyRoleProvider isReadOnly={isReadOnlyRole}>
             <div className="flex min-h-screen bg-background">
               <Sidebar />
               <div className="flex-1 flex flex-col min-w-0">
@@ -127,6 +132,9 @@ export default async function DashboardLayout({
                 {/* Demo notice first: it explains what the whole page is. Like the
                     trial strip it pushes content down instead of covering it. */}
                 <DemoBanner />
+                {/* Same strip again, for a member who may only read: explains
+                    why every create/edit control below is disabled. */}
+                <ReadOnlyRoleBanner />
                 {/* Read-only strip for expired trials (renders null for active/trialing).
                     A strip that pushes content down, never an overlay — data stays visible. */}
                 <TrialExpiredBanner />
@@ -139,6 +147,7 @@ export default async function DashboardLayout({
               </div>
               <CreditsHydrator credits={credits} max={planMax} />
             </div>
+            </ReadOnlyRoleProvider>
           </ManagerProvider>
         </OwnerProvider>
       </DemoProvider>

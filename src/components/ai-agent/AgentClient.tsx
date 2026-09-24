@@ -22,6 +22,7 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsDemo } from '@/lib/demo/context';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
 
 // Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
@@ -74,7 +75,11 @@ export function AgentClient() {
   const tDemo = useTranslations('demo');
   const credits = useCreditsStore((s) => s.credits);
   const isDemo = useIsDemo();
-  const hasCredits = !isDemo && credits >= ANALYSIS_CREDIT_COST;
+  // Viewer: every analysis spends the organization's credits — disabled, and
+  // refused server-side by requireEditorRole anyway.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
+  const hasCredits = !isDemo && !readOnlyRole && credits >= ANALYSIS_CREDIT_COST;
 
   const [mode, setMode] = useState<AgentMode>('financial');
   const [states, setStates] = useState<Record<AgentMode, TabState>>(initialStates);
@@ -223,7 +228,7 @@ export function AgentClient() {
               onClick={() => run(false)}
               loading={current.loading}
               disabled={current.loading || !hasCredits}
-              title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Sparkles className="h-4 w-4" />
               {t('generate', { cost: ANALYSIS_CREDIT_COST })}
@@ -253,7 +258,7 @@ export function AgentClient() {
               onClick={() => run(true)}
               loading={current.loading}
               disabled={current.loading || !current.question.trim() || !hasCredits}
-              title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Send className="h-4 w-4" />
               {t('send', { cost: ANALYSIS_CREDIT_COST })}
@@ -263,7 +268,11 @@ export function AgentClient() {
 
         {/* Proactive notice — shown BEFORE the user presses a now-disabled
             button, not just after a failed request. */}
-        {!hasCredits && (
+        {readOnlyRole ? (
+          <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
+            {tSettings('readOnlyRoleShort')}
+          </div>
+        ) : !hasCredits && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
             {/* In the demo this is not a credit shortage, so it must not send the
                 visitor to a billing page for an account they do not have. */}

@@ -4,7 +4,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
-import { requireManagerRole } from '@/lib/auth/require-role';
+import { requireManagerRole, requireEditorRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 
@@ -32,6 +32,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { organizationId } = authCtx;
     const json = await req.json().catch(() => null);
     const parsed = PatchSchema.safeParse(json);
