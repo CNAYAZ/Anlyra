@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIsManager, useIsOwner } from '@/lib/auth/owner-context';
+import { RoleCapabilities } from './RoleCapabilities';
 import { usePlan } from '@/lib/billing/context';
 import { isUnlimited } from '@/lib/billing/plans';
 import { CheckCircle2, MailWarning, Trash2, UserCircle2, UserMinus, Users } from 'lucide-react';
@@ -258,6 +259,7 @@ export default function SettingsTeamPage() {
           {t('teamEmpty')}
         </div>
       ) : (
+        <>
         <div className="overflow-hidden rounded-xl border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted text-xs uppercase text-muted-foreground">
@@ -345,6 +347,11 @@ export default function SettingsTeamPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Same role reference as the invite form, next to the control that
+            changes an existing member's role. */}
+        <RoleCapabilities />
+        </>
       )}
 
       <FormError>{memberErrorKey ? t(memberErrorKey as 'memberErrorGeneric') : null}</FormError>
@@ -456,6 +463,11 @@ export default function SettingsTeamPage() {
             </Select>
           </div>
         </div>
+
+        {/* What each role can actually do — verified against the server
+            guards (src/lib/auth/require-role.ts), right where the choice
+            is made. */}
+        <RoleCapabilities />
 
         {sent && (
           sent.emailSent ? (

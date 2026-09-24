@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentContext, redirectIfDeletionPending } from "@/lib/session";
+import {
+  getCurrentContext,
+  redirectIfDeletionPending,
+  isDemoOrganization,
+  getAuthContext,
+} from "@/lib/session";
+import { isManagerRole } from "@/lib/auth/require-role";
 import { getBillingState } from "@/lib/billing/repository";
 import { getIntegration } from "@/lib/integrations/registry";
 import { planMeets } from "@/lib/plan/feature-gate";
@@ -31,6 +37,15 @@ export default async function ProviderPage(props: Props) {
   await redirectIfDeletionPending(params.locale);
   const { organizationId } = await getCurrentContext();
   const org = { id: organizationId };
+
+  // Outside the (dashboard) layout, so ManagerProvider never reaches this
+  // page: sync/disconnect/frequency below are requireManagerRole
+  // server-side (src/app/api/integrations/[provider]/*), same resolution as
+  // the dashboard layout (null for the demo org, which has no real
+  // Membership role to read).
+  const isDemo = isDemoOrganization(organizationId);
+  const authCtx = isDemo ? null : await getAuthContext();
+  const isManager = authCtx ? isManagerRole(authCtx.role) : false;
 
   // The plan the organization is ACTUALLY on, read on the server from
   // BillingSubscription — the same getBillingState() the dashboard layout uses.
@@ -112,6 +127,7 @@ export default async function ProviderPage(props: Props) {
           status={integration.status as "CONNECTED" | "ERROR"}
           frequency={integration.frequency as "H6" | "H12" | "H24"}
           lastSyncAt={integration.lastSyncAt?.toISOString() ?? null}
+          isManager={isManager}
         />
       ) : (
         <div className="rounded-xl border border-border bg-card p-6">

@@ -22,7 +22,7 @@ import {
 import { ReceivableFormDialog, type ReceivableFormValues } from '@/components/receivables/receivable-form-dialog';
 import { ReminderDialog } from '@/components/receivables/reminder-dialog';
 import { apiFetch } from '@/lib/api/fetcher';
-import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { ReceivableDTO, ReceivableStatus, ReceivableTotals, ReminderResponse } from '@/types/receivable';
 import type { Locale } from '@/i18n/config';
@@ -49,8 +49,13 @@ export default function ScadenzarioPage() {
   // them anyway — requireEditorRole). The reminder draft stays available: it
   // only reads the receivable and writes nothing.
   const readOnlyRole = useIsReadOnlyRole();
+  // Editor: can create/edit receivables but not delete one (server-side
+  // requireManagerRole on DELETE) — the delete button needs its own gate,
+  // narrower than readOnlyRole (which would still show it to an editor).
+  const isManager = useIsManager();
   const tSettings = useTranslations('settings');
   const readOnlyTitle = readOnlyRole ? tSettings('readOnlyRoleShort') : undefined;
+  const managerOnlyTitle = !isManager ? tSettings('managerOnlyShort') : undefined;
 
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [formOpen, setFormOpen] = useState(false);
@@ -232,9 +237,9 @@ export default function ScadenzarioPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={rowPending || readOnlyRole}
+                        disabled={rowPending || !isManager}
                         onClick={() => handleDelete(r.id)}
-                        title={readOnlyTitle ?? t('actions.delete')}
+                        title={readOnlyTitle ?? managerOnlyTitle ?? t('actions.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

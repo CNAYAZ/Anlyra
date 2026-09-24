@@ -9,7 +9,7 @@ import { LayoutDashboard, Plus, Trash2 } from 'lucide-react';
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
-import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Dashboard = {
@@ -24,9 +24,11 @@ type Dashboard = {
 export default function CustomDashboardsPage() {
   const t = useTranslations('customDashboards');
   const qc = useQueryClient();
-  // Viewer: opening dashboards stays, creating and deleting them is hidden
-  // (refused server-side by requireEditorRole / requireManagerRole).
+  // Viewer: opening dashboards stays, creating one is hidden
+  // (requireEditorRole). Deleting is narrower still (requireManagerRole):
+  // hidden for editor too, not just viewer.
   const readOnlyRole = useIsReadOnlyRole();
+  const isManager = useIsManager();
   const locale = useAppLocale();
 
   const { data, isLoading } = useQuery({
@@ -91,7 +93,7 @@ export default function CustomDashboardsPage() {
                   </Link>
                   {d.description && <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>}
                 </div>
-                {!readOnlyRole && (
+                {isManager && (
                   <button
                     type="button"
                     onClick={() => deleteMutation.mutate(d.id)}

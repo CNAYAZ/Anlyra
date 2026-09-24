@@ -10,7 +10,7 @@ import { FileText, Plus, Play, Trash2, Calendar, Clock, Loader2 } from 'lucide-r
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
-import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Report = {
@@ -27,10 +27,11 @@ type Report = {
 export default function ReportsPage() {
   const t = useTranslations('reports');
   const qc = useQueryClient();
-  // Viewer: "Genera ora" stays (it downloads a PDF — reading); creating and
-  // deleting reports is hidden (refused server-side by requireEditorRole /
-  // requireManagerRole).
+  // Viewer: "Genera ora" stays (it downloads a PDF — reading); creating a
+  // report is hidden (requireEditorRole). Deleting is narrower still
+  // (requireManagerRole): hidden for editor too, not just viewer.
   const readOnlyRole = useIsReadOnlyRole();
+  const isManager = useIsManager();
   const locale = useAppLocale();
 
   const { data, isLoading } = useQuery({
@@ -132,7 +133,7 @@ export default function ReportsPage() {
                   <h3 className="font-heading text-base font-semibold">{r.title}</h3>
                   {r.description && <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>}
                 </div>
-                {!readOnlyRole && (
+                {isManager && (
                   <button
                     type="button"
                     onClick={() => deleteMutation.mutate(r.id)}
