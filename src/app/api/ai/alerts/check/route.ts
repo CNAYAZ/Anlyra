@@ -2,6 +2,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { runAllRules } from '@/lib/alerts/rules';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,9 @@ export async function POST() {
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { organizationId } = authCtx;
     const triggered = await runAllRules(organizationId);
 

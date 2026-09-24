@@ -56,3 +56,32 @@ export function ManagerProvider({
 export function useIsManager(): boolean {
   return useContext(ManagerContext);
 }
+
+/**
+ * Same pattern again, for the widest split: a member whose role may only READ
+ * ('viewer', or any role requireEditorRole does not recognise). Lets every
+ * page disable its create/edit/AI controls instead of offering a button that
+ * would come back 403 VIEWER_READ_ONLY. A convenience for the UI, never a
+ * protection: each of those routes is refused server-side by
+ * requireEditorRole regardless of what this context says.
+ *
+ * Defaults to false (not read-only), like the demo: the demo organization
+ * has its own read-only handling (DemoProvider), and an anonymous demo
+ * visitor has no role at all.
+ */
+const ReadOnlyRoleContext = createContext(false);
+
+export function ReadOnlyRoleProvider({
+  isReadOnly,
+  children,
+}: {
+  isReadOnly: boolean;
+  children: React.ReactNode;
+}) {
+  return <ReadOnlyRoleContext.Provider value={isReadOnly}>{children}</ReadOnlyRoleContext.Provider>;
+}
+
+/** True when the current member may only read (role 'viewer'). */
+export function useIsReadOnlyRole(): boolean {
+  return useContext(ReadOnlyRoleContext);
+}

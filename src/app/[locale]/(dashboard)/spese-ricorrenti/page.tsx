@@ -24,6 +24,7 @@ import {
   type RecurringExpenseFormValues,
 } from '@/components/recurring-expenses/recurring-expense-form-dialog';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type {
@@ -47,6 +48,11 @@ export default function SpeseRicorrentiPage() {
   const t = useTranslations('speseRicorrenti');
   const locale = useLocale() as Locale;
   const qc = useQueryClient();
+  // Viewer: create/edit/cancel/delete disabled (refused server-side by
+  // requireEditorRole / requireManagerRole anyway).
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
+  const readOnlyTitle = readOnlyRole ? tSettings('readOnlyRoleShort') : undefined;
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpenseDTO | null>(null);
@@ -150,7 +156,7 @@ export default function SpeseRicorrentiPage() {
         title={t('title')}
         subtitle={t('subtitle')}
         actions={
-          <Button size="sm" onClick={openAdd}>
+          <Button size="sm" onClick={openAdd} disabled={readOnlyRole} title={readOnlyTitle}>
             <Plus className="h-4 w-4" />
             {t('addButton')}
           </Button>
@@ -231,24 +237,24 @@ export default function SpeseRicorrentiPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)} title={t('actions.edit')}>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)} disabled={readOnlyRole} title={readOnlyTitle ?? t('actions.edit')}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={rowPending}
+                        disabled={rowPending || readOnlyRole}
                         onClick={() => toggleMutation.mutate({ id: r.id, active: !r.active })}
-                        title={r.active ? t('actions.cancel') : t('actions.reactivate')}
+                        title={readOnlyTitle ?? (r.active ? t('actions.cancel') : t('actions.reactivate'))}
                       >
                         {r.active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={rowPending}
+                        disabled={rowPending || readOnlyRole}
                         onClick={() => handleDelete(r.id)}
-                        title={t('actions.delete')}
+                        title={readOnlyTitle ?? t('actions.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

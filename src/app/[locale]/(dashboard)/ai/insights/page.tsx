@@ -18,6 +18,7 @@ import { Link } from '@/i18n/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsDemo } from '@/lib/demo/context';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import type { InsightDTO } from '@/types/ai';
 
 type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
@@ -54,7 +55,12 @@ export default function InsightsPage() {
   // In the demo the server refuses this (requireWritableOrg → 403 DEMO_READ_ONLY);
   // disabling the button here just means the user is told BEFORE clicking.
   const isDemo = useIsDemo();
-  const canGenerate = !isDemo && aiCreditsBalance >= GENERATION_CREDIT_COST;
+  // Viewer: existing insights stay readable; generating new ones (spends
+  // credits, adds to the shared list) and changing their status are disabled —
+  // refused server-side by requireEditorRole anyway.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
+  const canGenerate = !isDemo && !readOnlyRole && aiCreditsBalance >= GENERATION_CREDIT_COST;
 
   const { data, isLoading, isError, refetch } = useQuery({
     // `page` is part of the key: changing page is a different server request,
@@ -175,7 +181,7 @@ export default function InsightsPage() {
             size="sm"
             disabled={!canGenerate || generateMutation.isPending}
             onClick={() => generateMutation.mutate()}
-            title={isDemo ? tDemo('readOnlyShort') : !canGenerate ? t('creditsRequired') : undefined}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !canGenerate ? t('creditsRequired') : undefined}
           >
             {generateMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -274,7 +280,7 @@ export default function InsightsPage() {
           if (!open) setSelected(null);
         }}
         onUpdateStatus={handleUpdateStatus}
-        pending={updateMutation.isPending}
+        pending={updateMutation.isPending || readOnlyRole}
       />
     </div>
   );

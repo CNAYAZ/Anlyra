@@ -3,6 +3,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { toReceivableDTO } from '@/lib/receivables/dto';
 import type { ReceivableStatus, ReceivableTotals } from '@/types/receivable';
@@ -75,6 +76,9 @@ export async function POST(req: Request) {
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { organizationId } = authCtx;
 
     // Expired trial (or past_due) is read-only: block creating a receivable.

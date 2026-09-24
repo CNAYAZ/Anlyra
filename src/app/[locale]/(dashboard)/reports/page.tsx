@@ -10,6 +10,7 @@ import { FileText, Plus, Play, Trash2, Calendar, Clock, Loader2 } from 'lucide-r
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Report = {
@@ -26,6 +27,10 @@ type Report = {
 export default function ReportsPage() {
   const t = useTranslations('reports');
   const qc = useQueryClient();
+  // Viewer: "Genera ora" stays (it downloads a PDF — reading); creating and
+  // deleting reports is hidden (refused server-side by requireEditorRole /
+  // requireManagerRole).
+  const readOnlyRole = useIsReadOnlyRole();
   const locale = useAppLocale();
 
   const { data, isLoading } = useQuery({
@@ -84,12 +89,14 @@ export default function ReportsPage() {
           <h1 className="font-heading text-2xl font-semibold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Link
-          href="/reports/builder"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> {t('newReport')}
-        </Link>
+        {!readOnlyRole && (
+          <Link
+            href="/reports/builder"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> {t('newReport')}
+          </Link>
+        )}
       </div>
 
       {runError && (
@@ -107,12 +114,14 @@ export default function ReportsPage() {
           <FileText className="h-8 w-8 opacity-40" />
           <p className="font-medium text-foreground">{t('empty.title')}</p>
           <p>{t('empty.description')}</p>
-          <Link
-            href="/reports/builder"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-          >
-            <Plus className="h-3 w-3" /> {t('newReport')}
-          </Link>
+          {!readOnlyRole && (
+            <Link
+              href="/reports/builder"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+            >
+              <Plus className="h-3 w-3" /> {t('newReport')}
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -123,14 +132,16 @@ export default function ReportsPage() {
                   <h3 className="font-heading text-base font-semibold">{r.title}</h3>
                   {r.description && <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(r.id)}
-                  className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                  title={t('delete')}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {!readOnlyRole && (
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate(r.id)}
+                    className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                    title={t('delete')}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">

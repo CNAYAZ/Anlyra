@@ -4,6 +4,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { reportPeriodSchema, reportLanguageSchema } from '@/lib/reports/types';
 import { bridgeSections } from '@/lib/reports/config';
 import { validateReportRecipients } from '@/lib/reports/recipients';
@@ -71,6 +72,9 @@ export async function POST(req: NextRequest) {
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { organizationId } = authCtx;
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);

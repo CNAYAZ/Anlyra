@@ -9,6 +9,7 @@ import { LayoutDashboard, Plus, Trash2 } from 'lucide-react';
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Dashboard = {
@@ -23,6 +24,9 @@ type Dashboard = {
 export default function CustomDashboardsPage() {
   const t = useTranslations('customDashboards');
   const qc = useQueryClient();
+  // Viewer: opening dashboards stays, creating and deleting them is hidden
+  // (refused server-side by requireEditorRole / requireManagerRole).
+  const readOnlyRole = useIsReadOnlyRole();
   const locale = useAppLocale();
 
   const { data, isLoading } = useQuery({
@@ -42,12 +46,14 @@ export default function CustomDashboardsPage() {
           <h1 className="font-heading text-2xl font-semibold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Link
-          href="/custom-dashboards/builder"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> {t('newDashboard')}
-        </Link>
+        {!readOnlyRole && (
+          <Link
+            href="/custom-dashboards/builder"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> {t('newDashboard')}
+          </Link>
+        )}
       </div>
 
       {isLoading || !data ? (
@@ -58,12 +64,14 @@ export default function CustomDashboardsPage() {
         <div className="card flex flex-col items-center justify-center gap-3 py-12 text-sm text-muted-foreground">
           <LayoutDashboard className="h-8 w-8 opacity-40" />
           <p>{t('empty')}</p>
-          <Link
-            href="/custom-dashboards/builder"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-          >
-            <Plus className="h-3 w-3" /> {t('newDashboard')}
-          </Link>
+          {!readOnlyRole && (
+            <Link
+              href="/custom-dashboards/builder"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+            >
+              <Plus className="h-3 w-3" /> {t('newDashboard')}
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -83,14 +91,16 @@ export default function CustomDashboardsPage() {
                   </Link>
                   {d.description && <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(d.id)}
-                  className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                  title={t('delete')}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {!readOnlyRole && (
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate(d.id)}
+                    className="rounded p-1 text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                    title={t('delete')}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 {d.widgets.length} {t('widgets')} · {t('updated')} {formatDate(d.updatedAt, locale)}

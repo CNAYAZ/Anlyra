@@ -22,6 +22,7 @@ import {
 import { ReceivableFormDialog, type ReceivableFormValues } from '@/components/receivables/receivable-form-dialog';
 import { ReminderDialog } from '@/components/receivables/reminder-dialog';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { ReceivableDTO, ReceivableStatus, ReceivableTotals, ReminderResponse } from '@/types/receivable';
 import type { Locale } from '@/i18n/config';
@@ -44,6 +45,12 @@ export default function ScadenzarioPage() {
   const t = useTranslations('scadenzario');
   const locale = useLocale() as Locale;
   const qc = useQueryClient();
+  // Viewer: every create/edit control below is disabled (the server refuses
+  // them anyway — requireEditorRole). The reminder draft stays available: it
+  // only reads the receivable and writes nothing.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
+  const readOnlyTitle = readOnlyRole ? tSettings('readOnlyRoleShort') : undefined;
 
   const [filter, setFilter] = useState<StatusFilter>('ALL');
   const [formOpen, setFormOpen] = useState(false);
@@ -135,7 +142,7 @@ export default function ScadenzarioPage() {
         title={t('title')}
         subtitle={t('subtitle', { count: receivables.length })}
         actions={
-          <Button size="sm" onClick={() => setFormOpen(true)}>
+          <Button size="sm" onClick={() => setFormOpen(true)} disabled={readOnlyRole} title={readOnlyTitle}>
             <Plus className="h-4 w-4" />
             {t('addButton')}
           </Button>
@@ -214,9 +221,9 @@ export default function ScadenzarioPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            disabled={rowPending}
+                            disabled={rowPending || readOnlyRole}
                             onClick={() => markPaidMutation.mutate(r.id)}
-                            title={t('actions.markPaid')}
+                            title={readOnlyTitle ?? t('actions.markPaid')}
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </Button>
@@ -225,9 +232,9 @@ export default function ScadenzarioPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={rowPending}
+                        disabled={rowPending || readOnlyRole}
                         onClick={() => handleDelete(r.id)}
-                        title={t('actions.delete')}
+                        title={readOnlyTitle ?? t('actions.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -1581,6 +1581,8 @@
     "securityTwoFa": "Autenticazione a due fattori",
     "securityTwoFaDesc": "Aggiungi un livello di sicurezza con un'app autenticatrice.",
     "securityAuditNote": "Tutte le azioni sensibili sono registrate nel log di audit.",
+    "readOnlyRoleBanner": "Hai accesso in sola lettura: puoi consultare tutti i dati di questa azienda, ma non crearli, modificarli o usare l'assistente AI. Per cambiare il tuo ruolo chiedi al titolare o a un amministratore.",
+    "readOnlyRoleShort": "Non disponibile con l'accesso in sola lettura",
     "securitySessionsTitle": "Dispositivi collegati",
     "securitySessionsDesc": "Se hai usato Anlyra su un computer che non è tuo, o pensi che qualcuno abbia accesso al tuo account, puoi chiudere tutte le altre sessioni. Resterai collegato solo su questo dispositivo.",
     "securitySessionsButton": "Esci da tutti gli altri dispositivi",

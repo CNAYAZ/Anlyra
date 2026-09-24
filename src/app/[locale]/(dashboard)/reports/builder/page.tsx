@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Save, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,10 @@ import { cn } from '@/lib/utils';
 
 export default function ReportsBuilderPage() {
   const t = useTranslations('reports');
+  // Viewer reaching the builder by URL: saving is disabled (refused
+  // server-side by requireEditorRole anyway).
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -255,7 +260,8 @@ export default function ReportsBuilderPage() {
           </Link>
           <button
             type="submit"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || readOnlyRole}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
           >
             <Save className="h-4 w-4" /> {mutation.isPending ? t('saving') : t('saveReport')}

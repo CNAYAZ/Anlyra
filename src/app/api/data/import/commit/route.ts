@@ -5,6 +5,7 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
+import { requireEditorRole } from '@/lib/auth/require-role';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { validateRows, buildFinancialDescription, type RowError } from '@/lib/import/validate';
@@ -161,6 +162,9 @@ export async function POST(req: NextRequest) {
     // Demo organization: read-only. See requireWritableOrg.
     const readOnly = requireWritableOrg(authCtx.organizationId);
     if (readOnly) return readOnly;
+    // Viewer: read-only role — see requireEditorRole.
+    const viewerOnly = requireEditorRole(authCtx);
+    if (viewerOnly) return viewerOnly;
     const { userId, organizationId } = authCtx;
 
     // Expired trial (or past_due) is read-only: block committing an import.

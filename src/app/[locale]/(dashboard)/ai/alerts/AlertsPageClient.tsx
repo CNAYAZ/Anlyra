@@ -12,11 +12,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState, EmptyState } from '@/components/ui/state';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/fetcher';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { useCreditsStore } from '@/stores/credits-store';
 import type { AlertDTO, AlertStatus } from '@/types/ai';
 
 export function AlertsPageClient({ initialCredits }: { initialCredits: number }) {
   const t = useTranslations('alerts');
+  // Viewer: recomputing the alerts rewrites the shared list (and resets their
+  // status) — disabled, refused server-side by requireEditorRole anyway.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
   const setCredits = useCreditsStore((s) => s.setCredits);
   const qc = useQueryClient();
 
@@ -120,7 +125,8 @@ export function AlertsPageClient({ initialCredits }: { initialCredits: number })
               variant="secondary"
               size="sm"
               onClick={() => refreshMutation.mutate()}
-              disabled={refreshMutation.isPending}
+              disabled={refreshMutation.isPending || readOnlyRole}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             >
               <RefreshCw className={refreshMutation.isPending ? 'animate-spin h-4 w-4' : 'h-4 w-4'} />
               {t('refreshButton')}

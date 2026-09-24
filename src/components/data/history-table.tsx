@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { Search, RotateCcw } from 'lucide-react';
 
 export type BatchRow = {
@@ -36,6 +37,7 @@ type Props = {
 };
 
 export function HistoryTable({ batches, onViewDetail, onRollback }: Props) {
+  const readOnlyRole = useIsReadOnlyRole();
   const t = useTranslations('dataHistory');
   const locale = useAppLocale();
 
@@ -99,7 +101,9 @@ export function HistoryTable({ batches, onViewDetail, onRollback }: Props) {
                   >
                     <Search className="h-3.5 w-3.5" />
                   </button>
-                  {b.status !== 'ROLLED_BACK' && (
+                  {/* Hidden for a member who may only read: rolling back an
+                      import deletes data (owner/admin only server-side). */}
+                  {b.status !== 'ROLLED_BACK' && !readOnlyRole && (
                     <button
                       type="button"
                       onClick={() => onRollback(b.id)}

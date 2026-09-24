@@ -19,6 +19,7 @@ import { formatDate } from '@/lib/format';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsDemo } from '@/lib/demo/context';
+import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import type {
   AlertDTO,
   AlertSeverity,
@@ -63,6 +64,11 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
   const tCommon = useTranslations('common');
   const tDemo = useTranslations('demo');
   const isDemo = useIsDemo();
+  // Viewer: the stored analysis stays readable; generating one (it spends a
+  // credit and is saved on the shared alert) and changing the status are
+  // disabled — refused server-side by requireEditorRole anyway.
+  const readOnlyRole = useIsReadOnlyRole();
+  const tSettings = useTranslations('settings');
   const locale = useLocale() as Locale;
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
@@ -133,9 +139,9 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={isAnalyzing || !hasCredits}
+                  disabled={isAnalyzing || !hasCredits || readOnlyRole}
                   onClick={() => analyzeMutation.mutate(alert.id)}
-                  title={isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('analyzeErrorCredits') : undefined}
+                  title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('analyzeErrorCredits') : undefined}
                 >
                   {isAnalyzing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -164,8 +170,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
             {!analysis && !isAnalyzing && !errorKey && (
               <div className="space-y-1 text-xs text-muted-foreground">
-                <p>{hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}</p>
-                {!hasCredits && (
+                <p>{readOnlyRole ? tSettings('readOnlyRoleShort') : hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}</p>
+                {!hasCredits && !readOnlyRole && (
                   <Link
                     href="/settings/billing"
                     className="inline-block font-medium text-sage-700 underline-offset-4 hover:underline dark:text-sage-300"
@@ -209,7 +215,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
           <Button
             variant="ghost"
             size="sm"
-            disabled={pending || alert.status === 'DISMISSED'}
+            disabled={pending || readOnlyRole || alert.status === 'DISMISSED'}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             onClick={() => onUpdateStatus(alert.id, 'DISMISSED')}
           >
             <EyeOff className="h-4 w-4" />
@@ -218,7 +225,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
           <Button
             variant="secondary"
             size="sm"
-            disabled={pending || alert.status === 'READ'}
+            disabled={pending || readOnlyRole || alert.status === 'READ'}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             onClick={() => onUpdateStatus(alert.id, 'READ')}
           >
             <Check className="h-4 w-4" />
@@ -226,7 +234,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
           </Button>
           <Button
             size="sm"
-            disabled={pending || alert.status === 'RESOLVED'}
+            disabled={pending || readOnlyRole || alert.status === 'RESOLVED'}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             onClick={() => onUpdateStatus(alert.id, 'RESOLVED')}
           >
             <CheckCircle2 className="h-4 w-4" />

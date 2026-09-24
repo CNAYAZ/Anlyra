@@ -1581,6 +1581,8 @@
     "securityTwoFa": "Two-factor authentication",
     "securityTwoFaDesc": "Add an extra security layer using an authenticator app.",
     "securityAuditNote": "All sensitive actions are recorded in the audit log.",
+    "readOnlyRoleBanner": "You have read-only access: you can see all of this company's data, but not create or change it, or use the AI assistant. To change your role, ask the owner or an admin.",
+    "readOnlyRoleShort": "Not available with read-only access",
     "securitySessionsTitle": "Signed-in devices",
     "securitySessionsDesc": "If you used Anlyra on a computer that is not yours, or think someone else has access to your account, you can close every other session. You will stay signed in on this device only.",
     "securitySessionsButton": "Sign out of all other devices",
