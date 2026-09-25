@@ -1995,8 +1995,8 @@
       "upgradeNow": "Upgrade ora"
     },
     "moneyBack": {
-      "title": "Garanzia 14 giorni soddisfatti o rimborsati",
-      "subtitle": "Se Anlyra non ti convince entro i primi 14 giorni dal primo pagamento, ti rimborsiamo l'intero importo. Nessun vincolo, nessuna burocrazia."
+      "title": "Rimborso entro 14 giorni in caso di problemi tecnici",
+      "subtitle": "Se nei primi 14 giorni dal primo pagamento hai avuto un problema tecnico che non siamo riusciti a risolvere, scrivici: valutiamo il rimborso caso per caso."
     },
     "trial": {
       "info": "7 giorni di prova · Nessuna carta richiesta · Annulla quando vuoi"
@@ -2023,7 +2023,7 @@
   "pricing": {
     "hero": {
       "title": "Prezzi semplici e trasparenti",
-      "subtitle": "Tre piani per ogni fase di crescita. 7 giorni di prova, 14 giorni di garanzia rimborso."
+      "subtitle": "Tre piani per ogni fase di crescita. 7 giorni di prova, rimborso entro 14 giorni in caso di problemi tecnici."
     },
     "vatNote": "Prezzi senza IVA — regime forfetario, nessuna imposta addebitata.",
     "seats": "{count, plural, one {Fino a # persona nel team} other {Fino a # persone nel team}}",
@@ -2053,7 +2053,7 @@
           "Custom Dashboards illimitate",
           "Storia dati 24 mesi",
           "Importazione dati da Excel e CSV",
-          "Email support (risposta < 24h)"
+          "Email support"
         ],
         "cta": "Inizia prova 7 giorni",
         "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
@@ -2075,7 +2075,7 @@
           "Forecasting esteso (12+ mesi)",
           "API access (read-only per dashboard esterne)",
           "Custom report templates",
-          "Email priority support (risposta < 8h)"
+          "Email priority support"
         ],
         "cta": "Inizia prova 7 giorni",
         "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
@@ -2095,7 +2095,7 @@
           "Custom integrations e API personalizzate",
           "SLA 99% uptime garantito",
           "Account manager dedicato",
-          "Priority support (risposta < 4h)",
+          "Priority support",
           "DPA personalizzato",
           "On-premise option (su richiesta)"
         ],
@@ -2104,8 +2104,8 @@
       }
     },
     "moneyBack": {
-      "title": "Garanzia 14 giorni soddisfatti o rimborsati",
-      "subtitle": "Se Anlyra non ti convince entro i primi 14 giorni dal primo pagamento, ti rimborsiamo l'intero importo. Senza domande, senza burocrazia. Scrivici e ce ne occupiamo noi."
+      "title": "Rimborso entro 14 giorni in caso di problemi tecnici",
+      "subtitle": "Se nei primi 14 giorni dal primo pagamento hai avuto un problema tecnico che non siamo riusciti a risolvere, scrivici: valutiamo il rimborso caso per caso."
     },
     "demo": {
       "label": "Hai esigenze particolari o vuoi vedere il prodotto prima di provarlo?",
@@ -2138,7 +2138,7 @@
       },
       {
         "q": "C'è un piano gratuito?",
-        "a": "No, abbiamo scelto di non offrire un piano gratuito permanente per garantire qualità del servizio e supporto a tutti i clienti. Offriamo invece una prova di 7 giorni e una garanzia rimborso di 14 giorni dal primo pagamento."
+        "a": "No, abbiamo scelto di non offrire un piano gratuito permanente per garantire qualità del servizio e supporto a tutti i clienti. Offriamo invece una prova di 7 giorni e un rimborso entro 14 giorni dal primo pagamento in caso di problemi tecnici non risolti."
       },
       {
         "q": "Posso vedere una demo prima?",
@@ -2147,7 +2147,7 @@
     ],
     "finalCta": {
       "title": "Pronto a iniziare?",
-      "subtitle": "7 giorni di prova. 14 giorni di garanzia rimborso. Nessun rischio.",
+      "subtitle": "7 giorni di prova. Rimborso entro 14 giorni in caso di problemi tecnici.",
       "ctaPrimary": "Inizia prova 7 giorni"
     }
   },
