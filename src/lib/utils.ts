@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -72,13 +73,21 @@ export function formatMonth(dateStr: string, locale: Locale = 'it'): string {
   return new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'short',
     year: 'numeric',
+    timeZone: APP_TIME_ZONE,
   }).format(d);
 }
 
+// Most callers pass a full timestamp (createdAt, updatedAt, lastActive...),
+// not a calendar-day-only value: without an explicit timeZone this read the
+// server's own (UTC) day, one day early for anything that happened in the
+// ~1-2h window after midnight in Italy.
 export function formatDate(value: Date | string, locale: Locale = 'it'): string {
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return String(value);
-  return new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: 'medium' }).format(d);
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    dateStyle: 'medium',
+    timeZone: APP_TIME_ZONE,
+  }).format(d);
 }
 
 export function generateId(prefix = 'id'): string {

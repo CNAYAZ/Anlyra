@@ -12,6 +12,7 @@ import { INTEGRATIONS } from '@/lib/integrations/registry';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useIsManager } from '@/lib/auth/owner-context';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 type IntegrationStatus = {
   provider: string;
@@ -94,7 +95,7 @@ function IntegrationCard({ defn }: { defn: (typeof INTEGRATIONS)[0] }) {
         <p className="text-[11px] text-muted-foreground">
           {t('lastSync')}:{' '}
           {data?.lastSyncAt
-            ? new Date(data.lastSyncAt).toLocaleString()
+            ? new Date(data.lastSyncAt).toLocaleString(undefined, { timeZone: APP_TIME_ZONE })
             : t('neverSynced')}
         </p>
       )}

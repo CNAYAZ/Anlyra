@@ -12,6 +12,7 @@ import {
 import type { ReportConfig, ReportSection } from '../types';
 import type { ReportPayload } from '../sample-data';
 import { PDF_STRINGS } from './i18n';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 const COLORS = {
   primary: '#1e3a5f',
@@ -229,6 +230,7 @@ export function ReportDocument({ config, payload }: ReportDocumentProps) {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
+      timeZone: APP_TIME_ZONE,
     }).format(new Date(d));
 
   return (

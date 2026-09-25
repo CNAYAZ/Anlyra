@@ -263,6 +263,7 @@ function monthLabelFromKey(key: string, lang: string): string {
   return new Date(y, m - 1, 1).toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US', {
     month: 'short',
     year: '2-digit',
+    timeZone: APP_TIME_ZONE,
   });
 }
 

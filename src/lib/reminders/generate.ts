@@ -2,6 +2,7 @@
  * Payment reminder generator — pure logic, no DB, no external calls.
  * Consumed by the future "Scadenzario Incassi" feature.
  */
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 export type ReminderTone =
   | 'cortese'         // gentle first notice
@@ -45,6 +46,7 @@ function formatDate(d: Date): string {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
+    timeZone: APP_TIME_ZONE,
   }).format(d);
 }
 
