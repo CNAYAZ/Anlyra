@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Sparkles } from 'lucide-react';
+import { COMPANY } from '@/lib/company';
 
 export function SiteFooter() {
   const t = useTranslations('landing.footer');
@@ -28,7 +29,11 @@ export function SiteFooter() {
     },
   ];
 
-  const contactEmail = t('contactEmail');
+  // Single source of truth for the address itself — src/lib/company.ts, same
+  // as every other mailto: link in the app. The i18n key this used to read
+  // (landing.footer.contactEmail) still exists and is left untouched: it's
+  // the safety net scripts/check-company-data.ts checks against.
+  const contactEmail = COMPANY.contactEmail;
   const year = new Date().getFullYear();
 
   return (
