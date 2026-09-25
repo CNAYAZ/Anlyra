@@ -1995,8 +1995,8 @@
       "upgradeNow": "Upgrade now"
     },
     "moneyBack": {
-      "title": "14-day money-back guarantee",
-      "subtitle": "If Anlyra doesn't work for you within 14 days of your first payment, we'll refund the full amount. No questions asked."
+      "title": "Refund within 14 days for technical issues",
+      "subtitle": "If you hit a technical problem in the first 14 days after your first payment that we couldn't resolve, write to us — we review refunds case by case."
     },
     "trial": {
       "info": "7-day trial · No card required · Cancel anytime"
@@ -2023,7 +2023,7 @@
   "pricing": {
     "hero": {
       "title": "Simple, transparent pricing",
-      "subtitle": "Three plans for every growth stage. 7-day trial, 14-day money-back guarantee."
+      "subtitle": "Three plans for every growth stage. 7-day trial, refund within 14 days for technical issues."
     },
     "vatNote": "Prices exclude VAT — regime forfetario, no tax is charged.",
     "seats": "{count, plural, one {Up to # person in your team} other {Up to # people in your team}}",
@@ -2053,7 +2053,7 @@
           "Unlimited Custom Dashboards",
           "24 months data history",
           "Data import from Excel and CSV",
-          "Email support (response < 24h)"
+          "Email support"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2075,7 +2075,7 @@
           "Extended forecasting (12+ months)",
           "API access (read-only for external dashboards)",
           "Custom report templates",
-          "Priority email support (response < 8h)"
+          "Priority email support"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2095,7 +2095,7 @@
           "Custom integrations and APIs",
           "Guaranteed 99% uptime SLA",
           "Dedicated account manager",
-          "Priority support (response < 4h)",
+          "Priority support",
           "Custom DPA",
           "On-premise option (on request)"
         ],
@@ -2104,8 +2104,8 @@
       }
     },
     "moneyBack": {
-      "title": "14-day money-back guarantee",
-      "subtitle": "If Anlyra doesn't convince you within the first 14 days of your first payment, we'll refund the full amount. No questions asked, no hassle. Write to us and we'll take care of it."
+      "title": "Refund within 14 days for technical issues",
+      "subtitle": "If you hit a technical problem in the first 14 days after your first payment that we couldn't resolve, write to us — we review refunds case by case."
     },
     "demo": {
       "label": "Have specific requirements or want to see the product before trying it?",
@@ -2138,7 +2138,7 @@
       },
       {
         "q": "Is there a free plan?",
-        "a": "No, we chose not to offer a permanent free plan in order to guarantee service quality and support for all customers. Instead, we offer a 7-day trial and a 14-day money-back guarantee from first payment."
+        "a": "No, we chose not to offer a permanent free plan in order to guarantee service quality and support for all customers. Instead, we offer a 7-day trial and a refund within 14 days of your first payment for unresolved technical issues."
       },
       {
         "q": "Can I see a demo first?",
@@ -2147,7 +2147,7 @@
     ],
     "finalCta": {
       "title": "Ready to get started?",
-      "subtitle": "7-day trial. 14-day money-back guarantee. Zero risk.",
+      "subtitle": "7-day trial. Refund within 14 days for technical issues.",
       "ctaPrimary": "Start 7-day trial"
     }
   },
