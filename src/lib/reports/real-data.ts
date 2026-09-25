@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getOrgData } from '@/lib/api/financial-query';
 import { getFinancialFacts } from '@/lib/facts/financial-facts';
-import { toAppDateString } from '@/lib/timezone';
+import { toAppDateString, toAppWallClock, shiftAppMonth, APP_TIME_ZONE } from '@/lib/timezone';
 import type { ReportPayload } from './sample-data';
 import type { ReportConfig, ReportSection } from './types';
 
@@ -235,14 +235,23 @@ function projectNext12Months(revenues: number[], lang: string) {
   const slope = den === 0 ? 0 : num / den;
   const intercept = meanY - slope * meanX;
 
+  // Projected months as Italy sees them. The old code shifted with
+  // setMonth(getMonth() + k + 1) — server-local (UTC) month arithmetic on
+  // "now" — then formatted with toLocaleDateString with no explicit
+  // timeZone, also server-local: near midnight in Italy both steps read the
+  // UTC day, one month short of the Rome one. shiftAppMonth does the shift
+  // in Rome's frame first; the explicit timeZone below keeps the format
+  // step in that same frame.
+  const nowClock = toAppWallClock(new Date());
   return Array.from({ length: 12 }, (_, k) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + k + 1);
+    const { year, month } = shiftAppMonth(nowClock.year, nowClock.month, -(k + 1));
+    const label = new Intl.DateTimeFormat(lang === 'it' ? 'it-IT' : 'en-US', {
+      month: 'short',
+      year: '2-digit',
+      timeZone: APP_TIME_ZONE,
+    }).format(new Date(Date.UTC(year, month - 1, 1)));
     return {
-      month: d.toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US', {
-        month: 'short',
-        year: '2-digit',
-      }),
+      month: label,
       // Never project a negative revenue: clamp at zero rather than print nonsense.
       revenue: Math.max(0, Math.round(intercept + slope * (n + k))),
     };

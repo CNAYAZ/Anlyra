@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { toAppDateString, toAppWallClock, shiftAppMonth } from '@/lib/timezone';
 
 export type RuleResult = {
   source: string;
@@ -8,8 +9,10 @@ export type RuleResult = {
   recommendation: string;
 };
 
+// Safe for any Date, including a bare `new Date()`: reads the calendar month
+// as Italy sees it, not the server's own (UTC) one.
 function monthKey(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return toAppDateString(d).slice(0, 7);
 }
 
 function addMonths(d: Date, n: number) {
@@ -103,9 +106,15 @@ async function ruleCostOverBudget(orgId: string): Promise<RuleResult | null> {
 }
 
 async function ruleTopCustomerDecline(orgId: string): Promise<RuleResult | null> {
-  const now = new Date();
-  const thisMonth = monthKey(now);
-  const lastMonth = monthKey(addMonths(now, -1));
+  // "This month"/"last month" as Italy sees them. addMonths(now, -1) shifts
+  // in the server's (UTC) frame BEFORE any Rome correction, so near midnight
+  // at a month boundary it could land two months back instead of one —
+  // shiftAppMonth does the shift in Rome's frame first, so monthKey only
+  // ever has to read a wall-clock date, never fix up a UTC one.
+  const nowClock = toAppWallClock(new Date());
+  const thisMonth = `${nowClock.year}-${String(nowClock.month).padStart(2, '0')}`;
+  const prevClock = shiftAppMonth(nowClock.year, nowClock.month, 1);
+  const lastMonth = `${prevClock.year}-${String(prevClock.month).padStart(2, '0')}`;
 
   const stats = await prisma.customerStat.findMany({
     where: { organizationId: orgId, period: { in: [thisMonth, lastMonth] } },
@@ -189,9 +198,12 @@ async function ruleRevenueStagnant(orgId: string): Promise<RuleResult | null> {
 }
 
 async function ruleChurnHigh(orgId: string): Promise<RuleResult | null> {
-  const now = new Date();
-  const thisMonth = monthKey(now);
-  const lastMonth = monthKey(addMonths(now, -1));
+  // Same reasoning as ruleTopCustomerDecline above: shift in Rome's frame
+  // first (shiftAppMonth), so monthKey only ever reads a wall-clock date.
+  const nowClock = toAppWallClock(new Date());
+  const thisMonth = `${nowClock.year}-${String(nowClock.month).padStart(2, '0')}`;
+  const prevClock = shiftAppMonth(nowClock.year, nowClock.month, 1);
+  const lastMonth = `${prevClock.year}-${String(prevClock.month).padStart(2, '0')}`;
 
   const stats = await prisma.customerStat.findMany({
     where: { organizationId: orgId, period: { in: [thisMonth, lastMonth] } },

@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toAppDateString } from '@/lib/timezone';
 
 const schema = z.object({
   amount: z.preprocess(
@@ -45,7 +46,10 @@ export function ManualFormFinancial({ onSubmit, pending }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       type: 'REVENUE',
-      occurredAt: new Date().toISOString().slice(0, 10),
+      // Default to TODAY as the customer in Italy sees it. new Date() near
+      // midnight (e.g. 00:30 on the 1st) still reads as the previous UTC day
+      // via toISOString().slice(0,10) — the very bug this file used to have.
+      occurredAt: toAppDateString(new Date()),
     },
   });
 

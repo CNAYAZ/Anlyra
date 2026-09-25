@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toAppDateString } from '@/lib/timezone';
 
 const intField = z.preprocess(
   (v) => (v === '' || v === undefined ? undefined : Math.round(Number(String(v)))),
@@ -35,7 +36,10 @@ export function ManualFormCustomer({ onSubmit, pending }: Props) {
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      period: new Date().toISOString().slice(0, 7), // YYYY-MM
+      // Default to the current month as the customer in Italy sees it. Near
+      // midnight at the start of a month, new Date() read via UTC (the old
+      // toISOString().slice(0,7)) still names the PREVIOUS month.
+      period: toAppDateString(new Date()).slice(0, 7), // YYYY-MM
     },
   });
 
