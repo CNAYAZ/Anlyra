@@ -12,6 +12,27 @@ import {
   GDPR_STRIPE_CANCELLATION_MARKER,
 } from '@/lib/gdpr/constants';
 import { auditLog } from '@/lib/audit/log';
+import {
+  sendEmail,
+  sanitizeSubjectText,
+  orgDeletionMemberNoticeTemplate,
+  orgDeletionMemberCancelledTemplate,
+} from '@/lib/email';
+import { siteUrl } from '@/lib/auth/tokens';
+import { formatDate } from '@/lib/utils';
+
+/**
+ * Every OTHER member of the organization — never the actor themselves, who
+ * sees the request/cancellation live in the UI that called this route.
+ * Shared between POST (deletion notice) and DELETE (cancellation notice):
+ * same audience, same query, only the template differs.
+ */
+async function otherMembersOf(organizationId: string, excludeUserId: string) {
+  return prisma.membership.findMany({
+    where: { organizationId, userId: { not: excludeUserId } },
+    select: { user: { select: { email: true, name: true, locale: true } } },
+  });
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -202,6 +223,47 @@ export async function POST(req: Request) {
     }
   }
 
+  // Every OTHER member learns the company is going away — without this they
+  // find out only when they are locked out on day 30, with no chance to
+  // export anything first. Sent AFTER the transaction (never inside it: this
+  // is a network call, and email delivery failing must never roll back the
+  // request itself) and only for a request that actually includes the
+  // organization — a member leaving on their own never triggers this.
+  if (deletesOrganization) {
+    const purgeAt = new Date(requestedAt.getTime() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000);
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    const orgName = org?.name ?? '';
+    const recipients = await otherMembersOf(organizationId, userId);
+    for (const m of recipients) {
+      if (!m.user?.email) continue;
+      const recipientLocale = m.user.locale === 'en' ? 'en' : 'it';
+      const deletionDate = formatDate(purgeAt, recipientLocale);
+      const sendResult = await sendEmail({
+        to: m.user.email,
+        subject: recipientLocale === 'en'
+          ? `${sanitizeSubjectText(orgName)} is scheduled for deletion · Anlyra`
+          : `${sanitizeSubjectText(orgName)} sarà cancellata · Anlyra`,
+        html: orgDeletionMemberNoticeTemplate({
+          userName: m.user.name || m.user.email,
+          userEmail: m.user.email,
+          orgName,
+          deletionDate,
+          exportUrl: `${siteUrl()}/${recipientLocale}/settings/security`,
+          locale: recipientLocale,
+        }),
+      });
+      if (!sendResult.success) {
+        console.error('[email] org-deletion-member-notice failed', {
+          to: m.user.email,
+          reason: sendResult.error,
+        });
+      }
+    }
+  }
+
   await auditLog({
     action: 'gdpr.account_deletion_request',
     userId,
@@ -345,6 +407,42 @@ export async function DELETE(req: Request) {
         `[gdpr/account] Stripe un-schedule FAILED for organization ${organizationId} — restore it manually:`,
         e,
       );
+    }
+  }
+
+  // Same audience as the notice POST sent, told the alarm is lifted — see
+  // orgDeletionMemberCancelledTemplate for why this one exists at all: the
+  // banner already disappears for anyone who opens the app again, but email
+  // was the channel that reached members who do not, and leaving them with a
+  // stale "your company will be deleted" is worse than one more email.
+  if (cancelOrganization) {
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    const orgName = org?.name ?? '';
+    const recipients = await otherMembersOf(organizationId, userId);
+    for (const m of recipients) {
+      if (!m.user?.email) continue;
+      const recipientLocale = m.user.locale === 'en' ? 'en' : 'it';
+      const sendResult = await sendEmail({
+        to: m.user.email,
+        subject: recipientLocale === 'en'
+          ? `${sanitizeSubjectText(orgName)} is safe — deletion cancelled · Anlyra`
+          : `${sanitizeSubjectText(orgName)} è al sicuro — cancellazione annullata · Anlyra`,
+        html: orgDeletionMemberCancelledTemplate({
+          userName: m.user.name || m.user.email,
+          userEmail: m.user.email,
+          orgName,
+          locale: recipientLocale,
+        }),
+      });
+      if (!sendResult.success) {
+        console.error('[email] org-deletion-member-cancelled failed', {
+          to: m.user.email,
+          reason: sendResult.error,
+        });
+      }
     }
   }
 

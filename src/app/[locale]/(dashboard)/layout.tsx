@@ -24,6 +24,8 @@ import type { PlanId } from '@/lib/billing/plans';
 import { isOwnerRole, isManagerRole, isEditorRole } from '@/lib/auth/require-role';
 import { OwnerProvider, ManagerProvider, ReadOnlyRoleProvider } from '@/lib/auth/owner-context';
 import { ReadOnlyRoleBanner } from '@/components/auth/ReadOnlyRoleBanner';
+import { isPastGrace, DELETION_GRACE_DAYS } from '@/lib/gdpr/constants';
+import { OrgDeletionPendingBanner } from '@/components/gdpr/OrgDeletionPendingBanner';
 
 // Authenticated per-user surface: never statically prerendered. The previous
 // getSession() bailed to dynamic implicitly via a synchronous cookie read; now
@@ -114,6 +116,24 @@ export default async function DashboardLayout({
       )
     : false;
 
+  // Same gating as needsReaccept above: only for a real signed-in member,
+  // never the demo (which can never have a pending deletion request at all).
+  // The requester's OWN account never reaches this layout in the first place
+  // — their User.deletionRequestedAt sends them to /deletion-pending above —
+  // so whoever sees this banner is always one of the OTHER members.
+  const orgForDeletionBanner = authCtx
+    ? await prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { name: true, deletionRequestedAt: true },
+      })
+    : null;
+  const orgDeletionDate =
+    orgForDeletionBanner?.deletionRequestedAt && !isPastGrace(orgForDeletionBanner.deletionRequestedAt)
+      ? new Date(
+          orgForDeletionBanner.deletionRequestedAt.getTime() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000,
+        ).toISOString()
+      : null;
+
   return (
     <BillingProvider initialState={billingState}>
       {/* Makes `isDemo` available to every client component below, so the UI can
@@ -141,6 +161,13 @@ export default async function DashboardLayout({
                 {/* Same shape again: asks for acceptance of updated legal documents
                     without blocking anything. Renders null when needsReaccept is false. */}
                 <LegalReacceptBanner needsReaccept={needsReaccept} />
+                {/* Same shape again, for every OTHER member while the organization
+                    itself has a pending deletion request. Renders null when
+                    orgDeletionDate is null. */}
+                <OrgDeletionPendingBanner
+                  deletionDate={orgDeletionDate}
+                  organizationName={orgForDeletionBanner?.name ?? ''}
+                />
                 <main className="flex-1 p-6">
                   <div className="mx-auto w-full max-w-[1440px]">{children}</div>
                 </main>
