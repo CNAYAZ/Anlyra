@@ -9,6 +9,7 @@ import {
   computeKpis,
   cumulativeCashflow,
   filterTransactionsByWindow,
+  monthKey,
   monthlySeries,
   periodMonths,
   periodTotals,
@@ -49,7 +50,12 @@ export async function GET(req: NextRequest) {
     // longer than 1m; that is harmless because computeKpis reads ONE NAMED
     // MONTH out of each of them (addressed by key), never the window total.
     const compWindow = comparisonWindow(window, 1);
-    const compMonthKey = `${compWindow.to.getFullYear()}-${String(compWindow.to.getMonth() + 1).padStart(2, '0')}`;
+    // compWindow.to is an arbitrary Rome-timezone instant (comparisonWindow
+    // preserves the original window's hour-of-day, never midnight), so
+    // reading its month via getFullYear()/getMonth() reads the UTC day
+    // instead — near midnight in Italy this named the wrong month. monthKey
+    // (same helper revenue/route.ts already uses here) reads it correctly.
+    const compMonthKey = monthKey(compWindow.to);
     const kpis = computeKpis({
       transactions: filtered,
       cashflow: filteredCashflow,
