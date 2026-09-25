@@ -3174,6 +3174,10 @@
     "cancelFailed": "The deletion could not be cancelled. Try again in a moment; if the problem persists, contact support.",
     "logoutButton": "Sign out",
     "expiredTitle": "The time to cancel is over",
-    "expiredBody": "Thirty days have passed since the request: the deletion is final and will be completed shortly. It can no longer be cancelled."
+    "expiredBody": "Thirty days have passed since the request: the deletion is final and will be completed shortly. It can no longer be cancelled.",
+    "memberBanner": {
+      "message": "The organization “{organization}” will be deleted on {date}, along with all of its data. You can still export it before then.",
+      "cta": "Export data"
+    }
   }
 }

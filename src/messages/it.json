@@ -3174,6 +3174,10 @@
     "cancelFailed": "Non è stato possibile annullare. Riprova tra qualche istante; se il problema continua, scrivi all'assistenza.",
     "logoutButton": "Esci",
     "expiredTitle": "Il periodo per annullare è terminato",
-    "expiredBody": "Sono passati i trenta giorni dalla richiesta: la cancellazione è definitiva e verrà completata a breve. Non è più possibile annullarla."
+    "expiredBody": "Sono passati i trenta giorni dalla richiesta: la cancellazione è definitiva e verrà completata a breve. Non è più possibile annullarla.",
+    "memberBanner": {
+      "message": "L'azienda «{organization}» sarà cancellata il {date}, con tutti i suoi dati. Puoi ancora esportarli prima di allora.",
+      "cta": "Esporta i dati"
+    }
   }
 }
