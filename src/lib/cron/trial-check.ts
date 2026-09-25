@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { siteUrl } from '@/lib/auth/tokens';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 import { getSubscription } from '@/lib/billing/repository';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { formatCurrency } from '@/lib/format';
@@ -79,7 +80,12 @@ function resolvePlanEmailInfo(planId: string, locale: EmailLocale): PlanEmailInf
 const PAID_STATUSES = ['active', 'past_due'];
 
 function fmtDate(d: Date, locale = 'it-IT'): string {
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: APP_TIME_ZONE,
+  });
 }
 
 async function orgAdminEmails(

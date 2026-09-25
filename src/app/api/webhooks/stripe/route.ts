@@ -15,6 +15,7 @@ import type { PlanId } from "@/lib/billing/plans";
 import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
 import { siteUrl } from "@/lib/auth/tokens";
+import { APP_TIME_ZONE } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 
@@ -224,7 +225,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
             planName: invoice.lines.data[0]?.description || "Anlyra Pro",
             amount: (invoice.amount_paid / 100).toFixed(2),
             currency: invoice.currency.toUpperCase(),
-            nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString(dateLocale),
+            nextBillingDate: new Date(invoice.period_end * 1000).toLocaleDateString(dateLocale, {
+              timeZone: APP_TIME_ZONE,
+            }),
             invoiceUrl: invoice.hosted_invoice_url || "",
             manageUrl: `${siteUrl()}/${locale}/settings/billing`,
             locale,

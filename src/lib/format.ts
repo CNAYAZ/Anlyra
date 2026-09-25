@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n/config';
+import { APP_TIME_ZONE } from '@/lib/timezone';
 
 function tag(locale: Locale): string {
   return locale === 'en' ? 'en-US' : 'it-IT';
@@ -32,10 +33,14 @@ export function formatPercent(value: number, locale: Locale, digits = 1) {
   }).format(v);
 }
 
+// Most callers pass a full timestamp, not a calendar-day-only value:
+// without an explicit timeZone this read the server's own (UTC) day, one
+// day early for anything that happened in the ~1-2h window after midnight
+// in Italy.
 export function formatDate(value: Date | string, locale: Locale) {
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return String(value);
-  return new Intl.DateTimeFormat(tag(locale), { dateStyle: 'medium' }).format(d);
+  return new Intl.DateTimeFormat(tag(locale), { dateStyle: 'medium', timeZone: APP_TIME_ZONE }).format(d);
 }
 
 export function formatDateTime(value: Date | string, locale: Locale) {
@@ -44,6 +49,7 @@ export function formatDateTime(value: Date | string, locale: Locale) {
   return new Intl.DateTimeFormat(tag(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
   }).format(d);
 }
 

@@ -434,7 +434,7 @@ function SettingsBillingPageInner() {
           <p className="text-xs text-fg-3">
             {t('billingStatus')}: <span className="font-medium">{plan.status}</span>
             {plan.periodEnd && (
-              <> · {t('billingRenewsOn')} {new Date(plan.periodEnd).toLocaleDateString('it-IT')}</>
+              <> · {t('billingRenewsOn')} {formatDate(new Date(plan.periodEnd), locale)}</>
             )}
           </p>
         </div>
