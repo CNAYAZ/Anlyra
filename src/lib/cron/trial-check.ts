@@ -192,6 +192,10 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
       }
       const dateLocale = r.locale === 'en' ? 'en-US' : 'it-IT';
       const billingUrl = `${siteUrl()}/${r.locale}/settings/billing`;
+      // The actual export button (PrivacyPanel, calling /api/gdpr/export) lives
+      // on settings/security, not settings/billing — trialExpiredTemplate's
+      // exportUrl was wrongly pointed at the billing page.
+      const securityUrl = `${siteUrl()}/${r.locale}/settings/security`;
 
       // sendEmail never throws (it catches internally and returns
       // {success,error} — see send.ts), so the .catch() these three calls had
@@ -211,7 +215,7 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
             userEmail: r.email,
             expiredAt: fmtDate(org.trialEndsAt, dateLocale),
             reactivateUrl: billingUrl,
-            exportUrl: billingUrl,
+            exportUrl: securityUrl,
             locale: r.locale,
           }),
         });

@@ -1905,6 +1905,7 @@
       "explainer": "Plan credits reset to zero on every monthly renewal. Purchased credits never expire and are only used after your plan credits run out.",
       "buyErrorConfig": "This pack is not available for purchase right now. Please try again later or contact us.",
       "buyErrorGeneric": "Purchase failed. Please try again.",
+      "buySubscriptionInactive": "You need an active plan to buy credits. Choose a plan to unlock this.",
       "historyReasonHeader": "Movement",
       "historyChangeHeader": "Change",
       "historyEmpty": "No credit movements recorded yet.",
