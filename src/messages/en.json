@@ -1511,6 +1511,7 @@
     "memberErrorLastOwner": "The organization must always have at least one owner.",
     "memberErrorConflict": "The team changed while you were editing. Reload the page and try again.",
     "memberErrorGeneric": "Action failed. Please try again.",
+    "memberErrorSeatLimit": "Your plan has no free seat for this role: a read-only person can become Editor or Admin only if your plan still has a full-access seat.",
     "teamEmpty": "No team members.",
     "teamSeatsCounter": "{used} of {limit} people included in your plan",
     "teamSeatsCounterOver": "Your team has {used} people, your plan includes {limit}",
@@ -1518,6 +1519,9 @@
     "teamSeatsBreakdown": "That counts {members, plural, one {# person already in the team} other {# people already in the team}} and {invites, plural, =0 {no pending invites} one {# invite still pending} other {# invites still pending}}.",
     "teamSeatsFull": "Every seat in your plan is taken: to invite someone else, move to a higher plan, remove a member, or cancel a pending invite.",
     "teamSeatsOver": "Your team is larger than your plan includes. Nobody loses access: everyone stays. To invite more people move to a higher plan, or come back down to {limit}.",
+    "teamSeatsFreeViewers": "Read-only people (Viewer) take no seat up to {free}: {used} of {free} in use. Meant for your accountant.",
+    "teamSeatsViewerOnly": "Your plan has no full-access seats left: you can only invite a read-only person (Viewer).",
+    "teamSeatsPromoteLocked": "Your plan has no full-access seats left: for now a read-only person cannot become Editor or Admin.",
     "inviteTitle": "Invite someone",
     "inviteSubtitle": "They will receive an email with a link valid for 72 hours.",
     "inviteEmail": "Email address",
@@ -2029,6 +2033,11 @@
     "vatNote": "Prices exclude VAT — regime forfetario, no tax is charged.",
     "seats": "{count, plural, one {Up to # person in your team} other {Up to # people in your team}}",
     "seatsUnlimited": "Unlimited people in your team",
+    "seatsWithViewers": "{count, plural, one {# person} other {# people}} with full access, plus {viewers, plural, one {# free Viewer} other {# free Viewers}} (e.g. your accountant)",
+    "creditsPerMonth": "{count} AI credits per month",
+    "creditsUnlimited": "Unlimited AI credits",
+    "orgs": "{count, plural, one {# company} other {Up to # companies}}",
+    "orgsUnlimited": "Unlimited companies",
     "compareTitle": "Compare plans",
     "faqTitle": "Frequently asked questions",
     "everythingIn": "Everything in {plan}, plus:",
@@ -2048,13 +2057,14 @@
         "billedAnnual": "/yr",
         "billedNote": "billed annually",
         "features": [
-          "200 AI credits / month",
-          "All analytics (Finance, Market, Operations)",
-          "Unlimited PDF reports",
-          "Unlimited Custom Dashboards",
-          "24 months data history",
           "Data import from Excel and CSV",
-          "Email support"
+          "Revenue, cost and cash-flow analysis",
+          "Receivables schedule",
+          "Recurring expenses",
+          "Alerts on your numbers",
+          "Forecasts up to 12 months",
+          "PDF reports",
+          "AI assistant chat"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2070,13 +2080,11 @@
         "billedNote": "billed annually",
         "featuresPrefix": "Everything in Pro, plus:",
         "features": [
-          "700 AI credits / month (3.5x vs Pro)",
-          "36 months data history",
-          "Advanced industry benchmarks",
-          "Extended forecasting (12+ months)",
-          "API access (read-only for external dashboards)",
-          "Custom report templates",
-          "Priority email support"
+          "Reports sent automatically by email",
+          "Shareable report links",
+          "Custom dashboards",
+          "AI Agent",
+          "Roles for every team member: Admin, Editor, Viewer"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2090,15 +2098,7 @@
         "priceAnnual": "Custom",
         "featuresPrefix": "Everything in Advanced, plus:",
         "features": [
-          "Unlimited AI credits",
-          "SSO via SAML 2.0",
-          "Advanced audit log",
-          "Custom integrations and APIs",
-          "Guaranteed 99% uptime SLA",
-          "Dedicated account manager",
-          "Priority support",
-          "Custom DPA",
-          "On-premise option (on request)"
+          "All your companies under one login"
         ],
         "cta": "Contact our sales team",
         "footerNote": "Custom demo · Dedicated onboarding"

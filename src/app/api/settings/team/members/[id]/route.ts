@@ -6,6 +6,7 @@ import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole, isOwnerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
+import { checkSeatAvailability } from '@/lib/billing/server-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -72,6 +73,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const callerIsOwner = isOwnerRole(authCtx.role);
     const { organizationId, userId } = authCtx;
+
+    // Seats depend on the role (plans.ts countedSeats): promoting the plan's
+    // free viewer to editor takes a seat the plan may not have. A change that
+    // does not raise the count — any demotion, admin↔editor — always passes.
+    const seats = await checkSeatAvailability(organizationId, 'role', newRole, {
+      membershipId,
+    });
+    if (!seats.allowed) return fail('SEAT_LIMIT_REACHED', 403);
 
     const rows = await prisma.$queryRaw<MemberGuardRow[]>`
       WITH locked AS (

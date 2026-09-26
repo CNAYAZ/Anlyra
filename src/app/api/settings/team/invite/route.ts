@@ -118,18 +118,18 @@ export async function POST(req: NextRequest) {
     });
 
     // Seat limit. Checked HERE — after the "already a member" and "open invite"
-    // branches above, before anything is written — on purpose: re-sending an
-    // invite that is already open (openInvite is set) takes no NEW seat, it
-    // refreshes a seat already counted, so refusing it would block a person
-    // from fixing a lost email while at the cap. Only a genuinely new invite is
-    // measured against the plan.
+    // branches above, before anything is written.
     // checkSeatAvailability counts members PLUS still-open invites, which is
     // what stops the limit being walked around by sending twenty invites in one
-    // sitting while still under the cap.
-    if (!openInvite) {
-      const seats = await checkSeatAvailability(organizationId, 'invite');
-      if (!seats.allowed) return fail('SEAT_LIMIT_REACHED', 403);
-    }
+    // sitting while still under the cap. Seats depend on the role (a viewer
+    // can be free), so a re-sent invite is checked too, as a REPLACEMENT of
+    // the open one: re-sending with the same role never needs a free seat —
+    // fixing a lost email at the cap still works — but re-sending a free
+    // viewer invite as an editor does.
+    const seats = await checkSeatAvailability(organizationId, 'invite', role, {
+      inviteId: openInvite?.id,
+    });
+    if (!seats.allowed) return fail('SEAT_LIMIT_REACHED', 403);
 
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },

@@ -22,8 +22,9 @@ import {
 import { useIsManager, useIsOwner } from '@/lib/auth/owner-context';
 import { RoleCapabilities } from './RoleCapabilities';
 import { usePlan } from '@/lib/billing/context';
-import { isUnlimited } from '@/lib/billing/plans';
+import { isUnlimited, countedSeats } from '@/lib/billing/plans';
 import { CheckCircle2, MailWarning, Trash2, UserCircle2, UserMinus, Users } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 
 /** The four roles a member can be set to. 'owner' is assignable only BY an owner. */
 const ASSIGNABLE_ROLES = ['owner', 'admin', 'editor', 'viewer'] as const;
@@ -84,6 +85,9 @@ const MEMBER_ERROR_KEYS: Record<string, string> = {
   LAST_OWNER: 'memberErrorLastOwner',
   CONFLICT: 'memberErrorConflict',
   DEMO_READ_ONLY: 'inviteErrorDemo',
+  // Promoting a free viewer to a full-access role needs a seat the plan
+  // does not have (checkSeatAvailability 'role').
+  SEAT_LIMIT_REACHED: 'memberErrorSeatLimit',
 };
 
 const ROLE_BADGE: Record<string, string> = {
@@ -94,6 +98,7 @@ const ROLE_BADGE: Record<string, string> = {
 
 export default function SettingsTeamPage() {
   const t = useTranslations('settings');
+  const tFeature = useTranslations('feature');
   const locale = useAppLocale();
   const qc = useQueryClient();
   const isManager = useIsManager();
@@ -133,14 +138,39 @@ export default function SettingsTeamPage() {
   // future), so the number shown here and the number enforced cannot drift.
   const { limits } = usePlan();
   const seatLimit = limits.users;
+  const freeViewers = limits.freeViewers;
   const seatsAreUnlimited = isUnlimited(seatLimit);
   const membersCount = data?.members.length ?? 0;
   const invitesCount = data?.invites.length ?? 0;
-  const seatsUsed = membersCount + invitesCount;
+  // Seats are counted with the same countedSeats() the server uses: viewers
+  // take no seat up to the plan's freeViewers (PRO includes one, for the
+  // accountant).
+  const memberRoles = data?.members.map((m) => m.role) ?? [];
+  const takenRoles = [...memberRoles, ...(data?.invites.map((i) => i.role) ?? [])];
+  const seatsUsed = countedSeats(takenRoles, freeViewers);
+  const viewersInUse = Math.min(
+    freeViewers,
+    takenRoles.filter((r) => r === 'viewer').length,
+  );
+  // Could one more person with this role be invited? Same test as the
+  // server's checkSeatAvailability('invite').
+  const canInviteRole = (r: string) =>
+    seatsAreUnlimited || countedSeats([...takenRoles, r], freeViewers) <= seatLimit;
+  // Could this member's role be changed to `r`? Same test as the server's
+  // checkSeatAvailability('role'): members only, and a change that does not
+  // raise the count always passes.
+  const canChangeRole = (membershipId: string, r: string) => {
+    if (seatsAreUnlimited) return true;
+    const after = data?.members.map((m) => (m.id === membershipId ? r : m.role)) ?? [];
+    const usedAfter = countedSeats(after, freeViewers);
+    return usedAfter <= seatLimit || usedAfter <= countedSeats(memberRoles, freeViewers);
+  };
   // Only once the counts have actually loaded: while `data` is undefined both
   // are 0, and a plan with 0 seats does not exist, so nothing is ever blocked
-  // on a number we do not have yet.
-  const seatsFull = !!data && !seatsAreUnlimited && seatsUsed >= seatLimit;
+  // on a number we do not have yet. "Full" means not even a viewer fits.
+  const seatsFull = !!data && !seatsAreUnlimited && !canInviteRole('viewer');
+  // A seat is left only for a free viewer: full-access roles are unavailable.
+  const onlyViewerSeat = !!data && !seatsFull && !canInviteRole('editor');
   // Already past the limit — a downgrade leaves the team as it is (nothing in
   // the code removes memberships by plan), so this is a normal state to land
   // in, not a fault. Shown as two plain facts instead of "7 di 5", which reads
@@ -155,7 +185,9 @@ export default function SettingsTeamPage() {
     ? t('inviteManagerOnly')
     : seatsFull
       ? t('teamSeatsFull')
-      : null;
+      : onlyViewerSeat && role !== 'viewer'
+        ? t('teamSeatsViewerOnly')
+        : null;
 
   const invite = useMutation({
     mutationFn: (body: { email: string; role: string }) =>
@@ -238,7 +270,9 @@ export default function SettingsTeamPage() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {t('teamSeatsBreakdown', { members: membersCount, invites: invitesCount })}
+            {freeViewers > 0 && !seatsAreUnlimited
+              ? t('teamSeatsFreeViewers', { free: freeViewers, used: viewersInUse })
+              : t('teamSeatsBreakdown', { members: membersCount, invites: invitesCount })}
           </p>
           {seatsOver && (
             <p className="text-xs text-muted-foreground tabular-nums">
@@ -318,7 +352,7 @@ export default function SettingsTeamPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {ASSIGNABLE_ROLES.filter((r) => r !== 'owner' || isOwner).map((r) => (
-                              <SelectItem key={r} value={r}>
+                              <SelectItem key={r} value={r} disabled={!canChangeRole(m.id, r)}>
                                 {t(`role${r.charAt(0).toUpperCase()}${r.slice(1)}` as 'roleOwner')}
                               </SelectItem>
                             ))}
@@ -355,6 +389,16 @@ export default function SettingsTeamPage() {
       )}
 
       <FormError>{memberErrorKey ? t(memberErrorKey as 'memberErrorGeneric') : null}</FormError>
+      {isManager &&
+        !seatsAreUnlimited &&
+        !!data?.members.some((m) => m.role === 'viewer' && !canChangeRole(m.id, 'editor')) && (
+          <p className="text-[11px] text-muted-foreground">
+            {t('teamSeatsPromoteLocked')}{' '}
+            <Link href="/settings/billing" className="font-medium underline">
+              {tFeature('upgrade')}
+            </Link>
+          </p>
+        )}
 
       {!isManager && <p className="text-[11px] text-muted-foreground">{t('memberManagerOnly')}</p>}
 
@@ -455,7 +499,7 @@ export default function SettingsTeamPage() {
               </SelectTrigger>
               <SelectContent>
                 {INVITABLE_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>
+                  <SelectItem key={r} value={r} disabled={!canInviteRole(r)}>
                     {t(`role${r.charAt(0).toUpperCase()}${r.slice(1)}` as 'roleOwner')}
                   </SelectItem>
                 ))}
@@ -490,6 +534,14 @@ export default function SettingsTeamPage() {
 
         {inviteBlockedReason && (
           <p className="text-[11px] text-muted-foreground">{inviteBlockedReason}</p>
+        )}
+        {isManager && onlyViewerSeat && role === 'viewer' && (
+          <p className="text-[11px] text-muted-foreground">
+            {t('teamSeatsViewerOnly')}{' '}
+            <Link href="/settings/billing" className="font-medium underline">
+              {tFeature('upgrade')}
+            </Link>
+          </p>
         )}
 
         <button

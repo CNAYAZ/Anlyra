@@ -13,6 +13,8 @@ import { FileText } from 'lucide-react';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatDate } from '@/lib/utils';
 import { useIsManager } from '@/lib/auth/owner-context';
+import { useFeatureGate } from '@/lib/billing/context';
+import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 
 type ReportDetail = {
   id: string;
@@ -43,6 +45,9 @@ export default function ReportDetailPage() {
   // "Create link" is requireManagerRole server-side (POST reports/[id]/share):
   // hidden for anyone who is not owner/admin, same as the rest of the product.
   const isManager = useIsManager();
+  // Plan: creating a share link is an ADVANCED feature (requireFeaturePlan on
+  // POST). Revoking an existing link stays available on every plan.
+  const { hasAccess: planAllowsShare } = useFeatureGate('share_reports');
 
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -218,14 +223,17 @@ export default function ReportDetailPage() {
             // create the link either way — same message covers both.
             <p className="text-xs text-muted-foreground">{tShare('managerOnly')}</p>
           ) : (
-            <button
-              onClick={() => shareMutation.mutate()}
-              disabled={shareMutation.isPending}
-              className="btn-secondary"
-            >
-              <Share2 className="h-4 w-4" />
-              {shareMutation.isPending ? tShare('creating') : tShare('createLink')}
-            </button>
+            <div className="space-y-1">
+              <button
+                onClick={() => shareMutation.mutate()}
+                disabled={shareMutation.isPending || !planAllowsShare}
+                className="btn-secondary disabled:opacity-60"
+              >
+                <Share2 className="h-4 w-4" />
+                {shareMutation.isPending ? tShare('creating') : tShare('createLink')}
+              </button>
+              <PlanLockedNote feature="share_reports" />
+            </div>
           )}
         </div>
       </div>

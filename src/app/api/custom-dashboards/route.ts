@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentContext, getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireEditorRole } from '@/lib/auth/require-role';
+import { requireFeaturePlan } from '@/lib/billing/server-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,10 @@ export async function POST(req: NextRequest) {
     const viewerOnly = requireEditorRole(authCtx);
     if (viewerOnly) return viewerOnly;
     const { organizationId } = authCtx;
+    // Creating a dashboard is gated by plan; dashboards made before a
+    // downgrade stay readable, editable and deletable ([id]/route.ts).
+    const locked = await requireFeaturePlan(organizationId, 'custom_dashboards');
+    if (locked) return locked;
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'INVALID', 400);
     const created = await prisma.customDashboard_b8.create({
