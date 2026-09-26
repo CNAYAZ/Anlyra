@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Save, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useFeatureGate } from '@/lib/billing/context';
+import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +38,8 @@ export default function CustomDashboardsBuilderPage() {
   // Viewer reaching the builder by URL: saving is disabled (refused
   // server-side by requireEditorRole anyway).
   const readOnlyRole = useIsReadOnlyRole();
+  // Plan: saving a NEW dashboard is refused by requireFeaturePlan on POST.
+  const { hasAccess: planAllowsCreate } = useFeatureGate('custom_dashboards');
   const tSettings = useTranslations('settings');
   const router = useRouter();
 
@@ -254,6 +258,7 @@ export default function CustomDashboardsBuilderPage() {
             old banner at the top of this long builder was off-screen. */}
         <FormError>{error}</FormError>
         {readOnlyRole && <p className="text-right text-[11px] text-muted-foreground">{tSettings('readOnlyRoleShort')}</p>}
+        {!readOnlyRole && <PlanLockedNote feature="custom_dashboards" className="text-right" />}
 
         <div className="flex justify-end gap-2">
           <Link
@@ -264,11 +269,11 @@ export default function CustomDashboardsBuilderPage() {
           </Link>
           <button
             type="submit"
-            disabled={mutation.isPending || readOnlyRole}
+            disabled={mutation.isPending || readOnlyRole || !planAllowsCreate}
             title={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
             className={cn(
               'inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90',
-              (mutation.isPending || readOnlyRole) && 'opacity-60',
+              (mutation.isPending || readOnlyRole || !planAllowsCreate) && 'opacity-60',
             )}
           >
             <Save className="h-4 w-4" /> {mutation.isPending ? t('saving') : t('saveDashboard')}

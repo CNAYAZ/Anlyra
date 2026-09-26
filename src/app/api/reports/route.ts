@@ -8,6 +8,7 @@ import { requireEditorRole } from '@/lib/auth/require-role';
 import { reportPeriodSchema, reportLanguageSchema } from '@/lib/reports/types';
 import { bridgeSections } from '@/lib/reports/config';
 import { validateReportRecipients } from '@/lib/reports/recipients';
+import { requireFeaturePlan } from '@/lib/billing/server-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -86,6 +87,13 @@ export async function POST(req: NextRequest) {
     // marked required there today.
     if (parsed.data.schedule !== 'on_demand' && !parsed.data.recipients?.trim()) {
       return fail('RECIPIENTS_REQUIRED', 400);
+    }
+
+    // Reports sent automatically by email are a plan feature; an on-demand
+    // report (the PDF) is not, so only a schedule is gated.
+    if (parsed.data.schedule !== 'on_demand') {
+      const locked = await requireFeaturePlan(organizationId, 'scheduled_reports');
+      if (locked) return locked;
     }
 
     // Recipients must be real members of THIS organization — see the long note

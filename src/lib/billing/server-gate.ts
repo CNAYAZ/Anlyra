@@ -5,6 +5,8 @@ import {
   type PlanId,
   planHasFeature,
   planHasIntegration,
+  getMinPlanForFeature,
+  countedSeats,
 } from "./plans";
 import { getSubscription, type Subscription } from "./repository";
 import { prisma } from "@/lib/prisma";
@@ -105,6 +107,34 @@ export async function requireIntegrationPlan(
   );
 }
 
+// Customer-facing plan names, in Italian like every other message fail()
+// returns from these routes. The interface disables the control before the
+// click with its own translated text; this is the server's backstop.
+const PLAN_LABELS: Record<PlanId, string> = {
+  PRO: "Pro",
+  ADVANCED: "Avanzato",
+  ENTERPRISE: "Enterprise",
+};
+
+/**
+ * Plan gate for a feature of the price list (PLANS[...].features). Same shape
+ * as requireIntegrationPlan above — a ready 403 or null — and for the same
+ * reason assertFeature is not used: it throws an Error that failFromError
+ * cannot translate, so the customer would get a 500. The message names the
+ * plan that includes the feature and never the organization's current one.
+ * Gate CREATION only: data made before a downgrade stays usable.
+ */
+export async function requireFeaturePlan(orgId: string, feature: FeatureKey) {
+  const sub = await getSubscription(orgId);
+  if (planHasFeature(sub.plan, feature)) return null;
+  const required = getMinPlanForFeature(feature);
+  const label = required ? PLAN_LABELS[required] : PLAN_LABELS.ENTERPRISE;
+  return fail(
+    `Questa funzione è inclusa dal piano ${label}. Passa al piano ${label} per usarla.`,
+    403,
+  );
+}
+
 export async function assertWithinLimit(
   orgId: string,
   metric: keyof (typeof PLANS)["PRO"]["limits"],
@@ -165,28 +195,57 @@ export type SeatCheck = {
  * An organization sitting at eight people on a five-seat plan keeps all eight,
  * keeps their access, and keeps every invite already accepted; it simply cannot
  * add a ninth. Nothing here removes or downgrades anyone.
+ *
+ * ── SEATS DEPEND ON THE ROLE ──
+ * Seats are counted with countedSeats() (plans.ts): a viewer is free up to the
+ * plan's `freeViewers`. So the check takes the role being added, and, for a
+ * change that REPLACES someone rather than adding them — 'role' (a member's
+ * role changes) or an invite re-sent with `replacingInviteId` — it compares
+ * the seats before and after. A replacement that does not raise the count is
+ * always allowed, even over the limit: re-sending an invite or demoting
+ * someone never needs a free seat. Promoting a free viewer to editor does.
  */
 export async function checkSeatAvailability(
   orgId: string,
-  when: "invite" | "join",
+  when: "invite" | "join" | "role",
+  role: string,
+  replacing: { inviteId?: string; membershipId?: string } = {},
 ): Promise<SeatCheck> {
   const sub = await getSubscription(orgId);
-  const limit = PLANS[sub.plan].limits.users;
+  const { users: limit, freeViewers } = PLANS[sub.plan].limits;
 
   if (limit === -1) {
     return { allowed: true, limit, used: 0 };
   }
 
-  const members = await prisma.membership.count({ where: { organizationId: orgId } });
+  const members = await prisma.membership.findMany({
+    where: { organizationId: orgId },
+    select: { id: true, role: true },
+  });
   const openInvites =
     when === "invite"
-      ? await prisma.invite.count({
+      ? await prisma.invite.findMany({
           where: { organizationId: orgId, acceptedAt: null, expiresAt: { gt: new Date() } },
+          select: { id: true, role: true },
         })
-      : 0;
+      : [];
 
-  const used = members + openInvites;
-  return { allowed: used < limit, limit, used };
+  const before = [...members.map((m) => m.role), ...openInvites.map((i) => i.role)];
+  const kept = [
+    ...members.filter((m) => m.id !== replacing.membershipId).map((m) => m.role),
+    ...openInvites.filter((i) => i.id !== replacing.inviteId).map((i) => i.role),
+  ];
+  const after = [...kept, role];
+
+  const used = countedSeats(before, freeViewers);
+  const usedAfter = countedSeats(after, freeViewers);
+  const replacesSomeone = kept.length < before.length;
+
+  return {
+    allowed: usedAfter <= limit || (replacesSomeone && usedAfter <= used),
+    limit,
+    used,
+  };
 }
 
 export type OrganizationAllowance = {

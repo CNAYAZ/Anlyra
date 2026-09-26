@@ -10,6 +10,8 @@ import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
+import { useFeatureGate } from '@/lib/billing/context';
+import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Dashboard = {
@@ -29,6 +31,9 @@ export default function CustomDashboardsPage() {
   // hidden for editor too, not just viewer.
   const readOnlyRole = useIsReadOnlyRole();
   const isManager = useIsManager();
+  // Plan: creating a dashboard is an ADVANCED feature (requireFeaturePlan on
+  // POST). Existing dashboards stay openable and deletable on any plan.
+  const { hasAccess: planAllowsCreate } = useFeatureGate('custom_dashboards');
   const locale = useAppLocale();
 
   const { data, isLoading } = useQuery({
@@ -48,14 +53,24 @@ export default function CustomDashboardsPage() {
           <h1 className="font-heading text-2xl font-semibold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        {!readOnlyRole && (
+        {!readOnlyRole && (planAllowsCreate ? (
           <Link
             href="/custom-dashboards/builder"
             className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
           >
             <Plus className="h-4 w-4" /> {t('newDashboard')}
           </Link>
-        )}
+        ) : (
+          <div className="flex flex-col items-end gap-1">
+            <span
+              aria-disabled="true"
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-primary-accent px-4 py-2 text-sm font-medium text-white opacity-60"
+            >
+              <Plus className="h-4 w-4" /> {t('newDashboard')}
+            </span>
+            <PlanLockedNote feature="custom_dashboards" />
+          </div>
+        ))}
       </div>
 
       {isLoading || !data ? (
@@ -66,7 +81,7 @@ export default function CustomDashboardsPage() {
         <div className="card flex flex-col items-center justify-center gap-3 py-12 text-sm text-muted-foreground">
           <LayoutDashboard className="h-8 w-8 opacity-40" />
           <p>{t('empty')}</p>
-          {!readOnlyRole && (
+          {!readOnlyRole && planAllowsCreate && (
             <Link
               href="/custom-dashboards/builder"
               className="inline-flex items-center gap-2 rounded-lg bg-primary-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"

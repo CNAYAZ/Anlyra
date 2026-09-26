@@ -14,7 +14,7 @@ import {
   type ChatTurn,
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
-import { requireActiveAccess } from '@/lib/billing/server-gate';
+import { requireActiveAccess, requireFeaturePlan } from '@/lib/billing/server-gate';
 import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
@@ -68,6 +68,12 @@ export async function POST(req: NextRequest) {
   const viewerOnly = requireEditorRole(ctx);
   if (viewerOnly) return viewerOnly;
   const { organizationId } = ctx;
+
+  // This route is the AI Agent's (AgentClient.tsx is its only caller — the chat
+  // uses /api/ai/chat), and the agent is a plan feature. Checked before the
+  // trial gate: "your plan does not include this" is the permanent answer.
+  const planLocked = await requireFeaturePlan(organizationId, 'ai_agent');
+  if (planLocked) return planLocked;
 
   // Trial/subscription gate: an expired trial (or past_due) is read-only and may
   // not run the AI. Blocked BEFORE the rate limit and any AI call, so no credits

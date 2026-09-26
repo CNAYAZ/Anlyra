@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // being decided, so counting it as already used would refuse the last legal
     // seat. The invite is left OPEN (acceptedAt untouched) so it stays clickable
     // once room is freed or the plan is raised.
-    const seats = await checkSeatAvailability(invite.organizationId, 'join');
+    const seats = await checkSeatAvailability(invite.organizationId, 'join', invite.role);
     if (!seats.allowed) {
       return NextResponse.json({ error: 'SEAT_LIMIT_REACHED' }, { status: 403 });
     }

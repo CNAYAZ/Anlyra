@@ -7,6 +7,7 @@ import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole } from '@/lib/auth/require-role';
 import { auditLog } from '@/lib/audit/log';
 import { SHARE_LINK_TTL_DAYS } from '@/lib/reports/share';
+import { requireFeaturePlan } from '@/lib/billing/server-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,11 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     if (denied) return denied;
 
     const { organizationId } = authCtx;
+    // Creating a link is gated by plan; revoking one (DELETE below) is not,
+    // and links already created keep working until they expire.
+    const locked = await requireFeaturePlan(organizationId, 'share_reports');
+    if (locked) return locked;
+
     const report = await prisma.report_b8.findFirst({
       where: { id: params.id, organizationId },
     });

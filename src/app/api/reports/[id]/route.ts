@@ -8,6 +8,7 @@ import { auditLog } from '@/lib/audit/log';
 import { resolveReportConfig } from '@/lib/reports/config';
 import { renderReportPdf, pdfResponse } from '@/lib/reports/render';
 import { parseRecipients, validateReportRecipients } from '@/lib/reports/recipients';
+import { requireFeaturePlan } from '@/lib/billing/server-gate';
 import { createSchema } from '../route';
 
 // Only title/schedule/recipients are editable here — NOT sections/config. The
@@ -110,6 +111,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     // schedule off.
     if (nextSchedule !== 'on_demand' && !nextRecipientsRaw?.trim()) {
       return fail('RECIPIENTS_REQUIRED', 400);
+    }
+
+    // Turning a schedule ON is gated by plan; a report that ALREADY has one
+    // (made before a downgrade) keeps it and can still be edited or switched
+    // off — the plan blocks new automatic sends, it takes nothing away.
+    if (!r.schedule && nextSchedule !== 'on_demand') {
+      const locked = await requireFeaturePlan(organizationId, 'scheduled_reports');
+      if (locked) return locked;
     }
 
     // Re-validate recipients only when they are PART OF THIS PATCH. Recipients

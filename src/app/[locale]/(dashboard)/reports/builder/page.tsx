@@ -10,6 +10,8 @@ import { Save, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useFeatureGate } from '@/lib/billing/context';
+import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +30,9 @@ export default function ReportsBuilderPage() {
   // Viewer reaching the builder by URL: saving is disabled (refused
   // server-side by requireEditorRole anyway).
   const readOnlyRole = useIsReadOnlyRole();
+  // Plan: a weekly/monthly schedule (sent by email) is an ADVANCED feature —
+  // requireFeaturePlan on POST. On-demand reports stay available on every plan.
+  const { hasAccess: planAllowsSchedule } = useFeatureGate('scheduled_reports');
   const tSettings = useTranslations('settings');
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -215,12 +220,13 @@ export default function ReportsBuilderPage() {
               </SelectTrigger>
               <SelectContent>
                 {REPORT_SCHEDULES.map((s) => (
-                  <SelectItem key={s} value={s}>
+                  <SelectItem key={s} value={s} disabled={s !== 'on_demand' && !planAllowsSchedule}>
                     {t(`schedule${s.charAt(0).toUpperCase()}${s.slice(1).replace(/_(.)/, (_, c: string) => c.toUpperCase())}` as 'scheduleOnDemand')}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <PlanLockedNote feature="scheduled_reports" />
           </div>
           {schedule !== 'on_demand' && (
             <div className="space-y-1">

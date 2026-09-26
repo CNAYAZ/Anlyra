@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsDemo } from '@/lib/demo/context';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useFeatureGate } from '@/lib/billing/context';
+import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
 
 // Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
@@ -80,6 +82,11 @@ export function AgentClient() {
   const readOnlyRole = useIsReadOnlyRole();
   const tSettings = useTranslations('settings');
   const hasCredits = !isDemo && !readOnlyRole && credits >= ANALYSIS_CREDIT_COST;
+  // Plan: the AI Agent is an ADVANCED feature — /api/ai/analyze refuses it
+  // (requireFeaturePlan) on a plan without it, before spending any credit.
+  const { hasAccess: planAllowsAgent } = useFeatureGate('ai_agent');
+  const planLocked = !isDemo && !readOnlyRole && !planAllowsAgent;
+  const canRun = hasCredits && !planLocked;
 
   const [mode, setMode] = useState<AgentMode>('financial');
   const [states, setStates] = useState<Record<AgentMode, TabState>>(initialStates);
@@ -227,8 +234,8 @@ export function AgentClient() {
             <Button
               onClick={() => run(false)}
               loading={current.loading}
-              disabled={current.loading || !hasCredits}
-              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
+              disabled={current.loading || !canRun}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Sparkles className="h-4 w-4" />
               {t('generate', { cost: ANALYSIS_CREDIT_COST })}
@@ -257,8 +264,8 @@ export function AgentClient() {
               variant="secondary"
               onClick={() => run(true)}
               loading={current.loading}
-              disabled={current.loading || !current.question.trim() || !hasCredits}
-              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('errors.noCredits') : undefined}
+              disabled={current.loading || !current.question.trim() || !canRun}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? t('errors.noCredits') : undefined}
             >
               <Send className="h-4 w-4" />
               {t('send', { cost: ANALYSIS_CREDIT_COST })}
@@ -271,6 +278,10 @@ export function AgentClient() {
         {readOnlyRole ? (
           <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
             {tSettings('readOnlyRoleShort')}
+          </div>
+        ) : planLocked ? (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <PlanLockedNote feature="ai_agent" className="text-sm" />
           </div>
         ) : !hasCredits && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">

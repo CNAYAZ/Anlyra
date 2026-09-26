@@ -15,6 +15,8 @@ export type FeatureKey =
   | "report_basic"
   | "report_full"
   | "share_reports"
+  | "scheduled_reports"
+  | "custom_dashboards"
   | "collaboration"
   | "audit_log"
   | "two_factor"
@@ -23,7 +25,13 @@ export type FeatureKey =
 export type IntegrationKey = "stripe" | "quickbooks" | "xero" | "salesforce" | "hubspot" | "sap";
 
 export interface PlanLimits {
+  /** Seats, counted with countedSeats() below — not a plain headcount. */
   users: number;
+  /**
+   * Viewers that do NOT take one of the `users` seats. PRO includes one, meant
+   * for the company's accountant; on the other plans every viewer counts.
+   */
+  freeViewers: number;
   orgs: number;
   imports: number;
   aiCredits: number;
@@ -62,6 +70,8 @@ export const ALL_FEATURES: FeatureKey[] = [
   "report_basic",
   "report_full",
   "share_reports",
+  "scheduled_reports",
+  "custom_dashboards",
   "collaboration",
   "audit_log",
   "two_factor",
@@ -83,7 +93,7 @@ export const PLANS: Record<PlanId, Plan> = {
     nameKey: "billing.plans.pro.name",
     taglineKey: "billing.plans.pro.tagline",
     pricing: { monthlyCents: 4900, yearlyCents: 49000 },
-    limits: { users: 5, orgs: 1, imports: -1, aiCredits: 200, customDashboards: -1 },
+    limits: { users: 1, freeViewers: 1, orgs: 1, imports: -1, aiCredits: 200, customDashboards: -1 },
     features: [
       "financial_basic",
       "financial_full",
@@ -97,7 +107,6 @@ export const PLANS: Record<PlanId, Plan> = {
       "charts_interactive",
       "report_basic",
       "report_full",
-      "share_reports",
     ],
     integrations: ["stripe", "quickbooks", "xero"],
   },
@@ -106,7 +115,7 @@ export const PLANS: Record<PlanId, Plan> = {
     nameKey: "billing.plans.advanced.name",
     taglineKey: "billing.plans.advanced.tagline",
     pricing: { monthlyCents: 14900, yearlyCents: 149000 },
-    limits: { users: 15, orgs: 1, imports: -1, aiCredits: 700, customDashboards: -1 },
+    limits: { users: 5, freeViewers: 0, orgs: 1, imports: -1, aiCredits: 700, customDashboards: -1 },
     features: [
       "financial_basic",
       "financial_full",
@@ -117,10 +126,13 @@ export const PLANS: Record<PlanId, Plan> = {
       "ai_forecast",
       "ai_benchmark",
       "ai_alerts",
+      "ai_agent",
       "charts_interactive",
       "report_basic",
       "report_full",
       "share_reports",
+      "scheduled_reports",
+      "custom_dashboards",
       "collaboration",
     ],
     integrations: ["stripe", "quickbooks", "xero", "salesforce", "hubspot"],
@@ -131,7 +143,7 @@ export const PLANS: Record<PlanId, Plan> = {
     nameKey: "billing.plans.enterprise.name",
     taglineKey: "billing.plans.enterprise.tagline",
     pricing: { monthlyCents: 0, yearlyCents: 0 },
-    limits: { users: -1, orgs: -1, imports: -1, aiCredits: -1, customDashboards: -1 },
+    limits: { users: -1, freeViewers: 0, orgs: -1, imports: -1, aiCredits: -1, customDashboards: -1 },
     features: ALL_FEATURES,
     integrations: ALL_INTEGRATIONS,
     contact: true,
@@ -187,4 +199,15 @@ export function yearlySavingsPct(plan: Plan): number {
 
 export function isUnlimited(value: number): boolean {
   return value === -1;
+}
+
+/**
+ * Seats taken by a set of people (members and/or open invites, by role):
+ * every non-viewer takes one, and viewers take one only past the plan's
+ * `freeViewers`. The server gate and the team page both count with this, so
+ * the number shown and the number enforced cannot drift.
+ */
+export function countedSeats(roles: readonly string[], freeViewers: number): number {
+  const viewers = roles.filter((r) => r.toLowerCase() === "viewer").length;
+  return roles.length - viewers + Math.max(0, viewers - freeViewers);
 }
