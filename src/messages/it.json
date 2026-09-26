@@ -2033,6 +2033,11 @@
     "vatNote": "Prezzi senza IVA — regime forfetario, nessuna imposta addebitata.",
     "seats": "{count, plural, one {Fino a # persona nel team} other {Fino a # persone nel team}}",
     "seatsUnlimited": "Persone illimitate nel team",
+    "seatsWithViewers": "{count, plural, one {# persona} other {# persone}} con accesso completo, più {viewers, plural, one {# Lettore gratuito} other {# Lettori gratuiti}} (per esempio il commercialista)",
+    "creditsPerMonth": "{count} crediti AI al mese",
+    "creditsUnlimited": "Crediti AI illimitati",
+    "orgs": "{count, plural, one {# azienda} other {Fino a # aziende}}",
+    "orgsUnlimited": "Aziende illimitate",
     "compareTitle": "Confronta i piani",
     "faqTitle": "Domande frequenti",
     "everythingIn": "Tutto incluso in {plan}, più:",
@@ -2052,13 +2057,14 @@
         "billedAnnual": "/anno",
         "billedNote": "fatturato annualmente",
         "features": [
-          "200 crediti AI / mese",
-          "Tutte le analisi (Finance, Market, Operations)",
-          "Report PDF illimitati",
-          "Custom Dashboards illimitate",
-          "Storia dati 24 mesi",
           "Importazione dati da Excel e CSV",
-          "Email support"
+          "Analisi di ricavi, costi e flusso di cassa",
+          "Scadenzario dei pagamenti da incassare",
+          "Spese ricorrenti",
+          "Alert sui tuoi numeri",
+          "Previsioni fino a 12 mesi",
+          "Report in PDF",
+          "Assistente AI in chat"
         ],
         "cta": "Inizia prova 7 giorni",
         "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
@@ -2074,13 +2080,11 @@
         "billedNote": "fatturato annualmente",
         "featuresPrefix": "Tutto del piano Pro, più:",
         "features": [
-          "700 crediti AI / mese (3,5x rispetto a Pro)",
-          "Storia dati 36 mesi",
-          "Benchmark settore avanzato",
-          "Forecasting esteso (12+ mesi)",
-          "API access (read-only per dashboard esterne)",
-          "Custom report templates",
-          "Email priority support"
+          "Report inviati in automatico per email",
+          "Link di condivisione dei report",
+          "Dashboard personalizzate",
+          "Agente AI",
+          "Ruoli per ogni persona del team: Admin, Editor, Lettore"
         ],
         "cta": "Inizia prova 7 giorni",
         "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
@@ -2094,15 +2098,7 @@
         "priceAnnual": "Custom",
         "featuresPrefix": "Tutto del piano Avanzato, più:",
         "features": [
-          "Crediti AI illimitati",
-          "SSO via SAML 2.0",
-          "Audit log avanzato",
-          "Custom integrations e API personalizzate",
-          "SLA 99% uptime garantito",
-          "Account manager dedicato",
-          "Priority support",
-          "DPA personalizzato",
-          "On-premise option (su richiesta)"
+          "Tutte le aziende sotto un solo accesso"
         ],
         "cta": "Contatta il team commerciale",
         "footerNote": "Demo personalizzata · Onboarding dedicato"

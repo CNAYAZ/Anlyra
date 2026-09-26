@@ -2033,6 +2033,11 @@
     "vatNote": "Prices exclude VAT — regime forfetario, no tax is charged.",
     "seats": "{count, plural, one {Up to # person in your team} other {Up to # people in your team}}",
     "seatsUnlimited": "Unlimited people in your team",
+    "seatsWithViewers": "{count, plural, one {# person} other {# people}} with full access, plus {viewers, plural, one {# free Viewer} other {# free Viewers}} (e.g. your accountant)",
+    "creditsPerMonth": "{count} AI credits per month",
+    "creditsUnlimited": "Unlimited AI credits",
+    "orgs": "{count, plural, one {# company} other {Up to # companies}}",
+    "orgsUnlimited": "Unlimited companies",
     "compareTitle": "Compare plans",
     "faqTitle": "Frequently asked questions",
     "everythingIn": "Everything in {plan}, plus:",
@@ -2052,13 +2057,14 @@
         "billedAnnual": "/yr",
         "billedNote": "billed annually",
         "features": [
-          "200 AI credits / month",
-          "All analytics (Finance, Market, Operations)",
-          "Unlimited PDF reports",
-          "Unlimited Custom Dashboards",
-          "24 months data history",
           "Data import from Excel and CSV",
-          "Email support"
+          "Revenue, cost and cash-flow analysis",
+          "Receivables schedule",
+          "Recurring expenses",
+          "Alerts on your numbers",
+          "Forecasts up to 12 months",
+          "PDF reports",
+          "AI assistant chat"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2074,13 +2080,11 @@
         "billedNote": "billed annually",
         "featuresPrefix": "Everything in Pro, plus:",
         "features": [
-          "700 AI credits / month (3.5x vs Pro)",
-          "36 months data history",
-          "Advanced industry benchmarks",
-          "Extended forecasting (12+ months)",
-          "API access (read-only for external dashboards)",
-          "Custom report templates",
-          "Priority email support"
+          "Reports sent automatically by email",
+          "Shareable report links",
+          "Custom dashboards",
+          "AI Agent",
+          "Roles for every team member: Admin, Editor, Viewer"
         ],
         "cta": "Start 7-day trial",
         "footerNote": "No card required · Cancel anytime"
@@ -2094,15 +2098,7 @@
         "priceAnnual": "Custom",
         "featuresPrefix": "Everything in Advanced, plus:",
         "features": [
-          "Unlimited AI credits",
-          "SSO via SAML 2.0",
-          "Advanced audit log",
-          "Custom integrations and APIs",
-          "Guaranteed 99% uptime SLA",
-          "Dedicated account manager",
-          "Priority support",
-          "Custom DPA",
-          "On-premise option (on request)"
+          "All your companies under one login"
         ],
         "cta": "Contact our sales team",
         "footerNote": "Custom demo · Dedicated onboarding"
