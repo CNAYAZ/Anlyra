@@ -24,7 +24,7 @@ export function organizationSchema() {
       height: 630,
     },
     description:
-      'Analytics di livello enterprise per PMI italiane. Insights AI, alert automatici, forecasting. Privacy seria, sul serio.',
+      'Analytics di livello enterprise per PMI italiane. Insights AI, alert intelligenti, forecasting. Privacy seria, sul serio.',
     foundingDate: '2026', // placeholder
     founders: [
       {

@@ -51,7 +51,7 @@ export function trialThreeDaysTemplate(params: Trial3DaysParams): string {
           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
             <tr>
               <td style="width:20px;color:#5B6F4E;font-weight:700;font-size:16px;">✓</td>
-              <td style="padding-left:8px;font-size:14px;color:#2A2520;">AI Insights and automatic alerts</td>
+              <td style="padding-left:8px;font-size:14px;color:#2A2520;">AI Insights and Smart Alerts</td>
             </tr>
           </table>
         </td>
@@ -108,7 +108,7 @@ export function trialThreeDaysTemplate(params: Trial3DaysParams): string {
           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
             <tr>
               <td style="width:20px;color:#5B6F4E;font-weight:700;font-size:16px;">✓</td>
-              <td style="padding-left:8px;font-size:14px;color:#2A2520;">AI Insights e alert automatici</td>
+              <td style="padding-left:8px;font-size:14px;color:#2A2520;">AI Insights e Alert Intelligenti</td>
             </tr>
           </table>
         </td>
