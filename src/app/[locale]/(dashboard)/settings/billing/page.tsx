@@ -85,6 +85,12 @@ function SettingsBillingPageInner() {
   // only two return values), so checking the status alone is enough to tell
   // a real row from the synthetic one — no extra flag needed.
   const hasRealSubscription = plan.status === 'active' || plan.status === 'past_due';
+  // Same criterion the server uses to gate the credit-pack checkout route
+  // (requireActiveAccess, billing/server-gate.ts) and to gate spending
+  // credits in the first place: a purchased pack sits unusable until the
+  // subscription is 'active' or 'trialing' again, so the button is disabled
+  // before the click instead of failing only after Stripe redirects back.
+  const canBuyCredits = plan.status === 'active' || plan.status === 'trialing';
 
   // ── Return from Stripe checkout ──────────────────────────────────────────
   // checkout/route.ts and credits/checkout/route.ts build these three exact
@@ -292,11 +298,13 @@ function SettingsBillingPageInner() {
   // recurring plan: POST /api/billing/credits/checkout, redirect to Stripe.
   //
   // Error mapping: the route can answer PRICE_NOT_CONFIGURED (500 — the
-  // pack's STRIPE_PRICE_CREDITS_* env var is missing) or "Unknown credit
-  // pack" (400 — a tampered packId). Neither is something a customer should
-  // ever read verbatim, so both map to one honest, actionable message
-  // instead of the raw string; anything else (network failure, an
-  // unrecognized error) falls back to the same generic message.
+  // pack's STRIPE_PRICE_CREDITS_* env var is missing), "Unknown credit
+  // pack" (400 — a tampered packId), or SUBSCRIPTION_NOT_ACTIVE (403 — the
+  // button below is disabled for this case, but the plan can lapse between
+  // render and click). None of these is something a customer should ever
+  // read verbatim, so each maps to one honest, actionable message instead of
+  // the raw string; anything else (network failure, an unrecognized error)
+  // falls back to the same generic message.
   async function startCreditsCheckout(packId: CreditPack['id']) {
     setBusyPack(packId);
     setPackError(null);
@@ -314,7 +322,9 @@ function SettingsBillingPageInner() {
       const friendly =
         json.error === 'PRICE_NOT_CONFIGURED' || json.error === 'Unknown credit pack'
           ? tBilling('credits.buyErrorConfig')
-          : tBilling('credits.buyErrorGeneric');
+          : json.error === 'SUBSCRIPTION_NOT_ACTIVE'
+            ? tBilling('credits.buySubscriptionInactive')
+            : tBilling('credits.buyErrorGeneric');
       setPackError({ pack: packId, message: friendly });
       setBusyPack(null);
     } catch {
@@ -491,9 +501,15 @@ function SettingsBillingPageInner() {
               </div>
               <button
                 type="button"
-                disabled={busyPack === pack.id || !isOwner}
-                title={!isOwner ? tBilling('ownerOnly') : undefined}
-                onClick={isOwner ? () => startCreditsCheckout(pack.id) : undefined}
+                disabled={busyPack === pack.id || !isOwner || !canBuyCredits}
+                title={
+                  !isOwner
+                    ? tBilling('ownerOnly')
+                    : !canBuyCredits
+                      ? tBilling('credits.buySubscriptionInactive')
+                      : undefined
+                }
+                onClick={isOwner && canBuyCredits ? () => startCreditsCheckout(pack.id) : undefined}
                 className="mt-auto w-full rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-sage-700 transition-colors hover:bg-muted hover:border-sage-500 disabled:opacity-70 dark:text-sage-300"
               >
                 {busyPack === pack.id ? '…' : tBilling('credits.buyPack')}
@@ -505,6 +521,9 @@ function SettingsBillingPageInner() {
           ))}
         </div>
         {!isOwner && <p className="mt-2 text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
+        {isOwner && !canBuyCredits && (
+          <p className="mt-2 text-[11px] text-fg-3">{tBilling('credits.buySubscriptionInactive')}</p>
+        )}
       </div>
 
       {/* ── Credit history (Storico): every ledger movement, paginated, newest

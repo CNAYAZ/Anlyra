@@ -8,6 +8,7 @@ import { getStripe } from "@/lib/stripe/client";
 import { getCreditPackPriceId } from "@/lib/stripe/prices";
 import { CREDIT_PACKS } from "@/lib/billing/plans";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
+import { requireActiveAccess } from "@/lib/billing/server-gate";
 
 const Body = z.object({
   packId: z.enum(["credits_50", "credits_200", "credits_500"]),
@@ -22,6 +23,16 @@ export async function POST(req: NextRequest) {
   // Billing is owner-only: this spends the organization's money. See requireOwnerRole.
   const denied = requireOwnerRole(ctx);
   if (denied) return denied;
+
+  // A purchased pack cannot be spent until the subscription is active again
+  // (consumeCredits gates on the same ACTIVE_STATUSES via requireActiveAccess
+  // — see billing/server-gate.ts), so selling one to an org that is currently
+  // "canceled" or "past_due" would take the customer's money for credits they
+  // cannot use yet. Same criterion as the spend-side gate, on purpose.
+  const access = await requireActiveAccess(ctx.organizationId);
+  if (!access.allowed) {
+    return fail("SUBSCRIPTION_NOT_ACTIVE", 403);
+  }
 
   let parsed;
   try {
