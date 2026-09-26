@@ -42,6 +42,13 @@ export type LandingPageProps = {
   finalCtaSubtitle: string;
   finalCtaPrimary: string;
   finalCtaSecondary: string;
+  askAiTitle: string;
+  askAiSubtitle: string;
+  askAiQuestion: string;
+  askAiChatGpt: string;
+  askAiClaude: string;
+  askAiPerplexity: string;
+  askAiNote: string;
 };
 
 const PROBLEM_ICONS = [EyeOff, Zap, ShieldCheck];
@@ -67,7 +74,18 @@ export function LandingPage({
   finalCtaSubtitle,
   finalCtaPrimary,
   finalCtaSecondary,
+  askAiTitle,
+  askAiSubtitle,
+  askAiQuestion,
+  askAiChatGpt,
+  askAiClaude,
+  askAiPerplexity,
+  askAiNote,
 }: LandingPageProps) {
+  // Same prefilled question for all three, URL-encoded once and reused: it
+  // must never carry anything about the visitor, only the fixed instruction
+  // to read the site and llms.txt before answering.
+  const askAiQ = encodeURIComponent(askAiQuestion);
   return (
     <>
       <SiteHeader />
@@ -207,6 +225,42 @@ export function LandingPage({
                 <a href={contactMailto()}>{finalCtaSecondary}</a>
               </Button>
             </div>
+          </div>
+        </section>
+
+        {/* ── ASK AN AI ──
+            Three services with a documented (if unofficial) way to open a new
+            conversation with a prefilled question: chatgpt.com/?q=,
+            claude.ai/new?q=, perplexity.ai/search?q=. Gemini has no such
+            parameter (confirmed: Google has not shipped one, and the only
+            workarounds are third-party browser extensions) — no button for
+            it, rather than a link that silently does nothing.
+            The question itself carries no visitor data: it only points the
+            assistant at anlyra.com and anlyra.com/llms.txt and asks it to
+            answer from there, say when something isn't covered, and hand off
+            to contact@anlyra.com otherwise. */}
+        <section className="border-t border-border bg-card">
+          <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+            <h2 className="font-heading text-3xl font-bold text-foreground">{askAiTitle}</h2>
+            <p className="mt-3 text-muted-foreground">{askAiSubtitle}</p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild variant="secondary">
+                <a href={`https://chatgpt.com/?q=${askAiQ}`} target="_blank" rel="noopener noreferrer">
+                  {askAiChatGpt}
+                </a>
+              </Button>
+              <Button asChild variant="secondary">
+                <a href={`https://claude.ai/new?q=${askAiQ}`} target="_blank" rel="noopener noreferrer">
+                  {askAiClaude}
+                </a>
+              </Button>
+              <Button asChild variant="secondary">
+                <a href={`https://www.perplexity.ai/search?q=${askAiQ}`} target="_blank" rel="noopener noreferrer">
+                  {askAiPerplexity}
+                </a>
+              </Button>
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">{askAiNote}</p>
           </div>
         </section>
 

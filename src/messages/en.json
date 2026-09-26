@@ -2448,6 +2448,15 @@
       "ctaPrimary": "Start free now",
       "ctaSecondary": "Talk to us"
     },
+    "askAi": {
+      "title": "Ask an AI",
+      "subtitle": "Ask an outside assistant: it will answer based only on what it finds on this site, not guesses.",
+      "question": "Read anlyra.com and anlyra.com/llms.txt, then answer my questions about Anlyra based only on what you find there. If something isn't covered, say so clearly instead of guessing. For anything else, point to contact@anlyra.com.",
+      "chatgpt": "Ask ChatGPT",
+      "claude": "Ask Claude",
+      "perplexity": "Ask Perplexity",
+      "note": "Opens in a new tab, on that service's own site. No data of yours is included in the question."
+    },
     "footer": {
       "product": "Product",
       "features": "Features",

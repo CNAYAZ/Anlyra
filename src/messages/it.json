@@ -2448,6 +2448,15 @@
       "ctaPrimary": "Inizia ora gratis",
       "ctaSecondary": "Parla con noi"
     },
+    "askAi": {
+      "title": "Chiedi a un'AI",
+      "subtitle": "Fai la domanda a un assistente esterno: risponderà solo in base a quello che trova su questo sito, non a supposizioni.",
+      "question": "Leggi anlyra.com e anlyra.com/llms.txt, poi rispondi alle mie domande su Anlyra solo in base a quello che trovi lì. Se un'informazione non c'è, dillo chiaramente invece di indovinare. Per tutto il resto, indica contact@anlyra.com.",
+      "chatgpt": "Chiedi a ChatGPT",
+      "claude": "Chiedi a Claude",
+      "perplexity": "Chiedi a Perplexity",
+      "note": "Si apre in una nuova scheda, sul sito del servizio scelto. Nessun tuo dato viene incluso nella domanda."
+    },
     "footer": {
       "product": "Prodotto",
       "features": "Funzionalità",
