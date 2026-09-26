@@ -25,16 +25,16 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
       <strong style="color:#2A2520;">${expiredAt}</strong>.
     </p>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      Access to the dashboard is suspended, but your data is safe.
-      You can reactivate it any time.
+      Your dashboard is now read-only, and nothing has been deleted: your data stays exactly as it is.
+      Choose a plan whenever you're ready to pick up where you left off.
     </p>
 
-    <!-- Data retention info -->
+    <!-- What this means -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
            style="border:1px solid #E8DFD0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
       <tr style="background-color:#5B6F4E;">
         <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:600;color:#F9F4EB;letter-spacing:0.05em;text-transform:uppercase;">
-          What happens to your data
+          What this means
         </th>
       </tr>
       <tr>
@@ -43,8 +43,8 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
             <tr>
               <td style="width:20px;color:#5B6F4E;font-weight:700;font-size:16px;">✓</td>
               <td style="padding-left:8px;font-size:14px;color:#2A2520;">
-                <strong>Kept for 30 days</strong>
-                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Dashboards, insights and imported data stay available for 30 days after expiry.</p>
+                <strong>Your data stays as it is</strong>
+                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Dashboards, insights and imported data remain exactly where they are — nothing is deleted.</p>
               </td>
             </tr>
           </table>
@@ -56,8 +56,8 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
             <tr>
               <td style="width:20px;color:#D97706;font-weight:700;font-size:16px;">!</td>
               <td style="padding-left:8px;font-size:14px;color:#2A2520;">
-                <strong>Permanently deleted after 30 days</strong>
-                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">30 days after expiry your data is permanently removed. Export it first if you want to keep it.</p>
+                <strong>Some actions are paused</strong>
+                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">AI features and adding new data are paused until you choose a plan.</p>
               </td>
             </tr>
           </table>
@@ -66,12 +66,12 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
     </table>
 
     ${exportUrl ? `
-    <!-- Export CTA -->
+    <!-- Export link -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
       <tr>
         <td style="text-align:center;">
           <a href="${exportUrl}" style="display:inline-block;padding:10px 20px;font-size:14px;color:#5B6F4E;font-weight:600;text-decoration:underline;">
-            Download your data before deletion
+            Download a copy of your data
           </a>
         </td>
       </tr>
@@ -91,16 +91,16 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
       <strong style="color:#2A2520;">${expiredAt}</strong>.
     </p>
     <p style="margin:0 0 24px;font-size:15px;color:#6B6760;">
-      L'accesso alla dashboard è sospeso, ma i tuoi dati sono al sicuro.
-      Puoi riattivarli in qualsiasi momento.
+      Il tuo account passa in sola lettura, e non abbiamo cancellato nulla: i tuoi dati restano esattamente dove sono.
+      Scegli un piano quando vuoi per riprendere da dove hai lasciato.
     </p>
 
-    <!-- Data retention info -->
+    <!-- Cosa cambia -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
            style="border:1px solid #E8DFD0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
       <tr style="background-color:#5B6F4E;">
         <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:600;color:#F9F4EB;letter-spacing:0.05em;text-transform:uppercase;">
-          Cosa succede ai tuoi dati
+          Cosa cambia
         </th>
       </tr>
       <tr>
@@ -109,8 +109,8 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
             <tr>
               <td style="width:20px;color:#5B6F4E;font-weight:700;font-size:16px;">✓</td>
               <td style="padding-left:8px;font-size:14px;color:#2A2520;">
-                <strong>Conservati per 30 giorni</strong>
-                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Dashboard, insight e dati importati restano disponibili per 30 giorni dalla scadenza.</p>
+                <strong>I tuoi dati restano come sono</strong>
+                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Dashboard, insight e dati importati restano esattamente dove sono: non cancelliamo nulla.</p>
               </td>
             </tr>
           </table>
@@ -122,8 +122,8 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
             <tr>
               <td style="width:20px;color:#D97706;font-weight:700;font-size:16px;">!</td>
               <td style="padding-left:8px;font-size:14px;color:#2A2520;">
-                <strong>Cancellazione definitiva dopo 30 giorni</strong>
-                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Dopo 30 giorni dalla scadenza i dati vengono rimossi permanentemente. Esportali prima se vuoi tenerli.</p>
+                <strong>Alcune azioni sono in pausa</strong>
+                <p style="margin:2px 0 0;font-size:13px;color:#6B6760;">Le funzioni AI e l'aggiunta di nuovi dati sono in pausa finché non scegli un piano.</p>
               </td>
             </tr>
           </table>
@@ -132,12 +132,12 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
     </table>
 
     ${exportUrl ? `
-    <!-- Export CTA -->
+    <!-- Link di esportazione -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
       <tr>
         <td style="text-align:center;">
           <a href="${exportUrl}" style="display:inline-block;padding:10px 20px;font-size:14px;color:#5B6F4E;font-weight:600;text-decoration:underline;">
-            Scarica i tuoi dati prima della cancellazione
+            Scarica una copia dei tuoi dati
           </a>
         </td>
       </tr>
@@ -153,8 +153,8 @@ export function trialExpiredTemplate(params: TrialExpiredParams): string {
   return baseLayout({
     title: isEn ? 'Your trial has ended — reactivate your account · Anlyra' : 'Prova scaduta — riattiva il tuo account · Anlyra',
     preheader: isEn
-      ? `${userName}, your trial ended on ${expiredAt}. Your data is kept for 30 days.`
-      : `${userName}, la tua prova è scaduta il ${expiredAt}. I tuoi dati sono conservati per 30 giorni.`,
+      ? `${userName}, your trial ended on ${expiredAt}. Your data is safe — choose a plan to keep going.`
+      : `${userName}, la tua prova è scaduta il ${expiredAt}. I tuoi dati sono al sicuro — scegli un piano per continuare.`,
     content,
     ctaButton: { label: isEn ? 'Reactivate now' : 'Riattiva ora', href: reactivateUrl },
     userEmail,
