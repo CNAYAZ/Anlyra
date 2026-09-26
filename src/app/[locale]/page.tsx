@@ -60,6 +60,13 @@ export default async function RootPage({ params }: { params: Promise<{ locale: s
       finalCtaSubtitle={t('finalCta.subtitle')}
       finalCtaPrimary={t('finalCta.ctaPrimary')}
       finalCtaSecondary={t('finalCta.ctaSecondary')}
+      askAiTitle={t('askAi.title')}
+      askAiSubtitle={t('askAi.subtitle')}
+      askAiQuestion={t('askAi.question')}
+      askAiChatGpt={t('askAi.chatgpt')}
+      askAiClaude={t('askAi.claude')}
+      askAiPerplexity={t('askAi.perplexity')}
+      askAiNote={t('askAi.note')}
       />
     </>
   );
