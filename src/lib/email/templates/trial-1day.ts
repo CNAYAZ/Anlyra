@@ -56,8 +56,8 @@ export function trialOneDayTemplate(params: Trial1DayParams): string {
       <tr>
         <td style="background-color:#F9F4EB;border:1px solid #E8DFD0;border-radius:8px;padding:12px 16px;">
           <p style="margin:0;font-size:13px;color:#2A2520;">
-            <strong>14-day guarantee.</strong>
-            <span style="color:#6B6760;"> Not happy after the first charge? We'll refund you, no questions asked.
+            <strong>Refund within 14 days for technical issues.</strong>
+            <span style="color:#6B6760;"> If you hit a technical problem we can't resolve within the first 14 days after your first charge, we'll review a refund case by case.
             Write to <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.</span>
           </p>
         </td>
@@ -106,8 +106,8 @@ export function trialOneDayTemplate(params: Trial1DayParams): string {
       <tr>
         <td style="background-color:#F9F4EB;border:1px solid #E8DFD0;border-radius:8px;padding:12px 16px;">
           <p style="margin:0;font-size:13px;color:#2A2520;">
-            <strong>Garanzia 14 giorni.</strong>
-            <span style="color:#6B6760;"> Se dopo il primo addebito non sei soddisfatto, rimborsiamo senza domande.
+            <strong>Rimborso entro 14 giorni per problemi tecnici.</strong>
+            <span style="color:#6B6760;"> Se hai un problema tecnico che non risolviamo entro i primi 14 giorni dal primo addebito, valutiamo il rimborso caso per caso.
             Scrivi a <a href="mailto:${COMPANY.contactEmail}" style="color:#5B6F4E;">${COMPANY.contactEmail}</a>.</span>
           </p>
         </td>
