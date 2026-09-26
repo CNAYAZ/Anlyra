@@ -68,8 +68,8 @@ const creditPacksLineEn = CREDIT_PACKS.map((p) => `${p.credits} credits for €$
 const IT = `
 == ITALIANO ==
 
-Anlyra: consulente AI per PMI italiane
-=======================================
+Anlyra: analisi finanziaria con AI per PMI italiane
+=====================================================
 
 Anlyra è un servizio SaaS di analisi finanziaria per piccole e medie
 imprese italiane. Legge i dati reali dell'azienda (entrate, spese,
@@ -82,7 +82,8 @@ FUNZIONI CHE ESISTONO DAVVERO OGGI
 -----------------------------------
 - Importazione dati da file Excel/CSV (per esempio l'estratto conto).
 - Analisi di ricavi, costi, flusso di cassa e budget.
-- Scadenzario dei crediti da incassare, con solleciti via email.
+- Scadenzario dei crediti da incassare: prepara il testo del sollecito,
+  che l'utente invia lui stesso via email (non lo spedisce Anlyra).
 - Gestione delle spese ricorrenti.
 - Alert sui numeri dell'azienda, controllati manualmente (non spinti
   in automatico — l'utente li aggiorna con un clic).
@@ -94,8 +95,6 @@ FUNZIONI CHE ESISTONO DAVVERO OGGI
 - Dashboard personalizzabili (piani superiori).
 - Assistente AI in chat su tutti i piani; un "agente AI" per analisi
   più approfondite sui piani superiori.
-- Benchmark di settore: valori di riferimento STATICI (non calcolati
-  sui dati aggregati dei clienti Anlyra).
 - Ruoli per le persone del team: proprietario, admin, editor, lettore
   (sola lettura).
 
@@ -141,6 +140,12 @@ COSA ANLYRA NON FA OGGI (importante: non darlo per scontato)
 - Le sezioni "Mercato" (analisi competitor) e "Operations" non sono
   raggiungibili dal prodotto oggi: erano dimostrazioni con dati non
   reali, disattivate.
+- I benchmark di settore non sono raggiungibili dal prodotto oggi
+  (tolti dal menu): i valori di riferimento non erano adatti alle PMI
+  italiane, in attesa di dati veri.
+- Anlyra non è consulenza finanziaria, fiscale o legale: analizza e
+  spiega i numeri dell'azienda, non sostituisce un parere
+  professionale.
 
 CONTATTI
 ---------
@@ -150,7 +155,7 @@ Per qualunque domanda non trovi risposta qui: contact@anlyra.com
 const EN = `
 == ENGLISH ==
 
-Anlyra: AI-powered financial advisor for small businesses
+Anlyra: AI-powered financial analysis for small businesses
 ============================================================
 
 Anlyra is a SaaS financial-analysis service for Italian small and
@@ -165,7 +170,8 @@ FEATURES THAT ACTUALLY EXIST TODAY
 ------------------------------------
 - Data import from Excel/CSV files (e.g. a bank statement export).
 - Revenue, cost, cash-flow and budget analysis.
-- Receivables schedule, with email reminders.
+- Receivables schedule: drafts the reminder text, which the user sends
+  themselves by email (Anlyra does not send it).
 - Recurring expense tracking.
 - Alerts on the company's numbers, checked manually (not pushed
   automatically — the user refreshes them with one click).
@@ -177,8 +183,6 @@ FEATURES THAT ACTUALLY EXIST TODAY
 - Custom dashboards (higher plans).
 - AI assistant chat on every plan; an "AI Agent" for deeper analysis
   on higher plans.
-- Industry benchmarks: STATIC reference values (not calculated from
-  Anlyra customers' aggregated data).
 - Team roles: owner, admin, editor, viewer (read-only).
 
 PLANS (prices exclude VAT, Italian flat-rate tax regime)
@@ -223,6 +227,12 @@ WHAT ANLYRA DOES NOT DO TODAY (important: do not assume otherwise)
 - The "Market" (competitor analysis) and "Operations" sections are not
   reachable in the product today: they were demo engines with
   non-real data, now disabled.
+- Industry benchmarks are not reachable in the product today (removed
+  from the menu): the reference values were not a fit for Italian
+  SMEs, pending real data.
+- Anlyra is not financial, tax or legal advice: it analyzes and
+  explains the company's numbers, it does not replace professional
+  advice.
 
 CONTACT
 --------
