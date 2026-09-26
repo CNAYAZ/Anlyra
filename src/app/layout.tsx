@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: '%s · Anlyra',
   },
   description:
-    'Analytics di livello enterprise per PMI italiane. Insights AI, alert automatici, forecasting financiario. Privacy seria, sul serio.',
+    'Analytics di livello enterprise per PMI italiane. Insights AI, alert intelligenti, forecasting financiario. Privacy seria, sul serio.',
   keywords: [
     'analytics',
     'business intelligence',

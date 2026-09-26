@@ -2123,7 +2123,7 @@
       },
       {
         "q": "What are AI credits?",
-        "a": "Each AI interaction (insight generation, alerts, forecasting, chat) consumes one credit. Pro includes 200 credits per month, Advanced includes 700. Additional credits available in bundles."
+        "a": "Each AI interaction (insight generation, alerts, chat) consumes one credit; forecasting is free. Pro includes 200 credits per month, Advanced includes 700. Additional credits available in bundles."
       },
       {
         "q": "Is my data secure?",
@@ -2131,7 +2131,7 @@
       },
       {
         "q": "Can I upgrade from Pro to Advanced, or to Enterprise?",
-        "a": "Yes, at any time. Upgrades take effect immediately with prorated billing. For Enterprise, contact us and we'll help you migrate without any interruption."
+        "a": "Yes, at any time: the upgrade takes effect immediately. For Enterprise, contact us and we'll help you migrate without any interruption."
       },
       {
         "q": "What payment methods do you accept?",
@@ -2343,7 +2343,7 @@
   "landing": {
     "hero": {
       "title": "AI analysis for your business. Privacy taken seriously.",
-      "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, automatic alerts, and accurate forecasts. European servers. Never sold, never identifiable data shared, never used to train third-party AI.",
+      "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, smart alerts, and accurate forecasts. European servers. Never sold, never identifiable data shared, never used to train third-party AI.",
       "badge": "AI for SMBs · Data hosted in Europe",
       "cta1": "Start 7-day trial",
       "cta2": "See pricing",
@@ -2443,7 +2443,7 @@
       "perMonth": "/mo"
     },
     "finalCta": {
-      "title": "Start today. Risk-free.",
+      "title": "Start today. Try it free.",
       "subtitle": "7-day free trial, no credit card required. Cancel at any time.",
       "ctaPrimary": "Start free now",
       "ctaSecondary": "Talk to us"

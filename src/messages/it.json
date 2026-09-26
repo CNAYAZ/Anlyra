@@ -2123,7 +2123,7 @@
       },
       {
         "q": "Cosa sono i crediti AI?",
-        "a": "Ogni interazione AI (generazione di insight, alert, forecast, chat) consuma un credito. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
+        "a": "Ogni interazione AI (generazione di insight, alert, chat) consuma un credito; le previsioni (forecasting) sono gratuite. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
       },
       {
         "q": "I miei dati sono al sicuro?",
@@ -2131,7 +2131,7 @@
       },
       {
         "q": "Posso passare da Pro ad Avanzato, o ad Enterprise?",
-        "a": "Sì, in qualsiasi momento. L'upgrade è immediato con prorata. Per Enterprise, contattaci e ti aiutiamo nella migrazione senza interruzioni."
+        "a": "Sì, in qualsiasi momento: l'upgrade è immediato. Per Enterprise, contattaci e ti aiutiamo nella migrazione senza interruzioni."
       },
       {
         "q": "Quali metodi di pagamento accettate?",
@@ -2343,7 +2343,7 @@
   "landing": {
     "hero": {
       "title": "L'AI che analizza la tua azienda. Privacy seria, sul serio.",
-      "subtitle": "Anlyra trasforma i tuoi CSV finanziari e dati di mercato in insight strategici, alert automatici e forecast accurati. Server in Europa. Dati mai venduti, mai identificabili condivisi, mai usati per addestrare AI di terzi.",
+      "subtitle": "Anlyra trasforma i tuoi CSV finanziari e dati di mercato in insight strategici, alert intelligenti e forecast accurati. Server in Europa. Dati mai venduti, mai identificabili condivisi, mai usati per addestrare AI di terzi.",
       "badge": "AI per PMI · Dati in Europa",
       "cta1": "Inizia prova 7 giorni",
       "cta2": "Vedi i prezzi",
@@ -2443,7 +2443,7 @@
       "perMonth": "/mese"
     },
     "finalCta": {
-      "title": "Inizia oggi. Senza rischio.",
+      "title": "Inizia oggi. Prova gratis.",
       "subtitle": "7 giorni di prova gratuita, nessuna carta richiesta. Cancella in qualsiasi momento.",
       "ctaPrimary": "Inizia ora gratis",
       "ctaSecondary": "Parla con noi"
