@@ -1,10 +1,10 @@
+// Environment BEFORE anything else: guards read process.env, importing the
+// Prisma client early would capture a missing DATABASE_URL, and the email
+// client reads RESEND_API_KEY when it loads. It must be the FIRST import —
+// see load-env.ts for why a plain call here ran too late.
+import './load-env';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { loadEnvFiles } from './env';
-
-// Environment BEFORE anything else: guards read process.env, and importing the
-// Prisma client early would capture a missing DATABASE_URL.
-loadEnvFiles();
 
 import {
   assertSafeToStart,
@@ -23,6 +23,7 @@ import {
   listAuditActions,
   getCounts,
   countInsightsMatching,
+  listPendingOrgDeletions,
 } from './queries';
 import {
   setCredits,
@@ -32,6 +33,8 @@ import {
   deleteInsights,
   deleteRowById,
   unblockAccount,
+  confirmOrgDeletion,
+  rejectOrgDeletion,
   runCron,
   VALID_PLANS,
   VALID_ROLES,
@@ -139,6 +142,8 @@ async function handleGet(pathname: string, search: URLSearchParams, res: ServerR
       return ok(res, await listOrganizationMembers());
     case '/api/users':
       return ok(res, await listUsers());
+    case '/api/org-deletions':
+      return ok(res, await listPendingOrgDeletions());
     case '/api/audit/actions':
       return ok(res, await listAuditActions());
     case '/api/audit':
@@ -225,6 +230,18 @@ async function handlePost(pathname: string, body: Record<string, unknown>, res: 
           clearDeletion: body.clearDeletion === true,
           restoreOwner: body.restoreOwner === true,
         }),
+      );
+    }
+
+    case '/api/org-deletions/confirm':
+    case '/api/org-deletions/reject': {
+      const organizationId = str(body.organizationId);
+      if (!organizationId) return err(res, 400, 'ID organizzazione mancante.');
+      return ok(
+        res,
+        pathname.endsWith('/confirm')
+          ? await confirmOrgDeletion(organizationId)
+          : await rejectOrgDeletion(organizationId),
       );
     }
 

@@ -15,5 +15,8 @@ export { scheduledReportTemplate } from './templates/scheduled-report';
 export { bugReportTemplate } from './templates/bug-report';
 export { orgDeletionMemberNoticeTemplate } from './templates/org-deletion-member-notice';
 export { orgDeletionMemberCancelledTemplate } from './templates/org-deletion-member-cancelled';
+export { orgDeletionApprovalFounderTemplate } from './templates/org-deletion-approval-founder';
+export { orgDeletionApprovalReceivedTemplate } from './templates/org-deletion-approval-received';
+export { orgDeletionApprovalRejectedTemplate } from './templates/org-deletion-approval-rejected';
 export { MAX_EMAIL_ATTACHMENT_BYTES } from './send';
 export type { EmailAttachment } from './send';
