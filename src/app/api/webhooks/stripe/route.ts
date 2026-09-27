@@ -9,6 +9,7 @@ import {
   getSubscription,
   recordInvoice,
   setSubscription,
+  type Subscription,
 } from "@/lib/billing/repository";
 import { auditLog } from "@/lib/audit/log";
 import type { PlanId } from "@/lib/billing/plans";
@@ -120,16 +121,60 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const plan = planFromMetadata(sub.metadata as Record<string, string>);
   const existing = await getSubscription(orgId);
 
-  const status =
-    sub.status === "active"
-      ? "active"
-      : sub.status === "trialing"
-        ? "trialing"
-        : sub.status === "past_due"
-          ? "past_due"
-          : sub.status === "canceled"
-            ? "canceled"
-            : existing.status;
+  // EVERY Stripe status is mapped explicitly (founder's rule: access follows
+  // payment). Until 2026-09-27 the four below fell through to
+  // `existing.status`, so a subscription that became "unpaid" after the failed
+  // retries could stay "active" in the product for good. None of them grants
+  // full access (only "active" and "trialing" do — requireActiveAccess):
+  //   • incomplete — the FIRST payment has not gone through yet (Stripe gives
+  //     ~23 hours); incomplete_expired — it never did, and Stripe voided the
+  //     invoice (terminal). Nothing was ever paid: handled below as "no
+  //     subscription".
+  //   • unpaid — the retries are over and invoices stay open; Stripe's own
+  //     advice is to revoke access. paused — a Stripe-side trial ended with no
+  //     payment method; it resumes once one is added. Both → "past_due": no
+  //     access, but the subscription exists and paying (or adding a card) in
+  //     the Stripe portal brings it back to "active" — the billing page offers
+  //     the portal for "past_due", not a new checkout.
+  //   • anything Stripe may add later → "past_due" too (fail closed).
+  if (sub.status === "incomplete" || sub.status === "incomplete_expired") {
+    // A first payment that did not (yet) go through. Recorded as "no
+    // subscription": no Stripe id, status "canceled" — which getSubscription
+    // reads through the trial window (repository.ts), so an org still in its
+    // trial keeps its trial and nothing more, and the plan it tried to buy is
+    // NOT applied. When the payment succeeds Stripe sends "active" and the
+    // branch below records the subscription.
+    // Applied ONLY when the row records no Stripe subscription: a subscription
+    // never goes back to "incomplete" once paid, so for a row that already has
+    // one this event is either older than the one that activated it (Stripe
+    // does not guarantee order) or about a second attempt — neither may take
+    // away a paying customer's access.
+    if (existing.stripeSubscriptionId) {
+      console.warn(
+        `[stripe-webhook] ${sub.status} for ${sub.id} ignored: org ${orgId} already records subscription ${existing.stripeSubscriptionId} (${existing.status})`,
+      );
+      return;
+    }
+    await setSubscription({ ...existing, status: "canceled", stripeSubscriptionId: null, cancelAtPeriodEnd: false });
+    return;
+  }
+
+  let status: Subscription["status"];
+  switch (sub.status) {
+    case "active":
+    case "trialing":
+    case "past_due":
+    case "canceled":
+      status = sub.status;
+      break;
+    case "unpaid":
+    case "paused":
+      status = "past_due";
+      break;
+    default:
+      console.warn(`[stripe-webhook] unknown subscription status "${sub.status}" for org ${orgId} — recorded as past_due`);
+      status = "past_due";
+  }
 
   await setSubscription({
     ...existing,

@@ -119,63 +119,59 @@ export async function setCredits(
 }
 
 /**
- * Sets the plan on BOTH columns that carry one.
+ * Assigns a plan by hand — the founder's equivalent of a real payment. Writes
+ * the plan on BOTH columns that carry one, makes the subscription ACTIVE and
+ * clears the trial end date, exactly what the Stripe webhook does when a
+ * checkout succeeds (src/app/api/webhooks/stripe/route.ts).
  *
- * WHY BOTH — the known divergence:
+ * WHY BOTH PLAN COLUMNS — the known divergence:
  *  • BillingSubscription.plan is AUTHORITATIVE: getBillingState() reads it, so
  *    it drives feature gating, plan limits, and how many credits the monthly
  *    renewal grants (src/lib/cron/credit-renewal.ts).
  *  • Organization.plan is LEGACY (schema default "STARTER", which is not even a
- *    valid PlanId). RE-VERIFIED: the two readers this comment used to name are
- *    both gone. getCurrentOrganization() now resolves the plan through
- *    getSubscription() (the authoritative column), and trial-check.ts takes the
- *    email's plan NAME AND PRICE from BillingSubscription — it had already
- *    stopped using the legacy value and was only still selecting it, which is
- *    now removed too. Outside this panel, NOTHING in the product reads
- *    Organization.plan for any decision; it survives as a stored value shown
- *    here and included in the customer's GDPR export.
- * Writing only one of them is exactly what produces an org that behaves as PRO
- * while its emails advertise something else, so the panel always writes both
- * and reports what it did.
+ *    valid PlanId). Outside this panel, NOTHING in the product reads it for any
+ *    decision; it survives as a stored value shown here and included in the
+ *    customer's GDPR export.
  *
- * The subscription row is upserted, not updated: an org that never subscribed
- * has no row at all, and the update would throw instead of doing the obvious
- * thing.
+ * WHY STATUS AND TRIAL TOO (2026-09-27): until then an EXISTING row only got its
+ * plan changed. A company that had once opened the checkout page already has a
+ * row (status "canceled" or, from older code, "trialing", no Stripe
+ * subscription), so a plan assigned by hand left it exactly as blocked as
+ * before. Now every assignment ends in the same state as a real payment:
+ * status "active", trialEndsAt cleared (which also stops the trial emails and
+ * protects the company from the expired-trial data deletion).
+ *
+ * NEVER OVER A STRIPE SUBSCRIPTION: a row with a Stripe subscription id belongs
+ * to Stripe — Stripe bills it and its webhook rewrites plan and status on every
+ * event. Writing over it here would give access Stripe does not bill for (or
+ * be undone at the next event), so the panel refuses and touches nothing.
  */
 export async function setPlan(organizationId: string, plan: ValidPlan) {
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: { name: true, plan: true },
+    select: { name: true, plan: true, trialEndsAt: true },
   });
   const sub = await prisma.billingSubscription.findUnique({
     where: { organizationId },
-    select: { plan: true },
+    select: { plan: true, status: true, stripeSubscriptionId: true },
   });
+
+  if (sub?.stripeSubscriptionId) {
+    throw new Error(
+      `${org.name} ha un abbonamento Stripe (${sub.stripeSubscriptionId}, stato ${sub.status}): ` +
+        'il piano si cambia da Stripe, non dal pannello. Non ho toccato niente.',
+    );
+  }
 
   await prisma.$transaction([
     prisma.organization.update({
       where: { id: organizationId },
-      data: {
-        plan,
-        // A subscription CREATED right here (no prior row — `sub === null`)
-        // lands on the schema's own default, BillingSubscription.status
-        // @default("active"), with no Stripe checkout involved at all: for
-        // trial-email purposes the founder granting a plan by hand is exactly
-        // as much a "this org now pays" event as the webhook is (see
-        // src/app/api/webhooks/stripe/route.ts). Without this, an org
-        // activated from here would still be a candidate for "3 days left in
-        // your trial" — the same bug this whole change fixes, reached through
-        // a different door.
-        // Only on the CREATE path: `update: { plan }` below changes the plan
-        // of an EXISTING row without touching its status, so it is NOT a
-        // "becomes active" event and must not clear trialEndsAt.
-        ...(sub === null ? { trialEndsAt: null } : {}),
-      },
+      data: { plan, trialEndsAt: null },
     }),
     prisma.billingSubscription.upsert({
       where: { organizationId },
-      create: { organizationId, plan },
-      update: { plan },
+      create: { organizationId, plan, status: 'active' },
+      update: { plan, status: 'active' },
     }),
   ]);
 
@@ -189,6 +185,9 @@ export async function setPlan(organizationId: string, plan: ValidPlan) {
       subscriptionPlanFrom: sub?.plan ?? 'nessun abbonamento',
       to: plan,
       subscriptionRowCreated: sub === null,
+      statusFrom: sub?.status ?? 'nessun abbonamento',
+      statusTo: 'active',
+      trialEndsAtCleared: org.trialEndsAt !== null,
     },
   });
 
@@ -197,6 +196,7 @@ export async function setPlan(organizationId: string, plan: ValidPlan) {
     organizationPlanFrom: org.plan,
     subscriptionPlanFrom: sub?.plan ?? null,
     subscriptionRowCreated: sub === null,
+    statusFrom: sub?.status ?? null,
     to: plan,
   };
 }

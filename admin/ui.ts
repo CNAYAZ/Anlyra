@@ -142,7 +142,10 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
 
     <div class="card">
       <h3>Imposta piano</h3>
-      <p class="note">Aggiorna <code>Organization.plan</code> E <code>BillingSubscription.plan</code>. Se l'organizzazione non ha ancora un abbonamento, la riga viene creata.</p>
+      <p class="note">Come un pagamento vero: aggiorna <code>Organization.plan</code> E <code>BillingSubscription.plan</code>,
+        rende l'abbonamento <b>attivo</b> e azzera la data di fine prova. Se l'organizzazione non ha ancora
+        un abbonamento, la riga viene creata. <b>Rifiutato</b> se l'azienda ha un abbonamento Stripe: quello si
+        cambia da Stripe.</p>
       <div class="row">
         <div><label>ID organizzazione</label><input id="planOrg" placeholder="cl..."></div>
         <div><label>Piano</label><select id="planVal"><option>PRO</option><option>ADVANCED</option><option>ENTERPRISE</option></select></div>
@@ -502,13 +505,16 @@ async function doSetPlan() {
   if (!org) return show('planOut', 'Indica l\\'id organizzazione.', 'err');
   if (!confirm('IMPOSTARE IL PIANO\\n\\nOrganizzazione: ' + org + '\\nNuovo piano: ' + plan +
       '\\n\\nVerranno aggiornati ENTRAMBI:\\n- Organization.plan (legacy, testo email)\\n' +
-      '- BillingSubscription.plan (funzionalita, limiti, crediti del rinnovo)\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
+      '- BillingSubscription.plan (funzionalita, limiti, crediti del rinnovo)\\n' +
+      'L\\'abbonamento diventa ATTIVO e la data di fine prova viene azzerata, come dopo un pagamento.' +
+      '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
   try {
     const r = await post('/api/organizations/plan', { organizationId: org, plan });
     show('planOut',
       'Fatto — ' + r.organizationName + '\\n' +
       'Organization.plan: ' + r.organizationPlanFrom + ' -> ' + r.to + '\\n' +
       'BillingSubscription.plan: ' + (r.subscriptionPlanFrom ?? '(nessuna riga)') + ' -> ' + r.to +
+      '\\nStato: ' + (r.statusFrom ?? '(nessuna riga)') + ' -> active, fine prova azzerata' +
       (r.subscriptionRowCreated ? '\\n(riga abbonamento creata ora)' : ''), 'ok');
     loadOrgs();
   } catch (e) { show('planOut', e.message, 'err'); }

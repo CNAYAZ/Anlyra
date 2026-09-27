@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ token: st
   if (!lookup.ok) {
     return NextResponse.json(
       { success: false, error: lookup.reason },
-      { status: lookup.reason === 'EXPIRED' ? 410 : 404 },
+      { status: lookup.reason === 'EXPIRED' ? 410 : lookup.reason === 'UNAVAILABLE' ? 403 : 404 },
     );
   }
 
