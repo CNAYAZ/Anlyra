@@ -136,6 +136,12 @@ model Organization {
   /// createdByUserId below. See migration 20260927120000_org_deletion_approval.
   deletionApprovalRequestedById String?
 
+  /// When the "your trial data will be deleted" notice went out to an
+  /// organization that never paid (src/lib/cron/trial-data-retention.ts). NULL
+  /// means no notice was sent — and without one the data is never deleted.
+  /// See migration 20260927140000_trial_data_deletion_notice.
+  trialDataDeletionNoticeSentAt DateTime?
+
   /// Who CREATED this organization. Written once, by the only route that creates
   /// one (api/onboarding/organization), and never updated afterwards.
   ///
