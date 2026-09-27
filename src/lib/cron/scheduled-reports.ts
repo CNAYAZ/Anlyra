@@ -6,6 +6,7 @@ import { parseRecipients, splitRecipientsByMembership } from '@/lib/reports/reci
 import { sendEmail, scheduledReportTemplate, MAX_EMAIL_ATTACHMENT_BYTES, sanitizeSubjectText } from '@/lib/email';
 import { siteUrl } from '@/lib/auth/tokens';
 import { auditLog } from '@/lib/audit/log';
+import { requireActiveAccess } from '@/lib/billing/server-gate';
 
 /**
  * Delivers WEEKLY / MONTHLY reports by email with the PDF attached.
@@ -104,6 +105,19 @@ export interface ScheduledReportsResult {
    * `sent`: nothing was rendered and nothing was emailed.
    */
   skippedNoValidRecipients: number;
+  /**
+   * REPORTS not delivered because their organization's subscription is not
+   * active — the same test as requireActiveAccess (active or a live trial).
+   * Nothing is rewritten: lastRunAt stays as it was, so the report is due again
+   * on the first run after the subscription comes back and restarts by itself.
+   */
+  skippedInactiveSubscription: number;
+  /**
+   * REPORTS not delivered because their organization's deletion is confirmed
+   * and counting down (Organization.deletionRequestedAt). Checked before the
+   * subscription, which usually still runs until period end in that case.
+   */
+  skippedOrganizationDeletion: number;
   failed: number;
 }
 
@@ -298,6 +312,8 @@ export async function runScheduledReports(now: Date = new Date()): Promise<Sched
     skippedNoRecipients: 0,
     skippedNonMemberRecipients: 0,
     skippedNoValidRecipients: 0,
+    skippedInactiveSubscription: 0,
+    skippedOrganizationDeletion: 0,
     failed: 0,
   };
 
@@ -309,7 +325,35 @@ export async function runScheduledReports(now: Date = new Date()): Promise<Sched
   const due = candidates.filter((r) => isDue(r, now));
   result.due = due.length;
 
-  for (const r of due.slice(0, MAX_REPORTS_PER_RUN)) {
+  // Founder's rule: when a company stops paying, the product stops working for
+  // it — scheduled reports included, which until now kept emailing the
+  // company's figures with no subscription at all (this job never looked at
+  // it). Decided once per ORGANIZATION, not per report, and BEFORE the cap
+  // below, so reports that will not be sent never take a slot from ones that
+  // will.
+  const orgIds = [...new Set(due.map((r) => r.organizationId))];
+  const [access, deleting] = await Promise.all([
+    Promise.all(orgIds.map(async (id) => [id, (await requireActiveAccess(id)).allowed] as const)),
+    prisma.organization.findMany({
+      where: { id: { in: orgIds }, deletionRequestedAt: { not: null } },
+      select: { id: true },
+    }),
+  ]);
+  const activeByOrg = new Map(access);
+  const deletingOrgIds = new Set(deleting.map((o) => o.id));
+  const deliverable = due.filter((r) => {
+    if (deletingOrgIds.has(r.organizationId)) {
+      result.skippedOrganizationDeletion++;
+      return false;
+    }
+    if (!activeByOrg.get(r.organizationId)) {
+      result.skippedInactiveSubscription++;
+      return false;
+    }
+    return true;
+  });
+
+  for (const r of deliverable.slice(0, MAX_REPORTS_PER_RUN)) {
     try {
       await processOne(r, now, result);
     } catch (e) {

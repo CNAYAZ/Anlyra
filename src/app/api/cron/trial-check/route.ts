@@ -43,6 +43,8 @@ export async function GET(req: Request) {
         `skippedNoData=${scheduledReports.skippedNoData} skippedNoRecipients=${scheduledReports.skippedNoRecipients} ` +
         `skippedNonMemberRecipients=${scheduledReports.skippedNonMemberRecipients} ` +
         `skippedNoValidRecipients=${scheduledReports.skippedNoValidRecipients} ` +
+        `skippedInactiveSubscription=${scheduledReports.skippedInactiveSubscription} ` +
+        `skippedOrganizationDeletion=${scheduledReports.skippedOrganizationDeletion} ` +
         `failed=${scheduledReports.failed}`,
     );
   } catch (e) {
