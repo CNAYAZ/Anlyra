@@ -120,10 +120,21 @@ model Organization {
   trialStartedAt   DateTime?
   trialEndsAt      DateTime?
 
-  // GDPR "right to erasure": set only when an owner/admin requests deletion of the
-  // whole organization. Same contract as User.deletionRequestedAt — nullable, no
-  // default, purged by the cron after 30 days.
+  // GDPR "right to erasure": set only when the founder CONFIRMS a request to
+  // delete the whole organization (admin panel, admin/actions.ts). Same contract
+  // as User.deletionRequestedAt — nullable, no default, purged by the cron after
+  // 30 days.
   deletionRequestedAt DateTime?
+
+  /// A request to delete the organization that is WAITING for the founder's
+  /// confirmation (founder's rule: no organization is deleted unless the founder
+  /// confirmed it, and only its owner may ask). NULL means nothing is waiting.
+  /// Nothing reads it to delete or block anything: only the admin panel's
+  /// confirm action turns it into deletionRequestedAt above.
+  deletionApprovalRequestedAt   DateTime?
+  /// Who made that request. Plain column, NO relation — same reasoning as
+  /// createdByUserId below. See migration 20260927120000_org_deletion_approval.
+  deletionApprovalRequestedById String?
 
   /// Who CREATED this organization. Written once, by the only route that creates
   /// one (api/onboarding/organization), and never updated afterwards.
