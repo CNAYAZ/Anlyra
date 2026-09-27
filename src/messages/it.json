@@ -1768,6 +1768,7 @@
     "running": "Generazione…",
     "runFailed": "Generazione non riuscita.",
     "runNoData": "Non ci sono dati sufficienti per generare questo report.",
+    "runTrialExpired": "Serve un abbonamento attivo per generare il report: scegli un piano da Impostazioni › Fatturazione.",
     "notRenderable": "Le sezioni scelte non sono ancora disponibili in PDF.",
     "loadFailed": "Report non trovato.",
     "lastRun": "Ultima generazione",

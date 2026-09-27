@@ -75,7 +75,19 @@ export async function POST(req: NextRequest) {
         metadata: { orgId: ctx.organizationId, userId: ctx.userId },
       });
       customerId = customer.id;
-      await setSubscription({ ...sub, stripeCustomerId: customerId });
+      // Saves the customer id for the next checkout — and NOT the synthetic
+      // trial status getSubscription() derives from Organization.trialEndsAt:
+      // written here, "trialing" used to outlive the trial for good (free
+      // access forever by opening this page and leaving). Without a Stripe
+      // subscription the row says "canceled" (= no subscription), and
+      // getSubscription() keeps deriving the trial from trialEndsAt, so an org
+      // still in its trial keeps its trial. Nothing else changes: the Stripe
+      // calls below and the webhook that activates the subscription are the same.
+      await setSubscription({
+        ...sub,
+        status: !sub.stripeSubscriptionId && sub.status === "trialing" ? "canceled" : sub.status,
+        stripeCustomerId: customerId,
+      });
     }
 
     const origin = (req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim();
