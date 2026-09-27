@@ -60,6 +60,10 @@ export const AUDIT_ACTIONS = [
   // is deleted or blocked yet — and withdrawn by the owner before that.
   'gdpr.org_deletion_approval_requested',
   'gdpr.org_deletion_approval_withdrawn',
+  // Data of a trial that never became a subscription: notice sent, then deleted
+  // 12 months after the trial ended (src/lib/cron/trial-data-retention.ts).
+  'trial_data.deletion_notice',
+  'trial_data.purged',
 
   // ── Data imports ──
   'import.commit',

@@ -18,5 +18,6 @@ export { orgDeletionMemberCancelledTemplate } from './templates/org-deletion-mem
 export { orgDeletionApprovalFounderTemplate } from './templates/org-deletion-approval-founder';
 export { orgDeletionApprovalReceivedTemplate } from './templates/org-deletion-approval-received';
 export { orgDeletionApprovalRejectedTemplate } from './templates/org-deletion-approval-rejected';
+export { trialDataDeletionNoticeTemplate } from './templates/trial-data-deletion-notice';
 export { MAX_EMAIL_ATTACHMENT_BYTES } from './send';
 export type { EmailAttachment } from './send';

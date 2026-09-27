@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { runTrialCheck } from '@/lib/cron/trial-check';
 import { runScheduledReports } from '@/lib/cron/scheduled-reports';
 import { runCreditRenewal } from '@/lib/cron/credit-renewal';
+import { runTrialDataNotices } from '@/lib/cron/trial-data-retention';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,8 @@ export async function GET(req: Request) {
         `skippedNoData=${scheduledReports.skippedNoData} skippedNoRecipients=${scheduledReports.skippedNoRecipients} ` +
         `skippedNonMemberRecipients=${scheduledReports.skippedNonMemberRecipients} ` +
         `skippedNoValidRecipients=${scheduledReports.skippedNoValidRecipients} ` +
+        `skippedInactiveSubscription=${scheduledReports.skippedInactiveSubscription} ` +
+        `skippedOrganizationDeletion=${scheduledReports.skippedOrganizationDeletion} ` +
         `failed=${scheduledReports.failed}`,
     );
   } catch (e) {
@@ -66,5 +69,20 @@ export async function GET(req: Request) {
     console.error('[cron/trial-check] credit renewal run failed:', e);
   }
 
-  return NextResponse.json({ success: true, ...result, scheduledReports, creditRenewal });
+  // Notice to the owners/admins of expired trials that never paid, 30 days
+  // before their data is deleted (the deletion itself runs in gdpr-purge).
+  // Same isolation as the two jobs above.
+  let trialDataNotices = null;
+  try {
+    trialDataNotices = await runTrialDataNotices();
+    console.info(
+      `[cron/trial-check] trial data notices: considered=${trialDataNotices.considered} sent=${trialDataNotices.noticesSent} ` +
+        `skippedPaid=${trialDataNotices.skippedPaid} skippedPaymentUnknown=${trialDataNotices.skippedPaymentUnknown} ` +
+        `skippedNoRecipients=${trialDataNotices.skippedNoRecipients} failed=${trialDataNotices.failed}`,
+    );
+  } catch (e) {
+    console.error('[cron/trial-check] trial data notices run failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, scheduledReports, creditRenewal, trialDataNotices });
 }

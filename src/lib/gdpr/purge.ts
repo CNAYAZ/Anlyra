@@ -61,9 +61,12 @@ async function findEligibleUserIds(cutoff: Date): Promise<string[]> {
 /**
  * Deletes ONE organization and every row that belongs to it. `organizationId` must
  * come from findEligibleOrganizationIds — this function does not re-check the
- * grace period, so it must never be called with an arbitrary id.
+ * grace period, so it must never be called with an arbitrary id. The one other
+ * caller is runTrialDataPurge (src/lib/cron/trial-data-retention.ts), whose ids
+ * come from its own eligibility checks (never paid, notice sent, date reached,
+ * never the demo organization).
  */
-async function purgeOrganization(organizationId: string): Promise<void> {
+export async function purgeOrganization(organizationId: string): Promise<void> {
   // Stripe FIRST and OUTSIDE the transaction below — network I/O has no
   // business holding a DB transaction open — and non-fatal: a Stripe outage
   // must never be the reason a legally-required purge does not happen.

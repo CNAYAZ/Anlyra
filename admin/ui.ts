@@ -154,24 +154,24 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <div class="card">
       <h3>Cambia ruolo di un membro (per email)</h3>
       <p class="note">
-        <b>I quattro ruoli, verificati sul codice — cosa fanno DAVVERO oggi, non cosa suggerisce il nome:</b><br>
+        <b>I quattro ruoli, verificati sul codice (src/lib/auth/require-role.ts) — cosa fanno DAVVERO oggi:</b><br>
         <b>owner</b>: può fare tutto. È l'UNICO ruolo che può aprire il portale di fatturazione
-        (gestire l'abbonamento, i pagamenti, i pacchetti di crediti) — un <code>admin</code> oggi
-        viene rifiutato da quelle rotte.<br>
-        <b>admin</b>: come owner per tutto il resto — può cancellare dati, cambiare le impostazioni
-        dell'organizzazione, collegare/scollegare le integrazioni, condividere o revocare un
-        report — ma NON può toccare la fatturazione.<br>
-        <b>editor</b> e <b>viewer</b>: possono leggere i dati e aggiungerne/modificarne (fatture,
-        spese ricorrenti, ecc.), ma non possono cancellare righe, cambiare le impostazioni
-        dell'organizzazione, gestire le integrazioni, condividere/revocare un report, né toccare
-        la fatturazione.
+        (abbonamento, pagamenti, pacchetti di crediti), chiedere la cancellazione dell'azienda,
+        fermarla dopo la tua conferma, e nominare un altro <code>owner</code>.<br>
+        <b>admin</b>: può cancellare dati, cambiare le impostazioni dell'organizzazione, gestire il
+        team (tranne gli <code>owner</code>), collegare/scollegare le integrazioni, condividere o
+        revocare un report — ma NON può toccare la fatturazione né chiedere la cancellazione
+        dell'azienda.<br>
+        <b>editor</b>: può leggere i dati, aggiungerne e modificarne (fatture, spese ricorrenti,
+        import, ecc.) e usare l'assistente AI; non può cancellare righe, cambiare le impostazioni,
+        gestire team o integrazioni, né condividere un report.<br>
+        <b>viewer</b>: sola lettura, per davvero. Non crea, non modifica, non cancella nulla e non
+        usa l'assistente AI.
       </p>
       <div class="warn">
-        <b>Una cosa verificata nel codice, non ovvia dal nome:</b> oggi <code>editor</code> e
-        <code>viewer</code> si comportano in modo IDENTICO. Nessun punto del codice impedisce a un
-        <code>viewer</code> di aggiungere o modificare dati, nonostante il nome suggerisca un ruolo
-        di sola lettura — quella distinzione non è ancora implementata. Non è stata corretta qui:
-        segnalato perché il pannello non deve far credere il contrario.
+        <b>Il pannello non controlla che resti almeno un <code>owner</code></b> (l'app lo fa, il
+        pannello no): se togli il ruolo all'unico <code>owner</code>, nessuno potrà più gestire la
+        fatturazione dell'azienda né nominare un nuovo proprietario, se non da qui.
       </div>
       <div class="row">
         <div><label>ID organizzazione</label><input id="memRoleOrg" placeholder="cl..."></div>
@@ -536,7 +536,8 @@ async function doSetMemberRoleByEmail() {
   const role = document.getElementById('memRoleVal').value;
   if (!organizationId || !email) return show('memRoleOut', 'Servono id organizzazione ed email del membro.', 'err');
   let extra = '';
-  if (role === 'viewer' || role === 'editor') extra = '\\n\\nATTENZIONE: editor e viewer oggi si comportano allo stesso modo (nessuno dei due può cancellare dati, cambiare impostazioni, gestire integrazioni o toccare la fatturazione).';
+  if (role === 'viewer') extra = '\\n\\nATTENZIONE: viewer è sola lettura (non crea, non modifica, non cancella, non usa l\\'assistente AI).';
+  else if (role === 'editor') extra = '\\n\\nATTENZIONE: editor crea e modifica dati, ma non cancella, non cambia impostazioni, non gestisce team, integrazioni o fatturazione.';
   if (!confirm('CAMBIARE RUOLO\\n\\nOrganizzazione: ' + organizationId + '\\nEmail: ' + email +
       '\\nNuovo ruolo: ' + role + extra + '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
   try {

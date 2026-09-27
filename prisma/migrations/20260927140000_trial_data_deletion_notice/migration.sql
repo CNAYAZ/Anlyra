@@ -1,0 +1,23 @@
+-- Records WHEN the "your trial data will be deleted" notice was sent to an
+-- organization that never became a customer (founder's rule: data of an
+-- expired trial is deleted 12 months after the trial ended, with a notice 30
+-- days before).
+--
+-- WHY A NEW COLUMN: the deletion must never happen without the notice having
+-- actually gone out. The cron runs once a day and can miss a day; an email can
+-- fail. Without remembering the notice, the first run after this ships would
+-- delete at once every trial that ended more than 12 months ago, with no
+-- warning at all. With it, deletion happens only when the notice exists, on
+-- the LATER of "trial end + 12 months" and "notice + 30 days" — so everyone
+-- gets at least 30 days. The audit log is not a safe place for this: auditLog()
+-- swallows its own write errors by design (src/lib/audit/log.ts).
+--
+-- NULLABLE, NO DEFAULT: NULL means "no notice sent", which is true of every
+-- organization today. No backfill statement is included or wanted.
+--
+-- SAFETY: this migration only ADDS one nullable column to one table. It drops
+-- nothing, rewrites no existing row and changes no existing value. RLS is
+-- already enabled on Organization (migration
+-- 20260825150000_enable_row_level_security) and covers new columns.
+
+ALTER TABLE "Organization" ADD COLUMN "trialDataDeletionNoticeSentAt" TIMESTAMP(3);

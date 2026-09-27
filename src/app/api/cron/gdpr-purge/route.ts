@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { runGdprPurge } from '@/lib/gdpr/purge';
 import { purgeOldWebhookEvents } from '@/lib/billing/webhook-retention';
 import { purgeOldAuditLogs, AUDIT_LOG_RETENTION_MONTHS } from '@/lib/audit/retention';
+import { runTrialDataPurge } from '@/lib/cron/trial-data-retention';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,5 +54,20 @@ export async function GET(req: Request) {
     console.error('[cron/gdpr-purge] audit log retention purge failed:', e);
   }
 
-  return NextResponse.json({ success: true, ...result, webhookEventsPurged, auditLogRowsPurged });
+  // Data of expired trials that never paid, 12 months after the trial ended and
+  // never before 30 days from the notice (src/lib/cron/trial-data-retention.ts).
+  // Same best-effort contract: a failure here must not undo the GDPR purge above.
+  let trialDataPurge = null;
+  try {
+    trialDataPurge = await runTrialDataPurge();
+    console.info(
+      `[cron/gdpr-purge] trial data: considered=${trialDataPurge.considered} purged=${trialDataPurge.purged.length} ` +
+        `notYetDue=${trialDataPurge.notYetDue} skippedPaid=${trialDataPurge.skippedPaid} ` +
+        `skippedPaymentUnknown=${trialDataPurge.skippedPaymentUnknown} errors=${trialDataPurge.errors.length}`,
+    );
+  } catch (e) {
+    console.error('[cron/gdpr-purge] trial data purge failed:', e);
+  }
+
+  return NextResponse.json({ success: true, ...result, webhookEventsPurged, auditLogRowsPurged, trialDataPurge });
 }
