@@ -32,7 +32,7 @@ type SharedReport = {
 type State =
   | { status: 'loading' }
   | { status: 'ok'; report: SharedReport }
-  | { status: 'gone'; reason: 'NOT_FOUND' | 'EXPIRED' | 'NO_DATA' };
+  | { status: 'gone'; reason: 'NOT_FOUND' | 'EXPIRED' | 'NO_DATA' | 'UNAVAILABLE' };
 
 /**
  * Public page behind a share link. It reads the report from the SERVER using the
@@ -60,6 +60,8 @@ export default function PublicSharePage() {
           setState({ status: 'gone', reason: 'EXPIRED' });
         } else if (res.status === 422) {
           setState({ status: 'gone', reason: 'NO_DATA' });
+        } else if (res.status === 403) {
+          setState({ status: 'gone', reason: 'UNAVAILABLE' });
         } else {
           setState({ status: 'gone', reason: 'NOT_FOUND' });
         }
@@ -115,13 +117,17 @@ export default function PublicSharePage() {
         ? t('linkExpiredTitle')
         : state.reason === 'NO_DATA'
           ? t('noDataTitle')
-          : t('linkUnavailableTitle');
+          : state.reason === 'UNAVAILABLE'
+            ? t('reportUnavailableTitle')
+            : t('linkUnavailableTitle');
     const description =
       state.reason === 'EXPIRED'
         ? t('linkExpiredDesc')
         : state.reason === 'NO_DATA'
           ? t('noDataDesc')
-          : t('linkUnavailableDesc');
+          : state.reason === 'UNAVAILABLE'
+            ? t('reportUnavailableDesc')
+            : t('linkUnavailableDesc');
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-light p-8">
         <div className="card w-full max-w-md">

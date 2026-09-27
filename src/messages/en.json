@@ -3143,6 +3143,8 @@
     "linkExpiredDesc": "This share link has expired. Ask whoever sent it to generate a new one.",
     "noDataTitle": "Report unavailable",
     "noDataDesc": "There is not enough data to build this report.",
+    "reportUnavailableTitle": "Report not available",
+    "reportUnavailableDesc": "This report is not available at the moment. If you need it, ask the person who shared it with you.",
     "download": "Download the PDF",
     "downloading": "Preparing the PDF…",
     "downloadFailed": "Download failed. Please try again.",

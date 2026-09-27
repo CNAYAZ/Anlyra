@@ -41,7 +41,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ token: st
   if (!lookup.ok) {
     // Same 404 for "never existed", "revoked" and "expired" would hide the reason
     // the viewer needs; the distinction leaks nothing (they already hold a token).
-    return fail(lookup.reason, lookup.reason === 'EXPIRED' ? 410 : 404);
+    // UNAVAILABLE (no active subscription) gets its own status so the page can
+    // say "not available" rather than "invalid link" — without saying why:
+    // a company's billing state is none of the public viewer's business.
+    return fail(lookup.reason, lookup.reason === 'EXPIRED' ? 410 : lookup.reason === 'UNAVAILABLE' ? 403 : 404);
   }
 
   const report = lookup.report;
