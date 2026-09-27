@@ -111,6 +111,91 @@ export async function listOrganizationMembers(): Promise<MembershipRow[]> {
   }));
 }
 
+/** Days after which a waiting request is highlighted: the founder has one month by law to answer. */
+export const ORG_DELETION_OVERDUE_DAYS = 7;
+
+export type OrgDeletionRequestRow = {
+  organizationId: string;
+  organizationName: string;
+  requestedAt: string;
+  daysWaiting: number;
+  /** Waiting for more than ORG_DELETION_OVERDUE_DAYS. */
+  overdue: boolean;
+  requesterId: string | null;
+  /** Null when the requester's account no longer exists. */
+  requesterEmail: string | null;
+  requesterName: string | null;
+  /** The requester's CURRENT role in this organization, or null if no longer a member. */
+  requesterRole: string | null;
+  /** The requester's own account deletion is pending: the request was filed because they were the only member. */
+  requesterLeaving: boolean;
+  memberCount: number;
+  subscription: string | null;
+};
+
+/**
+ * Company-deletion requests WAITING for the founder's confirmation
+ * (Organization.deletionApprovalRequestedAt), oldest first — the oldest is the
+ * one closest to the legal one-month limit.
+ */
+export async function listPendingOrgDeletions(now: Date = new Date()): Promise<OrgDeletionRequestRow[]> {
+  const orgs = await prisma.organization.findMany({
+    where: { deletionApprovalRequestedAt: { not: null } },
+    orderBy: { deletionApprovalRequestedAt: 'asc' },
+    take: LIST_LIMIT,
+    select: {
+      id: true,
+      name: true,
+      deletionApprovalRequestedAt: true,
+      deletionApprovalRequestedById: true,
+      _count: { select: { memberships: true } },
+    },
+  });
+  const requesterIds = orgs.map((o) => o.deletionApprovalRequestedById).filter((id): id is string => !!id);
+  const [users, memberships, subs] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: requesterIds } },
+      select: { id: true, email: true, name: true, deletionRequestedAt: true },
+    }),
+    prisma.membership.findMany({
+      where: { userId: { in: requesterIds }, organizationId: { in: orgs.map((o) => o.id) } },
+      select: { userId: true, organizationId: true, role: true },
+    }),
+    prisma.billingSubscription.findMany({
+      where: { organizationId: { in: orgs.map((o) => o.id) } },
+      select: { organizationId: true, plan: true, status: true, cancelAtPeriodEnd: true },
+    }),
+  ]);
+  const userById = new Map(users.map((u) => [u.id, u]));
+  const roleOf = new Map(memberships.map((m) => [`${m.userId}:${m.organizationId}`, m.role]));
+  const subByOrg = new Map(subs.map((s) => [s.organizationId, s]));
+
+  return orgs.map((o) => {
+    const requestedAt = o.deletionApprovalRequestedAt as Date;
+    const waitingMs = now.getTime() - requestedAt.getTime();
+    const user = o.deletionApprovalRequestedById ? userById.get(o.deletionApprovalRequestedById) : undefined;
+    const sub = subByOrg.get(o.id);
+    return {
+      organizationId: o.id,
+      organizationName: o.name,
+      requestedAt: requestedAt.toISOString(),
+      daysWaiting: Math.floor(waitingMs / 86_400_000),
+      overdue: waitingMs > ORG_DELETION_OVERDUE_DAYS * 86_400_000,
+      requesterId: o.deletionApprovalRequestedById,
+      requesterEmail: user?.email ?? null,
+      requesterName: user?.name ?? null,
+      requesterRole: o.deletionApprovalRequestedById
+        ? roleOf.get(`${o.deletionApprovalRequestedById}:${o.id}`) ?? null
+        : null,
+      requesterLeaving: !!user?.deletionRequestedAt,
+      memberCount: o._count.memberships,
+      subscription: sub
+        ? `${sub.plan}, ${sub.status}${sub.cancelAtPeriodEnd ? ', si chiude a fine periodo' : ''}`
+        : null,
+    };
+  });
+}
+
 export type UserRow = {
   id: string;
   email: string;

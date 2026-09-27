@@ -118,9 +118,12 @@ export default async function DashboardLayout({
 
   // Same gating as needsReaccept above: only for a real signed-in member,
   // never the demo (which can never have a pending deletion request at all).
-  // The requester's OWN account never reaches this layout in the first place
-  // — their User.deletionRequestedAt sends them to /deletion-pending above —
-  // so whoever sees this banner is always one of the OTHER members.
+  // Shown once the founder has CONFIRMED the company's deletion
+  // (Organization.deletionRequestedAt) — a request still waiting for that
+  // confirmation shows nothing here. The owner who asked sees it too: the
+  // company request no longer locks their own account (see
+  // src/lib/gdpr/org-deletion.ts). Anyone whose own account deletion is
+  // pending never reaches this layout — /deletion-pending above.
   const orgForDeletionBanner = authCtx
     ? await prisma.organization.findUnique({
         where: { id: orgId },

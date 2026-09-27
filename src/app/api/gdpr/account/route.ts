@@ -3,109 +3,85 @@ import { ok, fail } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
-import { isManagerRole } from '@/lib/auth/require-role';
-import { getStripe } from '@/lib/stripe/client';
+import { isOwnerRole, requireOwnerRole } from '@/lib/auth/require-role';
+import { DELETION_GRACE_DAYS, daysRemainingInGrace, isPastGrace } from '@/lib/gdpr/constants';
 import {
-  DELETION_GRACE_DAYS,
-  daysRemainingInGrace,
-  isPastGrace,
-  GDPR_STRIPE_CANCELLATION_MARKER,
-} from '@/lib/gdpr/constants';
+  soleOwnershipOf,
+  scheduleSubscriptionEnd,
+  unscheduleSubscriptionEnd,
+  notifyDeletionCancelled,
+  sendApprovalRequestEmails,
+} from '@/lib/gdpr/org-deletion';
 import { auditLog } from '@/lib/audit/log';
-import {
-  sendEmail,
-  sanitizeSubjectText,
-  orgDeletionMemberNoticeTemplate,
-  orgDeletionMemberCancelledTemplate,
-} from '@/lib/email';
-import { siteUrl } from '@/lib/auth/tokens';
-import { formatDate } from '@/lib/utils';
-
-/**
- * Every OTHER member of the organization — never the actor themselves, who
- * sees the request/cancellation live in the UI that called this route.
- * Shared between POST (deletion notice) and DELETE (cancellation notice):
- * same audience, same query, only the template differs.
- */
-async function otherMembersOf(organizationId: string, excludeUserId: string) {
-  return prisma.membership.findMany({
-    where: { organizationId, userId: { not: excludeUserId } },
-    select: { user: { select: { email: true, name: true, locale: true } } },
-  });
-}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GDPR art. 17 — right to erasure. POST here REQUESTS deletion; it never
- * deletes anything itself. It stamps `deletionRequestedAt` and the purge cron
- * (/api/cron/gdpr-purge) removes the rows for good after the grace period —
- * and DELETE below (added later) UNDOES that stamp within the same window, so
- * a mistaken or malicious click is recoverable, self-service where reachable,
- * by an operator always.
+ * GDPR art. 17 — right to erasure. Two SEPARATE requests (founder's decision,
+ * 2026-09-27; before it, an owner's or admin's request always took the whole
+ * company with it, and started the 30 days at once):
  *
- * SCOPE, per the founder's rule:
- *   • owner/admin → their account AND the organization (with all of its data).
- *   • any other member → their own account and membership only. The organization
- *     and every business record stay untouched: a plain member cannot delete the
- *     company.
- * Other members' personal accounts are NEVER deleted, not even when the whole
- * organization goes: they simply lose this workspace.
+ *   • scope 'account' — ANYONE: their own personal account. Never waits for
+ *     anyone: it is a GDPR right. It stamps User.deletionRequestedAt and the
+ *     purge cron (/api/cron/gdpr-purge) removes the account after 30 days.
+ *     Two cases touch a company (see soleOwnershipOf):
+ *       – sole owner of a company with other people in it → refused
+ *         (SOLE_OWNER) until they name another owner or ask for the company's
+ *         deletion;
+ *       – only member of a company → goes ahead, and at the same moment a
+ *         request to delete that company is filed for the founder's
+ *         confirmation, and its subscription is set to end at period end.
+ *   • scope 'organization' — the OWNER only: asks to delete the whole company.
+ *     Nothing is deleted or blocked: the request WAITS
+ *     (Organization.deletionApprovalRequestedAt) until the founder confirms it
+ *     from the admin panel (admin/actions.ts), which then starts the existing
+ *     process — see src/lib/gdpr/org-deletion.ts.
  *
- * CONFIRMATION: the current password is required and verified with bcrypt, the
- * same check as /api/auth/change-password. A stolen session alone is not enough
- * to destroy a company.
+ * CONFIRMATION: the current password is required for both and verified with
+ * bcrypt, the same check as /api/auth/change-password.
  */
+
 /**
- * Scope preview for the confirmation dialog: tells the UI EXACTLY what a POST
- * would destroy, decided by the same server-side role check, so the warning text
- * can never disagree with what actually happens.
- *
- * Also reports two INDEPENDENT pending states, each with its own cancel button
- * in the UI (see DELETE below):
- *   • the caller's OWN account (`alreadyRequested`/`requestedAt`), exactly as
- *     before this addition;
- *   • `organizationPending`, NEW — the current organization's own request,
- *     visible to ANY manager (owner/admin) of it, not only the one who made it.
- *     This matters: only the requester's OWN User row is ever stamped (see the
- *     POST handler), so a co-owner who did not request anything has an
- *     unstamped `deletionRequestedAt` and would see `alreadyRequested: false`
- *     even while their COMPANY is counting down to deletion. Without this
- *     field, that co-owner has no way to even see it from here.
+ * What the privacy panel needs to show, decided by the same server-side checks
+ * POST uses, so the text on screen can never promise something different from
+ * what happens. Company-level state is returned to the OWNER only: an admin
+ * sees no option to delete the company (founder's rule).
  */
 export async function GET() {
   const ctx = await getAuthContext();
   if (!ctx) return fail('UNAUTHORIZED', 401);
-  const isManager = isManagerRole(ctx.role);
+  const isOwner = isOwnerRole(ctx.role);
 
-  const [user, organization] = await Promise.all([
+  const [user, organization, ownership] = await Promise.all([
     prisma.user.findUnique({
       where: { id: ctx.userId },
       select: { deletionRequestedAt: true, passwordHash: true },
     }),
-    // Only a manager can act on the organization's request (same boundary the
-    // POST handler already enforces for CREATING one), so this is skipped
-    // entirely for anyone else — a plain member never learns the organization's
-    // deletion state through this endpoint.
-    isManager
+    isOwner
       ? prisma.organization.findUnique({
           where: { id: ctx.organizationId },
-          select: { deletionRequestedAt: true },
+          select: { deletionRequestedAt: true, deletionApprovalRequestedAt: true },
         })
       : Promise.resolve(null),
+    soleOwnershipOf(ctx.userId),
   ]);
   if (!user) return fail('NOT_FOUND', 404);
 
   return ok({
-    organizationIncluded: isManager,
     graceDays: DELETION_GRACE_DAYS,
     alreadyRequested: !!user.deletionRequestedAt,
     requestedAt: user.deletionRequestedAt?.toISOString() ?? null,
-    daysRemaining: user.deletionRequestedAt
-      ? daysRemainingInGrace(user.deletionRequestedAt)
-      : null,
+    daysRemaining: user.deletionRequestedAt ? daysRemainingInGrace(user.deletionRequestedAt) : null,
     canConfirmWithPassword: !!user.passwordHash,
+    // Personal deletion refused while this is non-empty (option a).
+    soleOwnerOf: ownership.blocking.map((o) => o.name),
+    // Personal deletion also files these companies' deletion (option b).
+    soleMemberOf: ownership.alone.map((o) => o.name),
+    canRequestOrganizationDeletion: isOwner,
+    organizationApprovalPending: organization?.deletionApprovalRequestedAt
+      ? { requestedAt: organization.deletionApprovalRequestedAt.toISOString() }
+      : null,
     organizationPending: organization?.deletionRequestedAt
       ? {
           requestedAt: organization.deletionRequestedAt.toISOString(),
@@ -121,14 +97,24 @@ export async function POST(req: Request) {
   // Demo organization: read-only. See requireWritableOrg.
   const readOnly1 = requireWritableOrg(ctx.organizationId);
   if (readOnly1) return readOnly1;
-  const { userId, organizationId, role } = ctx;
+  const { userId, organizationId } = ctx;
 
-  let body: { password?: string };
+  let body: { password?: string; scope?: string };
   try {
     body = await req.json();
   } catch {
     return fail('INVALID_BODY', 400);
   }
+  // Anything but an explicit 'organization' is the personal request: the
+  // narrower, never-destructive-to-others reading of an unclear body.
+  const scope = body.scope === 'organization' ? 'organization' : 'account';
+
+  // Role BEFORE password: an admin gets 403 whatever they type.
+  if (scope === 'organization') {
+    const denied = requireOwnerRole(ctx);
+    if (denied) return denied;
+  }
+
   const password = body.password || '';
   if (!password) return fail('MISSING_PASSWORD', 400);
 
@@ -142,33 +128,38 @@ export async function POST(req: Request) {
   const passwordMatches = await bcrypt.compare(password, user.passwordHash);
   if (!passwordMatches) return fail('PASSWORD_INVALID', 403);
 
+  if (scope === 'organization') return requestOrganizationDeletion(req, userId, organizationId);
+
   // Already requested: report the existing timestamp instead of resetting the
   // clock, so a double click cannot extend (or restart) the grace period.
   if (user.deletionRequestedAt) {
     return ok({
       requestedAt: user.deletionRequestedAt.toISOString(),
-      organizationIncluded: false,
-      subscriptionScheduledForCancellation: false,
+      organizationsAwaitingApproval: 0,
       alreadyRequested: true,
       graceDays: DELETION_GRACE_DAYS,
     });
   }
 
-  const deletesOrganization = isManagerRole(role);
+  const ownership = await soleOwnershipOf(userId);
+  if (ownership.blocking.length > 0) return fail('SOLE_OWNER', 409);
+
   const requestedAt = new Date();
+  const aloneIds = ownership.alone.map((o) => o.id);
 
   // Persist FIRST, Stripe after: recording the request is the legal obligation,
-  // and a Stripe outage must not be able to swallow it. The reverse order could
-  // cancel a paying customer's subscription without registering the deletion.
+  // and a Stripe outage must not be able to swallow it.
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { deletionRequestedAt: requestedAt },
     });
-    if (deletesOrganization) {
-      await tx.organization.update({
-        where: { id: organizationId },
-        data: { deletionRequestedAt: requestedAt },
+    if (aloneIds.length > 0) {
+      // Option b: companies this person is the only member of. A request
+      // already waiting (they asked for it before) keeps its own date.
+      await tx.organization.updateMany({
+        where: { id: { in: aloneIds }, deletionApprovalRequestedAt: null, deletionRequestedAt: null },
+        data: { deletionApprovalRequestedAt: requestedAt, deletionApprovalRequestedById: userId },
       });
     }
     // JWT sessions are stateless, but the adapter writes Session rows for OAuth
@@ -176,92 +167,30 @@ export async function POST(req: Request) {
     await tx.session.deleteMany({ where: { userId } });
   });
 
-  // Schedule the subscription to end at period end, but only when the
-  // organization itself is going away. A member leaving must never touch the
-  // company's subscription.
-  //
-  // NOT an immediate cancel.cancel() any more (founder's decision): whoever
-  // paid for the current period keeps using the service until it runs out,
-  // no refund either way — the same rule the pricing FAQ already states for
-  // an ordinary plan cancellation ("L'abbonamento resta attivo fino alla
-  // fine del periodo di fatturazione corrente"). An immediate hard cancel
-  // also could not be undone if the request is itself cancelled within the
-  // 30 days: the owner would have to re-subscribe for a period they had
-  // already paid for.
-  //
-  // Skipped when the subscription is ALREADY scheduled to cancel
-  // (`cancelAtPeriodEnd`, mirrored from Stripe by the webhook): it may be
-  // scheduled for a reason that has nothing to do with this request — the
-  // owner cancelled through the Stripe customer portal on their own, before
-  // ever asking to delete the account. Calling update() again would stamp
-  // the GDPR marker (below) over that independent decision, and the
-  // un-schedule on DELETE would then wrongly reactivate it. Nothing to
-  // schedule here either way: it is already going to end.
-  let subscriptionScheduledForCancellation = false;
-  if (deletesOrganization) {
-    try {
-      const billing = await prisma.billingSubscription.findUnique({
-        where: { organizationId },
-        select: { stripeSubscriptionId: true, status: true, cancelAtPeriodEnd: true },
-      });
-      if (billing?.stripeSubscriptionId && billing.status !== 'canceled' && !billing.cancelAtPeriodEnd) {
-        // The comment marks THIS as the origin of the schedule — read back by
-        // DELETE below before ever undoing it. See GDPR_STRIPE_CANCELLATION_MARKER.
-        await getStripe().subscriptions.update(billing.stripeSubscriptionId, {
-          cancel_at_period_end: true,
-          cancellation_details: { comment: GDPR_STRIPE_CANCELLATION_MARKER },
-        });
-        subscriptionScheduledForCancellation = true;
-      }
-    } catch (e) {
-      // Deliberately non-fatal: the deletion request stands. Logged loudly so an
-      // operator can schedule the cancellation by hand in the Stripe dashboard.
-      console.error(
-        `[gdpr/account] Stripe cancel_at_period_end FAILED for organization ${organizationId} — schedule it manually:`,
-        e,
-      );
-    }
+  // Founder's addition to option b: the subscription must not keep charging
+  // someone who asked to leave while the company's request waits for the
+  // founder — set it to end at period end NOW, with the existing mechanism.
+  let subscriptionsScheduledForCancellation = 0;
+  for (const id of aloneIds) {
+    if (await scheduleSubscriptionEnd(id)) subscriptionsScheduledForCancellation += 1;
   }
 
-  // Every OTHER member learns the company is going away — without this they
-  // find out only when they are locked out on day 30, with no chance to
-  // export anything first. Sent AFTER the transaction (never inside it: this
-  // is a network call, and email delivery failing must never roll back the
-  // request itself) and only for a request that actually includes the
-  // organization — a member leaving on their own never triggers this.
-  if (deletesOrganization) {
-    const purgeAt = new Date(requestedAt.getTime() + DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000);
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true },
+  // The two emails, only for requests filed by THIS call (not for one that was
+  // already waiting: the founder and the requester already have those).
+  const filed = aloneIds.length
+    ? await prisma.organization.findMany({
+        where: { id: { in: aloneIds }, deletionApprovalRequestedAt: requestedAt, deletionApprovalRequestedById: userId },
+        select: { id: true },
+      })
+    : [];
+  for (const org of filed) {
+    await sendApprovalRequestEmails({
+      kind: 'requested',
+      organizationId: org.id,
+      requesterId: userId,
+      requestedAt,
+      automatic: true,
     });
-    const orgName = org?.name ?? '';
-    const recipients = await otherMembersOf(organizationId, userId);
-    for (const m of recipients) {
-      if (!m.user?.email) continue;
-      const recipientLocale = m.user.locale === 'en' ? 'en' : 'it';
-      const deletionDate = formatDate(purgeAt, recipientLocale);
-      const sendResult = await sendEmail({
-        to: m.user.email,
-        subject: recipientLocale === 'en'
-          ? `${sanitizeSubjectText(orgName)} is scheduled for deletion · Anlyra`
-          : `${sanitizeSubjectText(orgName)} sarà cancellata · Anlyra`,
-        html: orgDeletionMemberNoticeTemplate({
-          userName: m.user.name || m.user.email,
-          userEmail: m.user.email,
-          orgName,
-          deletionDate,
-          exportUrl: `${siteUrl()}/${recipientLocale}/settings/security`,
-          locale: recipientLocale,
-        }),
-      });
-      if (!sendResult.success) {
-        console.error('[email] org-deletion-member-notice failed', {
-          to: m.user.email,
-          reason: sendResult.error,
-        });
-      }
-    }
   }
 
   await auditLog({
@@ -269,181 +198,165 @@ export async function POST(req: Request) {
     userId,
     organizationId,
     req,
-    metadata: { organizationIncluded: deletesOrganization, subscriptionScheduledForCancellation },
+    metadata: {
+      organizationIncluded: false,
+      organizationsAwaitingApproval: filed.length,
+      subscriptionsScheduledForCancellation,
+    },
   });
 
   return ok({
     requestedAt: requestedAt.toISOString(),
-    organizationIncluded: deletesOrganization,
-    subscriptionScheduledForCancellation,
+    organizationsAwaitingApproval: filed.length,
     alreadyRequested: false,
     graceDays: DELETION_GRACE_DAYS,
   });
 }
 
 /**
- * Cancels a deletion request inside the 30-day grace period — the only way to
- * do so today short of the founder's local admin panel (admin/actions.ts,
- * unblockAccount): VERIFIED before writing this by searching every write to
- * `deletionRequestedAt` in the codebase — the admin panel was the only place
- * that ever set it back to null.
+ * The owner asks to delete the company. Only RECORDS the request as waiting —
+ * no session is dropped, no account stamped, Stripe untouched, nothing
+ * deleted — and sends the two emails (founder's inbox, owner).
+ */
+async function requestOrganizationDeletion(req: Request, userId: string, organizationId: string) {
+  const requestedAt = new Date();
+  // Conditional write: a request already waiting keeps its date (a double
+  // click cannot restart the founder's month), and a deletion already
+  // confirmed is not requested again.
+  const claimed = await prisma.organization.updateMany({
+    where: { id: organizationId, deletionApprovalRequestedAt: null, deletionRequestedAt: null },
+    data: { deletionApprovalRequestedAt: requestedAt, deletionApprovalRequestedById: userId },
+  });
+  if (claimed.count === 0) {
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { deletionRequestedAt: true, deletionApprovalRequestedAt: true },
+    });
+    if (org?.deletionRequestedAt) return fail('ORGANIZATION_DELETION_ALREADY_CONFIRMED', 409);
+    return ok({
+      organizationApprovalRequestedAt: org?.deletionApprovalRequestedAt?.toISOString() ?? null,
+      alreadyRequested: true,
+    });
+  }
+
+  await sendApprovalRequestEmails({
+    kind: 'requested',
+    organizationId,
+    requesterId: userId,
+    requestedAt,
+    automatic: false,
+  });
+
+  await auditLog({
+    action: 'gdpr.org_deletion_approval_requested',
+    userId,
+    organizationId,
+    targetType: 'organization',
+    targetId: organizationId,
+    req,
+  });
+
+  return ok({ organizationApprovalRequestedAt: requestedAt.toISOString(), alreadyRequested: false });
+}
+
+/**
+ * Withdraws a request inside its window. NO PASSWORD REQUIRED, unlike POST —
+ * deliberately: withdrawing is the SAFE direction, it undoes a destructive
+ * request rather than making one. REFUSED server-side when there is nothing
+ * to withdraw (NOTHING_TO_CANCEL), never a silent success; and past the 30
+ * days (GRACE_EXPIRED) the request is definitive.
  *
- * NO PASSWORD REQUIRED, unlike POST above — deliberately. Cancelling is the
- * SAFE direction: it undoes a destructive action rather than causing one, the
- * same asymmetry the report-sharing routes already use (creating a public
- * share link requires nothing extra beyond the role check either; only the
- * destructive step, in this file the deletion REQUEST, is behind a password).
- * A session that reached this handler is already authenticated.
+ * `?scope=organization` — OWNER only: withdraws the company's request, waiting
+ *   or already confirmed (founder's rule: after the confirmation only the
+ *   owner can stop the 30 days; an admin no longer can).
+ * no scope — the caller's own account (the cancel screen at
+ *   /[locale]/deletion-pending, and Settings → Security). Also takes back what
+ *   that same request started:
+ *     – the company requests filed because they were its only member (option
+ *       b), and the subscription end set at the same time;
+ *     – a request made BEFORE this split, when an owner's/admin's one click
+ *       stamped the account AND the company with the same instant: undone
+ *       together, exactly as before.
  *
- * TWO INDEPENDENT CANCELLATIONS, exactly mirroring how the POST above decides
- * what to stamp:
- *   • the caller's own account, if `deletionRequestedAt` is set on it;
- *   • the organization's, if `deletionRequestedAt` is set on it AND the caller
- *     is currently owner/admin — the same boundary POST uses to decide whether
- *     to stamp the organization in the first place. This is NOT restricted to
- *     "only the person who originally requested it": any manager already has
- *     the authority to REQUEST the company's deletion, so any manager also has
- *     the authority to cancel a pending one, whoever made it.
- * Neither depends on the other: a manager whose own account is not pending can
- * still cancel a company-wide request (see GET's `organizationPending`), and a
- * plain member can still cancel their own personal request without touching
- * the organization at all.
- *
- * REFUSED, server-side, when there is nothing to cancel — never just hidden by
- * the UI: a request with nothing pending for this caller gets NOTHING_TO_CANCEL
- * rather than a silent no-op success.
- *
- * THE ONE ROUTE A PENDING ACCOUNT MAY CALL: `allowDeletionPending` below is
- * what lets the owner who requested deletion sign back in and cancel from the
- * cancellation screen (app/[locale]/deletion-pending) — every other route sees
- * no user for them. And only within the 30 days: a request past the grace
- * period is definitive (isPastGrace, the purge's own test) and is refused with
- * GRACE_EXPIRED rather than undone the night before the purge would run.
- *
- * SUBSCRIPTION: when `cancelOrganization` is true, this also un-schedules the
- * `cancel_at_period_end` that POST may have set — but ONLY if the marker on
- * the Stripe subscription (GDPR_STRIPE_CANCELLATION_MARKER) shows THIS
- * request set it. If the owner had already scheduled their own cancellation
- * through the Stripe customer portal before ever requesting deletion, that
- * schedule is left exactly as it was: cancelling a deletion request must
- * never reactivate a subscription the owner separately chose to end.
+ * `allowDeletionPending` is what lets a person whose own deletion is pending
+ * reach this route at all — every other route sees no user for them.
  */
 export async function DELETE(req: Request) {
   const ctx = await getAuthContext({ allowDeletionPending: true });
   if (!ctx) return fail('UNAUTHORIZED', 401);
-  // Demo organization: read-only. See requireWritableOrg. (The demo org can
-  // never actually reach this state, but every write path here uses the same
-  // guard as POST for the same reason POST does.)
+  // Demo organization: read-only. See requireWritableOrg.
   const readOnly = requireWritableOrg(ctx.organizationId);
   if (readOnly) return readOnly;
-  const { userId, organizationId, role } = ctx;
-  const isManager = isManagerRole(role);
+  const { userId, organizationId } = ctx;
 
-  const [user, organization] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { deletionRequestedAt: true } }),
-    isManager
-      ? prisma.organization.findUnique({ where: { id: organizationId }, select: { deletionRequestedAt: true } })
-      : Promise.resolve(null),
-  ]);
-  if (!user) return fail('NOT_FOUND', 404);
-
-  const personalAt = user.deletionRequestedAt;
-  const organizationAt = isManager ? (organization?.deletionRequestedAt ?? null) : null;
-  const cancelPersonal = !!personalAt && !isPastGrace(personalAt);
-  const cancelOrganization = !!organizationAt && !isPastGrace(organizationAt);
-
-  if (!cancelPersonal && !cancelOrganization) {
-    return personalAt || organizationAt
-      ? fail('GRACE_EXPIRED', 410)
-      : fail('NOTHING_TO_CANCEL', 400);
+  if (new URL(req.url).searchParams.get('scope') === 'organization') {
+    const denied = requireOwnerRole(ctx);
+    if (denied) return denied;
+    return cancelOrganizationDeletion(req, userId, organizationId);
   }
 
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { deletionRequestedAt: true } });
+  if (!user) return fail('NOT_FOUND', 404);
+  const personalAt = user.deletionRequestedAt;
+  if (!personalAt) return fail('NOTHING_TO_CANCEL', 400);
+  if (isPastGrace(personalAt)) return fail('GRACE_EXPIRED', 410);
+
+  const [ownership, legacy] = await Promise.all([
+    soleOwnershipOf(userId),
+    // Pre-split combined request: same instant on the company as on the
+    // account, in a company this person belongs to — proof it was their click.
+    prisma.organization.findMany({
+      where: { deletionRequestedAt: personalAt, memberships: { some: { userId } } },
+      select: { id: true },
+    }),
+  ]);
+  const aloneIds = ownership.alone.map((o) => o.id);
+  const legacyIds = legacy.map((o) => o.id);
+  // The company requests this person filed and that go away with this
+  // withdrawal — read first so the founder can be told which ones.
+  const withdrawing = aloneIds.length
+    ? await prisma.organization.findMany({
+        where: { id: { in: aloneIds }, deletionApprovalRequestedById: userId, deletionApprovalRequestedAt: { not: null } },
+        select: { id: true, deletionApprovalRequestedAt: true },
+      })
+    : [];
+
+  let approvalsWithdrawn = 0;
   await prisma.$transaction(async (tx) => {
-    if (cancelPersonal) {
-      await tx.user.update({ where: { id: userId }, data: { deletionRequestedAt: null } });
+    await tx.user.update({ where: { id: userId }, data: { deletionRequestedAt: null } });
+    if (withdrawing.length > 0) {
+      approvalsWithdrawn = (
+        await tx.organization.updateMany({
+          where: { id: { in: withdrawing.map((o) => o.id) }, deletionApprovalRequestedById: userId, deletionApprovalRequestedAt: { not: null } },
+          data: { deletionApprovalRequestedAt: null, deletionApprovalRequestedById: null },
+        })
+      ).count;
     }
-    if (cancelOrganization) {
-      await tx.organization.update({ where: { id: organizationId }, data: { deletionRequestedAt: null } });
+    if (legacyIds.length > 0) {
+      await tx.organization.updateMany({
+        where: { id: { in: legacyIds }, deletionRequestedAt: personalAt },
+        data: { deletionRequestedAt: null },
+      });
     }
   });
 
-  // Un-schedule the subscription's end, but only when the ORGANIZATION's
-  // request is the one being cancelled (a member cancelling their own
-  // personal request never touched Stripe in the first place — see POST's
-  // `deletesOrganization` gate) and only when GDPR is what scheduled it.
-  // DB dates are already cleared above regardless of what happens here: a
-  // Stripe outage must not be able to leave the deletion state stuck.
-  let subscriptionRestored = false;
-  if (cancelOrganization) {
-    try {
-      const billing = await prisma.billingSubscription.findUnique({
-        where: { organizationId },
-        select: { stripeSubscriptionId: true, status: true, cancelAtPeriodEnd: true },
-      });
-      if (billing?.stripeSubscriptionId && billing.status !== 'canceled' && billing.cancelAtPeriodEnd) {
-        // Read the LIVE object: cancellation_details is Stripe-side state, not
-        // mirrored into BillingSubscription by the webhook (only
-        // cancel_at_period_end itself is).
-        const stripe = getStripe();
-        const live = await stripe.subscriptions.retrieve(billing.stripeSubscriptionId);
-        if (
-          live.cancel_at_period_end &&
-          live.cancellation_details?.comment === GDPR_STRIPE_CANCELLATION_MARKER
-        ) {
-          await stripe.subscriptions.update(billing.stripeSubscriptionId, {
-            cancel_at_period_end: false,
-            cancellation_details: { comment: null },
-          });
-          subscriptionRestored = true;
-        }
-        // Else: scheduled for a reason that predates or is unrelated to this
-        // request (e.g. the owner's own cancellation via the Stripe customer
-        // portal) — left untouched on purpose, see the doc comment above.
-      }
-    } catch (e) {
-      // Deliberately non-fatal, same reasoning as POST: logged loudly so an
-      // operator can un-schedule it by hand in the Stripe dashboard.
-      console.error(
-        `[gdpr/account] Stripe un-schedule FAILED for organization ${organizationId} — restore it manually:`,
-        e,
-      );
-    }
+  // DB first, Stripe after: an outage must not leave the deletion state stuck.
+  let subscriptionsRestored = 0;
+  for (const id of [...aloneIds, ...legacyIds]) {
+    if (await unscheduleSubscriptionEnd(id)) subscriptionsRestored += 1;
   }
-
-  // Same audience as the notice POST sent, told the alarm is lifted — see
-  // orgDeletionMemberCancelledTemplate for why this one exists at all: the
-  // banner already disappears for anyone who opens the app again, but email
-  // was the channel that reached members who do not, and leaving them with a
-  // stale "your company will be deleted" is worse than one more email.
-  if (cancelOrganization) {
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true },
+  for (const id of legacyIds) {
+    await notifyDeletionCancelled(id, userId);
+  }
+  // The founder was told about these requests: tell them they are gone too.
+  for (const org of withdrawing) {
+    await sendApprovalRequestEmails({
+      kind: 'withdrawn',
+      organizationId: org.id,
+      requesterId: userId,
+      requestedAt: org.deletionApprovalRequestedAt as Date,
+      automatic: true,
     });
-    const orgName = org?.name ?? '';
-    const recipients = await otherMembersOf(organizationId, userId);
-    for (const m of recipients) {
-      if (!m.user?.email) continue;
-      const recipientLocale = m.user.locale === 'en' ? 'en' : 'it';
-      const sendResult = await sendEmail({
-        to: m.user.email,
-        subject: recipientLocale === 'en'
-          ? `${sanitizeSubjectText(orgName)} is safe — deletion cancelled · Anlyra`
-          : `${sanitizeSubjectText(orgName)} è al sicuro — cancellazione annullata · Anlyra`,
-        html: orgDeletionMemberCancelledTemplate({
-          userName: m.user.name || m.user.email,
-          userEmail: m.user.email,
-          orgName,
-          locale: recipientLocale,
-        }),
-      });
-      if (!sendResult.success) {
-        console.error('[email] org-deletion-member-cancelled failed', {
-          to: m.user.email,
-          reason: sendResult.error,
-        });
-      }
-    }
   }
 
   await auditLog({
@@ -451,8 +364,77 @@ export async function DELETE(req: Request) {
     userId,
     organizationId,
     req,
-    metadata: { personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization, subscriptionRestored },
+    metadata: {
+      personalCancelled: true,
+      organizationApprovalsWithdrawn: approvalsWithdrawn,
+      organizationCancelled: legacyIds.length > 0,
+      subscriptionsRestored,
+    },
   });
 
-  return ok({ personalCancelled: cancelPersonal, organizationCancelled: cancelOrganization, subscriptionRestored });
+  return ok({
+    personalCancelled: true,
+    organizationApprovalsWithdrawn: approvalsWithdrawn,
+    organizationCancelled: legacyIds.length > 0,
+    subscriptionRestored: subscriptionsRestored > 0,
+  });
+}
+
+/**
+ * The owner takes back the company's request: while it is still waiting for
+ * the founder (nothing else to undo — nothing else was ever changed), or after
+ * the confirmation, within the 30 days (subscription end undone with the GDPR
+ * marker check, members told the company is safe).
+ */
+async function cancelOrganizationDeletion(req: Request, userId: string, organizationId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      deletionRequestedAt: true,
+      deletionApprovalRequestedAt: true,
+      deletionApprovalRequestedById: true,
+    },
+  });
+  if (!org) return fail('NOT_FOUND', 404);
+
+  if (org.deletionApprovalRequestedAt) {
+    const withdrawn = await prisma.organization.updateMany({
+      where: { id: organizationId, deletionApprovalRequestedAt: { not: null } },
+      data: { deletionApprovalRequestedAt: null, deletionApprovalRequestedById: null },
+    });
+    if (withdrawn.count === 0) return fail('NOTHING_TO_CANCEL', 400);
+    await sendApprovalRequestEmails({
+      kind: 'withdrawn',
+      organizationId,
+      requesterId: org.deletionApprovalRequestedById ?? userId,
+      requestedAt: org.deletionApprovalRequestedAt,
+      automatic: false,
+    });
+    await auditLog({
+      action: 'gdpr.org_deletion_approval_withdrawn',
+      userId,
+      organizationId,
+      targetType: 'organization',
+      targetId: organizationId,
+      req,
+    });
+    return ok({ organizationApprovalWithdrawn: true, organizationCancelled: false, subscriptionRestored: false });
+  }
+
+  if (!org.deletionRequestedAt) return fail('NOTHING_TO_CANCEL', 400);
+  if (isPastGrace(org.deletionRequestedAt)) return fail('GRACE_EXPIRED', 410);
+
+  await prisma.organization.update({ where: { id: organizationId }, data: { deletionRequestedAt: null } });
+  const subscriptionRestored = await unscheduleSubscriptionEnd(organizationId);
+  await notifyDeletionCancelled(organizationId, userId);
+
+  await auditLog({
+    action: 'gdpr.account_deletion_cancelled',
+    userId,
+    organizationId,
+    req,
+    metadata: { personalCancelled: false, organizationCancelled: true, subscriptionRestored },
+  });
+
+  return ok({ organizationApprovalWithdrawn: false, organizationCancelled: true, subscriptionRestored });
 }

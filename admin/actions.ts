@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { auditLog } from '@/lib/audit/log';
 import { recordCreditEntry } from '@/lib/credits';
+import { confirmOrganizationDeletion, rejectOrganizationDeletion } from '@/lib/gdpr/org-deletion';
 import { buildInsightWhere } from './queries';
 
 /**
@@ -399,6 +400,58 @@ export async function unblockAccount(params: {
   });
 
   return { email: user.email, done };
+}
+
+/**
+ * The founder CONFIRMS a waiting request to delete a company. Starts the
+ * process that already existed — 30 days, notice to the members, subscription
+ * set to end at period end — through the same code the product uses
+ * (src/lib/gdpr/org-deletion.ts). Refuses when nothing is waiting.
+ */
+export async function confirmOrgDeletion(organizationId: string) {
+  const r = await confirmOrganizationDeletion(organizationId);
+
+  await auditLog({
+    action: 'admin.org_deletion_confirmed',
+    organizationId,
+    targetType: 'organization',
+    targetId: organizationId,
+    metadata: {
+      requestedAt: r.requestedAt?.toISOString() ?? null,
+      requesterId: r.requesterId,
+      subscriptionScheduledForCancellation: r.subscriptionScheduledForCancellation,
+      membersNotified: r.membersNotified,
+    },
+  });
+
+  return {
+    organizationName: r.organizationName,
+    startedAt: r.startedAt.toISOString(),
+    subscriptionScheduledForCancellation: r.subscriptionScheduledForCancellation,
+    membersNotified: r.membersNotified,
+  };
+}
+
+/**
+ * The founder REJECTS a waiting request. Nothing had changed while it waited,
+ * so only the request is cleared; the requester gets an email saying so.
+ */
+export async function rejectOrgDeletion(organizationId: string) {
+  const r = await rejectOrganizationDeletion(organizationId);
+
+  await auditLog({
+    action: 'admin.org_deletion_rejected',
+    organizationId,
+    targetType: 'organization',
+    targetId: organizationId,
+    metadata: {
+      requestedAt: r.requestedAt?.toISOString() ?? null,
+      requesterId: r.requesterId,
+      requesterNotified: r.requesterNotified,
+    },
+  });
+
+  return { organizationName: r.organizationName, requesterNotified: r.requesterNotified };
 }
 
 export const CRON_JOBS = ['trial-check', 'gdpr-purge'] as const;

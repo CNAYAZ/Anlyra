@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 import { Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { prisma } from '@/lib/prisma';
-import { getAuthContext, getSessionState } from '@/lib/session';
-import { isManagerRole } from '@/lib/auth/require-role';
+import { getSessionState } from '@/lib/session';
 import { daysRemainingInGrace, isPastGrace } from '@/lib/gdpr/constants';
+import { soleOwnershipOf } from '@/lib/gdpr/org-deletion';
 import { DeletionPendingActions } from './DeletionPendingActions';
 
 // Per-user and read fresh on every visit: the days left and whether there is
@@ -42,19 +42,23 @@ export default async function DeletionPendingPage({
   const requestedAt = user?.deletionRequestedAt;
   if (!requestedAt) redirect(`/${locale}/overview`);
 
-  // The organization part mirrors exactly what the cancel route will do: it
-  // resolves the same context and only touches the organization for an
-  // owner/admin whose organization is itself pending.
-  const ctx = await getAuthContext({ allowDeletionPending: true });
-  const organization =
-    ctx && isManagerRole(ctx.role)
-      ? await prisma.organization.findUnique({
-          where: { id: ctx.organizationId },
-          select: { name: true, deletionRequestedAt: true },
-        })
-      : null;
-  const organizationIncluded =
-    !!organization?.deletionRequestedAt && !isPastGrace(organization.deletionRequestedAt);
+  // The company part mirrors exactly what the cancel route
+  // (DELETE /api/gdpr/account, no scope) will take back together with the
+  // account:
+  //   • companies this person is the ONLY member of — their deletion is
+  //     waiting for the founder's confirmation, and the subscription was set
+  //     to end at period end (founder's rule, option b);
+  //   • a request made before the account/company split, which stamped the
+  //     company with the very same instant as the account.
+  const [ownership, legacyOrganizations] = await Promise.all([
+    soleOwnershipOf(state.userId),
+    prisma.organization.findMany({
+      where: { deletionRequestedAt: requestedAt, memberships: { some: { userId: state.userId } } },
+      select: { name: true },
+    }),
+  ]);
+  const pendingOrganizations = ownership.alone.map((o) => o.name);
+  const organizationIncluded = legacyOrganizations.length > 0;
 
   const expired = isPastGrace(requestedAt);
   const t = await getTranslations('deletionPending');
@@ -74,11 +78,17 @@ export default async function DeletionPendingPage({
         <CardContent className="space-y-3 text-sm">
           {!expired && (
             <>
-              {organizationIncluded && organization && (
-                <p>{t('bodyWithOrganization', { organization: organization.name })}</p>
-              )}
+              {legacyOrganizations.map((o) => (
+                <p key={o.name}>{t('bodyWithOrganization', { organization: o.name })}</p>
+              ))}
+              {pendingOrganizations.map((name) => (
+                <p key={name}>{t('bodyWithPendingOrganization', { organization: name })}</p>
+              ))}
               <p>{t('reassurance')}</p>
               {organizationIncluded && <p className="text-muted-foreground">{t('subscriptionNote')}</p>}
+              {pendingOrganizations.length > 0 && (
+                <p className="text-muted-foreground">{t('pendingOrganizationCancelNote')}</p>
+              )}
               <p className="text-muted-foreground">{t('onlyThisPage')}</p>
             </>
           )}

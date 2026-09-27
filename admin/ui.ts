@@ -70,6 +70,7 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
 
 <nav>
   <button data-tab="overview" class="active">Panoramica</button>
+  <button data-tab="deletions">Cancellazioni</button>
   <button data-tab="orgs">Organizzazioni</button>
   <button data-tab="users">Utenti</button>
   <button data-tab="audit">Audit log</button>
@@ -82,6 +83,22 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <h2>Conteggi generali</h2>
     <div class="grid" id="counts">Caricamento...</div>
     <button class="act" onclick="loadCounts()">Aggiorna</button>
+  </section>
+
+  <section id="deletions">
+    <h2>Richieste di cancellazione di un'azienda — in attesa della tua conferma</h2>
+    <div class="warn">
+      Nessuna azienda viene cancellata senza la tua conferma, e solo il proprietario può chiederlo.<br>
+      <b>Conferma</b> fa partire il processo di sempre: 30 giorni per annullare, email di avviso ai membri,
+      abbonamento impostato per chiudersi a fine periodo. Dopo i 30 giorni il cron <code>gdpr-purge</code>
+      cancella l'azienda e tutti i suoi dati DEFINITIVAMENTE.<br>
+      <b>Rifiuta</b> toglie la richiesta e manda un'email a chi l'ha fatta. Non cambia nient'altro.<br>
+      Per legge hai <b>un mese</b> dalla data della richiesta per rispondere: le richieste in attesa da più di
+      7 giorni sono evidenziate in rosso.
+    </div>
+    <div id="deletionsTable">Caricamento...</div>
+    <button class="act" onclick="loadDeletions()">Aggiorna</button>
+    <div id="deletionsOut"></div>
   </section>
 
   <section id="orgs">
@@ -332,6 +349,68 @@ async function loadOrgs() {
     }).join('') + '</table>';
 }
 
+async function loadDeletions() {
+  const rows = await get('/api/org-deletions');
+  const overdue = rows.filter(r => r.overdue).length;
+  const tab = document.querySelector('nav button[data-tab="deletions"]');
+  tab.textContent = 'Cancellazioni (' + rows.length + ')' + (overdue ? ' — ' + overdue + ' oltre 7 giorni' : '');
+  tab.style.color = overdue ? '#e08a7a' : '';
+  if (rows.length === 0) {
+    document.getElementById('deletionsTable').innerHTML = '<p class="note">Nessuna richiesta in attesa.</p>';
+    return;
+  }
+  document.getElementById('deletionsTable').innerHTML =
+    '<table><tr><th>Richiesta del</th><th class="num">In attesa da</th><th>Azienda</th>' +
+    '<th>Chi l\\'ha chiesta</th><th class="num">Membri</th><th>Abbonamento</th><th>Decisione</th></tr>' +
+    rows.map(r => {
+      const hl = r.overdue ? ' style="background:#3a1712;color:#f0b0a4"' : '';
+      const who = r.requesterEmail
+        ? esc(r.requesterName || '') + ' &lt;' + esc(r.requesterEmail) + '&gt;<br><small>ruolo: ' + esc(r.requesterRole || 'non più membro') + '</small>'
+        : '<i>account non più esistente</i>';
+      const leaving = r.requesterLeaving
+        ? '<br><small style="color:#e8c9a0">sta cancellando il proprio account ed era l\\'unico membro: richiesta automatica, abbonamento già impostato per chiudersi</small>'
+        : '';
+      const data = ' data-org="' + esc(r.organizationId) + '" data-name="' + esc(r.organizationName) + '"';
+      return '<tr' + hl + '><td>' + fmt(r.requestedAt) + '</td>' +
+        '<td class="num">' + r.daysWaiting + ' giorni' + (r.overdue ? '<br><b>OLTRE 7</b>' : '') + '</td>' +
+        '<td>' + esc(r.organizationName) + '<br><code>' + esc(r.organizationId) + '</code></td>' +
+        '<td>' + who + leaving + '</td>' +
+        '<td class="num">' + r.memberCount + '</td>' +
+        '<td>' + esc(r.subscription || '— nessuno —') + '</td>' +
+        '<td><button class="act red"' + data + ' onclick="doConfirmDeletion(this)">Conferma</button> ' +
+        '<button class="act"' + data + ' onclick="doRejectDeletion(this)">Rifiuta</button></td></tr>';
+    }).join('') + '</table>';
+}
+
+async function doConfirmDeletion(btn) {
+  const org = btn.dataset.org, name = btn.dataset.name;
+  if (!confirm('CONFERMARE LA CANCELLAZIONE\\n\\nAzienda: ' + name + '\\nID: ' + org +
+      '\\n\\nParte subito: 30 giorni per annullare, email di avviso ai membri, abbonamento impostato per chiudersi a fine periodo.' +
+      '\\nDopo i 30 giorni il cron gdpr-purge cancella azienda e dati DEFINITIVAMENTE.' +
+      '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
+  try {
+    const r = await post('/api/org-deletions/confirm', { organizationId: org });
+    show('deletionsOut', 'Confermata — ' + r.organizationName +
+      '\\nI 30 giorni partono dal ' + fmt(r.startedAt) +
+      '\\nAbbonamento impostato per chiudersi a fine periodo: ' + (r.subscriptionScheduledForCancellation ? 'sì' : 'no (nessun abbonamento Stripe attivo, oppure era già impostato)') +
+      '\\nMembri avvisati via email: ' + r.membersNotified, 'ok');
+    loadDeletions();
+  } catch (e) { show('deletionsOut', e.message, 'err'); }
+}
+
+async function doRejectDeletion(btn) {
+  const org = btn.dataset.org, name = btn.dataset.name;
+  if (!confirm('RIFIUTARE LA RICHIESTA\\n\\nAzienda: ' + name + '\\nID: ' + org +
+      '\\n\\nLa richiesta viene tolta e chi l\\'ha fatta riceve un\\'email. Nient\\'altro cambia.' +
+      '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
+  try {
+    const r = await post('/api/org-deletions/reject', { organizationId: org });
+    show('deletionsOut', 'Rifiutata — ' + r.organizationName +
+      '\\nEmail a chi l\\'ha chiesta: ' + (r.requesterNotified ? 'inviata' : 'NON inviata (vedi i log del pannello)'), 'ok');
+    loadDeletions();
+  } catch (e) { show('deletionsOut', e.message, 'err'); }
+}
+
 async function loadOrgMembers() {
   const rows = await get('/api/organizations/members');
   document.getElementById('orgMembersTable').innerHTML =
@@ -547,6 +626,7 @@ async function doCron(job) {
 }
 
 loadCounts().catch(e => show('counts', e.message, 'err'));
+loadDeletions().catch(e => show('deletionsOut', e.message, 'err'));
 loadOrgs().catch(() => {});
 loadOrgMembers().catch(() => {});
 loadUsers().catch(() => {});

@@ -55,6 +55,11 @@ export const AUDIT_ACTIONS = [
   'gdpr.export',
   'gdpr.account_deletion_request',
   'gdpr.account_deletion_cancelled',
+  // The owner asks to delete the whole company: recorded as WAITING for the
+  // founder's confirmation (Organization.deletionApprovalRequestedAt), nothing
+  // is deleted or blocked yet — and withdrawn by the owner before that.
+  'gdpr.org_deletion_approval_requested',
+  'gdpr.org_deletion_approval_withdrawn',
 
   // ── Data imports ──
   'import.commit',
@@ -93,6 +98,9 @@ export const AUDIT_ACTIONS = [
   'admin.row_deleted',
   'admin.account_unblocked',
   'admin.cron_triggered',
+  // The founder's answer to a waiting company-deletion request.
+  'admin.org_deletion_confirmed',
+  'admin.org_deletion_rejected',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

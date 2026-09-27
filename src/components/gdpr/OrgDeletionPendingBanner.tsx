@@ -7,8 +7,8 @@ import { useAppLocale } from '@/hooks/use-locale';
 import { formatDate } from '@/lib/utils';
 
 /**
- * Strip shown to EVERY member (not just the owner/admin who requested it)
- * while the organization has a pending deletion request — same shape as
+ * Strip shown to EVERY member (the owner who requested it included) while
+ * the organization's deletion, confirmed by the founder, counts down — same shape as
  * TrialExpiredBanner/LegalReacceptBanner, a strip that pushes content down,
  * never an overlay: data stays visible and exportable right up to the date
  * shown here.
