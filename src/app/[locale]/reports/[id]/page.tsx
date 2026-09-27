@@ -96,6 +96,8 @@ export default function ReportDetailPage() {
       setError(
         code === 'NO_DATA_FOR_REPORT'
           ? tReports('runNoData')
+          : code === 'TRIAL_EXPIRED'
+            ? tReports('runTrialExpired')
           : code === 'REPORT_NOT_RENDERABLE'
             ? tReports('notRenderable')
             : tReports('runFailed'),

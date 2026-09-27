@@ -1768,6 +1768,7 @@
     "running": "Generating…",
     "runFailed": "Generation failed.",
     "runNoData": "There is not enough data to generate this report.",
+    "runTrialExpired": "An active subscription is needed to generate the report: choose a plan in Settings › Billing.",
     "notRenderable": "The selected sections are not available as PDF yet.",
     "loadFailed": "Report not found.",
     "lastRun": "Last run",

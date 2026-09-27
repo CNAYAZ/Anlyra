@@ -74,10 +74,27 @@ export async function getSubscription(orgId: string): Promise<Subscription> {
     where: { organizationId: orgId },
   });
   if (!row) return defaultSubscription(orgId);
+
+  // A row with NO Stripe subscription whose status is "trialing" or "canceled"
+  // is not a subscription at all: it exists because someone opened a checkout
+  // page (both checkout routes save the Stripe customer id before paying), and
+  // until 2026-09-27 they saved it together with the synthetic "trialing"
+  // status of defaultSubscription above — which then stayed "trialing" for
+  // ever, after the trial had ended: full access for free, just by clicking
+  // "subscribe" and closing the page. Its status is therefore derived from the
+  // real trial window, exactly as for an org with no row at all.
+  // Left untouched on purpose: a row WITH a Stripe subscription (Stripe says
+  // what it is, including a Stripe-side "trialing"), and "active"/"past_due"
+  // without one (a plan assigned by hand from the admin panel).
+  let status = row.status as Subscription["status"];
+  if (!row.stripeSubscriptionId && (status === "trialing" || status === "canceled")) {
+    status = (await defaultSubscription(orgId)).status;
+  }
+
   return {
     orgId: row.organizationId,
     plan: row.plan as PlanId,
-    status: row.status as Subscription["status"],
+    status,
     cycle: row.cycle as Subscription["cycle"],
     stripeSubscriptionId: row.stripeSubscriptionId,
     stripeCustomerId: row.stripeCustomerId,

@@ -8,7 +8,7 @@ import { auditLog } from '@/lib/audit/log';
 import { resolveReportConfig } from '@/lib/reports/config';
 import { renderReportPdf, pdfResponse } from '@/lib/reports/render';
 import { parseRecipients, validateReportRecipients } from '@/lib/reports/recipients';
-import { requireFeaturePlan } from '@/lib/billing/server-gate';
+import { requireActiveAccess, requireFeaturePlan } from '@/lib/billing/server-gate';
 import { createSchema } from '../route';
 
 // Only title/schedule/recipients are editable here — NOT sections/config. The
@@ -225,6 +225,11 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
     const readOnly2 = requireWritableOrg(authCtx.organizationId);
     if (readOnly2) return readOnly2;
     const { organizationId } = authCtx;
+    // Same gate and same 402 as every other action that produces something
+    // for the organization (AI, import, the scheduled delivery of this very
+    // report): without an active subscription or a running trial, no PDF.
+    const access = await requireActiveAccess(organizationId);
+    if (!access.allowed) return fail('TRIAL_EXPIRED', 402);
 
     const r = await prisma.report_b8.findFirst({ where: { id: params.id, organizationId } });
     if (!r) return fail('NOT_FOUND', 404);

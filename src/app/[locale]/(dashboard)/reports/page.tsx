@@ -69,6 +69,8 @@ export default function ReportsPage() {
       setRunError(
         code === 'NO_DATA_FOR_REPORT'
           ? t('runNoData')
+          : code === 'TRIAL_EXPIRED'
+            ? t('runTrialExpired')
           : code === 'REPORT_NOT_RENDERABLE'
             ? t('notRenderable')
             : t('runFailed'),
