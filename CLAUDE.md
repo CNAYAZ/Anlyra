@@ -141,15 +141,17 @@ ambiente principale**. Regole di collaborazione:
 **DATABASE (VERIFICATO 2026-09-05)**: **Supabase PostgreSQL**, NON più SQLite.
 - `prisma/schema.prisma`: `provider = "postgresql"`, `url = env("DATABASE_URL")`,
   `directUrl = env("DIRECT_URL")` (pooler eu-west-1).
-- 14 migration applicate (RIVERIFICATO 2026-09-24 contando su `prisma/migrations/`, non
-  più 11 come diceva questa riga fino ad oggi): `20260702225830_init_postgres`,
+- 16 migration (RIVERIFICATO 2026-09-27 contando su `prisma/migrations/`, non più 14 come
+  diceva questa riga: sono comparse le ultime due dell'elenco): `20260702225830_init_postgres`,
   `20260710231614_billing_tables`, `20260712142054_repoint_integration_fk_drop_org_b12`,
   `20260726190000_gdpr_deletion_requested_at`, `20260728180000_report_config_and_share_token`,
   `20260821120000_insight_source`, `20260822200000_stripe_webhook_idempotency`,
   `20260822200100_audit_log`, `20260823120000_credits_renewed_at`,
   `20260825150000_enable_row_level_security`, `20260904120000_ai_credits_purchased`,
   `20260918120000_organization_created_by`, `20260920120000_terms_accepted_version`,
-  `20260924120000_user_sessions_revoked_at`.
+  `20260924120000_user_sessions_revoked_at`, `20260927120000_org_deletion_approval`,
+  `20260927140000_trial_data_deletion_notice`. Le ultime due sono applicate al database
+  remoto solo dal primo deploy che le contiene (`prisma migrate deploy` nella build).
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
   **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
@@ -408,6 +410,49 @@ raggiungibile da `/welcome`) è più un ingresso libero per chi ha già un'organ
 redirect a `/overview`. La seconda pagina è un Client Component: la guardia vive in un
 `layout.tsx` nuovo accanto ad essa, non nella pagina stessa.
 
+**Cancellazione dell'azienda: la chiede solo il proprietario, la conferma il fondatore**
+(VERIFICATO 2026-09-27, `src/app/api/gdpr/account/route.ts`, `src/lib/gdpr/org-deletion.ts`).
+Prima una richiesta di owner O admin cancellava sempre anche l'azienda, con i 30 giorni in
+partenza subito. Ora le richieste sono due:
+- **account personale, chiunque**: come prima, senza approvazione (diritto GDPR). Due casi
+  toccano un'azienda: unico `owner` di un'azienda con altre persone → rifiutata
+  (`SOLE_OWNER`) finché non nomina un altro owner o chiede la cancellazione dell'azienda;
+  unico MEMBRO di un'azienda → parte subito, e la richiesta dell'azienda va in attesa del
+  fondatore con l'abbonamento Stripe già impostato per chiudersi a fine periodo (se la
+  persona annulla, sparisce anche quella e la chiusura viene tolta).
+- **azienda, solo `owner`**: registrata in attesa (`Organization.deletionApprovalRequestedAt`
+  / `deletionApprovalRequestedById`), niente cancellato né bloccato; email a
+  `contact@anlyra.com` e al proprietario; ritirabile dal proprietario.
+- La **conferma** dal pannello admin (§12, scheda Cancellazioni) avvia il processo di sempre:
+  `Organization.deletionRequestedAt` (i 30 giorni che il cron `gdpr-purge` conta), avviso ai
+  membri, abbonamento a fine periodo. Il **rifiuto** toglie la richiesta e avvisa chi l'ha
+  fatta. Dopo la conferma solo l'`owner` può fermare i 30 giorni (non più l'admin).
+- Le richieste combinate fatte PRIMA di questa modifica (account + azienda con lo stesso
+  istante) si annullano ancora insieme, come prima.
+
+**Quando un'azienda smette di pagare** (VERIFICATO 2026-09-27):
+- **Report pianificati** (`src/lib/cron/scheduled-reports.ts`): il cron salta le aziende il
+  cui abbonamento non passa `requireActiveAccess` e quelle con una cancellazione confermata
+  in corso. I report restano salvati e ripartono da soli quando l'abbonamento torna attivo.
+  Contatori `skippedInactiveSubscription` / `skippedOrganizationDeletion`.
+- **Dati delle prove mai diventate abbonamento** (`src/lib/cron/trial-data-retention.ts`):
+  cancellati 12 mesi dopo la fine della prova. Avviso a owner e admin (cron `trial-check`,
+  nella loro lingua, data nel fuso italiano), registrato in
+  `Organization.trialDataDeletionNoticeSentAt`; cancellazione (cron `gdpr-purge`, con la
+  stessa `purgeOrganization` del GDPR: gli account personali restano) SOLO se l'avviso è
+  partito, alla data più lontana fra fine prova + 12 mesi e avviso + 30 giorni. "Mai pagato"
+  solo se tutte vere, ricontrollate prima di cancellare: `trialEndsAt` ancora presente,
+  nessuna fattura, nessun pacchetto crediti, nessun abbonamento Stripe / stato attivo o
+  in ritardo / piano diverso dal default, e — se c'è un cliente Stripe — nessun pagamento
+  riuscito chiesto a Stripe (Stripe irraggiungibile = non si tocca). La demo è esclusa per
+  id fisso (`DEMO_ORG_ID = 'demo-org'`, `src/lib/session.ts`), MAI per nome.
+  **REGOLA: mai cancellare dati di un'azienda senza che l'avviso sia partito.**
+- **Buchi noti, NON risolti** (compito separato deciso dal fondatore): un'azienda che apre
+  il checkout durante la prova e abbandona resta salvata con stato `trialing` per sempre
+  (`setSubscription` nelle rotte di checkout copia lo stato sintetico della prova), quindi
+  `requireActiveAccess` la considera attiva anche a prova scaduta — report compresi; e
+  "Esegui ora" su un report non controlla l'abbonamento.
+
 **Fuso orario** (VERIFICATO 2026-09-05): le date sono salvate in UTC come mezzanotte ITALIANA —
 `toISOString().slice(0,10)` restituisce il giorno SBAGLIATO. Usare SEMPRE gli helper di
 `src/lib/timezone.ts` (`toAppDateString`, `appDateStartUTC`) per date visibili all'utente
@@ -449,7 +494,7 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
 
 - `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-24, a runtime, in questo
   passaggio).
-- `next build` → **140 pagine, non più 134** (RIVERIFICATO 2026-09-24 con `npx next build`,
+- `next build` → **141 pagine, non più 140** (RIVERIFICATO 2026-09-27 con `npx next build`,
   non `npm run build`: quest'ultimo esegue anche `prisma migrate deploy` contro il database
   remoto, cosa che questo lavoro doveva evitare — `next build` da solo non tocca il
   database. Contro un Postgres locale usa-e-getta, mai il database remoto).
@@ -600,17 +645,30 @@ da lì. Si ferma con Ctrl+C. Se la 3001 è occupata: `ADMIN_PORT=3002 npm run ad
   `setMemberRole`, sotto).
 - *Pulire*: cancellare insight con filtri, cancellare singole righe di prova per id,
   sbloccare un account (azzerare la richiesta GDPR, riportare un ruolo a `owner`).
-- *Lanciare i cron a mano*: `trial-check` (che include rinnovo crediti e report pianificati) e
-  `gdpr-purge`. Chiamano gli endpoint veri dell'app, quindi **serve `npm run dev` attivo sulla 3000**.
+- *Decidere le cancellazioni di un'azienda* (scheda **Cancellazioni**, VERIFICATO 2026-09-27):
+  elenco delle richieste in attesa (data, azienda, chi l'ha chiesta, membri, abbonamento),
+  le più vecchie per prime, **in rosso oltre 7 giorni** (per legge il fondatore ha un mese).
+  **Conferma** avvia i 30 giorni, avvisa i membri, imposta l'abbonamento a fine periodo;
+  **Rifiuta** toglie la richiesta e manda un'email a chi l'ha fatta. Entrambi scrivono audit
+  (`admin.org_deletion_confirmed` / `admin.org_deletion_rejected`).
+- *Lanciare i cron a mano*: `trial-check` (che include rinnovo crediti, report pianificati e
+  avvisi delle prove scadute) e `gdpr-purge` (che include la cancellazione delle prove
+  scadute da 12 mesi). Chiamano gli endpoint veri dell'app, quindi **serve `npm run dev`
+  attivo sulla 3000**.
 
 **Cosa NON può fare** (per evitare aspettative sbagliate):
 - **Non modifica i testi dell'interfaccia**: le scritte stanno in `src/messages/it.json` e
   `en.json`, cioè nel CODICE. Si cambiano modificando quei file e facendo un deploy, mai da qui.
 - Non modifica prompt AI, prezzi, piani come definizione, né alcuna logica: quelli sono codice.
 - Non crea organizzazioni o utenti (si creano dalla registrazione vera).
-- Non cancella un'organizzazione o un utente interi: per quello esiste il flusso GDPR
-  (`deletionRequestedAt` + cron `gdpr-purge`), che il pannello può solo **annullare**, non avviare.
-- Non manda email (a parte quelle che partono da sole lanciando `trial-check`).
+- Non cancella direttamente un'organizzazione o un utente: la cancellazione passa dal flusso
+  GDPR (`deletionRequestedAt` + cron `gdpr-purge`). Il pannello **conferma** una richiesta
+  del proprietario (che avvia i 30 giorni) o la rifiuta, e può **annullare** una richiesta in
+  corso; non può crearne una da solo.
+- Manda email solo con Conferma/Rifiuta (scheda Cancellazioni) e lanciando `trial-check`.
+  Per le prime serve `RESEND_API_KEY` in `.env`/`.env.local`: il pannello legge l'ambiente
+  come PRIMO import (`admin/load-env.ts`) — prima lo leggeva dopo il modulo email, e ogni
+  email partita dal pannello veniva saltata in silenzio.
 
 **I due campi "piano" che divergono** (difetto noto, il pannello li mostra entrambi):
 - `BillingSubscription.plan` è **quello vero**: lo legge `getBillingState()`, quindi decide
@@ -640,7 +698,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.5 · **Aggiornato**: 2026-09-24 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.6 · **Aggiornato**: 2026-09-27 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -703,3 +761,11 @@ vale due errori, non uno). Non toccate le altre voci di quel file (decine, su em
 piani, codice morto, fuso orario, sicurezza): fuori dallo scope di un lavoro a bassa
 intensità — chi apre quel file trova comunque data e riga di ogni voce non toccata, per
 riverificarla quando servirà.
+La v5.6 aggiorna §3 (16 migration, non più 14: `org_deletion_approval` e
+`trial_data_deletion_notice`), §8 (141 pagine con `npx next build`), aggiunge a §7 il flusso
+di cancellazione dell'azienda con la conferma del fondatore e i due comportamenti "quando
+un'azienda smette di pagare" (report fermi, dati delle prove mai pagate cancellati dopo 12
+mesi con avviso), con i due buchi noti rimandati a un compito separato; aggiorna §12 con la
+scheda Cancellazioni e corregge le due righe di "Cosa NON può fare" diventate false. Nel
+pannello admin corretto anche il riquadro "Cambia ruolo", che diceva ancora `editor` e
+`viewer` identici. Le altre sezioni non sono state riverificate in questo passaggio.
