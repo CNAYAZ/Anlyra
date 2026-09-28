@@ -2185,7 +2185,7 @@
       },
       {
         "q": "Is my data secure?",
-        "a": "Yes. Anlyra is GDPR-compliant. Your data is encrypted in transit and at rest, is never used to train AI models, and is never sold to third parties. See the Privacy Policy for details."
+        "a": "Anlyra is GDPR-compliant. Data is encrypted in transit and at rest by the hosting platforms, Anlyra does not use it to train AI models and does not sell it. AI features send the data they need to Anthropic (USA). See the Privacy Policy for details."
       },
       {
         "q": "Can I upgrade from Pro to Advanced, or to Enterprise?",
@@ -2401,14 +2401,14 @@
   "landing": {
     "hero": {
       "title": "AI analysis for your business. Privacy taken seriously.",
-      "subtitle": "Anlyra turns your financial CSVs and market data into strategic insights, smart alerts, and accurate forecasts. European servers. Never sold, never identifiable data shared, never used to train third-party AI.",
+      "subtitle": "Anlyra turns your financial CSVs into analysis, alerts on your numbers and statistical forecasts. Database in Europe. Data never sold and never used by Anlyra to train AI models.",
       "badge": "AI for SMBs · Data hosted in Europe",
       "cta1": "Start 7-day trial",
       "cta2": "See pricing",
       "ctaPrimary": "Start 7-day trial",
       "ctaSecondary": "See how it works",
-      "disclaimer": "7-day trial · GDPR-compliant · Setup in 5 minutes",
-      "trust": "7-day trial · GDPR-compliant · Setup in 5 minutes",
+      "disclaimer": "7-day trial · No card required · Cancel anytime",
+      "trust": "7-day trial · No card required · Cancel anytime",
       "previewCaption": "A complete overview of your business, always at your fingertips."
     },
     "problem": {
@@ -2416,10 +2416,10 @@
       "points": [
         {
           "title": "Serious privacy",
-          "desc": "Your data stays in Europe, encrypted, never sold. We use anonymous aggregates to improve the product, never identifiable data from your company."
+          "desc": "The database is in Europe and your data is never sold. When you use an AI feature, the data it needs (including customer and supplier names) is sent to Anthropic, in the United States."
         },
         {
-          "title": "Insights in 30 seconds",
+          "title": "From file to analysis",
           "desc": "Upload a CSV, get complete financial analysis without lifting a finger. No complex configuration, no manual training."
         },
         {
@@ -2434,7 +2434,7 @@
       "items": [
         {
           "title": "Financial analysis",
-          "desc": "Revenue, costs, margins, cash flow. Data visualized in intuitive dashboards updated in real time."
+          "desc": "Revenue, costs, margins, cash flow. Data visualized in intuitive dashboards, always in line with the data you uploaded."
         },
         {
           "title": "AI Insights",
@@ -2449,8 +2449,8 @@
           "desc": "Projections for 3, 6, 12 months. Plan with concrete data, not gut feelings."
         },
         {
-          "title": "Industry benchmarks",
-          "desc": "Compare your KPIs against the industry median. Understand where you really stand vs. competitors."
+          "title": "Receivables schedule",
+          "desc": "Keep track of what you are owed. Anlyra drafts the reminder text; you send it."
         },
         {
           "title": "PDF reports",
@@ -2465,12 +2465,12 @@
         {
           "number": "1",
           "title": "Upload your data",
-          "desc": "Upload a CSV or Excel file with your financial data. It only takes seconds."
+          "desc": "Upload a CSV or Excel file with your financial data."
         },
         {
           "number": "2",
           "title": "The AI analyzes",
-          "desc": "Anlyra processes thousands of transactions in seconds. Privacy guaranteed, data never shared."
+          "desc": "Anlyra processes the data and prepares analysis, alerts and forecasts. If you use an AI feature, the data it needs is sent to Anthropic to generate the answer."
         },
         {
           "number": "3",
@@ -2481,14 +2481,13 @@
     },
     "trust": {
       "title": "Your privacy isn't a disclaimer, it's an architecture",
-      "paragraph": "Anlyra is designed from the ground up with privacy as a foundation, not a legal afterthought. Your financial data stays on our European servers. We may use it in aggregated and anonymous form to calculate industry benchmarks or improve the product — never identifiable data from your company. Never sold. Never used to train third-party AI. You always have control, and you can delete everything at any time.",
+      "paragraph": "Anlyra is designed from the ground up with privacy as a foundation, not a legal afterthought. The database holding your financial data is in Europe. Anlyra does not aggregate it with other customers' data and does not use it to train AI models. Never sold. When you use an AI feature, the data it needs (including customer and supplier names) is sent to Anthropic, in the United States, only at your request. You can export your data and request deletion of the company.",
       "promises": [
-        "EU-based servers, data encrypted at rest and in transit",
-        "Never identifiable data sold or shared with third parties",
-        "Never used to train third-party AI (Anthropic API: no-training DPA)",
-        "Anonymous aggregates only for benchmarks and product improvement",
+        "Database in the EU; encryption in transit and at rest provided by the hosting platforms",
+        "Data never sold. AI features (Anthropic, USA) receive only the data they need, at your request",
+        "Anlyra does not use your data to train AI models",
         "GDPR-compliant, European compliance built-in",
-        "Account deletion: data removed within 30 days, guaranteed"
+        "Company deletion: data removed 30 days after the request is confirmed"
       ]
     },
     "pricing": {

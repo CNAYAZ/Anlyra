@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: '%s · Anlyra',
   },
   description:
-    'Analytics di livello enterprise per PMI italiane. Insights AI, alert intelligenti, forecasting financiario. Privacy seria, sul serio.',
+    'Analisi finanziaria con AI per PMI italiane: importazione da Excel/CSV, scadenzario, alert sui tuoi numeri, previsioni e report PDF. Privacy seria, sul serio.',
   keywords: [
     'analytics',
     'business intelligence',
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     siteName: 'Anlyra',
     title: 'Anlyra · Analytics AI per PMI italiane',
     description:
-      'Analytics di livello enterprise per PMI italiane. Privacy seria, sul serio.',
+      'Analisi finanziaria con AI per PMI italiane. Privacy seria, sul serio.',
     images: [
       {
         url: '/opengraph-image.png',
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Anlyra · Analytics AI per PMI italiane',
     description:
-      'Analytics di livello enterprise per PMI italiane. Privacy seria, sul serio.',
+      'Analisi finanziaria con AI per PMI italiane. Privacy seria, sul serio.',
     images: ['/opengraph-image.png'],
   },
   robots: {

@@ -87,7 +87,7 @@ export default async function Image() {
               letterSpacing: -0.2,
             }}
           >
-            Insights · KPI · Forecasting · Alert Intelligenti
+            Analisi · Scadenzario · Previsioni · Report
           </div>
 
           {/* Tag */}
