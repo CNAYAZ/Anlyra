@@ -56,6 +56,9 @@ type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
 // (/api/ai/chat) and one alert analysis: a request is a request.
 const ANALYSIS_CREDIT_COST = 1;
 
+/** See the streaming branch below; mirrored in AgentClient. */
+const ANSWER_COMPLETE_MARKER = '\u0004';
+
 
 export async function POST(req: NextRequest) {
   // Auth (strict): a real logged-in user with an org, no demo fallback.
@@ -156,6 +159,7 @@ export async function POST(req: NextRequest) {
   // with whatever text already arrived (it surfaces a notice — see AgentClient).
   if (parsed.data.stream) {
     const encoder = new TextEncoder();
+    let stopReason: string | null = null;
     const body = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
@@ -170,9 +174,17 @@ export async function POST(req: NextRequest) {
             cacheSystemPrompt: true,
             logLabel: `analyze:${type}`,
             surface: 'analyze',
+            onStopReason: (r) => {
+              stopReason = r;
+            },
           })) {
             controller.enqueue(encoder.encode(chunk));
           }
+          // End-of-answer marker, sent ONLY when the answer finished on its
+          // own. A stream that ends without it — cut by the length ceiling,
+          // an error, or the function being stopped by the platform — is shown
+          // to the customer as incomplete (AgentClient), never as a full answer.
+          if (stopReason === 'end_turn') controller.enqueue(encoder.encode(ANSWER_COMPLETE_MARKER));
         } catch (err) {
           console.error('[ai/analyze] stream error:', err);
         } finally {
@@ -202,6 +214,7 @@ export async function POST(req: NextRequest) {
     });
     return ok({
       text: result.text,
+      truncated: result.stopReason === 'max_tokens',
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
       creditsRemaining,

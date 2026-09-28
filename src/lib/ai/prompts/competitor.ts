@@ -1,4 +1,4 @@
-import type { AIBusinessContext } from '@/lib/ai-context';
+import { RESPONSE_SHAPE, type AIBusinessContext } from '@/lib/ai-context';
 import { DATA_GAPS_TONE } from './tone';
 
 /**
@@ -61,5 +61,6 @@ export function buildCompetitorAnalysisPrompt(ctx: AIBusinessContext): string {
 
     // ── LINGUA ──
     "Rispondi nella lingua della domanda dell'utente; se la lingua non è chiara, usa l'italiano.",
+    RESPONSE_SHAPE,
   ].join('\n\n');
 }

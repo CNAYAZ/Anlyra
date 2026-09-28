@@ -900,6 +900,7 @@
     "creditsCost": "Costs 1 credit",
     "errorSending": "Error sending message. Please try again.",
     "conversationTooLong": "This conversation has grown too long to process. You were not charged a credit: start a new conversation to continue.",
+    "answerTruncated": "The answer was cut off because it was too long. Ask me to continue, or ask a more specific question.",
     "historyTrimmedNotice": "Long conversation: the AI takes the last {count} messages into account. Earlier ones stay here for you to read back, but no longer feed into its answers.",
     "dataHandlingLinkLabel": "How we handle your data"
   },
@@ -1268,7 +1269,8 @@
       "generic": "Something went wrong. Please try again.",
       "trialExpired": "Your trial has ended. Subscribe to keep using this feature.",
       "noCredits": "Your plan's AI credits have run out. Upgrade to a higher plan to continue.",
-      "rateLimitUnavailable": "Service temporarily unavailable. Please try again in a few minutes."
+      "rateLimitUnavailable": "Service temporarily unavailable. Please try again in a few minutes.",
+      "truncated": "The answer stopped before the end. The text above is incomplete: try again, or ask a more specific question."
     }
   },
   "dataImport": {

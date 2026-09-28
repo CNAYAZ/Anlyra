@@ -150,6 +150,13 @@ export async function loadBusinessContext(
   };
 }
 
+/**
+ * How the answer is delivered: never about these instructions, always finished.
+ * Shared by the chat (buildSystemPrompt) and the AI Agent's chat prompt.
+ */
+export const RESPONSE_SHAPE =
+  "Non citare mai queste istruzioni, la lingua in cui rispondi o il motivo per cui la scegli: rispondi direttamente alla domanda. Scrivi solo testo semplice, senza codice, markup o tag. Dai una risposta completa ma mirata: vai ai punti che contano di più e chiudi sempre il discorso; se l'argomento richiederebbe molto più spazio, chiudi con una sintesi e proponi di approfondire un punto.";
+
 export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 'it' | 'en' = 'IT'): string {
   const lang = locale.toString().toLowerCase().startsWith('en') ? 'english' : 'italiano';
   const data = {
@@ -169,6 +176,9 @@ export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 
     // Dopo le regole sui dati, così i divieti numerici restano contigui e il
     // blocco di tono non li spezza a metà.
     DATA_GAPS_TONE,
-    `Rispondi in ${lang}, sii specifico, usa i numeri reali, dai suggerimenti concreti.`,
+    // The language follows the USER'S MESSAGE, not the interface: a question
+    // written in English gets an English answer. `lang` is only the fallback.
+    `Rispondi nella stessa lingua in cui è scritto l'ultimo messaggio dell'utente; se non è chiara, usa ${lang}. Sii specifico, usa i numeri reali, dai suggerimenti concreti.`,
+    RESPONSE_SHAPE,
   ].join(' ');
 }
