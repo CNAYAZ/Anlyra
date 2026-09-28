@@ -17,6 +17,7 @@ import { useIsOwner } from '@/lib/auth/owner-context';
 import { apiFetch } from '@/lib/api/fetcher';
 import { COMPANY } from '@/lib/company';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BillingDetailsForm, useBillingDetails } from '@/components/billing/BillingDetailsForm';
 import { Pagination } from '@/components/ui/pagination';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useAppLocale } from '@/hooks/use-locale';
@@ -92,6 +93,11 @@ function SettingsBillingPageInner() {
   // subscription is 'active' or 'trialing' again, so the button is disabled
   // before the click instead of failing only after Stripe redirects back.
   const canBuyCredits = plan.status === 'active' || plan.status === 'trialing';
+  // Founder's decision: no payment before the owner has entered the invoicing
+  // data. Both checkout routes refuse too (BILLING_DETAILS_INCOMPLETE); the
+  // buttons are disabled here so nobody clicks into that refusal.
+  const { data: billingDetails } = useBillingDetails();
+  const billingComplete = billingDetails?.complete === true;
 
   // ── Return from Stripe checkout ──────────────────────────────────────────
   // checkout/route.ts and credits/checkout/route.ts build these three exact
@@ -325,7 +331,9 @@ function SettingsBillingPageInner() {
           ? tBilling('credits.buyErrorConfig')
           : json.error === 'SUBSCRIPTION_NOT_ACTIVE'
             ? tBilling('credits.buySubscriptionInactive')
-            : tBilling('credits.buyErrorGeneric');
+            : json.error === 'BILLING_DETAILS_INCOMPLETE'
+              ? tBilling('details.requiredForCheckout')
+              : tBilling('credits.buyErrorGeneric');
       setPackError({ pack: packId, message: friendly });
       setBusyPack(null);
     } catch {
@@ -358,7 +366,9 @@ function SettingsBillingPageInner() {
         const message =
           json.error === 'PAYMENT_PROVIDER_UNAVAILABLE' || json.error === 'PRICE_NOT_CONFIGURED'
             ? tBilling('checkoutErrorProvider')
-            : (json.error ?? 'Checkout failed');
+            : json.error === 'BILLING_DETAILS_INCOMPLETE'
+              ? tBilling('details.requiredForCheckout')
+              : (json.error ?? 'Checkout failed');
         setCheckoutError({ plan: planId, message });
         setBusyPlan(null);
       }
@@ -471,6 +481,8 @@ function SettingsBillingPageInner() {
         {!isOwner && <p className="w-full text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
       </div>
 
+      <BillingDetailsForm />
+
       {/* ── Credit packs: one-time top-up, separate from the recurring plan.
           POST /api/billing/credits/checkout existed and worked (Stripe
           session + webhook crediting aiCreditsPurchased) but nothing in the
@@ -502,15 +514,17 @@ function SettingsBillingPageInner() {
               </div>
               <button
                 type="button"
-                disabled={busyPack === pack.id || !isOwner || !canBuyCredits}
+                disabled={busyPack === pack.id || !isOwner || !canBuyCredits || !billingComplete}
                 title={
                   !isOwner
                     ? tBilling('ownerOnly')
                     : !canBuyCredits
                       ? tBilling('credits.buySubscriptionInactive')
-                      : undefined
+                      : !billingComplete
+                        ? tBilling('details.requiredForCheckout')
+                        : undefined
                 }
-                onClick={isOwner && canBuyCredits ? () => startCreditsCheckout(pack.id) : undefined}
+                onClick={isOwner && canBuyCredits && billingComplete ? () => startCreditsCheckout(pack.id) : undefined}
                 className="mt-auto w-full rounded-lg border border-border-strong bg-card px-3 py-2 text-sm font-medium text-sage-700 transition-colors hover:bg-muted hover:border-sage-500 disabled:opacity-70 dark:text-sage-300"
               >
                 {busyPack === pack.id ? '…' : tBilling('credits.buyPack')}
@@ -524,6 +538,9 @@ function SettingsBillingPageInner() {
         {!isOwner && <p className="mt-2 text-[11px] text-fg-3">{tBilling('ownerOnly')}</p>}
         {isOwner && !canBuyCredits && (
           <p className="mt-2 text-[11px] text-fg-3">{tBilling('credits.buySubscriptionInactive')}</p>
+        )}
+        {isOwner && canBuyCredits && !billingComplete && (
+          <p className="mt-2 text-[11px] text-fg-3">{tBilling('details.requiredForCheckout')}</p>
         )}
       </div>
 
@@ -744,10 +761,16 @@ function SettingsBillingPageInner() {
                     with a tooltip, instead of clicking through to a 403. */}
                 <button
                   type="button"
-                  disabled={isCurrent || busyPlan === planId || (!p.contact && !isOwner)}
-                  title={!isCurrent && !p.contact && !isOwner ? tBilling('ownerOnly') : undefined}
+                  disabled={isCurrent || busyPlan === planId || (!p.contact && (!isOwner || !billingComplete))}
+                  title={
+                    !isCurrent && !p.contact && !isOwner
+                      ? tBilling('ownerOnly')
+                      : !isCurrent && !p.contact && !billingComplete
+                        ? tBilling('details.requiredForCheckout')
+                        : undefined
+                  }
                   onClick={
-                    !isCurrent && !p.contact && isOwner ? () => startCheckout(planId) : undefined
+                    !isCurrent && !p.contact && isOwner && billingComplete ? () => startCheckout(planId) : undefined
                   }
                   className={cn(
                     'mt-auto w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-70',
@@ -772,6 +795,10 @@ function SettingsBillingPageInner() {
                 {/* Checkout error (per-plan) */}
                 {checkoutError?.plan === planId && (
                   <p className="text-center text-[11px] text-danger">{checkoutError.message}</p>
+                )}
+
+                {!isCurrent && !p.contact && isOwner && !billingComplete && (
+                  <p className="text-center text-[11px] text-fg-3">{tBilling('details.requiredForCheckout')}</p>
                 )}
 
                 {/* Footer note */}

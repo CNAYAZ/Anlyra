@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { BILLING_SELECT, checkStoredBillingDetails } from '@/lib/billing/billing-details';
 
 /**
  * READ-ONLY data for the admin panel. Nothing in this file writes.
@@ -28,6 +29,22 @@ export type OrgRow = {
   aiCreditsTotal: number;
   createdAt: string;
   memberCount: number;
+  /**
+   * Invoicing data exactly as stored, for the founder to copy into Fiscozen.
+   * `complete` is the same check the checkout routes apply before a payment.
+   */
+  billing: {
+    complete: boolean;
+    legalName: string | null;
+    vatNumber: string | null;
+    address: string | null;
+    postalCode: string | null;
+    city: string | null;
+    province: string | null;
+    country: string | null;
+    sdiCode: string | null;
+    pec: string | null;
+  };
 };
 
 export async function listOrganizations(): Promise<OrgRow[]> {
@@ -43,6 +60,7 @@ export async function listOrganizations(): Promise<OrgRow[]> {
       aiCreditsPurchased: true,
       createdAt: true,
       _count: { select: { memberships: true } },
+      ...BILLING_SELECT,
     },
   });
 
@@ -67,6 +85,18 @@ export async function listOrganizations(): Promise<OrgRow[]> {
     aiCreditsTotal: o.aiCredits + o.aiCreditsPurchased,
     createdAt: o.createdAt.toISOString(),
     memberCount: o._count.memberships,
+    billing: {
+      complete: checkStoredBillingDetails(o).ok,
+      legalName: o.billingLegalName,
+      vatNumber: o.vatNumber,
+      address: o.billingAddress,
+      postalCode: o.billingPostalCode,
+      city: o.billingCity,
+      province: o.billingProvince,
+      country: o.billingCountry,
+      sdiCode: o.billingSdiCode,
+      pec: o.billingPec,
+    },
   }));
 }
 

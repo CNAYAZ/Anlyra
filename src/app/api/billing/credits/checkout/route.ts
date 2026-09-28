@@ -8,6 +8,9 @@ import { getStripe } from "@/lib/stripe/client";
 import { getCreditPackPriceId } from "@/lib/stripe/prices";
 import { CREDIT_PACKS } from "@/lib/billing/plans";
 import { getSubscription, setSubscription } from "@/lib/billing/repository";
+import { prisma } from "@/lib/prisma";
+import { BILLING_SELECT, checkStoredBillingDetails } from "@/lib/billing/billing-details";
+import { syncStripeCustomerBilling } from "@/lib/billing/stripe-customer";
 import { requireActiveAccess } from "@/lib/billing/server-gate";
 
 const Body = z.object({
@@ -43,6 +46,16 @@ export async function POST(req: NextRequest) {
 
   const pack = CREDIT_PACKS.find((p) => p.id === parsed.packId);
   if (!pack) return fail("Unknown credit pack", 400);
+
+  // Founder's decision: no payment before the owner has entered the data
+  // needed for the electronic invoice. Re-checked here on every checkout, not
+  // only by the disabled buttons (see @/lib/billing/billing-details).
+  const billingOrg = await prisma.organization.findUnique({
+    where: { id: ctx.organizationId },
+    select: BILLING_SELECT,
+  });
+  const billing = billingOrg ? checkStoredBillingDetails(billingOrg) : null;
+  if (!billing?.ok) return fail("BILLING_DETAILS_INCOMPLETE", 400);
 
   const priceId = getCreditPackPriceId(parsed.packId);
   if (!priceId) {
@@ -89,6 +102,10 @@ export async function POST(req: NextRequest) {
         stripeCustomerId: customerId,
       });
     }
+
+    // Legal name, address and VAT number onto the Stripe customer, for its
+    // receipts — every checkout, so a change of details is carried over too.
+    await syncStripeCustomerBilling(stripe, customerId, billing.data);
 
     const origin = (req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim();
 

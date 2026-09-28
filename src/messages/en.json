@@ -2035,6 +2035,48 @@
     "checkoutErrorProvider": "We can't complete the payment right now. Please try again in a few minutes or contact us.",
     "checkoutErrorNetwork": "Connection failed. Check your network and try again.",
     "ownerOnly": "Only the organization's owner can manage billing.",
+    "details": {
+      "title": "Billing details",
+      "subtitle": "We need them to issue your electronic invoice. They must be entered before the first payment.",
+      "statusComplete": "Complete",
+      "statusIncomplete": "To complete",
+      "fields": {
+        "legalName": "Legal company name",
+        "vatNumber": "VAT number",
+        "address": "Registered office address (street and number)",
+        "postalCode": "Postal code",
+        "city": "City",
+        "province": "Province (2-letter code)",
+        "country": "Country",
+        "sdiCode": "SDI recipient code",
+        "pec": "PEC (certified email)"
+      },
+      "otherCountry": "A country outside the European Union",
+      "sdiOrPecHint": "Enter the SDI recipient code or the PEC address: at least one of the two. If you have no recipient code you can enter 0000000, and the invoice will reach your fiscal drawer (cassetto fiscale).",
+      "countryNotAccepted": "For now Anlyra can only invoice companies based in Italy, so payment is not possible from here. Write to us at {email} and we will tell you how to proceed.",
+      "save": "Save billing details",
+      "saving": "Saving…",
+      "saved": "Billing details saved.",
+      "invalid": "Check the fields marked in red.",
+      "saveError": "Could not save. Please try again shortly.",
+      "loadError": "We can't load the billing details. Please reload the page.",
+      "ownerOnlyEdit": "Only the organization's owner can change the billing details.",
+      "requiredForCheckout": "Before paying, complete the billing details on this page: they are needed for the electronic invoice.",
+      "errors": {
+        "REQUIRED": "Required field.",
+        "TOO_LONG": "Text too long.",
+        "INVALID_CHARACTERS": "The text cannot contain control characters or line breaks.",
+        "COUNTRY_INVALID": "Choose a country from the list.",
+        "COUNTRY_NOT_ACCEPTED": "For now Anlyra can only invoice companies based in Italy.",
+        "VAT_INVALID": "Invalid VAT number. An Italian one has 11 digits and the last is a check digit: make sure you copied it correctly.",
+        "VAT_PREFIX_MISMATCH": "The VAT number must start with the country code (for example DE for Germany).",
+        "POSTAL_CODE_INVALID": "Invalid postal code: in Italy it has 5 digits.",
+        "PROVINCE_INVALID": "Enter the 2-letter province code (for example MO).",
+        "SDI_INVALID": "The recipient code has 7 characters, letters or digits.",
+        "PEC_INVALID": "Invalid PEC address.",
+        "SDI_OR_PEC_REQUIRED": "Enter the recipient code or the PEC address."
+      }
+    },
     "trialExpiredBanner": {
       "message": "Your trial has ended. Subscribe to keep using all features.",
       "cta": "Subscribe"
