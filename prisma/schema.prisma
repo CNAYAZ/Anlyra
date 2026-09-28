@@ -115,6 +115,9 @@ model Organization {
 
   // FASE D onboarding + trial fields
   teamSize         String? // '1' | '2-5' | '6-15' | '16-50' | '50+'
+  /// VAT number. Written at onboarding (free text) and, validated, by the
+  /// billing details form (src/lib/billing/billing-details.ts). Stored as the
+  /// 11 digits for Italy, with the country prefix for another EU country.
   vatNumber        String?
   setupCompletedAt DateTime?
   trialStartedAt   DateTime?
@@ -141,6 +144,23 @@ model Organization {
   /// means no notice was sent — and without one the data is never deleted.
   /// See migration 20260927140000_trial_data_deletion_notice.
   trialDataDeletionNoticeSentAt DateTime?
+
+  /// Invoicing data, entered by the OWNER on the billing page and required
+  /// before any checkout (founder's decision). Nullable, no default: NULL means
+  /// "not entered yet". Validation and completeness rules:
+  /// src/lib/billing/billing-details.ts. See migration
+  /// 20260927160000_organization_billing_details.
+  billingLegalName  String?
+  billingAddress    String?
+  billingPostalCode String?
+  billingCity       String?
+  /// Italian province code (2 letters). Required only for Italy.
+  billingProvince   String?
+  /// ISO 3166-1 alpha-2. Separate from `country` (see the migration).
+  billingCountry    String?
+  /// Italian e-invoicing recipient code (7 characters). Italy: this OR billingPec.
+  billingSdiCode    String?
+  billingPec        String?
 
   /// Who CREATED this organization. Written once, by the only route that creates
   /// one (api/onboarding/organization), and never updated afterwards.

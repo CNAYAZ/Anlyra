@@ -81,6 +81,9 @@ export const AUDIT_ACTIONS = [
   // one is the cron resetting it, the other is money changing hands.
   'credits.monthly_renewal',
   'credits.purchase',
+  // The owner saved the invoicing data (Organization.billing* / vatNumber):
+  // what the founder copies into the electronic invoice.
+  'billing.details_update',
 
   // ── Team management (behind requireManagerRole, changes who can see the
   // company's data and with what powers) ──
