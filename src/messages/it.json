@@ -2143,7 +2143,7 @@
       },
       {
         "q": "I miei dati sono al sicuro?",
-        "a": "Sì. Anlyra è GDPR-compliant. I tuoi dati sono crittografati in transito e a riposo, non vengono mai usati per addestrare modelli AI, e non vengono mai venduti a terze parti. Vedi la Privacy Policy per dettagli."
+        "a": "Anlyra è GDPR-compliant. I dati sono crittografati in transito e a riposo dalle piattaforme di hosting, Anlyra non li usa per addestrare modelli AI e non li vende. Le funzioni AI inviano i dati necessari ad Anthropic (USA). Vedi la Privacy Policy per dettagli."
       },
       {
         "q": "Posso passare da Pro ad Avanzato, o ad Enterprise?",
@@ -2359,14 +2359,14 @@
   "landing": {
     "hero": {
       "title": "L'AI che analizza la tua azienda. Privacy seria, sul serio.",
-      "subtitle": "Anlyra trasforma i tuoi CSV finanziari e dati di mercato in insight strategici, alert intelligenti e forecast accurati. Server in Europa. Dati mai venduti, mai identificabili condivisi, mai usati per addestrare AI di terzi.",
+      "subtitle": "Anlyra trasforma i tuoi CSV finanziari in analisi, alert sui tuoi numeri e previsioni statistiche. Database in Europa. Dati mai venduti e mai usati da Anlyra per addestrare modelli AI.",
       "badge": "AI per PMI · Dati in Europa",
       "cta1": "Inizia prova 7 giorni",
       "cta2": "Vedi i prezzi",
       "ctaPrimary": "Inizia prova 7 giorni",
       "ctaSecondary": "Guarda come funziona",
-      "disclaimer": "7 giorni di prova · GDPR-compliant · Setup in 5 minuti",
-      "trust": "7 giorni di prova · GDPR-compliant · Setup in 5 minuti",
+      "disclaimer": "7 giorni di prova · Nessuna carta richiesta · Annulli quando vuoi",
+      "trust": "7 giorni di prova · Nessuna carta richiesta · Annulli quando vuoi",
       "previewCaption": "Una panoramica completa della tua azienda, sempre a portata di mano."
     },
     "problem": {
@@ -2374,10 +2374,10 @@
       "points": [
         {
           "title": "Privacy seria",
-          "desc": "I tuoi dati restano in Europa, crittografati, mai venduti. Usiamo aggregati anonimi per migliorare il prodotto, mai dati identificabili della tua azienda."
+          "desc": "Il database è in Europa e i tuoi dati non vengono mai venduti. Quando usi una funzione AI, i dati necessari (anche nomi di clienti e fornitori) vengono inviati ad Anthropic, negli Stati Uniti."
         },
         {
-          "title": "Insight in 30 secondi",
+          "title": "Dal file all'analisi",
           "desc": "Carica un CSV, ricevi analisi finanziarie complete senza muovere un dito. Nessuna configurazione complessa, nessun training manuale."
         },
         {
@@ -2392,7 +2392,7 @@
       "items": [
         {
           "title": "Analisi finanziaria",
-          "desc": "Ricavi, costi, margini, cash flow. Dati visualizzati in dashboard intuitive aggiornate in tempo reale."
+          "desc": "Ricavi, costi, margini, cash flow. Dati visualizzati in dashboard intuitive, sempre allineate ai dati che hai caricato."
         },
         {
           "title": "AI Insights",
@@ -2407,8 +2407,8 @@
           "desc": "Previsioni a 3, 6, 12 mesi. Pianifica con dati concreti, non con intuizioni."
         },
         {
-          "title": "Benchmark settore",
-          "desc": "Confronta i tuoi KPI con la mediana del settore. Capisci dove stai davvero rispetto ai competitor."
+          "title": "Scadenzario dei crediti",
+          "desc": "Tieni sotto controllo ciò che devi incassare. Anlyra prepara il testo del sollecito, lo invii tu."
         },
         {
           "title": "Report PDF",
@@ -2423,12 +2423,12 @@
         {
           "number": "1",
           "title": "Carica i tuoi dati",
-          "desc": "Carica un file CSV o Excel con i tuoi dati finanziari. Bastano pochi secondi."
+          "desc": "Carica un file CSV o Excel con i tuoi dati finanziari."
         },
         {
           "number": "2",
           "title": "L'AI analizza",
-          "desc": "Anlyra elabora migliaia di transazioni in pochi secondi. Privacy garantita, dati mai condivisi."
+          "desc": "Anlyra elabora i dati e prepara analisi, alert e previsioni. Se usi una funzione AI, i dati necessari vengono inviati ad Anthropic per generare la risposta."
         },
         {
           "number": "3",
@@ -2439,14 +2439,13 @@
     },
     "trust": {
       "title": "La tua privacy non è un disclaimer, è un'architettura",
-      "paragraph": "Anlyra è progettata da zero con la privacy come fondamento, non come ripensamento legale. I tuoi dati finanziari restano sui nostri server europei. Possiamo usarli in forma aggregata e anonima per calcolare benchmark settore o migliorare il prodotto — mai dati identificabili della tua azienda. Mai venduti. Mai usati per training di AI di terze parti. Hai sempre il controllo, e puoi cancellare tutto in qualsiasi momento.",
+      "paragraph": "Anlyra è progettata da zero con la privacy come fondamento, non come ripensamento legale. Il database dei tuoi dati finanziari è in Europa. Anlyra non li aggrega con quelli di altri clienti e non li usa per addestrare modelli AI. Mai venduti. Quando usi una funzione AI, i dati necessari (anche nomi di clienti e fornitori) sono inviati ad Anthropic, negli Stati Uniti, solo su tua richiesta. Puoi esportare i tuoi dati e chiedere la cancellazione dell'azienda.",
       "promises": [
-        "Server EU-based, dati crittografati at rest e in transit",
-        "Mai dati identificabili venduti o condivisi con terzi",
-        "Mai usati per addestrare AI di terze parti (Anthropic API: no-training DPA)",
-        "Aggregati anonimi solo per benchmark e miglioramento prodotto",
+        "Database nell'UE; cifratura in transito e a riposo fornita dalle piattaforme di hosting",
+        "Dati mai venduti. Alle funzioni AI (Anthropic, USA) vanno solo i dati necessari, su tua richiesta",
+        "Anlyra non usa i tuoi dati per addestrare modelli AI",
         "GDPR-compliant, conformità europea integrata",
-        "Cancellazione account: dati eliminati entro 30 giorni, garantito"
+        "Cancellazione dell'azienda: dati eliminati 30 giorni dopo la conferma della richiesta"
       ]
     },
     "pricing": {

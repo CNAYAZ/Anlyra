@@ -15,7 +15,7 @@ export function organizationSchema() {
     '@type': 'Organization',
     '@id': `${BASE_URL}/#organization`,
     name: 'Anlyra',
-    legalName: 'Anlyra S.r.l.', // placeholder — aggiornare con ragione sociale reale
+    legalName: COMPANY.legalName,
     url: BASE_URL,
     logo: {
       '@type': 'ImageObject',
@@ -24,14 +24,7 @@ export function organizationSchema() {
       height: 630,
     },
     description:
-      'Analytics di livello enterprise per PMI italiane. Insights AI, alert intelligenti, forecasting. Privacy seria, sul serio.',
-    foundingDate: '2026', // placeholder
-    founders: [
-      {
-        '@type': 'Person',
-        name: 'Anlyra Team',
-      },
-    ],
+      'Analisi finanziaria con AI per PMI italiane: importazione da Excel/CSV, scadenzario, alert sui tuoi numeri, previsioni e report PDF. Privacy seria, sul serio.',
     address: {
       '@type': 'PostalAddress',
       addressCountry: COMPANY.countryCode,
@@ -85,7 +78,7 @@ export function softwareApplicationSchema() {
     applicationSubCategory: 'Analytics',
     url: BASE_URL,
     description:
-      'Piattaforma analytics AI per PMI: insights automatici, alert, forecast.',
+      'Analisi finanziaria con AI per PMI: importazione da Excel/CSV, scadenzario, alert sui tuoi numeri, previsioni e report PDF.',
     offers: [
       {
         '@type': 'Offer',
