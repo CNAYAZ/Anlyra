@@ -33,7 +33,7 @@ export const listQuerySchema = financialQuerySchema.extend({
 export type FinancialQuery = z.infer<typeof financialQuerySchema>;
 export type ListQuery = z.infer<typeof listQuerySchema>;
 
-function parseCategory(description: string): { category: string; subcategory: string } {
+export function parseCategory(description: string): { category: string; subcategory: string } {
   const [category, subcategory] = (description ?? '').split('/');
   return {
     category: category?.trim() || 'other',

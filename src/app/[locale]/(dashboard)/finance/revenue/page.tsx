@@ -15,12 +15,14 @@ import { TransactionsTable, type SortKey, type SortOrder } from '@/components/ui
 import { useAppLocale } from '@/hooks/use-locale';
 import { apiFetch } from '@/lib/api/fetcher';
 import { formatCurrency, formatPercent } from '@/lib/utils';
-import type { CategoryBreakdown, MonthlySeriesPoint } from '@/lib/analysis/financial';
+import type { CategoryBreakdown, ChangeBreakdown, MonthlySeriesPoint } from '@/lib/analysis/financial';
+import { ChangeBreakdownCard } from '@/components/finance/change-breakdown-card';
 
 type RevenueResponse = {
   kpis: { totalRevenue: number; mom: number | null; yoy: number | null; arpu: number | null };
   series: MonthlySeriesPoint[];
   byCategory: CategoryBreakdown[];
+  changes: ChangeBreakdown;
   categories: string[];
   items: { id: string; date: string; category: string; amount: number; description: string; source: string }[];
   pagination: { total: number; page: number; pageSize: number; totalPages: number };
@@ -44,6 +46,7 @@ export default function RevenuePage() {
   const locale = useAppLocale();
   const t = useTranslations('revenue');
   const tc = useTranslations('common');
+  const tw = useTranslations('whatChanged');
 
   const [range, setRange] = useState<PeriodRange>({ period: '12m' });
   const [category, setCategory] = useState('');
@@ -151,6 +154,14 @@ export default function RevenuePage() {
           </Card>
         )}
       </div>
+
+      {/* "Cosa è cambiato": which categories moved the total against the
+          comparison period — computed once in periodChangeBreakdown. */}
+      {isLoading ? (
+        <ChartSkeleton />
+      ) : data?.changes ? (
+        <ChangeBreakdownCard breakdown={data.changes} totalLabel={tw('totalRevenue')} locale={locale} />
+      ) : null}
 
       <Card className="p-0">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">

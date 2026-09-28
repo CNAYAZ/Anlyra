@@ -8,6 +8,7 @@ import {
   filterTransactionsByWindow,
   monthKey,
   monthlySeries,
+  periodChangeBreakdown,
   periodWindow,
   safeDiv,
   yoyGrowth,
@@ -91,6 +92,9 @@ export async function GET(req: NextRequest) {
       kpis: { totalRevenue, mom, yoy, arpu },
       series,
       byCategory: categoryBreakdown(filtered, 'REVENUE'),
+      // "Cosa è cambiato": the selected period against its comparison period,
+      // category by category — see periodChangeBreakdown.
+      changes: periodChangeBreakdown(data.transactions, 'REVENUE', period, from, to),
       // Left unfiltered on purpose: this feeds the category filter dropdown,
       // not a displayed total — a category from outside the selected window
       // should still be selectable, same as before this fix.

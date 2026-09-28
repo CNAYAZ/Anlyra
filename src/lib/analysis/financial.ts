@@ -6,6 +6,7 @@ import {
   toAppWallClock,
 } from '@/lib/timezone';
 import type { DemoCashflow, DemoCustomerStat, DemoSubscription, DemoTransaction } from '@/lib/demo/data';
+import { analyzeCategoryColumn } from '@/lib/import/free-text';
 
 const COGS_CATEGORIES = new Set(['cogs']);
 const MARKETING_CATEGORIES = new Set(['marketing']);
@@ -571,4 +572,227 @@ export function yoyGrowth(series: MonthlySeriesPoint[]): number | null {
   if (!yearAgo) return null;
   const raw = safeDiv(last.revenue - yearAgo.revenue, yearAgo.revenue);
   return raw === null ? null : raw * 100;
+}
+
+/**
+ * "What changed": how each category moved between a period and its
+ * comparison period, for revenue or for costs. The ONE place this is
+ * computed — the costs and revenue pages and the AI context all call
+ * periodChangeBreakdown() below, so the page and the chat can never tell two
+ * different stories about the same months.
+ *
+ * NUMBERS RULE: every figure is a sum of recorded movements, nothing is
+ * estimated. Sums are taken in whole cents (each movement's euro amount
+ * converted to cents once), so the category changes add up EXACTLY to the
+ * total change — no float drift to paper over, no rounding to make it add up.
+ * When a comparison or a share cannot be computed honestly, it is null and
+ * the reason says why.
+ */
+export type ChangeUnavailableReason =
+  /** A custom date range has no defined "equivalent period before it" (see periodMonths). */
+  | 'CUSTOM_PERIOD'
+  /** The comparison period has no movements of this kind: nothing to compare against. */
+  | 'NO_PREVIOUS_DATA'
+  /** The selected period has no movements of this kind yet (data is imported by hand, so
+   *  "nothing" usually means "not loaded yet", not "fell to zero"). */
+  | 'NO_CURRENT_DATA';
+
+export type SharesHiddenReason =
+  /** The total barely moved (under 0.5% of the larger of the two totals): a share of
+   *  a near-zero change is a large number that means nothing. */
+  | 'NEGLIGIBLE_TOTAL_CHANGE'
+  /** Categories moved in opposite directions and largely cancelled out (the net change
+   *  is under half of all the movement): shares would run past ±200%. */
+  | 'OFFSETTING_CHANGES';
+
+export type CategoryChange = {
+  /** The category as the customer recorded it; '' for movements with no category. */
+  category: string;
+  /** True for movements recorded with no category at all — shown as their own line, never hidden. */
+  uncategorized: boolean;
+  previous: number;
+  current: number;
+  /** current − previous. */
+  change: number;
+  /** This category's part of the total change, in % (they sum to 100: a category that moved
+   *  against the total has a negative share, and the others then sum past 100). null when
+   *  shares are hidden — see sharesHiddenReason. */
+  share: number | null;
+  /** 'new': only in the selected period; 'gone': only in the comparison period. */
+  presence: 'both' | 'new' | 'gone';
+};
+
+export type ChangeBreakdown = {
+  kind: 'REVENUE' | 'COST';
+  /** Calendar days (Europe/Rome, YYYY-MM-DD) the two totals cover. */
+  currentPeriod: { from: string; to: string };
+  previousPeriod: { from: string; to: string } | null;
+  currentTotal: number;
+  /** null when there is no comparison period at all (custom range). */
+  previousTotal: number | null;
+  /** null when a comparison is available — otherwise why not. */
+  unavailableReason: ChangeUnavailableReason | null;
+  totalChange: number | null;
+  /** totalChange as % of previousTotal (never divided by zero: previousTotal > 0 when available). */
+  totalChangePct: number | null;
+  sharesHiddenReason: SharesHiddenReason | null;
+  /** Some categories went up while others went down. */
+  mixedDirections: boolean;
+  /** The categories look like the free text of a bank statement (almost one per movement,
+   *  several words each) — same shape test as the import warning (analyzeCategoryColumn). */
+  categoriesLookLikeFreeText: boolean;
+  /** Every category present in either period, largest absolute change first. Empty when unavailable. */
+  categories: CategoryChange[];
+};
+
+/** Below this share of the larger total, the total is "essentially unchanged". */
+const NEGLIGIBLE_CHANGE_RATIO = 0.005;
+/** Shares are shown only when the net change is at least this share of all the movement
+ *  (sum of absolute category changes), which bounds every share within ±200%. */
+const MIN_NET_TO_GROSS_RATIO = 0.5;
+
+function toCents(amount: number): number {
+  return Math.round(amount * 100);
+}
+
+/**
+ * A movement has no category when the category part of its stored description
+ * is empty — exactly the case parseCategory (api/financial-query.ts) turns
+ * into 'other'. Read from the raw description because 'other' is ALSO a real
+ * category name people use (the demo dataset has one): the two must not merge.
+ */
+function isUncategorized(t: DemoTransaction): boolean {
+  return (t.description ?? '').split('/')[0].trim() === '';
+}
+
+function sumByCategory(transactions: DemoTransaction[], kind: 'REVENUE' | 'COST') {
+  const byKey = new Map<string, { category: string; uncategorized: boolean; cents: number }>();
+  let total = 0;
+  let count = 0;
+  for (const t of transactions) {
+    if (t.kind !== kind) continue;
+    const uncategorized = isUncategorized(t);
+    const key = uncategorized ? '\u0000uncategorized' : t.category;
+    const entry = byKey.get(key) ?? { category: uncategorized ? '' : t.category, uncategorized, cents: 0 };
+    const cents = toCents(t.amount);
+    entry.cents += cents;
+    total += cents;
+    count += 1;
+    byKey.set(key, entry);
+  }
+  return { byKey, totalCents: total, count };
+}
+
+/** Same thresholds as the import warning, applied to the categories of the movements compared. */
+function looksLikeFreeText(transactions: DemoTransaction[], kind: 'REVENUE' | 'COST'): boolean {
+  const values = transactions.filter((t) => t.kind === kind && !isUncategorized(t)).map((t) => t.category);
+  return analyzeCategoryColumn(values).suspect;
+}
+
+export function changeBreakdown(args: {
+  kind: 'REVENUE' | 'COST';
+  current: { window: { from: Date; to: Date }; transactions: DemoTransaction[] };
+  /** null when the period has no equivalent period before it (custom range). */
+  previous: { window: { from: Date; to: Date }; transactions: DemoTransaction[] } | null;
+}): ChangeBreakdown {
+  const { kind, current, previous } = args;
+  const cur = sumByCategory(current.transactions, kind);
+  const prev = previous ? sumByCategory(previous.transactions, kind) : null;
+  const days = (w: { from: Date; to: Date }) => ({ from: toAppDateString(w.from), to: toAppDateString(w.to) });
+
+  const base: ChangeBreakdown = {
+    kind,
+    currentPeriod: days(current.window),
+    previousPeriod: previous ? days(previous.window) : null,
+    currentTotal: cur.totalCents / 100,
+    previousTotal: prev ? prev.totalCents / 100 : null,
+    unavailableReason: null,
+    totalChange: null,
+    totalChangePct: null,
+    sharesHiddenReason: null,
+    mixedDirections: false,
+    categoriesLookLikeFreeText: looksLikeFreeText(
+      [...current.transactions, ...(previous?.transactions ?? [])],
+      kind,
+    ),
+    categories: [],
+  };
+
+  if (!prev) return { ...base, unavailableReason: 'CUSTOM_PERIOD' };
+  if (prev.count === 0) return { ...base, unavailableReason: 'NO_PREVIOUS_DATA' };
+  if (cur.count === 0) return { ...base, unavailableReason: 'NO_CURRENT_DATA' };
+
+  const totalChangeCents = cur.totalCents - prev.totalCents;
+  const keys = new Set([...cur.byKey.keys(), ...prev.byKey.keys()]);
+  const rows = [...keys].map((key) => {
+    const c = cur.byKey.get(key);
+    const p = prev.byKey.get(key);
+    const entry = (c ?? p)!;
+    const currentCents = c?.cents ?? 0;
+    const previousCents = p?.cents ?? 0;
+    return {
+      category: entry.category,
+      uncategorized: entry.uncategorized,
+      currentCents,
+      previousCents,
+      changeCents: currentCents - previousCents,
+      presence: (c && p ? 'both' : c ? 'new' : 'gone') as CategoryChange['presence'],
+    };
+  });
+
+  const grossCents = rows.reduce((s, r) => s + Math.abs(r.changeCents), 0);
+  const larger = Math.max(cur.totalCents, prev.totalCents);
+  const sharesHiddenReason: SharesHiddenReason | null =
+    Math.abs(totalChangeCents) < larger * NEGLIGIBLE_CHANGE_RATIO
+      ? 'NEGLIGIBLE_TOTAL_CHANGE'
+      : Math.abs(totalChangeCents) < grossCents * MIN_NET_TO_GROSS_RATIO
+        ? 'OFFSETTING_CHANGES'
+        : null;
+
+  const categories: CategoryChange[] = rows
+    .sort((a, b) => Math.abs(b.changeCents) - Math.abs(a.changeCents) || a.category.localeCompare(b.category))
+    .map((r) => ({
+      category: r.category,
+      uncategorized: r.uncategorized,
+      previous: r.previousCents / 100,
+      current: r.currentCents / 100,
+      change: r.changeCents / 100,
+      share: sharesHiddenReason === null ? (r.changeCents / totalChangeCents) * 100 : null,
+      presence: r.presence,
+    }));
+
+  return {
+    ...base,
+    totalChange: totalChangeCents / 100,
+    totalChangePct: (totalChangeCents / prev.totalCents) * 100,
+    sharesHiddenReason,
+    mixedDirections: rows.some((r) => r.changeCents > 0) && rows.some((r) => r.changeCents < 0),
+    categories,
+  };
+}
+
+/**
+ * changeBreakdown for a named period against its comparison period, built
+ * with the same rule as the finance page's period badges: the window shifted
+ * back by the period's own length through comparisonWindow (day-and-hour
+ * parity). `transactions` is the organization's WHOLE history; the two
+ * windows are cut out of it here.
+ */
+export function periodChangeBreakdown(
+  transactions: DemoTransaction[],
+  kind: 'REVENUE' | 'COST',
+  period: '1m' | '3m' | '6m' | '12m' | 'custom',
+  customFrom?: string,
+  customTo?: string,
+): ChangeBreakdown {
+  const window = periodWindow(period, customFrom, customTo);
+  const months = periodMonths(period);
+  const previousWindow = months === null ? null : comparisonWindow(window, months);
+  return changeBreakdown({
+    kind,
+    current: { window, transactions: filterTransactionsByWindow(transactions, window) },
+    previous: previousWindow
+      ? { window: previousWindow, transactions: filterTransactionsByWindow(transactions, previousWindow) }
+      : null,
+  });
 }

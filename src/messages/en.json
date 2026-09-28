@@ -1194,6 +1194,33 @@
     "error": "Error loading forecasts.",
     "retry": "Retry"
   },
+  "whatChanged": {
+    "title": "What changed",
+    "periods": "From {from} to {to}, compared with the equivalent period from {prevFrom} to {prevTo}",
+    "totalCosts": "Costs",
+    "totalRevenue": "Revenue",
+    "fromTo": "(from {previous} to {current})",
+    "groupUp": "Pushed the total up",
+    "groupDown": "Pushed the total down",
+    "share": "{share} of the change",
+    "uncategorized": "No category",
+    "presence": {
+      "new": "new in this period",
+      "gone": "absent in this period"
+    },
+    "rest": "Other {count, plural, one {# item} other {# items}}: {change}",
+    "mixedDirections": "Some items moved against the total and offset part of it: that is why the shares of the items moving with the total add up to more than 100%.",
+    "sharesHidden": {
+      "NEGLIGIBLE_TOTAL_CHANGE": "The total is essentially unchanged: a share of such a small change would mean nothing, so below you only see how much each item moved.",
+      "OFFSETTING_CHANGES": "Some items went up and others went down by almost the same amount, cancelling each other out: shares of the change would exceed 200% and mean nothing, so below you only see how much each item moved."
+    },
+    "freeText": "The categories look like the free text of a bank statement (almost a different one for every movement): this breakdown says little. To get a useful one, re-import the file choosing a column that holds categories.",
+    "unavailable": {
+      "CUSTOM_PERIOD": "A custom date range has no equivalent period to compare it with. Choose 1, 3, 6 or 12 months to see what changed.",
+      "NO_PREVIOUS_DATA": "There are no recorded movements in the comparison period (from {prevFrom} to {prevTo}): there is nothing to compare against.",
+      "NO_CURRENT_DATA": "There are no recorded movements in this period yet: the comparison will be available once they are loaded."
+    }
+  },
   "benchmarks": {
     "title": "Industry Benchmarks",
     "subtitle": "Compare your metrics against industry reference data",
