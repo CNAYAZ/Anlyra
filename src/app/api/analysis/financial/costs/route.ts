@@ -7,6 +7,7 @@ import {
   computeKpis,
   filterTransactionsByPeriod,
   monthlySeries,
+  periodChangeBreakdown,
   periodTotals,
   safeDiv,
 } from '@/lib/analysis/financial';
@@ -74,6 +75,9 @@ export async function GET(req: NextRequest) {
       kpis: { totalCosts, burnRate: kpis.burnRate, ratio },
       series: monthlySeries(periodTransactions),
       byCategory: categoryBreakdown(filtered, 'COST'),
+      // "Cosa è cambiato": the selected period against its comparison period,
+      // category by category — see periodChangeBreakdown.
+      changes: periodChangeBreakdown(data.transactions, 'COST', period, from, to),
       // Left unfiltered on purpose: this feeds the category filter dropdown,
       // not a displayed total — same reasoning as the /revenue route.
       categories: Array.from(new Set(data.transactions.filter((t) => t.kind === 'COST').map((t) => t.category))),

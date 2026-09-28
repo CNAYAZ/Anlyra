@@ -6,6 +6,70 @@ import { toAppDateString } from './timezone';
 import { defaultLocale, type Locale } from '@/i18n/config';
 import { DATA_GAPS_TONE } from './ai/prompts/tone';
 import type { Receivable, RecurringExpense } from '@prisma/client';
+import {
+  comparisonWindow,
+  periodChangeBreakdown,
+  periodWindow,
+  type ChangeBreakdown,
+} from './analysis/financial';
+import { parseCategory } from './api/financial-query';
+import type { DemoTransaction } from './demo/data';
+
+/** Categories passed to the model per kind; the rest are summed into one line. See changesForAi. */
+const AI_CHANGE_CATEGORIES = 5;
+
+/** One decimal: presentation only, so the model does not quote "66.66666666%". */
+function oneDecimal(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
+/**
+ * The ChangeBreakdown the costs/revenue pages show, reduced for the model:
+ * the largest AI_CHANGE_CATEGORIES movers by absolute change, the rest summed
+ * (exactly, in cents) into one line. CATEGORY NAMES AND AMOUNTS ONLY — no
+ * subcategory, no movement description, no customer or supplier name. When the
+ * categories look like the free text of a bank statement (which can hold
+ * counterparty names), the category names are left out entirely.
+ */
+function changesForAi(b: ChangeBreakdown) {
+  const periodo = `${b.currentPeriod.from}..${b.currentPeriod.to}`;
+  const confronto = b.previousPeriod ? `${b.previousPeriod.from}..${b.previousPeriod.to}` : null;
+  if (b.unavailableReason !== null || b.totalChange === null) {
+    return { periodo, confronto, totale_periodo: b.currentTotal, non_disponibile: b.unavailableReason };
+  }
+  const moved = b.categories.filter((c) => c.change !== 0);
+  const top = moved.slice(0, AI_CHANGE_CATEGORIES);
+  const rest = moved.slice(AI_CHANGE_CATEGORIES);
+  return {
+    periodo,
+    confronto,
+    totale_periodo: b.currentTotal,
+    totale_confronto: b.previousTotal,
+    variazione: b.totalChange,
+    variazione_pct: b.totalChangePct === null ? null : oneDecimal(b.totalChangePct),
+    ...(b.sharesHiddenReason ? { quote_non_calcolabili: b.sharesHiddenReason } : {}),
+    ...(b.categoriesLookLikeFreeText
+      ? { voci: 'omesse: le categorie sono testo libero di un estratto conto, non categorie' }
+      : {
+          voci: top.map((c) => ({
+            categoria: c.uncategorized ? '(senza categoria)' : c.category,
+            confronto: c.previous,
+            periodo: c.current,
+            variazione: c.change,
+            ...(c.share === null ? {} : { quota_pct: oneDecimal(c.share) }),
+            ...(c.presence === 'both' ? {} : { presenza: c.presence === 'new' ? 'nuova' : 'assente_nel_periodo' }),
+          })),
+          ...(rest.length > 0
+            ? {
+                altre_voci: {
+                  numero: rest.length,
+                  variazione: rest.reduce((s, c) => s + Math.round(c.change * 100), 0) / 100,
+                },
+              }
+            : {}),
+        }),
+  };
+}
 
 export type AIBusinessContext = {
   company: string;
@@ -37,6 +101,12 @@ export type AIBusinessContext = {
     totalMonthly: number;
     items: { vendorName: string; amount: number; frequency: string }[];
   };
+  /**
+   * Revenue and costs of the last 3 months against the equivalent 3 months
+   * before (periodChangeBreakdown, same rule as the pages), category by
+   * category. Category names and amounts only — see changesForAi.
+   */
+  changes: { ricavi: ReturnType<typeof changesForAi>; costi: ReturnType<typeof changesForAi> };
 };
 
 function monthKey(d: Date): string {
@@ -80,6 +150,32 @@ export async function loadBusinessContext(
       costs: v.costs,
       margin: v.revenue > 0 ? ((v.revenue - v.costs) / v.revenue) * 100 : 0,
     }));
+
+  // "What changed", last 3 months vs the equivalent 3 before — the whole span
+  // both windows need, read once. Category from the stored description exactly
+  // as the pages read it (parseCategory), never the free text of a movement.
+  const changesFrom = comparisonWindow(periodWindow('3m'), 3).from;
+  const changeRecords = await prisma.financialRecord.findMany({
+    where: { organizationId, occurredAt: { gte: changesFrom } },
+    select: { id: true, occurredAt: true, type: true, amount: true, description: true, source: true },
+  });
+  const changeTransactions: DemoTransaction[] = changeRecords.map((r) => {
+    const { category, subcategory } = parseCategory(r.description ?? '');
+    return {
+      id: r.id,
+      date: r.occurredAt,
+      kind: r.type === 'REVENUE' ? 'REVENUE' : 'COST',
+      category,
+      subcategory,
+      amount: r.amount,
+      description: r.description ?? '',
+      source: (r.source as DemoTransaction['source']) || 'manual',
+    };
+  });
+  const changes = {
+    ricavi: changesForAi(periodChangeBreakdown(changeTransactions, 'REVENUE', '3m')),
+    costi: changesForAi(periodChangeBreakdown(changeTransactions, 'COST', '3m')),
+  };
 
   const financialFacts = await getFinancialFacts(organizationId, locale);
   const facts = financialFacts.map((f) => ({
@@ -147,8 +243,15 @@ export async function loadBusinessContext(
     facts,
     receivablesSummary,
     recurringExpensesSummary,
+    changes,
   };
 }
+
+/**
+ * How to read variazioni_per_categoria. Shared by every prompt that carries it.
+ */
+export const CHANGES_READING_NOTE =
+  "In \"variazioni_per_categoria\" trovi, per ricavi e costi, di quanto è cambiato il totale fra \"periodo\" e \"confronto\" (stessi giorni, 3 mesi prima) e quali categorie lo hanno causato. Quando ti chiedono perché costi o ricavi sono cambiati, cita quelle categorie e quelle cifre così come sono, senza ricalcolarle. \"quota_pct\" è la parte della variazione totale dovuta a quella voce: una voce che si è mossa al contrario ha quota negativa e le altre sommano allora più di 100. Se c'è \"quote_non_calcolabili\" o \"non_disponibile\", spiega il motivo in una riga e non inventare quote o confronti. Le date di questa sezione possono non coincidere con quelle delle segnalazioni: indica sempre a quali mesi ti riferisci.";
 
 /**
  * How the answer is delivered: never about these instructions, always finished.
@@ -167,6 +270,7 @@ export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 
     segnalazioni: ctx.facts,
     scadenzario: ctx.receivablesSummary,
     spese_ricorrenti: ctx.recurringExpensesSummary,
+    variazioni_per_categoria: ctx.changes,
   };
   return [
     `Sei un analista business esperto. Stai analizzando i dati REALI di ${ctx.company}, azienda ${ctx.industry} con ${ctx.employees} dipendenti.`,
@@ -175,6 +279,7 @@ export function buildSystemPrompt(ctx: AIBusinessContext, locale: 'IT' | 'EN' | 
     'Per il scadenzario: ogni credito scaduto ha già un campo "daysOverdue" con i giorni di ritardo calcolati correttamente. Usa SEMPRE quel valore così com\'è: non calcolare MAI tu stesso la differenza tra la dueDate e la data di oggi, anche se ti sembra di poterlo fare — puoi sbagliare il conteggio.',
     // Dopo le regole sui dati, così i divieti numerici restano contigui e il
     // blocco di tono non li spezza a metà.
+    CHANGES_READING_NOTE,
     DATA_GAPS_TONE,
     // The language follows the USER'S MESSAGE, not the interface: a question
     // written in English gets an English answer. `lang` is only the fallback.

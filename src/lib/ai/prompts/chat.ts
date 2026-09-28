@@ -1,4 +1,4 @@
-import { RESPONSE_SHAPE, type AIBusinessContext } from '@/lib/ai-context';
+import { CHANGES_READING_NOTE, RESPONSE_SHAPE, type AIBusinessContext } from '@/lib/ai-context';
 import { DATA_GAPS_TONE } from './tone';
 
 /**
@@ -20,6 +20,7 @@ export function buildChatPrompt(ctx: AIBusinessContext): string {
     segnalazioni: ctx.facts, // fatti reali calcolati da regole (cashflow, scadenze, trend) — MAI inventati
     scadenzario: ctx.receivablesSummary, // assente se l'org non ha ancora crediti registrati
     spese_ricorrenti: ctx.recurringExpensesSummary, // assente se l'org non ha ancora spese ricorrenti registrate
+    variazioni_per_categoria: ctx.changes, // cosa ha causato la variazione di ricavi e costi, per categoria
   };
 
   // Honesty about data depth: with little data the assistant must not answer
@@ -51,6 +52,8 @@ export function buildChatPrompt(ctx: AIBusinessContext): string {
 
     // ── ONESTÀ (il divieto sui numeri; il TONO è nel blocco sotto) ──
     "Non inventare dati né certezze. Se non hai dati sufficienti per rispondere con precisione, offri comunque il miglior aiuto possibile con quello che hai.",
+
+    CHANGES_READING_NOTE,
 
     DATA_GAPS_TONE,
 

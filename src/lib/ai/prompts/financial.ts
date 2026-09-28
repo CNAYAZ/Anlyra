@@ -1,4 +1,4 @@
-import { RESPONSE_SHAPE, type AIBusinessContext } from '@/lib/ai-context';
+import { CHANGES_READING_NOTE, RESPONSE_SHAPE, type AIBusinessContext } from '@/lib/ai-context';
 import { DATA_GAPS_TONE } from './tone';
 
 /**
@@ -22,6 +22,7 @@ export function buildFinancialAnalysisPrompt(ctx: AIBusinessContext): string {
     segnalazioni: ctx.facts, // fatti reali calcolati da regole (cashflow, scadenze, trend) — MAI inventati
     scadenzario: ctx.receivablesSummary, // assente se l'org non ha ancora crediti registrati
     spese_ricorrenti: ctx.recurringExpensesSummary, // assente se l'org non ha ancora spese ricorrenti registrate
+    variazioni_per_categoria: ctx.changes, // cosa ha causato la variazione di ricavi e costi, per categoria
   };
 
   // Honesty about data depth: the model must not fabricate trends when there is
@@ -70,6 +71,8 @@ export function buildFinancialAnalysisPrompt(ctx: AIBusinessContext): string {
     // nasconderli") è ciò che produceva il paragrafo di premesse: ora se ne cita
     // al più uno, e solo se incide davvero sulla risposta.
     "Non inventare dati né certezze: ciò che non è deducibile dai dati forniti non va supposto. Tre limiti sono strutturali e non vanno MAI spacciati per una precisione che non c'è: il cashflow è approssimato (aggregati mensili, non movimenti bancari), le proiezioni sono per estrapolazione (nessuna stagionalità o evento), i costi non sono disaggregati per voce. Cita in mezza riga SOLO il limite che incide davvero sulla risposta che stai dando: non elencarli tutti e tre in premessa.",
+
+    CHANGES_READING_NOTE,
 
     DATA_GAPS_TONE,
 

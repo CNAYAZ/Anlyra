@@ -1194,6 +1194,33 @@
     "error": "Errore nel caricamento delle previsioni.",
     "retry": "Riprova"
   },
+  "whatChanged": {
+    "title": "Cosa è cambiato",
+    "periods": "Dal {from} al {to}, rispetto al periodo equivalente dal {prevFrom} al {prevTo}",
+    "totalCosts": "Costi",
+    "totalRevenue": "Ricavi",
+    "fromTo": "(da {previous} a {current})",
+    "groupUp": "Hanno fatto salire il totale",
+    "groupDown": "Hanno fatto scendere il totale",
+    "share": "{share} della variazione",
+    "uncategorized": "Senza categoria",
+    "presence": {
+      "new": "nuova in questo periodo",
+      "gone": "assente in questo periodo"
+    },
+    "rest": "Altre {count, plural, one {# voce} other {# voci}}: {change}",
+    "mixedDirections": "Alcune voci si sono mosse in direzione opposta al totale e ne hanno compensato una parte: per questo le quote delle voci che vanno nella stessa direzione del totale sommano più del 100%.",
+    "sharesHidden": {
+      "NEGLIGIBLE_TOTAL_CHANGE": "Il totale è praticamente invariato: una quota su una variazione così piccola non avrebbe significato, quindi qui sotto trovi solo di quanto si è mossa ogni voce.",
+      "OFFSETTING_CHANGES": "Alcune voci sono salite e altre scese quasi nella stessa misura, compensandosi: le quote sulla variazione supererebbero il 200% e non avrebbero significato, quindi qui sotto trovi solo di quanto si è mossa ogni voce."
+    },
+    "freeText": "Le categorie sembrano il testo libero di un estratto conto (quasi una diversa per ogni movimento): questa scomposizione dice poco. Per averne una utile, reimporta il file indicando una colonna con le categorie.",
+    "unavailable": {
+      "CUSTOM_PERIOD": "Con un intervallo di date personalizzato non c'è un periodo equivalente con cui confrontarlo. Scegli 1, 3, 6 o 12 mesi per vedere cosa è cambiato.",
+      "NO_PREVIOUS_DATA": "Nel periodo di confronto (dal {prevFrom} al {prevTo}) non ci sono movimenti registrati: non c'è niente con cui confrontare.",
+      "NO_CURRENT_DATA": "In questo periodo non ci sono ancora movimenti registrati: il confronto sarà disponibile dopo averli caricati."
+    }
+  },
   "benchmarks": {
     "title": "Benchmark di settore",
     "subtitle": "Confronta le tue metriche con i dati di riferimento del settore",
