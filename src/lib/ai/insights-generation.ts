@@ -69,12 +69,13 @@ const MAX_TITLE = 120;
 const MAX_SUMMARY = 300;
 const MAX_CONTENT = 900;
 
-// Generous headroom over the shared ANTHROPIC_MAX_TOKENS default (4096): up to
-// 5 insights, each with title+summary+content+JSON punctuation, easily adds up
-// even at the tightened lengths above once Italian/English prose is tokenized.
+// Same ceiling as the shared ANTHROPIC_MAX_TOKENS default: up to 5 insights,
+// each with title+summary+content+JSON punctuation, PLUS the model's thinking,
+// which counts against this same ceiling (adaptive thinking is on by default).
+// Was 8192 — below the shared default once that was raised to 16000.
 // Anthropic bills actual tokens generated, not this ceiling, so raising it only
 // changes the worst case, not the typical cost of a generation.
-const INSIGHTS_MAX_TOKENS = 8192;
+const INSIGHTS_MAX_TOKENS = 16000;
 
 function buildSystemPrompt(locale: 'it' | 'en'): string {
   const lang = locale === 'en' ? 'english' : 'italiano';

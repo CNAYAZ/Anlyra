@@ -27,6 +27,9 @@ import { useFeatureGate } from '@/lib/billing/context';
 import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
 
+/** Sent by /api/ai/analyze at the end of an answer that finished on its own. */
+const ANSWER_COMPLETE_MARKER = '\u0004';
+
 // Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
 // route's ANALYSIS_CREDIT_COST. Used both to decide when to disable the
 // Generate/Send buttons ahead of a request AND to show that cost on the
@@ -172,10 +175,17 @@ export function AgentClient() {
         const { done, value } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
-        patch(m, { result: acc }); // grow the visible text as tokens arrive
+        patch(m, { result: acc.replace(ANSWER_COMPLETE_MARKER, '') }); // grow the visible text as tokens arrive
       }
       acc += decoder.decode(); // flush any trailing multibyte bytes
-      patch(m, { result: acc, loading: false });
+      // The route sends ANSWER_COMPLETE_MARKER only when the answer finished on
+      // its own; without it the text was cut (length ceiling, error, timeout).
+      const complete = acc.endsWith(ANSWER_COMPLETE_MARKER);
+      patch(m, {
+        result: acc.replace(ANSWER_COMPLETE_MARKER, ''),
+        error: complete ? null : t('errors.truncated'),
+        loading: false,
+      });
     } catch {
       // Network/read error mid-stream: keep the partial text already shown and
       // surface a notice next to it.

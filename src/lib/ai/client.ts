@@ -7,9 +7,16 @@ import { DEFAULT_AI_MODEL, modelFor, type AiSurface } from '@/lib/ai/models';
  */
 export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || DEFAULT_AI_MODEL;
 export const ANTHROPIC_TEMPERATURE = 0.4;
+// 16000, not 4096: the model thinks before answering (adaptive thinking is on
+// by default) and those thinking tokens count against this same ceiling, so
+// 4096 could be spent mostly on reasoning and cut the visible answer mid-sentence.
+// It is a CEILING, not a spend: an answer that ends on its own costs the same
+// as before; only answers that used to be cut now finish. Callers still check
+// stopReason — a reply that hits even this ceiling is flagged, never shown as
+// if it were complete.
 export const ANTHROPIC_MAX_TOKENS = process.env.ANTHROPIC_MAX_TOKENS
   ? parseInt(process.env.ANTHROPIC_MAX_TOKENS, 10)
-  : 4096;
+  : 16000;
 
 export const MISSING_KEY_MESSAGE =
   'Per usare la chat AI, aggiungi ANTHROPIC_API_KEY nel file .env.local';
@@ -95,6 +102,12 @@ export type ChatCompleteOptions = {
    * downgrades the answer.
    */
   surface?: AiSurface;
+  /**
+   * chatStream only: called once the stream has ended, with the API's
+   * stop_reason ('end_turn' when the answer finished on its own, 'max_tokens'
+   * when it was cut by the ceiling), or null when it could not be read.
+   */
+  onStopReason?: (stopReason: string | null) => void;
 };
 
 function buildSystemParam(
@@ -158,7 +171,7 @@ export async function chatComplete(
   systemPrompt: string,
   messages: ChatTurn[],
   options: ChatCompleteOptions = {},
-): Promise<{ text: string; tokensIn?: number; tokensOut?: number }> {
+): Promise<{ text: string; tokensIn?: number; tokensOut?: number; stopReason: string | null }> {
   const c = getAnthropicClient();
   const model = resolveModel(options);
   const res = await c.messages.create({
@@ -170,12 +183,15 @@ export async function chatComplete(
     messages: buildMessagesParam(messages, options.cacheLastMessage),
   });
   logUsage(options.logLabel ?? 'chatComplete', model, res.usage);
-  const block = res.content.find((b) => b.type === 'text');
-  const text = block && block.type === 'text' ? block.text : '';
+  // Every text block, joined — the first alone could be only part of the answer.
+  const text = res.content
+    .map((b) => (b.type === 'text' ? b.text : ''))
+    .join('');
   return {
     text,
     tokensIn: res.usage?.input_tokens,
     tokensOut: res.usage?.output_tokens,
+    stopReason: res.stop_reason ?? null,
   };
 }
 
@@ -212,7 +228,9 @@ export async function* chatStream(
   try {
     const final = await stream.finalMessage();
     logUsage(options.logLabel ?? 'chatStream', model, final.usage);
+    options.onStopReason?.(final.stop_reason ?? null);
   } catch (e) {
+    options.onStopReason?.(null);
     // finalMessage() rejects if the underlying stream itself errored or was
     // aborted — that failure already propagated out of the `for await` above
     // to the caller's own try/catch (unchanged from before this feature). A

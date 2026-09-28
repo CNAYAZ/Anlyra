@@ -21,6 +21,7 @@ import {
   MISSING_KEY_MESSAGE,
 } from '@/lib/ai/client';
 import { buildSystemPrompt, loadBusinessContext } from '@/lib/ai-context';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +42,11 @@ export const dynamic = 'force-dynamic';
  * (3 months of financials, at most 8 facts, at most 10 receivables, at most 10
  * recurring expenses, plus a static tone block) at roughly 2,000 tokens. A user
  * message is capped at 4,000 characters by SendSchema (~1,100 tokens) and a
- * reply at ANTHROPIC_MAX_TOKENS (4,096) — so an absolute worst-case exchange is
- * ~5,200 tokens. 40 messages is 20 exchanges: ~104k tokens worst case, plus the
- * system prompt and room for the reply, still comfortably inside the 200k
- * window of the configured model with room to spare. A realistic exchange (a
+ * reply at ANTHROPIC_MAX_TOKENS (16,000; the model's thinking is not stored, so
+ * a saved reply is at most that) — so an absolute worst-case exchange is
+ * ~17,100 tokens. 40 messages is 20 exchanges: ~342k tokens worst case, plus the
+ * system prompt and room for the reply, still inside the 1M window of the
+ * configured model. A realistic exchange (a
  * short question, a ~900-token answer) is ~1,000 tokens, so an ordinary
  * conversation never reaches this cap at all — only the rare very long thread
  * does, and for that one the alternative was a dead conversation.
@@ -204,6 +206,7 @@ export async function POST(req: NextRequest) {
   let assistantText = '';
   let tokensIn: number | undefined;
   let tokensOut: number | undefined;
+  let stopReason: string | null = null;
 
   try {
     const result = await chatComplete(
@@ -238,6 +241,7 @@ export async function POST(req: NextRequest) {
     assistantText = result.text;
     tokensIn = result.tokensIn;
     tokensOut = result.tokensOut;
+    stopReason = result.stopReason;
   } catch (err) {
     // ── L'UNICO caso rimborsabile: la richiesta ha superato la finestra ──
     // Con il taglio a CHAT_HISTORY_WINDOW questo non dovrebbe più accadere per
@@ -271,6 +275,15 @@ export async function POST(req: NextRequest) {
     // motivo di uscire. Lo status 502 non cambia. Nessun rimborso, come prima.
     console.error('[ai:error] surface=chat', err);
     return fail('AI_REQUEST_FAILED', 502);
+  }
+
+  // Cut by the length ceiling: the customer is told so, in their language,
+  // instead of receiving a sentence that stops halfway. Saved WITH the message,
+  // so it is still there when the conversation is reopened.
+  if (stopReason === 'max_tokens') {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { locale: true } });
+    const t = await getTranslations({ locale: user?.locale === 'en' ? 'en' : 'it', namespace: 'chat' });
+    assistantText = `${assistantText.trimEnd()}…\n\n${t('answerTruncated')}`;
   }
 
   await prisma.aIMessage.create({
