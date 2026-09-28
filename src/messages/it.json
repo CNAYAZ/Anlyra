@@ -2035,6 +2035,48 @@
     "checkoutErrorProvider": "Non riusciamo a completare il pagamento in questo momento. Riprova tra qualche minuto o scrivici.",
     "checkoutErrorNetwork": "Connessione non riuscita. Controlla la rete e riprova.",
     "ownerOnly": "Solo il proprietario dell'organizzazione può gestire la fatturazione.",
+    "details": {
+      "title": "Dati di fatturazione",
+      "subtitle": "Servono per emetterti la fattura elettronica. Vanno inseriti prima del primo pagamento.",
+      "statusComplete": "Completi",
+      "statusIncomplete": "Da completare",
+      "fields": {
+        "legalName": "Ragione sociale",
+        "vatNumber": "Partita IVA",
+        "address": "Indirizzo della sede (via e numero civico)",
+        "postalCode": "CAP",
+        "city": "Comune",
+        "province": "Provincia (sigla)",
+        "country": "Nazione",
+        "sdiCode": "Codice destinatario SDI",
+        "pec": "PEC"
+      },
+      "otherCountry": "Un paese fuori dall'Unione europea",
+      "sdiOrPecHint": "Serve il codice destinatario oppure la PEC: almeno uno dei due. Se non hai un codice destinatario puoi scrivere 0000000, e la fattura arriverà nel tuo cassetto fiscale.",
+      "countryNotAccepted": "Per ora Anlyra fattura solo ad aziende con sede in Italia, quindi da qui non è possibile pagare. Scrivici a {email} e ti diremo come procedere.",
+      "save": "Salva i dati di fatturazione",
+      "saving": "Salvataggio…",
+      "saved": "Dati di fatturazione salvati.",
+      "invalid": "Controlla i campi segnati in rosso.",
+      "saveError": "Salvataggio non riuscito. Riprova tra poco.",
+      "loadError": "Non riusciamo a caricare i dati di fatturazione. Ricarica la pagina.",
+      "ownerOnlyEdit": "Solo il proprietario dell'organizzazione può modificare i dati di fatturazione.",
+      "requiredForCheckout": "Prima di pagare completa i dati di fatturazione in questa pagina: servono per la fattura elettronica.",
+      "errors": {
+        "REQUIRED": "Campo obbligatorio.",
+        "TOO_LONG": "Testo troppo lungo.",
+        "INVALID_CHARACTERS": "Il testo non può contenere caratteri di controllo o ritorni a capo.",
+        "COUNTRY_INVALID": "Scegli una nazione dall'elenco.",
+        "COUNTRY_NOT_ACCEPTED": "Per ora Anlyra fattura solo ad aziende con sede in Italia.",
+        "VAT_INVALID": "Partita IVA non valida. Quella italiana ha 11 cifre e l'ultima è una cifra di controllo: ricontrolla di averla copiata bene.",
+        "VAT_PREFIX_MISMATCH": "La partita IVA deve iniziare con la sigla del paese (per esempio DE per la Germania).",
+        "POSTAL_CODE_INVALID": "CAP non valido: in Italia sono 5 cifre.",
+        "PROVINCE_INVALID": "Scrivi la sigla della provincia, 2 lettere (per esempio MO).",
+        "SDI_INVALID": "Il codice destinatario ha 7 caratteri, lettere o cifre.",
+        "PEC_INVALID": "Indirizzo PEC non valido.",
+        "SDI_OR_PEC_REQUIRED": "Inserisci il codice destinatario oppure la PEC."
+      }
+    },
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
       "cta": "Abbonati"

@@ -5,6 +5,9 @@ import { getAuthContext } from "@/lib/session";
 import { requireWritableOrg } from "@/lib/auth/require-writable";
 import { isOwnerRole, requireOwnerRole } from "@/lib/auth/require-role";
 import { auditLog } from "@/lib/audit/log";
+import { getStripe } from "@/lib/stripe/client";
+import { getSubscription } from "@/lib/billing/repository";
+import { syncStripeCustomerBilling } from "@/lib/billing/stripe-customer";
 import {
   ACCEPTED_BILLING_COUNTRIES,
   BILLING_SELECT,
@@ -73,6 +76,18 @@ export async function PUT(req: NextRequest) {
     where: { id: ctx.organizationId },
     data: organizationColumnsFromBilling(result.data),
   });
+
+  // A customer already known to Stripe gets the new details now, for its next
+  // receipt; one that never opened a checkout gets them at the first one.
+  // Best effort: the data is saved either way, and every checkout syncs again.
+  const sub = await getSubscription(ctx.organizationId);
+  if (sub.stripeCustomerId) {
+    try {
+      await syncStripeCustomerBilling(getStripe(), sub.stripeCustomerId, result.data);
+    } catch (e) {
+      console.error("[billing/details] Stripe customer not updated:", e);
+    }
+  }
 
   await auditLog({
     action: "billing.details_update",

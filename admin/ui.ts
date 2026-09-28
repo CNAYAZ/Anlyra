@@ -120,6 +120,13 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <div id="orgMembersTable">Caricamento...</div>
     <button class="act" onclick="loadOrgMembers()">Aggiorna</button>
 
+    <h3>Dati di fatturazione</h3>
+    <p class="note">Quelli inseriti dal proprietario nella pagina di fatturazione, da copiare in Fiscozen per la
+      fattura elettronica. "Completi" è lo stesso controllo che il sito fa prima di un pagamento: senza, il
+      proprietario non può pagare. Per l'Italia la partita IVA è salvata senza il prefisso IT.</p>
+    <div id="orgBillingTable">Caricamento...</div>
+    <button class="act" onclick="loadOrgs()">Aggiorna</button>
+
     <div class="card">
       <h3>Imposta crediti AI</h3>
       <p class="note">Imposta un valore assoluto (non somma). Copia l'id dalla tabella qui sopra.
@@ -350,6 +357,24 @@ async function loadOrgs() {
         '<td class="num">' + o.memberCount + '</td>' +
         '<td>' + fmt(o.createdAt) + '</td></tr>';
     }).join('') + '</table>';
+
+  const withBilling = rows.filter(o => Object.entries(o.billing).some(([k, v]) => k !== 'complete' && v));
+  const labels = [
+    ['legalName', 'Ragione sociale'], ['vatNumber', 'Partita IVA'], ['address', 'Indirizzo'],
+    ['postalCode', 'CAP'], ['city', 'Comune'], ['province', 'Provincia'], ['country', 'Nazione'],
+    ['sdiCode', 'Codice destinatario SDI'], ['pec', 'PEC'],
+  ];
+  document.getElementById('orgBillingTable').innerHTML =
+    withBilling.map(o =>
+      '<div class="card"><b>' + esc(o.name) + '</b> <code>' + esc(o.id) + '</code> &mdash; ' +
+      (o.billing.complete ? '<span style="color:#cfe8bd">completi</span>'
+                          : '<span style="color:#e8c9a0">incompleti: il proprietario non può pagare</span>') +
+      '<table>' + labels.map(([k, l]) =>
+        '<tr><th style="width:220px">' + l + '</th><td style="user-select:all">' + esc(o.billing[k] ?? '') + '</td></tr>'
+      ).join('') + '</table></div>'
+    ).join('') +
+    '<p class="note">' + (rows.length - withBilling.length) + ' organizzazioni su ' + rows.length +
+    ' senza nessun dato di fatturazione.</p>';
 }
 
 async function loadDeletions() {
