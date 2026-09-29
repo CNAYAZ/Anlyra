@@ -2,10 +2,12 @@ import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { evaluateStatus } from '@/lib/utils';
+import { MARKET_AND_OPERATIONS_AVAILABLE, marketOperationsUnavailable } from '@/lib/market-operations-availability';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!MARKET_AND_OPERATIONS_AVAILABLE) return marketOperationsUnavailable();
   try {
     const { organizationId } = await getCurrentContext();
     const kpiRows = await prisma.kPI.findMany({ where: { organizationId } });

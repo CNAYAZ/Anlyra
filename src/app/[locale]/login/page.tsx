@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,6 +87,7 @@ function LoginPageInner() {
   const search = useSearchParams();
   const locale = params?.locale === 'en' ? 'en' : 'it';
   const t = COPY[locale];
+  const tLogin = useTranslations('login');
   const callbackUrl = search.get('callbackUrl') || `/${locale}/overview`;
 
   // Errors handed over in the URL by endpoints that REDIRECT here instead of
@@ -116,6 +118,8 @@ function LoginPageInner() {
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  // The typed email is the demo account's: say where the demo actually opens.
+  const [demoAccount, setDemoAccount] = useState(false);
 
   // Starting the demo is a POST, never a link: a GET would be followed by link
   // prefetching and crawlers, handing a demo session to visitors who never
@@ -181,6 +185,7 @@ function LoginPageInner() {
     e.preventDefault();
     setError('');
     setNotVerified(false);
+    setDemoAccount(false);
     setLoading(true);
     try {
       // Pre-check so we can branch on 2FA / email-verification before signIn.
@@ -211,6 +216,10 @@ function LoginPageInner() {
 
       const pre = await preRes.json();
 
+      if (pre.demoAccount) {
+        setDemoAccount(true);
+        return;
+      }
       if (!pre.valid) {
         setError(t.invalid);
         return;
@@ -339,6 +348,14 @@ function LoginPageInner() {
             )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {demoAccount && (
+              <div role="status" className="space-y-2 rounded-lg border border-border bg-muted/60 p-3 text-sm text-foreground">
+                <p>{tLogin('demoAccountNotice')}</p>
+                <Button type="button" variant="secondary" className="w-full" onClick={startDemo} disabled={demoLoading}>
+                  {demoLoading ? t.demoStarting : t.demoCta}
+                </Button>
+              </div>
+            )}
             {notVerified && (
               <div className="text-sm text-destructive">
                 {t.notVerified}{' '}

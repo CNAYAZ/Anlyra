@@ -5,6 +5,7 @@ import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireManagerRole, requireEditorRole } from "@/lib/auth/require-role";
 import { auditLog } from '@/lib/audit/log';
 import { ok, fail, failFromError } from "@/lib/api";
+import { MARKET_AND_OPERATIONS_AVAILABLE, marketOperationsUnavailable } from '@/lib/market-operations-availability';
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -19,6 +20,7 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  if (!MARKET_AND_OPERATIONS_AVAILABLE) return marketOperationsUnavailable();
   const params = await props.params;
   try {
     const ctx = await getAuthContext();
@@ -54,6 +56,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 }
 
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  if (!MARKET_AND_OPERATIONS_AVAILABLE) return marketOperationsUnavailable();
   const params = await props.params;
   try {
     const ctx = await getAuthContext();
