@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { getFinancialFacts, daysOverdueOf } from './facts/financial-facts';
 import { effectiveStatus } from './receivables/dto';
-import { computeTotals } from './recurring-expenses/dto';
+import { computeTotals, monthlyEquivalent } from './recurring-expenses/dto';
 import { toAppDateString } from './timezone';
 import { defaultLocale, type Locale } from '@/i18n/config';
 import { DATA_GAPS_TONE } from './ai/prompts/tone';
@@ -221,7 +221,7 @@ export async function loadBusinessContext(
     const { totalMonthly } = computeTotals(recurringRows);
     const activeByMonthlyDesc = recurringRows
       .filter((e: RecurringExpense) => e.active)
-      .map((e: RecurringExpense) => ({ ...e, monthlyEquivalent: e.frequency === 'YEARLY' ? e.amount / 12 : e.amount }))
+      .map((e: RecurringExpense) => ({ ...e, monthlyEquivalent: monthlyEquivalent(e.amount, e.frequency) }))
       .sort((a, b) => b.monthlyEquivalent - a.monthlyEquivalent);
 
     recurringExpensesSummary = {

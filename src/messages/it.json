@@ -1117,6 +1117,9 @@
     "perYear": "/anno",
     "frequency": {
       "MONTHLY": "Mensile",
+      "BIMONTHLY": "Bimestrale",
+      "QUARTERLY": "Trimestrale",
+      "SEMIANNUAL": "Semestrale",
       "YEARLY": "Annuale"
     },
     "status": {

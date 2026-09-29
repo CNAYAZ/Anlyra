@@ -41,6 +41,9 @@ type ListResponse = {
 
 const frequencyVariant: Record<ExpenseFrequency, 'info' | 'neutral'> = {
   MONTHLY: 'info',
+  BIMONTHLY: 'neutral',
+  QUARTERLY: 'neutral',
+  SEMIANNUAL: 'neutral',
   YEARLY: 'neutral',
 };
 

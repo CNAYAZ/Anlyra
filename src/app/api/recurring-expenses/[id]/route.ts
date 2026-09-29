@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EXPENSE_FREQUENCIES } from '@/types/recurring-expense';
 import type { Prisma } from '@prisma/client';
 import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
@@ -15,7 +16,7 @@ const PatchSchema = z.object({
   vendorName: z.string().trim().min(1).max(200).optional(),
   amount: z.number().positive().optional(),
   currency: z.string().trim().min(1).max(8).optional(),
-  frequency: z.enum(['MONTHLY', 'YEARLY']).optional(),
+  frequency: z.enum(EXPENSE_FREQUENCIES).optional(),
   category: z.string().trim().max(100).nullable().optional(),
   nextRenewal: z.coerce.date().nullable().optional(),
   active: z.boolean().optional(),
