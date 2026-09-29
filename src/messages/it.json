@@ -64,7 +64,10 @@
     "features": "Funzionalità",
     "howItWorks": "Come Funziona",
     "pricing": "Prezzi",
-    "contact": "Contatti"
+    "contact": "Contatti",
+    "settingsSubscription": "Abbonamento",
+    "settingsCredits": "Crediti",
+    "settingsBillingDetails": "Dati di fatturazione"
   },
   "breadcrumb": {
     "dashboard": "Dashboard"
@@ -363,7 +366,8 @@
     "partialMonth": "parziale",
     "partialMonthNote": "Il mese in corso è incluso come parziale, aggiornato a oggi.",
     "dayParityComparisonNote": "I confronti mostrati sono calcolati a parità di giorni.",
-    "periodComparisonNote": "Le variazioni confrontano il periodo scelto con quello precedente di pari durata, a parità di giorni."
+    "periodComparisonNote": "Le variazioni confrontano il periodo scelto con quello precedente di pari durata, a parità di giorni.",
+    "goToCredits": "Vai ai crediti"
   },
   "periods": {
     "1m": "Ultimo mese",
@@ -896,7 +900,7 @@
     "suggestion2": "Conviene entrare nel mercato DACH adesso?",
     "suggestion3": "Come ridurre il churn rate?",
     "noCreditsTitle": "Crediti esauriti",
-    "noCreditsDescription": "I crediti AI del tuo piano sono terminati. Con un piano superiore hai più crediti inclusi ogni mese.",
+    "noCreditsDescription": "I crediti AI sono esauriti. Puoi acquistare un pacchetto di crediti o passare a un piano con più crediti inclusi ogni mese.",
     "creditsCost": "Costa 1 credito",
     "errorSending": "Errore nell'invio del messaggio. Riprova.",
     "conversationTooLong": "Questa conversazione è diventata troppo lunga per essere elaborata. Non ti è stato addebitato nessun credito: apri una nuova conversazione per continuare.",
@@ -909,7 +913,7 @@
     "subtitle": "Suggerimenti strategici generati dall'analisi dei tuoi dati",
     "generate": "Genera Nuovi Insight",
     "generateButton": "Genera Nuovi Insight (3 crediti)",
-    "generateButtonDisabled": "Crediti AI del piano terminati. Con un piano superiore ne hai di più inclusi.",
+    "generateButtonDisabled": "Crediti AI esauriti. Puoi acquistare un pacchetto di crediti o passare a un piano superiore.",
     "creditsRequired": "Crediti AI insufficienti",
     "generateCost": "3 crediti",
     "generating": "Generazione in corso...",
@@ -980,7 +984,7 @@
     "aiExplanation": "Spiegazione",
     "aiActions": "Azioni consigliate",
     "aiGeneratedCaption": "Contenuto generato da intelligenza artificiale.",
-    "analyzeErrorCredits": "Crediti AI del piano terminati: servono per generare l'analisi.",
+    "analyzeErrorCredits": "Crediti AI esauriti: servono per generare l'analisi.",
     "analyzeErrorConfig": "AI non configurata: aggiungi ANTHROPIC_API_KEY per usare questa funzione.",
     "analyzeError": "Errore durante l'analisi AI. Riprova.",
     "severity": {
@@ -1295,7 +1299,7 @@
       "notConfigured": "AI non configurata. Contatta il supporto.",
       "generic": "Si è verificato un errore. Riprova.",
       "trialExpired": "Il periodo di prova è terminato. Abbonati per continuare a usare questa funzione.",
-      "noCredits": "Crediti AI del piano terminati. Passa a un piano superiore per continuare.",
+      "noCredits": "Crediti AI esauriti. Puoi acquistare un pacchetto di crediti o passare a un piano superiore.",
       "rateLimitUnavailable": "Servizio momentaneamente non disponibile. Riprova tra qualche minuto.",
       "truncated": "La risposta si è interrotta prima della fine. Il testo qui sopra è incompleto: riprova, oppure fai una domanda più precisa."
     }
@@ -1684,7 +1688,13 @@
     "notifCategoryBilling": "Fatturazione",
     "notifCategoryBillingDesc": "Pagamenti, fatture e crediti in scadenza",
     "notifCategorySystem": "Sistema",
-    "notifCategorySystemDesc": "Aggiornamenti di prodotto e manutenzioni"
+    "notifCategorySystemDesc": "Aggiornamenti di prodotto e manutenzioni",
+    "sectionSubscriptionTitle": "Abbonamento",
+    "sectionSubscriptionDesc": "Piano attuale e scelta del piano",
+    "sectionCreditsTitle": "Crediti",
+    "sectionCreditsDesc": "Saldo, storico e acquisto di crediti AI",
+    "sectionBillingDetailsTitle": "Dati di fatturazione",
+    "sectionBillingDetailsDesc": "Ragione sociale, partita IVA, indirizzo, SDI o PEC"
   },
   "reports": {
     "title": "Report",
@@ -1944,7 +1954,7 @@
       "yearlyToggle": "Annuale (-20%)"
     },
     "credits": {
-      "title": "Crediti AI",
+      "title": "Acquista crediti",
       "balance": "Saldo Attuale",
       "noExpiry": "I crediti acquistati non scadono",
       "buyPack": "Acquista Pacchetto",
@@ -2090,7 +2100,7 @@
       "saveError": "Salvataggio non riuscito. Riprova tra poco.",
       "loadError": "Non riusciamo a caricare i dati di fatturazione. Ricarica la pagina.",
       "ownerOnlyEdit": "Solo il proprietario dell'organizzazione può modificare i dati di fatturazione.",
-      "requiredForCheckout": "Prima di pagare completa i dati di fatturazione in questa pagina: servono per la fattura elettronica.",
+      "requiredForCheckout": "Prima di pagare servono i dati di fatturazione, per la fattura elettronica.",
       "errors": {
         "REQUIRED": "Campo obbligatorio.",
         "TOO_LONG": "Testo troppo lungo.",
@@ -2104,13 +2114,25 @@
         "SDI_INVALID": "Il codice destinatario ha 7 caratteri, lettere o cifre.",
         "PEC_INVALID": "Indirizzo PEC non valido.",
         "SDI_OR_PEC_REQUIRED": "Inserisci il codice destinatario oppure la PEC."
-      }
+      },
+      "goToDetails": "Completa i dati di fatturazione"
     },
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
       "cta": "Abbonati"
     },
-    "trialExpiredImport": "Il periodo di prova è terminato. Abbonati per continuare."
+    "trialExpiredImport": "Il periodo di prova è terminato. Abbonati per continuare.",
+    "pages": {
+      "subscription": {
+        "title": "Abbonamento",
+        "subtitle": "Il tuo piano attuale e i piani disponibili"
+      },
+      "credits": {
+        "title": "Crediti",
+        "subtitle": "Saldo dei crediti AI, acquisto di pacchetti e storico dei movimenti",
+        "balance": "Crediti AI disponibili"
+      }
+    }
   },
   "pricing": {
     "hero": {

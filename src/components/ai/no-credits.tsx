@@ -18,7 +18,7 @@ export function NoCredits() {
           drop it). Previously a plain <Button> with no onClick: pressing it
           did nothing. */}
       <Button asChild className="mt-4" size="sm">
-        <Link href="/settings/billing">{tCommon('upgrade')}</Link>
+        <Link href="/settings/credits">{tCommon('goToCredits')}</Link>
       </Button>
     </div>
   );

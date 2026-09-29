@@ -138,8 +138,11 @@ export function ChatClient({ companyName, initialCredits }: Props) {
       qc.invalidateQueries({ queryKey: ['conversations'] });
       setPendingUser(null);
     },
-    onError: () => {
+    onError: (err) => {
       setPendingUser(null);
+      // The server says the balance is empty: the counter and the input follow
+      // it, and the empty state offers the Credits page (NoCredits).
+      if (err instanceof ChatRequestError && err.status === 402 && err.code === 'INSUFFICIENT_CREDITS') setCredits(0);
     },
   });
 
@@ -159,7 +162,9 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   }
 
   const messages: ChatMessageDTO[] = conversationQuery.data?.messages ?? [];
-  const showEmpty = !activeId && !pendingUser && !sendMutation.isPending;
+  // Not after a failed send: on a brand-new conversation the empty state used
+  // to replace the error, so a refused first question simply vanished.
+  const showEmpty = !activeId && !pendingUser && !sendMutation.isPending && !sendMutation.isError;
   const noCredits = credits <= 0;
 
   // Same status/code priority as AgentClient.tsx's error mapping for
@@ -245,7 +250,19 @@ export function ChatClient({ companyName, initialCredits }: Props) {
                 </div>
               )}
               {sendMutation.isError && (
-                <p className="text-center text-sm text-danger">{sendErrorMessage}</p>
+                <p className="text-center text-sm text-danger">
+                  {sendErrorMessage}
+                  {/* Out of credits: the way out is the Credits page (balance,
+                      packs, and — for whoever cannot buy — why not). */}
+                  {sendError instanceof ChatRequestError && sendError.status === 402 && sendError.code === 'INSUFFICIENT_CREDITS' && (
+                    <>
+                      {' '}
+                      <Link href="/settings/credits" className="font-medium underline-offset-4 hover:underline">
+                        {tCommon('goToCredits')}
+                      </Link>
+                    </>
+                  )}
+                </p>
               )}
             </div>
           )}

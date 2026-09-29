@@ -23,7 +23,7 @@ export function PlanLockedNote({ feature, className }: { feature: FeatureKey; cl
   return (
     <p className={cn('text-[11px] text-fg-3', className)}>
       {t('lockedDescription', { plan })}{' '}
-      <Link href="/settings/billing" className="font-medium text-sage-700 underline dark:text-sage-300">
+      <Link href="/settings/subscription" className="font-medium text-sage-700 underline dark:text-sage-300">
         {t('upgrade')}
       </Link>
     </p>

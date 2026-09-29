@@ -12,7 +12,7 @@ export function CreditsCounter() {
   const low = typeof credits === 'number' && credits < 10;
   return (
     <Link
-      href="/settings/billing"
+      href="/settings/credits"
       title={t('credits')}
       className={cn(
         'hidden sm:inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-medium tabular-nums transition-all duration-150',
