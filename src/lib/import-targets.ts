@@ -1,11 +1,14 @@
 import { z } from 'zod';
 import { parseItalianAmount } from '@/lib/import/amount';
+import { EXPENSE_FREQUENCIES } from '@/types/recurring-expense';
 
 export type ImportTargetKey =
   | 'financial_records'
   | 'kpis'
   | 'competitors'
-  | 'customer_stats';
+  | 'customer_stats'
+  | 'receivables'
+  | 'recurring_expenses';
 
 export type ImportFieldDescriptor = {
   key: string;
@@ -162,6 +165,99 @@ const COMPETITORS: ImportTarget = {
   }),
 };
 
+// ── Scadenzario and spese ricorrenti ────────────────────────────────────────
+// Same parsers as the movements (Italian amounts, GG/MM/AAAA dates), plus the
+// Italian words people actually type in these two lists.
+
+/** Lower-cased, trimmed, inner spaces collapsed: "Da  Incassare " → "da incassare". */
+function word(v: unknown): string {
+  return String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** Empty is allowed; anything else must be a real date (same parser as requiredDate). */
+const optionalDate = z.preprocess((v) => (v === null || v === '' ? undefined : v), requiredDate.optional());
+
+/** Optional email, checked like the manual form does (api/receivables). */
+const optionalEmail = z.preprocess(
+  (v) => (v === null || v === undefined || String(v).trim() === '' ? undefined : String(v).trim()),
+  z.string().email('Email non valida').max(320).optional(),
+);
+
+/** Receivable status: open or paid. "Scaduta" is an open invoice past its due
+ *  date — the product derives OVERDUE from the due date, it is never stored. */
+const RECEIVABLE_OPEN = ['aperta', 'aperto', 'da incassare', 'non pagata', 'non pagato', 'insoluta', 'insoluto', 'scaduta', 'scaduto', 'open', 'unpaid', 'overdue'];
+const RECEIVABLE_PAID = ['pagata', 'pagato', 'incassata', 'incassato', 'saldata', 'saldato', 'paid'];
+const receivableStatus = z.preprocess((v) => {
+  const s = word(v);
+  if (s === '' || RECEIVABLE_OPEN.includes(s)) return 'OPEN';
+  if (RECEIVABLE_PAID.includes(s)) return 'PAID';
+  return s;
+}, z.enum(['OPEN', 'PAID'], { errorMap: () => ({ message: "Stato non riconosciuto: usa 'aperta' oppure 'pagata'" }) }));
+
+/** Recurring-expense frequency: the five cadences the product knows (EXPENSE_FREQUENCIES). */
+const FREQUENCY_WORDS: Record<string, (typeof EXPENSE_FREQUENCIES)[number]> = {
+  mensile: 'MONTHLY', 'ogni mese': 'MONTHLY', mese: 'MONTHLY', monthly: 'MONTHLY',
+  bimestrale: 'BIMONTHLY', 'ogni due mesi': 'BIMONTHLY', bimonthly: 'BIMONTHLY',
+  trimestrale: 'QUARTERLY', 'ogni tre mesi': 'QUARTERLY', quarterly: 'QUARTERLY',
+  semestrale: 'SEMIANNUAL', 'ogni sei mesi': 'SEMIANNUAL', semiannual: 'SEMIANNUAL', 'half-yearly': 'SEMIANNUAL',
+  annuale: 'YEARLY', annua: 'YEARLY', annuo: 'YEARLY', 'ogni anno': 'YEARLY', anno: 'YEARLY', yearly: 'YEARLY', annual: 'YEARLY',
+};
+const expenseFrequency = z.preprocess((v) => {
+  const s = word(v);
+  if (s === '') return 'MONTHLY';
+  return FREQUENCY_WORDS[s] ?? s;
+}, z.enum(EXPENSE_FREQUENCIES, {
+  errorMap: () => ({ message: "Frequenza non riconosciuta: usa mensile, bimestrale, trimestrale, semestrale o annuale" }),
+}));
+
+const RECEIVABLES: ImportTarget = {
+  key: 'receivables',
+  labelKey: 'targetReceivables',
+  descriptionKey: 'targetReceivablesDesc',
+  fields: [
+    { key: 'customerName', required: true, labelKey: 'fieldCustomerName', synonyms: ['customer', 'customername', 'cliente', 'nomecliente', 'ragionesociale', 'debitore', 'intestatario'] },
+    { key: 'customerEmail', required: false, labelKey: 'fieldCustomerEmail', synonyms: ['email', 'e-mail', 'mail', 'emailcliente', 'indirizzoemail'] },
+    { key: 'invoiceNumber', required: false, labelKey: 'fieldInvoiceNumber', synonyms: ['invoice', 'invoicenumber', 'numerofattura', 'nfattura', 'nrfattura', 'numfattura', 'fattura', 'numerodocumento', 'documento'] },
+    { key: 'amount', required: true, labelKey: 'fieldAmount', synonyms: ['amount', 'importo', 'totale', 'importofattura', 'totalefattura', 'daincassare', 'valore'] },
+    { key: 'issuedDate', required: false, labelKey: 'fieldIssuedDate', synonyms: ['issueddate', 'issuedate', 'dataemissione', 'datafattura', 'emissione', 'datadocumento'] },
+    { key: 'dueDate', required: true, labelKey: 'fieldDueDate', synonyms: ['duedate', 'scadenza', 'datascadenza', 'scadeil', 'datadiscadenza'] },
+    { key: 'status', required: false, labelKey: 'fieldStatus', synonyms: ['status', 'stato', 'statopagamento', 'pagata', 'pagato'] },
+    { key: 'notes', required: false, labelKey: 'fieldNotes', synonyms: ['notes', 'note', 'annotazioni', 'commento', 'commenti'] },
+  ],
+  schema: z.object({
+    customerName: requiredString.pipe(z.string().max(200)),
+    customerEmail: optionalEmail,
+    invoiceNumber: optionalString.pipe(z.string().max(100).optional()),
+    amount: positiveAmount,
+    issuedDate: optionalDate,
+    dueDate: requiredDate,
+    status: receivableStatus,
+    notes: optionalString.pipe(z.string().max(2000).optional()),
+  }),
+};
+
+const RECURRING_EXPENSES: ImportTarget = {
+  key: 'recurring_expenses',
+  labelKey: 'targetRecurring',
+  descriptionKey: 'targetRecurringDesc',
+  fields: [
+    { key: 'vendorName', required: true, labelKey: 'fieldVendorName', synonyms: ['vendor', 'vendorname', 'supplier', 'fornitore', 'nomefornitore', 'beneficiario', 'servizio'] },
+    { key: 'amount', required: true, labelKey: 'fieldAmount', synonyms: ['amount', 'importo', 'costo', 'canone', 'valore', 'totale'] },
+    { key: 'frequency', required: false, labelKey: 'fieldFrequency', synonyms: ['frequency', 'frequenza', 'periodicita', 'cadenza', 'ricorrenza'] },
+    { key: 'category', required: false, labelKey: 'fieldCategory', synonyms: ['category', 'categoria', 'tipologia', 'voce'] },
+    { key: 'nextRenewal', required: false, labelKey: 'fieldNextRenewal', synonyms: ['nextrenewal', 'prossimorinnovo', 'rinnovo', 'prossimascadenza', 'prossimopagamento', 'scadenza'] },
+    { key: 'notes', required: false, labelKey: 'fieldNotes', synonyms: ['notes', 'note', 'annotazioni', 'commento', 'commenti'] },
+  ],
+  schema: z.object({
+    vendorName: requiredString.pipe(z.string().max(200)),
+    amount: positiveAmount,
+    frequency: expenseFrequency,
+    category: optionalString.pipe(z.string().max(100).optional()),
+    nextRenewal: optionalDate,
+    notes: optionalString.pipe(z.string().max(2000).optional()),
+  }),
+};
+
 const CUSTOMER_STATS: ImportTarget = {
   key: 'customer_stats',
   labelKey: 'targetCustomerStats',
@@ -185,7 +281,32 @@ export const IMPORT_TARGETS: ImportTarget[] = [
   KPIS,
   COMPETITORS,
   CUSTOMER_STATS,
+  RECEIVABLES,
+  RECURRING_EXPENSES,
 ];
+
+/**
+ * "You picked the wrong type": another type this file clearly belongs to, or
+ * null. Clearly means: with the automatic column suggestion, the chosen type
+ * is missing at least one REQUIRED column while the other type has all of
+ * its required columns. Among several, the one that recognises most columns.
+ * A file that fits no type (or fits the chosen one) gets no suggestion.
+ */
+export function suggestBetterTarget(sourceColumns: string[], currentKey: ImportTargetKey): ImportTargetKey | null {
+  const fit = (t: ImportTarget) => {
+    const mapped = new Set(Object.values(suggestMapping(sourceColumns, t)).filter(Boolean) as string[]);
+    return { complete: t.fields.every((f) => !f.required || mapped.has(f.key)), recognised: mapped.size };
+  };
+  const current = getImportTarget(currentKey);
+  if (!current || fit(current).complete) return null;
+  let best: { key: ImportTargetKey; recognised: number } | null = null;
+  for (const t of IMPORT_TARGETS) {
+    if (t.key === currentKey) continue;
+    const f = fit(t);
+    if (f.complete && (!best || f.recognised > best.recognised)) best = { key: t.key, recognised: f.recognised };
+  }
+  return best?.key ?? null;
+}
 
 export function getImportTarget(key: string): ImportTarget | undefined {
   return IMPORT_TARGETS.find((t) => t.key === key);

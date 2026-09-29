@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Banknote, Gauge, Users, Swords } from 'lucide-react';
+import { Banknote, Gauge, Users, Swords, Receipt, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IMPORT_TARGETS, type ImportTargetKey } from '@/lib/import-targets';
 
@@ -10,6 +10,8 @@ const ICON_MAP: Record<ImportTargetKey, typeof Banknote> = {
   kpis: Gauge,
   competitors: Swords,
   customer_stats: Users,
+  receivables: Receipt,
+  recurring_expenses: Repeat,
 };
 
 type Props = {

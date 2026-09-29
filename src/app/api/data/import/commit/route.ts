@@ -71,6 +71,55 @@ async function insertFinancialRecords(
   return data.length;
 }
 
+/** Scadenzario rows, linked to their batch so "annulla lotto" can remove them. */
+async function insertReceivables(
+  db: Prisma.TransactionClient,
+  organizationId: string,
+  importBatchId: string,
+  rows: Record<string, unknown>[],
+) {
+  if (rows.length === 0) return 0;
+  const data = rows.map((r) => ({
+    organizationId,
+    importBatchId,
+    customerName: r.customerName as string,
+    customerEmail: (r.customerEmail as string | undefined) ?? null,
+    invoiceNumber: (r.invoiceNumber as string | undefined) ?? null,
+    amount: r.amount as number,
+    issuedDate: r.issuedDate ? new Date(r.issuedDate as string) : null,
+    dueDate: new Date(r.dueDate as string),
+    // OPEN or PAID from the file. OVERDUE is never stored: it is derived from
+    // the due date when read (see effectiveStatus). The payment date is not in
+    // the file, so paidAt stays empty rather than guessed.
+    status: r.status as string,
+    notes: (r.notes as string | undefined) ?? null,
+  }));
+  await db.receivable.createMany({ data });
+  return data.length;
+}
+
+/** Spese ricorrenti rows, linked to their batch. Imported as active. */
+async function insertRecurringExpenses(
+  db: Prisma.TransactionClient,
+  organizationId: string,
+  importBatchId: string,
+  rows: Record<string, unknown>[],
+) {
+  if (rows.length === 0) return 0;
+  const data = rows.map((r) => ({
+    organizationId,
+    importBatchId,
+    vendorName: r.vendorName as string,
+    amount: r.amount as number,
+    frequency: r.frequency as string,
+    category: (r.category as string | undefined) ?? null,
+    nextRenewal: r.nextRenewal ? new Date(r.nextRenewal as string) : null,
+    notes: (r.notes as string | undefined) ?? null,
+  }));
+  await db.recurringExpense.createMany({ data });
+  return data.length;
+}
+
 async function insertKpis(
   organizationId: string,
   importBatchId: string,
@@ -243,6 +292,31 @@ export async function POST(req: NextRequest) {
           imported = await prisma.$transaction(
             async (tx) => {
               const written = await insertFinancialRecords(tx, organizationId, batch.id, validRows);
+              await tx.importBatch.update({
+                where: { id: batch.id },
+                data: {
+                  rowsImported: written,
+                  rowsErrors: allErrors.length,
+                  status: decideStatus(written, rows.length, allErrors.length),
+                  errors: JSON.stringify(allErrors.slice(0, 200)),
+                },
+              });
+              return written;
+            },
+            { timeout: 30_000, maxWait: 10_000 },
+          );
+          statusAlreadyWritten = true;
+          break;
+        case 'receivables':
+        case 'recurring_expenses':
+          // Same shape as the movements above: one createMany and the batch
+          // status in ONE transaction, so a failure leaves nothing half written.
+          imported = await prisma.$transaction(
+            async (tx) => {
+              const written =
+                targetKey === 'receivables'
+                  ? await insertReceivables(tx, organizationId, batch.id, validRows)
+                  : await insertRecurringExpenses(tx, organizationId, batch.id, validRows);
               await tx.importBatch.update({
                 where: { id: batch.id },
                 data: {

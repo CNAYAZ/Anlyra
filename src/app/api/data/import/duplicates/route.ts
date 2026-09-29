@@ -40,16 +40,76 @@ const bodySchema = z.object({
  * so an organization with ten years of movements is read for one month of them;
  * the work scales with the FILE, not with the customer's age on the product.
  *
- * ── ONLY financial_records ──
- * The other three targets have no comparable natural key: customer_stats
- * already upserts on (organizationId, period), and kpis/competitors have no
- * date+amount identity to compare. They answer "nothing suspected" rather than
- * inventing a rule.
+ * ── financial_records, receivables, recurring_expenses ──
+ * Movements by fingerprint (below). Scadenzario by invoice number + customer
+ * and spese ricorrenti by vendor + amount + frequency (founder's decision) —
+ * see duplicateKeysFor. The other targets have no comparable natural key:
+ * customer_stats already upserts on (organizationId, period), and
+ * kpis/competitors have no identity to compare. They answer "nothing
+ * suspected" rather than inventing a rule.
  *
  * No requireWritableOrg here on purpose: this route only reads, and the demo
  * organization can never reach it — POST /preview refuses the demo before a
  * file is ever parsed.
  */
+/** Case, spacing and surrounding blanks do not make two names different. */
+function norm(v: unknown): string {
+  return String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Scadenzario: invoice number + customer — a row with no invoice number has no
+ * such identity and is not checked. Spese ricorrenti: vendor + amount (in
+ * cents) + frequency.
+ */
+async function duplicatesByKey(
+  targetKey: 'receivables' | 'recurring_expenses',
+  target: NonNullable<ReturnType<typeof getImportTarget>>,
+  organizationId: string,
+  mapping: Record<string, string | null>,
+  rows: Record<string, unknown>[],
+) {
+  const receivableKey = (invoiceNumber: string | null | undefined, customerName: string) =>
+    invoiceNumber ? `${norm(invoiceNumber)}|${norm(customerName)}` : null;
+  const recurringKey = (vendorName: string, amount: number, frequency: string) =>
+    `${norm(vendorName)}|${Math.round(amount * 100)}|${frequency}`;
+
+  const candidates: { index: number; key: string }[] = [];
+  rows.forEach((rawRow, idx) => {
+    const result = target.schema.safeParse(applyMapping(rawRow, mapping));
+    if (!result.success) return; // already reported as an error by the preview
+    const d = result.data as Record<string, unknown>;
+    const key =
+      targetKey === 'receivables'
+        ? receivableKey(d.invoiceNumber as string | undefined, d.customerName as string)
+        : recurringKey(d.vendorName as string, d.amount as number, d.frequency as string);
+    if (key) candidates.push({ index: idx + 1, key });
+  });
+  if (candidates.length === 0) return { suspectedRows: [], checkedRows: 0, comparedAgainst: 0 };
+
+  const existing =
+    targetKey === 'receivables'
+      ? (
+          await prisma.receivable.findMany({
+            where: { organizationId, invoiceNumber: { not: null } },
+            select: { invoiceNumber: true, customerName: true },
+          })
+        ).map((e) => receivableKey(e.invoiceNumber, e.customerName))
+      : (
+          await prisma.recurringExpense.findMany({
+            where: { organizationId },
+            select: { vendorName: true, amount: true, frequency: true },
+          })
+        ).map((e) => recurringKey(e.vendorName, e.amount, e.frequency));
+  const known = new Set(existing.filter((k): k is string => k !== null));
+
+  return {
+    suspectedRows: candidates.filter((c) => known.has(c.key)).map((c) => c.index),
+    checkedRows: candidates.length,
+    comparedAgainst: existing.length,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authCtx = await getAuthContext();
@@ -62,6 +122,10 @@ export async function POST(req: NextRequest) {
     const { targetKey, mapping, rows } = parsed.data;
     const target = getImportTarget(targetKey);
     if (!target) return fail('INVALID_TARGET', 400);
+
+    if (rows.length > 0 && (targetKey === 'receivables' || targetKey === 'recurring_expenses')) {
+      return ok(await duplicatesByKey(targetKey, target, organizationId, mapping, rows));
+    }
 
     if (targetKey !== 'financial_records' || rows.length === 0) {
       return ok({ suspectedRows: [], checkedRows: 0, comparedAgainst: 0 });
