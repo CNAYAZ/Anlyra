@@ -7,14 +7,17 @@ import {
   computeForecastSummary,
   confidenceInterval,
 } from '@/lib/forecasting';
+import { shiftAppMonth, toAppDateString } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';
 
 type Metric = 'revenue' | 'costs' | 'margin';
 type Model = 'linear' | 'moving_avg' | 'exponential';
 
+// "YYYY-MM" of the ITALIAN calendar month: getMonth() reads the server's month
+// (UTC on Vercel), which put a movement at 00:30 on the 1st in the month before.
 function monthKey(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return toAppDateString(d).slice(0, 7);
 }
 
 function addMonths(d: Date, n: number) {
@@ -82,12 +85,12 @@ export async function GET(req: NextRequest) {
     // Generate future month keys
     const lastMonth = sortedMonths[sortedMonths.length - 1];
     const [y, m] = lastMonth.split('-').map(Number);
-    const forecastBase = new Date(y, m - 1, 1);
 
     const forecast = projected.map((value, i) => {
-      const d = addMonths(forecastBase, i + 1);
+      // Straight month arithmetic on (year, month): no Date, so no timezone.
+      const next = shiftAppMonth(y, m, -(i + 1));
       return {
-        month: monthKey(d),
+        month: `${next.year}-${String(next.month).padStart(2, '0')}`,
         value: Math.max(0, value),
         lower: Math.max(0, lower[i]),
         upper: Math.max(0, upper[i]),
