@@ -137,12 +137,15 @@ COSA ANLYRA NON FA OGGI (importante: non darlo per scontato)
 - Nessun SSO/SAML, nessun accesso API pubblico, nessuna installazione
   on-premise, nessun DPA personalizzato, nessun account manager
   dedicato, nessuna disponibilità del servizio garantita per contratto.
-- Le sezioni "Mercato" (analisi competitor) e "Operations" non sono
-  raggiungibili dal prodotto oggi: erano dimostrazioni con dati non
-  reali, disattivate.
-- I benchmark di settore non sono raggiungibili dal prodotto oggi
-  (tolti dal menu): i valori di riferimento non erano adatti alle PMI
-  italiane, in attesa di dati veri.
+- Le sezioni "Mercato" (analisi competitor) e "Operations" sono chiuse:
+  erano dimostrazioni con dati non reali. Non sono nel menu, scrivendone
+  l'indirizzo si torna alla dashboard e le loro rotte rispondono "non
+  disponibile", senza dati.
+- I benchmark di settore sono tolti dal menu e non sono promossi: la
+  pagina si apre ancora scrivendo l'indirizzo, ma mostra valori statici
+  del 2024, ispirati a rapporti pubblici e non autorevoli, non adatti alle
+  PMI italiane e non calcolati sui dati di nessun cliente. Non farci
+  affidamento.
 - Anlyra non è consulenza finanziaria, fiscale o legale: analizza e
   spiega i numeri dell'azienda, non sostituisce un parere
   professionale.
@@ -224,12 +227,15 @@ WHAT ANLYRA DOES NOT DO TODAY (important: do not assume otherwise)
 - No SSO/SAML, no public API access, no on-premise deployment, no
   custom DPA, no dedicated account manager, no contractually
   guaranteed uptime.
-- The "Market" (competitor analysis) and "Operations" sections are not
-  reachable in the product today: they were demo engines with
-  non-real data, now disabled.
-- Industry benchmarks are not reachable in the product today (removed
-  from the menu): the reference values were not a fit for Italian
-  SMEs, pending real data.
+- The "Market" (competitor analysis) and "Operations" sections are
+  closed: they were demo engines with non-real data. They are not in
+  the menu, typing their address takes you back to the dashboard, and
+  their API routes answer "not available", with no data.
+- Industry benchmarks are removed from the menu and not promoted: the
+  page still opens if you type its address, but it shows static 2024
+  values, inspired by public reports and not authoritative, not a fit for
+  Italian SMEs and not computed from any customer's data. Do not rely on
+  them.
 - Anlyra is not financial, tax or legal advice: it analyzes and
   explains the company's numbers, it does not replace professional
   advice.
