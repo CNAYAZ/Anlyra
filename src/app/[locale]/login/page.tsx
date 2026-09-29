@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import { useSocialProviders } from '@/lib/auth/social-providers-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,7 @@ function LoginPageInner() {
   const locale = params?.locale === 'en' ? 'en' : 'it';
   const t = COPY[locale];
   const tLogin = useTranslations('login');
+  const social = useSocialProviders();
   const callbackUrl = search.get('callbackUrl') || `/${locale}/overview`;
 
   // Errors handed over in the URL by endpoints that REDIRECT here instead of
@@ -277,19 +279,28 @@ function LoginPageInner() {
           <CardDescription>{t.subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" type="button" onClick={() => signIn('google', { callbackUrl })}>
-              {t.google}
-            </Button>
-            <Button variant="secondary" type="button" onClick={() => signIn('microsoft-entra-id', { callbackUrl })}>
-              {t.microsoft}
-            </Button>
-          </div>
-          <div className="relative my-4 flex items-center gap-3">
-            <hr className="flex-1 border-border" />
-            <span className="text-xs text-muted-foreground">{t.or}</span>
-            <hr className="flex-1 border-border" />
-          </div>
+          {/* Only the providers this server has configured (see social-providers.ts). */}
+          {(social.google || social.microsoft) && (
+            <>
+              <div className={`grid gap-2 ${social.google && social.microsoft ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {social.google && (
+                  <Button variant="secondary" type="button" onClick={() => signIn('google', { callbackUrl })}>
+                    {t.google}
+                  </Button>
+                )}
+                {social.microsoft && (
+                  <Button variant="secondary" type="button" onClick={() => signIn('microsoft-entra-id', { callbackUrl })}>
+                    {t.microsoft}
+                  </Button>
+                )}
+              </div>
+              <div className="relative my-4 flex items-center gap-3">
+                <hr className="flex-1 border-border" />
+                <span className="text-xs text-muted-foreground">{t.or}</span>
+                <hr className="flex-1 border-border" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1.5">
