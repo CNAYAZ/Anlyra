@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIp, resetRateLimit } from '@/lib/rate-limit';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { isPastGrace } from '@/lib/gdpr/constants';
+import { DEMO_EMAIL } from '@/lib/session';
 
 
 // Lightweight credential pre-check so the login UI can branch (reveal the 2FA
@@ -28,6 +29,13 @@ export async function POST(req: Request) {
   // Per-email limit catches targeted attacks even from rotating IPs.
   const emailLimit = await checkRateLimit('login-email', email);
   if (!emailLimit.success) return authRateLimitResponse(emailLimit);
+
+  // The demo account never signs in with a password (authorize() in src/auth.ts
+  // refuses it whatever the password is), so answer before the lookup with the
+  // real reason: the login form then points to the "Prova la demo" button
+  // instead of failing with a message that reads like an outage. The demo
+  // address is public; nothing about any other account is revealed.
+  if (email === DEMO_EMAIL) return NextResponse.json({ valid: false, demoAccount: true });
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.passwordHash) return NextResponse.json({ valid: false });

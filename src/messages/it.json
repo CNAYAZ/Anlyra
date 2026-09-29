@@ -3290,7 +3290,8 @@
     "signUpPrompt": "Prima volta qui?",
     "signUpLink": "Inizia gratis",
     "forgotPasswordLink": "Password dimenticata?",
-    "errorInvalid": "Email o password non validi."
+    "errorInvalid": "Email o password non validi.",
+    "demoAccountNotice": "Questo è l'account della dimostrazione: non si apre con email e password. Per vedere Anlyra con dati di prova, in sola lettura e senza registrarti, usa il pulsante «Prova la demo»."
   },
   "signup": {
     "consent": "Dichiaro di aver letto la <privacy>Privacy Policy</privacy> e i <terms>Termini di Servizio</terms>, e di avere almeno 18 anni.",
