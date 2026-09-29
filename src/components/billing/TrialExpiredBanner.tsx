@@ -35,10 +35,11 @@ export function TrialExpiredBanner() {
   // billing/context.tsx) and only turns 'active' once Stripe's webhook lands,
   // which can trail the redirect back here by a few seconds. `success=1` is
   // the exact query param checkout/route.ts puts on that redirect target
-  // (/settings/billing?success=1) — safe to check unconditionally here
+  // (/settings/billing?success=1, which redirects to the Abbonamento page
+  // keeping the param) — safe to check unconditionally here
   // because nothing else in the product ever sets it: on every OTHER page
   // this param is simply absent, so this early-return never fires there.
-  // settings/billing/page.tsx shows its own "payment received, activating"
+  // CheckoutReturnNotice shows its own "payment received, activating"
   // message for exactly this window; this banner just has to stay quiet
   // during it instead of contradicting that message with "your trial expired".
   if (searchParams.get('success') === '1') return null;
@@ -51,7 +52,7 @@ export function TrialExpiredBanner() {
       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
       <span className="min-w-[200px] flex-1">{t('message')}</span>
       <Link
-        href="/settings/billing"
+        href="/settings/subscription"
         className="inline-flex shrink-0 items-center rounded-lg bg-sage-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2"
       >
         {t('cta')}

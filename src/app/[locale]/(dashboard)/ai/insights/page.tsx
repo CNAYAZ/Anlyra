@@ -207,10 +207,10 @@ export default function InsightsPage() {
           <span>{generateError}</span>
           {generateErrorIsCredits && (
             <Link
-              href="/settings/billing"
+              href="/settings/credits"
               className="shrink-0 font-medium text-danger underline-offset-4 hover:underline"
             >
-              {tCommon('upgrade')}
+              {tCommon('goToCredits')}
             </Link>
           )}
         </div>
@@ -220,10 +220,10 @@ export default function InsightsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
           <span>{t('generateButtonDisabled')}</span>
           <Link
-            href="/settings/billing"
+            href="/settings/credits"
             className="shrink-0 font-medium underline-offset-4 hover:underline"
           >
-            {tCommon('upgrade')}
+            {tCommon('goToCredits')}
           </Link>
         </div>
       )}

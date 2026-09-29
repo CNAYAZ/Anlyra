@@ -191,7 +191,7 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
         continue;
       }
       const dateLocale = r.locale === 'en' ? 'en-US' : 'it-IT';
-      const billingUrl = `${siteUrl()}/${r.locale}/settings/billing`;
+      const billingUrl = `${siteUrl()}/${r.locale}/settings/subscription`;
       // The actual export button (PrivacyPanel, calling /api/gdpr/export) lives
       // on settings/security, not settings/billing — trialExpiredTemplate's
       // exportUrl was wrongly pointed at the billing page.

@@ -191,7 +191,7 @@ export async function runTrialDataNotices(now: Date = new Date()): Promise<Trial
             orgName: org.name,
             deletionDate: date,
             exportUrl: `${siteUrl()}/${locale}/settings/security`,
-            billingUrl: `${siteUrl()}/${locale}/settings/billing`,
+            billingUrl: `${siteUrl()}/${locale}/settings/subscription`,
             locale,
           }),
         });

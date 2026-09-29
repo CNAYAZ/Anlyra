@@ -161,8 +161,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
               <div className="space-y-1 text-xs text-danger">
                 <p>{t(errorKey)}</p>
                 {errorKey === 'analyzeErrorCredits' && (
-                  <Link href="/settings/billing" className="inline-block font-medium underline-offset-4 hover:underline">
-                    {tCommon('upgrade')}
+                  <Link href="/settings/credits" className="inline-block font-medium underline-offset-4 hover:underline">
+                    {tCommon('goToCredits')}
                   </Link>
                 )}
               </div>
@@ -173,10 +173,10 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                 <p>{readOnlyRole ? tSettings('readOnlyRoleShort') : hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}</p>
                 {!hasCredits && !readOnlyRole && (
                   <Link
-                    href="/settings/billing"
+                    href="/settings/credits"
                     className="inline-block font-medium text-sage-700 underline-offset-4 hover:underline dark:text-sage-300"
                   >
-                    {tCommon('upgrade')}
+                    {tCommon('goToCredits')}
                   </Link>
                 )}
               </div>

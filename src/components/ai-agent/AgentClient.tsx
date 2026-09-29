@@ -299,10 +299,10 @@ export function AgentClient() {
                 visitor to a billing page for an account they do not have. */}
             <span>{isDemo ? tDemo('readOnly') : t('errors.noCredits')}</span>
             <Link
-              href={isDemo ? '/signup' : '/settings/billing'}
+              href={isDemo ? '/signup' : '/settings/credits'}
               className="shrink-0 font-medium underline-offset-4 hover:underline"
             >
-              {isDemo ? tDemo('banner.cta') : tCommon('upgrade')}
+              {isDemo ? tDemo('banner.cta') : tCommon('goToCredits')}
             </Link>
           </div>
         )}
@@ -359,10 +359,10 @@ export function AgentClient() {
                 <p>{current.error}</p>
                 {current.creditsExhausted && (
                   <Link
-                    href="/settings/billing"
+                    href="/settings/credits"
                     className="inline-block font-medium underline-offset-4 hover:underline"
                   >
-                    {tCommon('upgrade')}
+                    {tCommon('goToCredits')}
                   </Link>
                 )}
               </div>

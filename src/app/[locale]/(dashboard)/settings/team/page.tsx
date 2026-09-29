@@ -394,7 +394,7 @@ export default function SettingsTeamPage() {
         !!data?.members.some((m) => m.role === 'viewer' && !canChangeRole(m.id, 'editor')) && (
           <p className="text-[11px] text-muted-foreground">
             {t('teamSeatsPromoteLocked')}{' '}
-            <Link href="/settings/billing" className="font-medium underline">
+            <Link href="/settings/subscription" className="font-medium underline">
               {tFeature('upgrade')}
             </Link>
           </p>
@@ -538,7 +538,7 @@ export default function SettingsTeamPage() {
         {isManager && onlyViewerSeat && role === 'viewer' && (
           <p className="text-[11px] text-muted-foreground">
             {t('teamSeatsViewerOnly')}{' '}
-            <Link href="/settings/billing" className="font-medium underline">
+            <Link href="/settings/subscription" className="font-medium underline">
               {tFeature('upgrade')}
             </Link>
           </p>

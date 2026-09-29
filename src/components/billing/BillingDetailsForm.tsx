@@ -54,7 +54,11 @@ function toForm(d: BillingDetailsInput): FormState {
  * invoice. Every member sees it; only the owner can change it (the save route
  * refuses anyone else — see api/billing/details).
  */
-export function BillingDetailsForm() {
+/**
+ * `hideHeading`: on its own page the page title already says "Dati di
+ * fatturazione"; the card then keeps only the status badge.
+ */
+export function BillingDetailsForm({ hideHeading = false }: { hideHeading?: boolean } = {}) {
   const tBilling = useTranslations('billing');
   const locale = useAppLocale();
   const queryClient = useQueryClient();
@@ -167,8 +171,12 @@ export function BillingDetailsForm() {
           <FileText className="h-4 w-4" />
         </span>
         <div className="flex-1 min-w-[200px]">
-          <h2 className="font-heading text-lg font-semibold text-foreground">{tBilling('details.title')}</h2>
-          <p className="text-xs text-fg-3">{tBilling('details.subtitle')}</p>
+          {!hideHeading && (
+            <>
+              <h2 className="font-heading text-lg font-semibold text-foreground">{tBilling('details.title')}</h2>
+              <p className="text-xs text-fg-3">{tBilling('details.subtitle')}</p>
+            </>
+          )}
         </div>
         {data && (
           <span
