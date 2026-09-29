@@ -29,6 +29,8 @@ import {
 import { useSession } from '@/lib/session-store';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { BillingFields, EMPTY_ONBOARDING_BILLING, type BillingFieldErrors } from '@/components/billing/billing-fields';
+import { validateBillingDetails, type BillingDetailsInput } from '@/lib/billing/billing-details';
 
 const TOTAL_STEPS = 5;
 
@@ -49,6 +51,8 @@ export function OnboardingFlow() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billing, setBilling] = useState<BillingDetailsInput>(EMPTY_ONBOARDING_BILLING);
+  const [billingErrors, setBillingErrors] = useState<BillingFieldErrors>({});
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 1));
@@ -75,6 +79,7 @@ export function OnboardingFlow() {
         // report): they are intentionally omitted, not silently dropped by a typo.
         body: JSON.stringify({
           name: company.name,
+          billing,
           industry: company.industry,
           teamSize: company.size,
         }),
@@ -87,8 +92,16 @@ export function OnboardingFlow() {
         // them. The body is parsed defensively: a 5xx from the platform is not
         // guaranteed to be JSON at all.
         const data = (await res.json().catch(() => null)) as
-          | { error?: string; limit?: number }
+          | { error?: string; limit?: number; fields?: BillingFieldErrors }
           | null;
+        if (data?.error === 'BILLING_DETAILS_INVALID') {
+          // Back to the step that holds the invoicing fields, with each wrong
+          // one marked — the route uses the same validator as that step.
+          setBillingErrors(data.fields ?? {});
+          setBusy(false);
+          setStep(2);
+          return;
+        }
         setError(
           data?.error === 'ORG_LIMIT_REACHED'
             ? t('errors.orgLimitReached', { count: data.limit ?? 1 })
@@ -121,6 +134,13 @@ export function OnboardingFlow() {
             <StepShell key="s2">
               <Step2
                 defaults={company}
+                billing={billing}
+                billingErrors={billingErrors}
+                onBillingChange={(nextBilling) => {
+                  setBilling(nextBilling);
+                  setBillingErrors({});
+                }}
+                onBillingInvalid={setBillingErrors}
                 onBack={back}
                 onSubmit={(values) => {
                   setCompany(values);
@@ -219,10 +239,18 @@ function Step1({ onNext }: { onNext: () => void }) {
 
 function Step2({
   defaults,
+  billing,
+  billingErrors,
+  onBillingChange,
+  onBillingInvalid,
   onBack,
   onSubmit
 }: {
   defaults: CompanyValues | null;
+  billing: BillingDetailsInput;
+  billingErrors: BillingFieldErrors;
+  onBillingChange: (next: BillingDetailsInput) => void;
+  onBillingInvalid: (errors: BillingFieldErrors) => void;
   onBack: () => void;
   onSubmit: (values: CompanyValues) => void;
 }) {
@@ -242,9 +270,22 @@ function Step2({
   });
 
   const { register, handleSubmit, setValue, watch, formState } = form;
+  const tBilling = useTranslations('billing.details');
+  const billingInvalid = Object.keys(billingErrors).length > 0;
+
+  // The invoicing fields are checked with the same validator the creation
+  // route uses, so a mistake shows here instead of at the last step.
+  const submit = (values: CompanyValues) => {
+    const result = validateBillingDetails(billing);
+    if (!result.ok) {
+      onBillingInvalid(result.errors);
+      return;
+    }
+    onSubmit(values);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(submit)}>
       <h2 className="font-heading text-2xl font-bold text-foreground">{t('title')}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
 
@@ -329,6 +370,11 @@ function Step2({
             <Input placeholder="https://acme.com/logo.png" {...register('logoUrl')} />
           </Field>
         </div>
+      </div>
+
+      <div className="mt-8 border-t border-border pt-6">
+        <BillingFields value={billing} onChange={onBillingChange} errors={billingErrors} />
+        {billingInvalid && <p className="mt-3 text-sm text-destructive">{tBilling('invalid')}</p>}
       </div>
 
       <div className="mt-8 flex justify-between">

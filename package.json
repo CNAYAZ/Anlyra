@@ -16,6 +16,7 @@
     "db:check-plans": "tsx prisma/check-plan-columns.ts",
     "db:check-expired-trials": "tsx prisma/check-expired-trials.ts",
     "check:company": "tsx scripts/check-company-data.ts",
+    "update:disposable-domains": "tsx scripts/update-disposable-domains.ts",
     "db:push": "tsx prisma/guard.ts \"npm run db:push\" && prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "prisma:generate": "prisma generate",

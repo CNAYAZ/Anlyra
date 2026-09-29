@@ -114,7 +114,13 @@ export default function SignupPage() {
         // the enforcement, it is the interface) — say WHICH thing was refused
         // instead of the generic message.
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error === 'TERMS_NOT_ACCEPTED' ? tSignup('consentRequired') : t.genericError);
+        setError(
+          body?.error === 'TERMS_NOT_ACCEPTED'
+            ? tSignup('consentRequired')
+            : body?.error === 'DISPOSABLE_EMAIL'
+              ? tSignup('disposableEmail')
+              : t.genericError,
+        );
         return;
       }
       setDone(true);

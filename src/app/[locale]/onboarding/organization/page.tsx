@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { BillingFields, EMPTY_ONBOARDING_BILLING, type BillingFieldErrors } from '@/components/billing/billing-fields';
+import { validateBillingDetails, type BillingDetailsInput } from '@/lib/billing/billing-details';
 
 const TEAM_SIZES = ['1', '2-5', '6-15', '16-50', '50+'];
 
@@ -17,7 +19,6 @@ const COPY = {
     step: (n: number) => `Passo ${n} di 4`,
     s1Title: 'La tua azienda',
     s1Name: 'Nome organizzazione',
-    s1Vat: 'Partita IVA (opzionale)',
     s2Title: 'Settore e dimensione',
     s2Industry: 'Settore',
     s2Team: 'Quante persone nel team?',
@@ -40,7 +41,6 @@ const COPY = {
     step: (n: number) => `Step ${n} of 4`,
     s1Title: 'Your company',
     s1Name: 'Organization name',
-    s1Vat: 'VAT number (optional)',
     s2Title: 'Industry & size',
     s2Industry: 'Industry',
     s2Team: 'How many people on the team?',
@@ -65,10 +65,12 @@ export default function OnboardingOrganizationPage() {
   const locale = params?.locale === 'en' ? 'en' : 'it';
   const t = COPY[locale];
   const tOnboarding = useTranslations('onboarding');
+  const tBilling = useTranslations('billing.details');
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
-  const [vatNumber, setVat] = useState('');
+  const [billing, setBilling] = useState<BillingDetailsInput>(EMPTY_ONBOARDING_BILLING);
+  const [billingErrors, setBillingErrors] = useState<BillingFieldErrors>({});
   const [industry, setIndustry] = useState('');
   const [teamSize, setTeamSize] = useState('1');
   const [invites, setInvites] = useState<{ email: string; role: string }[]>([{ email: '', role: 'viewer' }]);
@@ -77,6 +79,15 @@ export default function OnboardingOrganizationPage() {
 
   function updateInvite(idx: number, patch: Partial<{ email: string; role: string }>) {
     setInvites((cur) => cur.map((inv, i) => (i === idx ? { ...inv, ...patch } : inv)));
+  }
+
+  // Checked here so a mistake shows on the step that holds the field, not at
+  // the end; the creation route checks again with the same validator.
+  function billingIsValid(): boolean {
+    const result = validateBillingDetails(billing);
+    setBillingErrors(result.ok ? {} : result.errors);
+    setError(result.ok ? '' : tBilling('invalid'));
+    return result.ok;
   }
 
   async function finish() {
@@ -88,7 +99,7 @@ export default function OnboardingOrganizationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          vatNumber,
+          billing,
           industry,
           teamSize,
           invites: invites.filter((inv) => inv.email.trim()),
@@ -103,8 +114,14 @@ export default function OnboardingOrganizationPage() {
         // and en.json like the rest of the product's strings; the existing
         // COPY entries are left exactly as they were.
         const data = (await res.json().catch(() => null)) as
-          | { error?: string; limit?: number }
+          | { error?: string; limit?: number; fields?: BillingFieldErrors }
           | null;
+        if (data?.error === 'BILLING_DETAILS_INVALID') {
+          setBillingErrors(data.fields ?? {});
+          setError(tBilling('invalid'));
+          setStep(1);
+          return;
+        }
         setError(
           data?.error === 'ORG_LIMIT_REACHED'
             ? tOnboarding('errors.orgLimitReached', { count: data.limit ?? 1 })
@@ -144,10 +161,15 @@ export default function OnboardingOrganizationPage() {
                 <Label htmlFor="name">{t.s1Name}</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="vat">{t.s1Vat}</Label>
-                <Input id="vat" value={vatNumber} onChange={(e) => setVat(e.target.value)} />
-              </div>
+              <BillingFields
+                value={billing}
+                onChange={(next) => {
+                  setBilling(next);
+                  setBillingErrors({});
+                }}
+                errors={billingErrors}
+                disabled={loading}
+              />
             </div>
           )}
 
@@ -231,7 +253,14 @@ export default function OnboardingOrganizationPage() {
               <ArrowLeft className="mr-1 h-4 w-4" /> {t.back}
             </Button>
             {step < 4 ? (
-              <Button type="button" onClick={() => setStep((s) => s + 1)} disabled={step === 1 && !name.trim()}>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (step === 1 && !billingIsValid()) return;
+                  setStep((s) => s + 1);
+                }}
+                disabled={step === 1 && !name.trim()}
+              >
                 {step === 3 ? t.skip : t.next} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             ) : (

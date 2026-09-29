@@ -2137,7 +2137,8 @@
         "PEC_INVALID": "Indirizzo PEC non valido.",
         "SDI_OR_PEC_REQUIRED": "Inserisci il codice destinatario oppure la PEC."
       },
-      "goToDetails": "Completa i dati di fatturazione"
+      "goToDetails": "Completa i dati di fatturazione",
+    "onboardingIntro": "Servono per la fattura elettronica: la prima partirà da sola alla fine della prova. Per ora Anlyra è disponibile solo per aziende con sede in Italia."
     },
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
@@ -3293,7 +3294,8 @@
   },
   "signup": {
     "consent": "Dichiaro di aver letto la <privacy>Privacy Policy</privacy> e i <terms>Termini di Servizio</terms>, e di avere almeno 18 anni.",
-    "consentRequired": "Per creare un account devi accettare la Privacy Policy e i Termini di Servizio e dichiarare di avere almeno 18 anni."
+    "consentRequired": "Per creare un account devi accettare la Privacy Policy e i Termini di Servizio e dichiarare di avere almeno 18 anni.",
+    "disposableEmail": "Questo indirizzo appartiene a un servizio di email temporanee e non può essere usato. Iscriviti con l'email della tua azienda o con un indirizzo che userai stabilmente: ci servirà per le fatture e gli avvisi sull'abbonamento."
   },
   "demo": {
     "banner": {
