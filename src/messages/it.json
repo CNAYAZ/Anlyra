@@ -3293,7 +3293,8 @@
   },
   "signup": {
     "consent": "Dichiaro di aver letto la <privacy>Privacy Policy</privacy> e i <terms>Termini di Servizio</terms>, e di avere almeno 18 anni.",
-    "consentRequired": "Per creare un account devi accettare la Privacy Policy e i Termini di Servizio e dichiarare di avere almeno 18 anni."
+    "consentRequired": "Per creare un account devi accettare la Privacy Policy e i Termini di Servizio e dichiarare di avere almeno 18 anni.",
+    "disposableEmail": "Questo indirizzo appartiene a un servizio di email temporanee e non può essere usato. Iscriviti con l'email della tua azienda o con un indirizzo che userai stabilmente: ci servirà per le fatture e gli avvisi sull'abbonamento."
   },
   "demo": {
     "banner": {

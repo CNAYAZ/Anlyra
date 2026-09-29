@@ -8,6 +8,7 @@ import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
 import { auditLog } from '@/lib/audit/log';
 import { CURRENT_LEGAL_VERSION } from '@/lib/legal/version';
+import { isDisposableEmail } from '@/lib/auth/disposable-email';
 
 
 export async function POST(req: Request) {
@@ -45,6 +46,12 @@ export async function POST(req: Request) {
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: 'INVALID_EMAIL' }, { status: 400 });
+  }
+  // Temporary email services are refused (see @/lib/auth/disposable-email).
+  // Decided on the domain alone, BEFORE the existing-account lookup below, so
+  // this answer is the same whether or not the address is registered.
+  if (isDisposableEmail(email)) {
+    return NextResponse.json({ error: 'DISPOSABLE_EMAIL' }, { status: 400 });
   }
   // No schema previously validated this at all — unlike settings/profile's
   // PATCH (same User.name column, z.string().min(1).max(100)), this route had
