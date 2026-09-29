@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { ExpenseFrequency, RecurringExpenseDTO } from '@/types/recurring-expense';
+import { EXPENSE_FREQUENCIES, type ExpenseFrequency, type RecurringExpenseDTO } from '@/types/recurring-expense';
 
 export type RecurringExpenseFormValues = {
   vendorName: string;
@@ -134,8 +134,9 @@ export function RecurringExpenseFormDialog({ open, onOpenChange, onSubmit, pendi
             <div className="grid grid-cols-2 gap-4">
               <Field id="frequency" label={t('form.frequency')}>
                 <select className={cn(SELECT_CLASS)} value={form.frequency} onChange={set('frequency')}>
-                  <option value="MONTHLY">{t('frequency.MONTHLY')}</option>
-                  <option value="YEARLY">{t('frequency.YEARLY')}</option>
+                  {EXPENSE_FREQUENCIES.map((f) => (
+                    <option key={f} value={f}>{t(`frequency.${f}`)}</option>
+                  ))}
                 </select>
               </Field>
               <Field id="category" label={`${t('form.category')} (${t('form.optional')})`}>

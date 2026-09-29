@@ -1117,6 +1117,9 @@
     "perYear": "/anno",
     "frequency": {
       "MONTHLY": "Mensile",
+      "BIMONTHLY": "Bimestrale",
+      "QUARTERLY": "Trimestrale",
+      "SEMIANNUAL": "Semestrale",
       "YEARLY": "Annuale"
     },
     "status": {
@@ -1405,7 +1408,26 @@
     "previewFreeTextWhatToDo": "Se importi così, le analisi per categoria avranno una categoria diversa per ogni movimento e non ti diranno niente. Torna indietro e scegli come Categoria una colonna con poche voci ripetute (marketing, stipendi, affitto…), oppure aggiungila al file prima di importarlo.",
     "previewTotalRows": "righe totali",
     "cancelledBatch": "Import annullato. Nessun dato è stato salvato.",
-    "cancelling": "Annullamento..."
+    "cancelling": "Annullamento...",
+    "targetReceivables": "Scadenzario",
+    "targetReceivablesDesc": "Fatture da incassare: cliente, numero fattura, importo, scadenza, stato.",
+    "targetRecurring": "Spese ricorrenti",
+    "targetRecurringDesc": "Abbonamenti, affitti, consulenze: fornitore, importo, frequenza, prossimo rinnovo.",
+    "fieldCustomerName": "Cliente",
+    "fieldCustomerEmail": "Email del cliente",
+    "fieldInvoiceNumber": "Numero fattura",
+    "fieldIssuedDate": "Data emissione",
+    "fieldDueDate": "Scadenza",
+    "fieldStatus": "Stato (aperta o pagata)",
+    "fieldNotes": "Note",
+    "fieldVendorName": "Fornitore",
+    "fieldFrequency": "Frequenza",
+    "fieldNextRenewal": "Prossimo rinnovo",
+    "wrongTypeNotice": "Le colonne di questo file sembrano di un file «{suggested}», non «{current}».",
+    "wrongTypeSwitch": "Importa come «{suggested}»",
+    "wrongTypeShowRows": "Mostra comunque le righe con il tipo scelto",
+    "previewSuspectedDescriptionReceivables": "Queste righe hanno lo stesso numero di fattura e lo stesso cliente di crediti già presenti nello scadenzario. Può voler dire che stai importando di nuovo lo stesso file. Decidi tu.",
+    "previewSuspectedDescriptionRecurring": "Queste righe hanno lo stesso fornitore, importo e frequenza di spese ricorrenti che hai già. Può voler dire che stai importando di nuovo lo stesso file — oppure che sono due spese vere uguali. Decidi tu."
   },
   "dataManual": {
     "title": "Inserimento Manuale",

@@ -21,11 +21,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     if (!batch) return fail('NOT_FOUND', 404);
 
     // Collect all related records by importBatchId
-    const [financialRecords, kpiRecords, customerStats, competitors] = await Promise.all([
+    const [financialRecords, kpiRecords, customerStats, competitors, receivables, recurringExpenses] = await Promise.all([
       prisma.financialRecord.findMany({ where: { importBatchId: id }, orderBy: { createdAt: 'desc' } }),
       prisma.kPI.findMany({ where: { importBatchId: id }, orderBy: { updatedAt: 'desc' } }),
       prisma.customerStat.findMany({ where: { importBatchId: id } }),
       prisma.competitor.findMany({ where: { importId: id }, orderBy: { createdAt: 'desc' } }),
+      prisma.receivable.findMany({ where: { importBatchId: id, organizationId }, orderBy: { dueDate: 'asc' } }),
+      prisma.recurringExpense.findMany({ where: { importBatchId: id, organizationId }, orderBy: { createdAt: 'desc' } }),
     ]);
 
     const records = [
@@ -33,6 +35,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       ...kpiRecords.map((r) => ({ _type: 'kpi', ...r })),
       ...customerStats.map((r) => ({ _type: 'customer_stat', ...r })),
       ...competitors.map((r) => ({ _type: 'competitor', ...r })),
+      ...receivables.map((r) => ({ _type: 'receivable', ...r })),
+      ...recurringExpenses.map((r) => ({ _type: 'recurring_expense', ...r })),
     ];
 
     const errors = batch.errors ? (JSON.parse(batch.errors) as unknown[]) : [];
@@ -88,6 +92,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       await tx.kPI.deleteMany({ where: { importBatchId: id } });
       await tx.customerStat.deleteMany({ where: { importBatchId: id } });
       await tx.competitor.deleteMany({ where: { importId: id } });
+      await tx.receivable.deleteMany({ where: { importBatchId: id, organizationId } });
+      await tx.recurringExpense.deleteMany({ where: { importBatchId: id, organizationId } });
       await tx.importBatch.update({
         where: { id },
         data: { status: 'ROLLED_BACK' },

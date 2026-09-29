@@ -57,9 +57,11 @@ export function ImportPreview({
     [mapping],
   );
   const freeText = useMemo(() => {
-    if (!categoryColumn) return null;
+    // Bank-statement free text is a movements problem: the analytics pages group
+    // movements by category. Other targets' categories are not judged here.
+    if (!categoryColumn || target.key !== 'financial_records') return null;
     return analyzeCategoryColumn(rows.map((r) => r[categoryColumn]));
-  }, [rows, categoryColumn]);
+  }, [rows, categoryColumn, target.key]);
 
   const previewRows = useMemo(
     () =>
@@ -216,7 +218,15 @@ export function ImportPreview({
               {t('previewSuspectedTitle', { count: suspectedRows.length })}
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground">{t('previewSuspectedDescription')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              target.key === 'receivables'
+                ? 'previewSuspectedDescriptionReceivables'
+                : target.key === 'recurring_expenses'
+                  ? 'previewSuspectedDescriptionRecurring'
+                  : 'previewSuspectedDescription',
+            )}
+          </p>
           <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
             {suspectedRows.slice(0, MAX_SUSPECTED_SHOWN).map((row) => (
               <li key={row} className="font-num font-semibold">

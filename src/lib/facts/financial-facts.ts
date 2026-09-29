@@ -2,7 +2,7 @@ import { createTranslator } from 'next-intl';
 import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/format';
 import { effectiveStatus } from '@/lib/receivables/dto';
-import { computeTotals } from '@/lib/recurring-expenses/dto';
+import { computeTotals, monthlyEquivalent } from '@/lib/recurring-expenses/dto';
 import { appDateStartUTC } from '@/lib/timezone';
 import { defaultLocale, type Locale } from '@/i18n/config';
 import itMessages from '@/messages/it.json';
@@ -254,7 +254,7 @@ function ruleRecurringExpenseConcentration(
   const totalMonthly = computeTotals(recurringExpenses).totalMonthly;
   if (totalMonthly === 0) return null;
 
-  const withMonthly = active.map((e) => ({ e, monthlyEquivalent: e.frequency === 'YEARLY' ? e.amount / 12 : e.amount }));
+  const withMonthly = active.map((e) => ({ e, monthlyEquivalent: monthlyEquivalent(e.amount, e.frequency) }));
   const largest = withMonthly.reduce((max, x) => (x.monthlyEquivalent > max.monthlyEquivalent ? x : max));
   const share = largest.monthlyEquivalent / totalMonthly;
   if (share <= 0.4) return null;

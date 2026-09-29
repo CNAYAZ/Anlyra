@@ -14,7 +14,7 @@ import { ImportUploader } from '@/components/data/import-uploader';
 import { ImportMapper, type ColumnInfo } from '@/components/data/import-mapper';
 import { ImportPreview } from '@/components/data/import-preview';
 import { ImportResult, type ImportBatchResult } from '@/components/data/import-result';
-import { getImportTarget, type ImportTargetKey } from '@/lib/import-targets';
+import { getImportTarget, suggestBetterTarget, type ImportTargetKey } from '@/lib/import-targets';
 import { useIsReadOnlyRole, useIsManager } from '@/lib/auth/owner-context';
 
 type Step = 'target' | 'upload' | 'mapping' | 'preview' | 'importing' | 'result';
@@ -79,6 +79,22 @@ export default function DataImportPage() {
   const [skipSuspected, setSkipSuspected] = useState(false);
 
   const target = targetKey ? getImportTarget(targetKey) : null;
+
+  // Wrong type chosen? One sentence and a way to switch, instead of an error
+  // on every row (see suggestBetterTarget). Switching re-reads the same file
+  // with the other type, through the same preview route.
+  const betterKey =
+    previewData && targetKey ? suggestBetterTarget(previewData.columns.map((c) => c.name), targetKey) : null;
+  const betterTarget = betterKey ? getImportTarget(betterKey) : null;
+  const [showRowsAnyway, setShowRowsAnyway] = useState(false);
+  function switchTarget(key: ImportTargetKey) {
+    const file = previewMutation.variables?.file;
+    if (!file) return;
+    setTargetKey(key);
+    setShowRowsAnyway(false);
+    setSkipSuspected(false);
+    previewMutation.mutate({ file, key });
+  }
 
   // Which rows look already present in this organization. Owned by the page,
   // not by the preview, because the page is what builds the commit payload and
@@ -280,6 +296,23 @@ export default function DataImportPage() {
         />
       )}
 
+      {(step === 'mapping' || step === 'preview') && target && betterTarget && (
+        <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+          <Info className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+          <span className="flex-1 min-w-[200px]">
+            {t('wrongTypeNotice', { suggested: t(betterTarget.labelKey as 'targetFinancial'), current: t(target.labelKey as 'targetFinancial') })}
+          </span>
+          <button
+            type="button"
+            onClick={() => switchTarget(betterTarget.key)}
+            disabled={previewMutation.isPending}
+            className="shrink-0 rounded-lg bg-primary-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {previewMutation.isPending ? '…' : t('wrongTypeSwitch', { suggested: t(betterTarget.labelKey as 'targetFinancial') })}
+          </button>
+        </div>
+      )}
+
       {step === 'mapping' && previewData && target && (
         <ImportMapper
           target={target}
@@ -290,7 +323,17 @@ export default function DataImportPage() {
         />
       )}
 
-      {step === 'preview' && previewData && target && (
+      {step === 'preview' && previewData && target && betterTarget && !showRowsAnyway && (
+        <button
+          type="button"
+          onClick={() => setShowRowsAnyway(true)}
+          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {t('wrongTypeShowRows')}
+        </button>
+      )}
+
+      {step === 'preview' && previewData && target && (!betterTarget || showRowsAnyway) && (
         <ImportPreview
           target={target}
           rows={previewData.allRows}
