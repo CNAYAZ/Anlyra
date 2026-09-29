@@ -1,5 +1,6 @@
 import { ok, failFromError } from '@/lib/api';
 import { getMarketProfileAndCompetitors } from '@/lib/market-data';
+import { MARKET_AND_OPERATIONS_AVAILABLE, marketOperationsUnavailable } from '@/lib/market-operations-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ const SWOT = [
 ];
 
 export async function GET() {
+  if (!MARKET_AND_OPERATIONS_AVAILABLE) return marketOperationsUnavailable();
   try {
     const { profile, competitors } = await getMarketProfileAndCompetitors();
     return ok({ profile, competitors, swot: SWOT });

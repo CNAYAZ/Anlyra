@@ -1,9 +1,11 @@
 import { ok, failFromError } from '@/lib/api';
 import { getMarketSummary } from '@/lib/market-data';
+import { MARKET_AND_OPERATIONS_AVAILABLE, marketOperationsUnavailable } from '@/lib/market-operations-availability';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (!MARKET_AND_OPERATIONS_AVAILABLE) return marketOperationsUnavailable();
   try {
     const summary = await getMarketSummary();
     return ok(summary);
