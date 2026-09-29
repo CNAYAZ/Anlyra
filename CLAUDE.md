@@ -40,7 +40,7 @@
 
 ---
 
-> Contesto operativo per le future sessioni Claude Code. Versione **v5.1** (2026-09-04).
+> Contesto operativo per le future sessioni Claude Code. Versione **v5.7** (2026-09-29).
 > Leggere PRIMA di toccare codice. Ogni affermazione di stato è marcata
 > **VERIFICATO** (controllato su codice/DB/runtime alla data indicata) o **DA VERIFICARE**.
 >
@@ -56,7 +56,7 @@ crediti, spese ricorrenti) e dà consigli ancorati a quei numeri. Il valore è l
 ai dati reali: un consiglio generico è un oroscopo, un consiglio sui numeri veri del
 cliente è il prodotto.
 
-- **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3` (HEAD al 2026-09-05: `b9a52f8`).
+- **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3` (HEAD al 2026-09-29, prima dei merge di quel giorno: `8b641c3`; il valore di oggi si legge con `git ls-remote origin refs/heads/claude/merge-repos-nextjs-rOZU3`).
 - **Stack** (VERIFICATO su `package.json`, 2026-09-05): Next.js 16.2.12 con Turbopack — NON
   14.2.18 come diceva questa riga fino al 2026-09-04, uno scarto di due versioni maggiori
   (App Router, `src/`), React 19.2.8, TypeScript 5.6.3, next-intl (IT primaria, EN
@@ -141,7 +141,7 @@ ambiente principale**. Regole di collaborazione:
 **DATABASE (VERIFICATO 2026-09-05)**: **Supabase PostgreSQL**, NON più SQLite.
 - `prisma/schema.prisma`: `provider = "postgresql"`, `url = env("DATABASE_URL")`,
   `directUrl = env("DIRECT_URL")` (pooler eu-west-1).
-- 16 migration (RIVERIFICATO 2026-09-27 contando su `prisma/migrations/`, non più 14 come
+- 18 migration (RIVERIFICATO 2026-09-29 contando su `prisma/migrations/`, non più 16 come
   diceva questa riga: sono comparse le ultime due dell'elenco): `20260702225830_init_postgres`,
   `20260710231614_billing_tables`, `20260712142054_repoint_integration_fk_drop_org_b12`,
   `20260726190000_gdpr_deletion_requested_at`, `20260728180000_report_config_and_share_token`,
@@ -150,8 +150,10 @@ ambiente principale**. Regole di collaborazione:
   `20260825150000_enable_row_level_security`, `20260904120000_ai_credits_purchased`,
   `20260918120000_organization_created_by`, `20260920120000_terms_accepted_version`,
   `20260924120000_user_sessions_revoked_at`, `20260927120000_org_deletion_approval`,
-  `20260927140000_trial_data_deletion_notice`. Le ultime due sono applicate al database
-  remoto solo dal primo deploy che le contiene (`prisma migrate deploy` nella build).
+  `20260927140000_trial_data_deletion_notice`, `20260927160000_organization_billing_details`,
+  `20260929120000_import_batch_receivables_recurring`. Quelle che non sono ancora sul
+  database remoto vi arrivano dal primo deploy che le contiene (`prisma migrate deploy`
+  nella build); non ho controllato quali lo siano già.
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
   **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
@@ -195,23 +197,36 @@ npm run build          # ATTENZIONE: prisma migrate deploy + next build (tocca i
 npm run db:seed        # tsx prisma/seed.ts
 npm run db:generate    # prisma generate (anche in postinstall)
 npm run prisma:migrate # tsx prisma/guard.ts ... && prisma migrate dev (guardato, vedi §3)
+npm run update:disposable-domains # riscarica l'elenco delle email temporanee (vedi §7)
 ```
 
 ## 5. Struttura del codice
 
 Pagine in `src/app/[locale]/` — gruppi `(public)` e `(dashboard)`, più auth
 (login, signup, verify-email, forgot/reset-password, invite, onboarding, welcome),
-pricing, legal, share. API in `src/app/api/` (~80 route).
+pricing, legal, share. API in `src/app/api/` (95 file `route.ts`, RIVERIFICATO 2026-09-29).
 
 **Menu ATTIVE** (VERIFICATO su `src/components/dashboard/nav-config.ts`):
 Overview · Situazione · Finance (revenue/costs/cashflow/budget) · AI (chat/insights/
-forecasting/benchmarks/alerts) · AI Agent · Custom Dashboards · Reports · Data
+forecasting/alerts) · AI Agent · Custom Dashboards · Reports · Data
 (import/manual/history) · Scadenzario · Spese ricorrenti · Integrations · Settings
 (profile/organization/team/billing/security/notifications).
 
-**Menu DISATTIVATE** (commentate in nav-config il 2026-06-30, pagine e API restano nel
-repo): **Mercato** (competitors/trends/positioning) e **Operations**
-(customers/team/efficiency) — motori sintetici, vedi §9.
+**Menu DISATTIVATE**:
+- **Mercato** (competitors/trends/positioning) e **Operations** (customers/team/efficiency),
+  commentate in nav-config il 2026-06-30 — motori sintetici, vedi §9. **Dal merge `8b641c3`
+  (2026-09-29) sono anche CHIUSE, non solo nascoste** (VERIFICATO dal vivo): le 8 pagine
+  rimandano a `/overview` (`market/layout.tsx` e `operations/layout.tsx`) e i 10 metodi (in 9
+  file) sotto `api/analysis/market` e `api/analysis/operations` rispondono 503 `Not available yet` senza
+  dati, anche a chi non ha una sessione, dietro un unico interruttore:
+  `MARKET_AND_OPERATIONS_AVAILABLE` in `src/lib/market-operations-availability.ts`. Codice e
+  dati (tabelle `Competitor`) non sono stati toccati. Restano fuori dall'interruttore
+  `api/market/scrape` (già chiusa, 410) e `api/market/exchange-rates` (servizio reale di
+  cambi, nessun dato sintetico).
+- **Benchmark** (`/ai/benchmarks`), commentato in nav-config il 2026-09-13: la pagina e
+  `api/ai/benchmarks` restano RAGGIUNGIBILI scrivendo l'indirizzo (decisione del
+  fondatore) e mostrano valori statici del 2024 (`src/lib/benchmarks-data.ts`: "realistic
+  medians, not authoritative"), non calcolati sui dati di nessun cliente.
 
 **Helper condivisi — usarli, non reinventarli** (VERIFICATI):
 - `src/lib/api/response.ts` → `ok(data)` / `fail(error, status)` per le risposte API.
@@ -222,7 +237,8 @@ repo): **Mercato** (competitors/trends/positioning) e **Operations**
 - `src/lib/auth/require-role.ts` → `MANAGER_ROLES = ['owner','admin']`,
   `isManagerRole()`, `requireManagerRole(ctx)` (fail-closed, 403).
 - `src/lib/timezone.ts` → `APP_TIME_ZONE = 'Europe/Rome'`, `toAppDateString()`,
-  `appDateStartUTC()`.
+  `appDateStartUTC()`, `toAppWallClock()` / `fromAppWallClock()`, `daysInAppMonth()`,
+  `shiftAppMonth()`. Per la chiave mese "YYYY-MM": `toAppDateString(d).slice(0, 7)`.
 - `src/lib/facts/financial-facts.ts` → `getFinancialFacts(orgId)` (motore a regole,
   fatti reali senza AI) e `daysOverdueOf(dueDate, now)`.
 - `src/lib/ai-context.ts` → `loadBusinessContext(orgId)` + `buildSystemPrompt()`;
@@ -267,8 +283,12 @@ supposizioni — leggerle prima di cambiarle):
 Tutte e tre fail-closed: un ruolo mancante, vuoto o sconosciuto viene sempre negato, mai
 ammesso per default.
 
-- `requireManagerRole` blocca (403) in 15 file/18 punti di chiamata (RIVERIFICATO con
-  grep, 2026-09-24 — non più 12 file/13 punti come diceva questa riga fino ad oggi: nel
+- `requireManagerRole` blocca (403) in 15 file/18 punti di chiamata nel codice
+  (RIVERIFICATO con grep, 2026-09-29: numeri invariati). **Ma la DELETE di
+  `analysis/market/competitors/[id]` è dietro l'interruttore di Mercato (§5) e risponde
+  503 prima di arrivare al controllo: in esercizio i punti raggiungibili sono 17 in 14
+  file.** Cronologia del conteggio (RIVERIFICATO con grep, 2026-09-24 — non più 12
+  file/13 punti come diceva questa riga fino ad allora: nel
   frattempo sono comparse le 4 chiamate di team — `settings/team/invite`,
   `settings/team/members/[id]` con 2 chiamate PATCH+DELETE, `settings/team/route.ts`
   DELETE per revocare un invito — e la PATCH di `reports/[id]/route.ts` per modificare
@@ -276,7 +296,7 @@ ammesso per default.
   versione precedente di questa riga): le 6 DELETE già note (receivables,
   recurring-expenses, reports, custom-dashboards, data/import/batches,
   market/competitors — quest'ultima senza alcun comando che la raggiunga
-  dall'interfaccia, la pagina è di sola lettura), la PATCH di `reports/[id]` appena
+  dall'interfaccia, e oggi chiusa del tutto), la PATCH di `reports/[id]` appena
   citata, PATCH `settings/organization`, le 4 route integrazioni (connect, disconnect,
   sync, frequency), le 2 chiamate di `reports/[id]/share` (POST che crea il link
   condivisibile, DELETE che lo revoca), e le 4 chiamate di team appena citate. C'è anche
@@ -284,10 +304,11 @@ ammesso per default.
   il token di condivisione nella risposta (`canSeeToken = !requireManagerRole(...)`),
   quindi non è contata fra i 18 punti.
 - `requireEditorRole` (non ancora censita in questo file finché non l'ha aggiunta una
-  sessione precedente): blocca in 18 file — le rotte AI (chat, analyze, insights
-  generate/PATCH, alert check/refresh/analyze/PATCH), le scritture su receivables,
-  recurring-expenses, custom-dashboards, reports (creazione), data/manual e
-  data/import (preview/commit), e la PATCH dei competitor di mercato.
+  sessione precedente): blocca in 18 file (RIVERIFICATO 2026-09-29) — le rotte AI (chat,
+  analyze, insights generate/PATCH, alert check/refresh/analyze/PATCH), le scritture su
+  receivables, recurring-expenses, custom-dashboards, reports (creazione), data/manual e
+  data/import (preview/commit), e la PATCH dei competitor di mercato (oggi chiusa, come
+  sopra: in esercizio 17 file).
 - **Ogni nuova azione distruttiva DEVE usare `requireManagerRole`; ogni nuova azione che
   scrive dati o consuma crediti AI DEVE usare almeno `requireEditorRole`.**
 - Il blocco per `viewer` è stato provato dal vivo più volte in sessioni recenti (login
@@ -305,7 +326,10 @@ ammesso per default.
   è riservata al solo `owner`** (VERIFICATO 2026-09-05): `requireOwnerRole`/
   `OWNER_ROLES` in `src/lib/auth/require-role.ts`, un controllo SEPARATO da
   `requireManagerRole` (che ammette anche `admin`), applicato alle tre rotte
-  `api/billing/checkout`, `api/billing/credits/checkout`, `api/billing/portal`. Lato
+  `api/billing/checkout`, `api/billing/credits/checkout`, `api/billing/portal` — e, oggi
+  (RIVERIFICATO 2026-09-29), in cinque file: anche `api/billing/details` (PUT, i dati di
+  fatturazione) e `api/gdpr/account` (la richiesta di cancellazione dell'AZIENDA e il suo
+  ritiro; quella dell'account personale è aperta a chiunque). Lato
   interfaccia, `settings/billing/page.tsx` disattiva (non nasconde) i pulsanti per chi
   non è owner, con spiegazione — l'informazione di ruolo arriva dal layout dashboard
   via un context dedicato (`src/lib/auth/owner-context.tsx`), stesso schema già usato
@@ -316,8 +340,9 @@ ammesso per default.
   portale di fatturazione della propria stessa azienda. **Le organizzazioni create
   PRIMA di questa correzione hanno ancora il creatore come `admin`**: non esiste un
   modo per contarle con certezza dal solo `Membership.role` (un `admin` può anche
-  essere un invitato legittimo — vedi `.vscode/SCOPERTE-DA-VALUTARE.md`, il campo
-  `createdByUserId` non esiste), quindi vanno corrette a mano, una alla volta, dal
+  essere un invitato legittimo — vedi `.vscode/SCOPERTE-DA-VALUTARE.md`; il campo
+  `Organization.createdByUserId` esiste dalla migration `20260918120000` ma è scritto solo
+  per le aziende create da allora, quindi non aiuta per quelle più vecchie), quindi vanno corrette a mano, una alla volta, dal
   fondatore. Il pannello admin ha ora un modulo apposta: scheda **Organizzazioni**,
   elenco membri sotto la tabella (email + ruolo), modulo "Cambia ruolo di un membro
   (per email)" — vedi §12.
@@ -360,6 +385,14 @@ numeri che l'utente VEDE, non solo a quelli passati al modello.
   "alert automatici" (non esiste nessun cron che li spinge — `vercel.json` pianifica
   solo `trial-check` e `gdpr-purge` — gli alert si calcolano solo quando l'utente preme
   "Aggiorna").
+- Rimossa il 2026-09-29 la dichiarazione "GDPR-compliant" dalla FAQ dei prezzi e dalla
+  sezione fiducia della landing (`it.json`/`en.json`): non è dimostrabile finché i
+  documenti legali sono in revisione, l'accordo sul trattamento coi clienti non è
+  pubblicato e non esistono backup. Al suo posto, fatti verificabili (database nell'UE;
+  autenticazione a due fattori facoltativa e ruoli). **REGOLA: nessuna pagina pubblica
+  dichiara una conformità o una certificazione che non sia dimostrata.** L'unica
+  occorrenza rimasta è nel testo legale EN della privacy (§6 "bound by GDPR-compliant
+  agreements"), in riscrittura.
 - **Crediti di piano vs crediti acquistati** (`Organization.aiCredits` /
   `aiCreditsPurchased`, colonne separate dalla migration `20260904120000_ai_credits_purchased`):
   prima vivevano nella stessa colonna, e un pacchetto pagato non speso spariva al primo
@@ -410,6 +443,34 @@ raggiungibile da `/welcome`) è più un ingresso libero per chi ha già un'organ
 redirect a `/overview`. La seconda pagina è un Client Component: la guardia vive in un
 `layout.tsx` nuovo accanto ad essa, non nella pagina stessa.
 
+**Iscrizione e primo avvio** (VERIFICATO 2026-09-29, merge `ae44b8e` e `8b641c3`,
+provato dal vivo su un Postgres locale usa-e-getta):
+- **Email temporanee rifiutate** in `api/auth/register` (`400 DISPOSABLE_EMAIL`), decisa sul
+  solo dominio e PRIMA della ricerca dell'account esistente, così la risposta è identica
+  per un indirizzo già registrato o no. Elenco pubblico (CC0, 9.189 domini) copiato in
+  `src/lib/auth/disposable-email-domains.json`; controllo in
+  `src/lib/auth/disposable-email.ts`; **eccezioni per i falsi positivi in un punto solo**,
+  `DISPOSABLE_EMAIL_EXCEPTIONS`; aggiornamento a mano con `npm run update:disposable-domains`
+  (non scrive nulla se la fonte non risponde o l'elenco ha meno di 1000 domini). È l'UNICO
+  punto che crea un account con email e password; Google/Microsoft (NextAuth) non passano
+  di lì.
+- **La creazione dell'azienda richiede dati di fatturazione completi** (ragione sociale,
+  partita IVA, indirizzo, SDI o PEC; solo Italia, `ACCEPTED_BILLING_COUNTRIES`), con lo
+  stesso validatore di `src/lib/billing/billing-details.ts`, controllati nella rotta
+  (`api/onboarding/organization`, `400 BILLING_DETAILS_INVALID`) e nelle DUE pagine di
+  creazione (componente `BillingFields`); scritti nelle stesse colonne della pagina Dati di
+  fatturazione. Le aziende già esistenti senza dati NON sono bloccate: il checkout li
+  chiede ancora.
+- **Pulsanti Google e Microsoft** su login e registrazione solo se il provider è configurato
+  sul server: `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET`, `AUTH_MICROSOFT_ID` +
+  `AUTH_MICROSOFT_SECRET` (entrambe le variabili; `AUTH_MICROSOFT_TENANT` è facoltativa).
+  Letto lato server (`src/lib/auth/social-providers.ts`) e passato con un contesto dai
+  layout di login e signup, mai con una variabile `NEXT_PUBLIC_`. La condizione è la stessa
+  di `src/auth.ts`: se cambia una, cambia l'altra.
+- **Login con l'account demo**: `api/auth/precheck` risponde `demoAccount: true` e la
+  pagina di accesso spiega che è l'account della dimostrazione e offre "Prova la demo"
+  (prima: "Accesso non riuscito. Riprova.", che sembrava un guasto).
+
 **Cancellazione dell'azienda: la chiede solo il proprietario, la conferma il fondatore**
 (VERIFICATO 2026-09-27, `src/app/api/gdpr/account/route.ts`, `src/lib/gdpr/org-deletion.ts`).
 Prima una richiesta di owner O admin cancellava sempre anche l'azienda, con i 30 giorni in
@@ -450,13 +511,27 @@ partenza subito. Ora le richieste sono due:
 - **Buchi noti, NON risolti** (compito separato deciso dal fondatore): un'azienda che apre
   il checkout durante la prova e abbandona resta salvata con stato `trialing` per sempre
   (`setSubscription` nelle rotte di checkout copia lo stato sintetico della prova), quindi
-  `requireActiveAccess` la considera attiva anche a prova scaduta — report compresi; e
-  "Esegui ora" su un report non controlla l'abbonamento.
+  `requireActiveAccess` la considera attiva anche a prova scaduta — report compresi.
+  (Il secondo buco che stava qui, "Esegui ora" su un report senza controllo
+  dell'abbonamento, è chiuso: `POST reports/[id]` chiama `requireActiveAccess` e risponde
+  402 `TRIAL_EXPIRED` — RIVERIFICATO su codice 2026-09-29. Il primo resta aperto.)
 
 **Fuso orario** (VERIFICATO 2026-09-05): le date sono salvate in UTC come mezzanotte ITALIANA —
 `toISOString().slice(0,10)` restituisce il giorno SBAGLIATO. Usare SEMPRE gli helper di
 `src/lib/timezone.ts` (`toAppDateString`, `appDateStartUTC`) per date visibili all'utente
 o passate all'AI; i giorni di ritardo si calcolano solo con `daysOverdueOf`.
+**Lo stesso vale per i mesi**: `getMonth()`/`getFullYear()`/`endOfMonth()` leggono l'ora del
+SERVER (UTC su Vercel) e mettono un movimento delle 00:30 del 1° in Italia nel mese
+prima. Corretti il 2026-09-29 (provato con il server in UTC, Roma e Los Angeles):
+`getOrgData` e il cashflow derivato (`financial-query.ts`), i fatti letti dal modello
+(`financial-facts.ts`), le previsioni (`api/ai/forecasting`). Già corretti prima:
+`ai-context.ts`, `alerts/rules.ts` (chiavi mese), `analysis/financial.ts`. **Ancora con
+`getMonth()` locale: `api/ai/benchmarks`** (Benchmark, lasciato da decisione del
+fondatore). **Lasciati apposta**: i limiti inferiori "ultimi N mesi" fatti con
+`setMonth()` (`alerts/rules.ts`, `reports/real-data.ts`, `ai-context.ts`, il limite dei 24
+mesi delle previsioni) — spostano un confine di poche ore di una finestra mobile già
+parziale; unico effetto: generati nelle prime due ore del mese in Italia possono includere
+un giorno in più. Il cron dei report pianificati gira alle 08:00 UTC, mai in quella fascia.
 
 **Row Level Security (RLS) su Supabase** (abilitata e VERIFICATA il 2026-08-25, fatti di
 base RIVERIFICATI 2026-09-05: la migration e `check-rls.ts` esistono ancora, nessuna
@@ -492,9 +567,10 @@ Fino al 2026-09-04 questa sezione si intitolava "Stato verificato al 2026-07-26"
 conteneva righe datate agosto e settembre — un titolo che prometteva una data unica non
 più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria data.
 
-- `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-24, a runtime, in questo
-  passaggio).
-- `next build` → **141 pagine, non più 140** (RIVERIFICATO 2026-09-27 con `npx next build`,
+- `npx tsc --noEmit` → **0 errori** (RIVERIFICATO 2026-09-29, a runtime, sul branch di
+  questa sessione).
+- `next build` → **147 pagine, non più 141** (RIVERIFICATO 2026-09-29 con `npx next build`
+  e indirizzi di database finti; la riga precedente era del 2026-09-27 con `npx next build`,
   non `npm run build`: quest'ultimo esegue anche `prisma migrate deploy` contro il database
   remoto, cosa che questo lavoro doveva evitare — `next build` da solo non tocca il
   database. Contro un Postgres locale usa-e-getta, mai il database remoto).
@@ -518,12 +594,19 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
 
 ## 9. Debiti noti (elencati, NON risolti)
 
-- "Run now" di un report aggiorna solo `lastRunAt`: nessun PDF generato.
-- Condivisione report `share/[token]`: legge da localStorage, non validata lato server.
-- **Operations e Mercato hanno motori sintetici** (seno/coseno, array fissi); le voci di
-  menu sono già disattivate ma pagine e API restano nel repo.
+- ~~"Run now" di un report aggiorna solo `lastRunAt`~~ **FALSA, superata** (RIVERIFICATO
+  2026-09-29): `POST reports/[id]` genera davvero il PDF e scrive `lastRunAt` solo dopo un
+  rendering riuscito.
+- ~~Condivisione report `share/[token]` legge da localStorage~~ **FALSA, superata**
+  (RIVERIFICATO 2026-09-29): la pagina legge dal server con il token
+  (`api/share/[token]`, token con scadenza e revoca, validato a ogni accesso).
+- **Operations e Mercato hanno motori sintetici** (seno/coseno, array fissi); dal
+  2026-09-29 pagine e API sono chiuse (§5) ma il codice e i dati restano nel repo.
+- **Benchmark**: valori statici del 2024, pagina raggiungibile scrivendo l'indirizzo (§5).
 - Split-brain competitor: scritti su `Competitor`, letti da `Competitor_b7`.
-- `AiAlert`/`AiAlertConfig`: popolati dal seed e mai letti dal codice.
+- `AiAlert`/`AiAlertConfig`: popolati dal seed; letti dal codice solo dall'esportazione
+  GDPR e dal caricamento della demo (`prisma.aiAlert` in `gdpr/export/route.ts` e
+  `session.ts`), non da nessuna pagina di prodotto (RIVERIFICATO 2026-09-29).
 - ~14 modelli Prisma morti nello schema.
 - `ImportBatch` ha FK verso i modelli zombie `User_b4`/`Organization_b4` — deroga
   documentata in `src/lib/import/batch-fk.ts`.
@@ -532,10 +615,13 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
 
 ## 10. Backlog sicurezza (audit 2026-07-26, RIVERIFICATO riga per riga 2026-09-05)
 
-- **npm audit (RIVERIFICATO 2026-09-05, `npm audit`)**: 13 vulnerabilità, non più "10 — 3
-  critical" come diceva questa riga fino a oggi — 0 critical, 7 high, 4 moderate, 2 low.
-  `next` è ancora nell'elenco (high, ma oggi con fix disponibile — non più "senza fix
-  disponibile"). `next-auth`/`@auth` NON compare più nell'elenco. `xlsx` non è più una
+- **npm audit (RIVERIFICATO 2026-09-29, `npm audit`)**: 14 vulnerabilità — **1 critical
+  (`next`, dipendenza diretta, con fix disponibile: NON applicato, nessuna modifica a
+  `package.json` in quel lavoro)**, 6 high (tutte transitive: brace-expansion,
+  browserslist, js-yaml, nanoid, postcss, sharp), 5 moderate, 2 low. Il 2026-09-05 erano
+  13 con 0 critical e 7 high: la situazione è peggiorata. Da decidere dal fondatore.
+  Storico del 2026-09-05: `next` era high, con fix disponibile — non più "senza fix
+  disponibile". `next-auth`/`@auth` NON compare più nell'elenco. `xlsx` non è più una
   dipendenza del progetto: sostituita da `exceljs` (`^4.4.0`, usata in
   `src/lib/import/parse.ts`, lo stesso percorso di upload file che `xlsx` occupava), che
   oggi compare lei stessa nell'elenco come moderate, fix disponibile ma di versione
@@ -571,16 +657,15 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
   smette di valere.
 
 Corrette il 2026-09-04, RIVERIFICATE 2026-09-05 (salvo dove segnalato):
-- Rate-limit: NON è fail-open. 17 dei 20 secchielli in `src/lib/rate-limit.ts` sono
-  `onFailure: 'closed'`; restano fail-open solo `report-generate-ip`, `share-token-ip`,
-  `exchange-rates-ip` — scelta deliberata su rotte dove bloccare per un disservizio di
-  Upstash costerebbe più del rischio di abuso. (Attenzione a contare a mano: il file
-  contiene anche la riga `onFailure: FailureMode;` nella definizione del tipo, che non è un
-  secchiello — sono 20 secchielli veri, non 21.)
-- Audit log: esiste, `src/lib/audit/log.ts`, **33 punti di chiamata oggi, non più 24** (grep
-  `auditLog(` su `src/` e `admin/`, esclusa la definizione della funzione — cresciuto nel
-  giro di un giorno, probabilmente per lavoro recente che ha aggiunto chiamate; non
-  indagato oltre, non era richiesto).
+- Rate-limit: NON è fail-open. **21 dei 24 secchielli** in `src/lib/rate-limit.ts` sono
+  `onFailure: 'closed'` (RIVERIFICATO 2026-09-29 — il 2026-09-05 erano 17 su 20); restano
+  fail-open solo `report-generate-ip`, `share-token-ip`, `exchange-rates-ip` — scelta
+  deliberata su rotte dove bloccare per un disservizio di Upstash costerebbe più del
+  rischio di abuso. (Attenzione a contare a mano: il file contiene anche la riga
+  `onFailure: FailureMode;` nella definizione del tipo, che non è un secchiello.)
+- Audit log: esiste, `src/lib/audit/log.ts`, **50 punti di chiamata al 2026-09-29** (grep
+  `await auditLog(` su `src/` e `admin/`, esclusa la definizione — 33 il 2026-09-05, 24
+  prima; cresce a ogni lavoro che aggiunge un'azione tracciata).
 - `/api/ai/analyze` consuma crediti (`consumeCredits`, `ANALYSIS_CREDIT_COST`), come
   `/api/ai/chat` e `/api/ai/insights/generate`.
 
@@ -698,7 +783,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.6 · **Aggiornato**: 2026-09-27 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.7 · **Aggiornato**: 2026-09-29 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -769,3 +854,16 @@ mesi con avviso), con i due buchi noti rimandati a un compito separato; aggiorna
 scheda Cancellazioni e corregge le due righe di "Cosa NON può fare" diventate false. Nel
 pannello admin corretto anche il riquadro "Cambia ruolo", che diceva ancora `editor` e
 `viewer` identici. Le altre sezioni non sono state riverificate in questo passaggio.
+La v5.7 (2026-09-29) chiude le voci diventate false leggendo il codice e riverifica i numeri.
+Corretti: Mercato e Operations non sono più solo nascosti ma chiusi (§5, §9); i Benchmark sono
+fuori menu ma raggiungibili (§5); `requireManagerRole` e `requireEditorRole` hanno un punto
+ciascuno dietro l'interruttore di Mercato (§7); `requireOwnerRole` copre cinque file, non tre
+(§7); 18 migration, non 16 (§3); 147 pagine, non 141 (§8); 95 route, non ~80 (§5); audit log
+50 punti, non 33, e rate-limit 21 su 24, non 17 su 20 (§10); `npm audit` ora segna 1 critical
+(`next`, fix disponibile, non applicato) e 14 in tutto (§10); tolte due voci dei debiti (§9:
+"Run now" e link di condivisione, superate) e il "buco" di "Esegui ora" senza controllo
+dell'abbonamento (§7). Aggiunti: iscrizione e primo avvio, fuso orario sui mesi, la regola
+"nessuna conformità dichiarata senza prova" (§7) e `update:disposable-domains` (§4).
+**Non toccata di proposito: §11** (i nomi dei modelli): non ho ricontrollato quali siano
+quelli correnti e non scrivo identificatori di modelli in file del repository; §12 (pannello
+admin) e §13 non sono state riverificate.
