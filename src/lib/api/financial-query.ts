@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { endOfMonth } from 'date-fns';
 import type {
   DemoBudget,
   DemoCashflow,
@@ -12,6 +11,7 @@ import type {
 import { prisma } from '@/lib/prisma';
 import { getCurrentContext } from '@/lib/session';
 import { getSubscription } from '@/lib/billing/repository';
+import { daysInAppMonth, fromAppWallClock, toAppDateString } from '@/lib/timezone';
 
 export const periodSchema = z.enum(['1m', '3m', '6m', '12m', 'custom']);
 export const sortOrderSchema = z.enum(['asc', 'desc']).default('desc');
@@ -41,10 +41,11 @@ export function parseCategory(description: string): { category: string; subcateg
   };
 }
 
+// "YYYY-MM" of the ITALIAN calendar month `d` falls in. getFullYear()/getMonth()
+// read the server's timezone (UTC on Vercel): a movement at 00:30 on 1 October
+// in Italy is 22:30 UTC on 30 September and was filed under September.
 function monthKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+  return toAppDateString(d).slice(0, 7);
 }
 
 /**
@@ -109,7 +110,18 @@ export async function getOrgData(organizationIdArg?: string): Promise<DemoDatase
     for (const period of sortedMonths) {
       const m = monthlyMap.get(period)!;
       const [yyyy, mm] = period.split('-').map(Number);
-      const monthEnd = endOfMonth(new Date(yyyy, mm - 1, 1));
+      // Last millisecond of the month IN ITALY: date-fns' endOfMonth uses the
+      // server's timezone and returned 23:59:59.999 UTC, which is 01:59 on the
+      // 1st of the NEXT month in Italy.
+      const monthEnd = fromAppWallClock({
+        year: yyyy,
+        month: mm,
+        day: daysInAppMonth(yyyy, mm),
+        hour: 23,
+        minute: 59,
+        second: 59,
+        ms: 999,
+      });
       if (m.revenue > 0) {
         cashflow.push({
           id: `cf_in_${period}`,

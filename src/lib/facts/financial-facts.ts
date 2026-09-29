@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/format';
 import { effectiveStatus } from '@/lib/receivables/dto';
 import { computeTotals, monthlyEquivalent } from '@/lib/recurring-expenses/dto';
-import { appDateStartUTC } from '@/lib/timezone';
+import { appDateStartUTC, toAppDateString } from '@/lib/timezone';
 import { defaultLocale, type Locale } from '@/i18n/config';
 import itMessages from '@/messages/it.json';
 import enMessages from '@/messages/en.json';
@@ -60,8 +60,10 @@ function factTranslator(locale: Locale) {
 
 type FactT = ReturnType<typeof factTranslator>;
 
+// Italian calendar month ("YYYY-MM"): these labels are written into the facts
+// the model reads, and getMonth() would give the server's (UTC) month.
 function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return toAppDateString(d).slice(0, 7);
 }
 
 function sortedMonthly(records: FinancialRecord[], kind: 'REVENUE' | 'COST'): [string, number][] {
