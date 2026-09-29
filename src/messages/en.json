@@ -2259,7 +2259,7 @@
       },
       {
         "q": "Is my data secure?",
-        "a": "Anlyra is GDPR-compliant. Data is encrypted in transit and at rest by the hosting platforms, Anlyra does not use it to train AI models and does not sell it. AI features send the data they need to Anthropic (USA). See the Privacy Policy for details."
+        "a": "The database holding your data is in the European Union. Data is encrypted in transit and at rest by the hosting platforms, Anlyra does not use it to train AI models and does not sell it. AI features send the data they need to Anthropic (USA). See the Privacy Policy for details."
       },
       {
         "q": "Can I upgrade from Pro to Advanced, or to Enterprise?",
@@ -2560,7 +2560,7 @@
         "Database in the EU; encryption in transit and at rest provided by the hosting platforms",
         "Data never sold. AI features (Anthropic, USA) receive only the data they need, at your request",
         "Anlyra does not use your data to train AI models",
-        "GDPR-compliant, European compliance built-in",
+        "Optional two-factor authentication and separate permissions for owner, admin, editor and viewer",
         "Company deletion: data removed 30 days after the request is confirmed"
       ]
     },
