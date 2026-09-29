@@ -40,7 +40,7 @@
 
 ---
 
-> Contesto operativo per le future sessioni Claude Code. Versione **v5.7** (2026-09-29).
+> Contesto operativo per le future sessioni Claude Code. Versione **v5.8** (2026-09-29).
 > Leggere PRIMA di toccare codice. Ogni affermazione di stato è marcata
 > **VERIFICATO** (controllato su codice/DB/runtime alla data indicata) o **DA VERIFICARE**.
 >
@@ -57,9 +57,9 @@ ai dati reali: un consiglio generico è un oroscopo, un consiglio sui numeri ver
 cliente è il prodotto.
 
 - **Branch principale di sviluppo**: `claude/merge-repos-nextjs-rOZU3` (HEAD al 2026-09-29, prima dei merge di quel giorno: `8b641c3`; il valore di oggi si legge con `git ls-remote origin refs/heads/claude/merge-repos-nextjs-rOZU3`).
-- **Stack** (VERIFICATO su `package.json`, 2026-09-05): Next.js 16.2.12 con Turbopack — NON
-  14.2.18 come diceva questa riga fino al 2026-09-04, uno scarto di due versioni maggiori
-  (App Router, `src/`), React 19.2.8, TypeScript 5.6.3, next-intl (IT primaria, EN
+- **Stack** (VERIFICATO su `package.json`, 2026-09-29): Next.js **16.3.3** con Turbopack
+  (aggiornato da 16.2.12 il 2026-09-29, merge `2d6c1a0`, per chiudere due vulnerabilità
+  critiche; il 2026-09-04 questa riga diceva ancora 14.2.18) (App Router, `src/`), React 19.2.8, TypeScript 5.6.3, next-intl (IT primaria, EN
   secondaria), Prisma 5.22 su PostgreSQL (Supabase — vedi §3), NextAuth v5 beta (JWT,
   `next-auth@5.0.0-beta.31`), Anthropic SDK, Stripe, Resend (email transazionali), Upstash
   rate-limit, Tailwind 3.4 + shadcn.
@@ -610,17 +610,47 @@ più vera per tutto il contenuto. Da qui in avanti ogni riga porta la propria da
 - ~14 modelli Prisma morti nello schema.
 - `ImportBatch` ha FK verso i modelli zombie `User_b4`/`Organization_b4` — deroga
   documentata in `src/lib/import/batch-fk.ts`.
+- **`middleware` deprecato in favore di `proxy`** (da Next 16.3): `npx next build` stampa
+  `The "middleware" file convention is deprecated. Please use "proxy" instead.` e anche un
+  avviso sull'Edge Runtime deprecato. `src/middleware.ts` funziona ancora (VERIFICATO dal
+  vivo 2026-09-29: lingua, reindirizzamento al login, rotte API escluse). Da migrare a
+  `proxy` in un lavoro dedicato, non di passaggio.
+- **10 avvisi della regola eslint `@next/next/no-location-assign-relative-destination`**
+  (nuova in `eslint-config-next` 16.3): segnala ogni `window.location.href = '/…'`. Sono i
+  ricaricamenti COMPLETI voluti (logout — regola in §6 —, login, signup, cambio azienda,
+  invito, verifica email, cancellazione dell'account, onboarding): servono perché la sessione
+  e i cookie vengano riletti dal server. Non vanno "corretti" con `router.push`. Se si
+  vuole silenziarli, farlo riga per riga con una spiegazione, non spegnendo la regola.
+- **`next dev` scrive nel CLAUDE.md quando gira dentro un agente AI** (da Next 16.3,
+  `node_modules/next/dist/server/lib/generate-agent-files.js`, attivato solo se
+  `@vercel/detect-agent` riconosce un agente): aggiunge in fondo un blocco
+  `<!-- BEGIN:nextjs-agent-rules -->`. Non è stato scritto dal fondatore né richiesto:
+  **non committarlo**; dopo aver usato `next dev` in una sessione, `git checkout CLAUDE.md`
+  prima di committare (VERIFICATO 2026-09-29: successo in questa sessione). Il server di
+  sviluppo del fondatore nel Codespace non lo attiva, perché non gira dentro un agente.
 - **ATTENZIONE**: `Report_b8`, `CustomDashboard_b8`, `NotificationPref_b8` hanno il
   suffisso `_bN` dei modelli morti ma sono **ATTIVI** — non trattarli da zombie.
 
 ## 10. Backlog sicurezza (audit 2026-07-26, RIVERIFICATO riga per riga 2026-09-05)
 
-- **npm audit (RIVERIFICATO 2026-09-29, `npm audit`)**: 14 vulnerabilità — **1 critical
-  (`next`, dipendenza diretta, con fix disponibile: NON applicato, nessuna modifica a
-  `package.json` in quel lavoro)**, 6 high (tutte transitive: brace-expansion,
-  browserslist, js-yaml, nanoid, postcss, sharp), 5 moderate, 2 low. Il 2026-09-05 erano
-  13 con 0 critical e 7 high: la situazione è peggiorata. Da decidere dal fondatore.
-  Storico del 2026-09-05: `next` era high, con fix disponibile — non più "senza fix
+- **npm audit (RIVERIFICATO 2026-09-29, dopo gli ultimi due lavori)**: **3 vulnerabilità,
+  0 critical, 0 high** — 2 moderate (`exceljs` e `uuid`, la stessa cosa: exceljs dipende da
+  uuid 8.3.2) e 1 low (`esbuild`). Percorso della giornata: 14 (1 critical, `next`) → 11
+  dopo Next 16.3.3 → 3 dopo `npm audit fix` senza `--force` (brace-expansion, browserslist,
+  js-yaml, nanoid, fflate, qs, baseline-browser-mapping, postcss-selector-parser: solo
+  `package-lock.json`, nessuna dipendenza diretta toccata).
+  - **exceljs/uuid: NON sul nostro percorso, lasciati apposta.** L'avviso
+    (GHSA-w5hq-g745-h8pq) riguarda uuid v3/v5/v6 chiamate CON un buffer. exceljs usa solo
+    `uuidv4()` senza buffer, e solo quando SCRIVE un file con formattazione condizionale
+    (`lib/xlsx/xform/sheet/cf-ext/cf-rule-ext-xform.js`, metodi `prepare`/`render`); noi
+    facciamo solo `wb.xlsx.load(buf)` in `src/lib/import/parse.ts`. La "correzione" proposta
+    da npm è un RITORNO a exceljs 3.4.0 (novembre 2019, con unzipper/jszip/archiver di
+    allora), non un aggiornamento: 4.4.0 è l'ultima stabile. Da rivedere se esce una 4.x
+    con uuid ≥ 11.1.1.
+  - **esbuild (low)**: solo il server di sviluppo di esbuild su Windows; arriva da `tsx`,
+    che lo vincola a `~0.27`, mentre la correzione è 0.28.1. Si chiude aggiornando `tsx`,
+    non fatto (dipendenza diretta).
+  Storico del 2026-09-05 (13 vulnerabilità, 0 critical, 7 high): `next` era high, con fix disponibile — non più "senza fix
   disponibile". `next-auth`/`@auth` NON compare più nell'elenco. `xlsx` non è più una
   dipendenza del progetto: sostituita da `exceljs` (`^4.4.0`, usata in
   `src/lib/import/parse.ts`, lo stesso percorso di upload file che `xlsx` occupava), che
@@ -783,7 +813,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.7 · **Aggiornato**: 2026-09-29 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.8 · **Aggiornato**: 2026-09-29 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -867,3 +897,8 @@ dell'abbonamento (§7). Aggiunti: iscrizione e primo avvio, fuso orario sui mesi
 **Non toccata di proposito: §11** (i nomi dei modelli): non ho ricontrollato quali siano
 quelli correnti e non scrivo identificatori di modelli in file del repository; §12 (pannello
 admin) e §13 non sono state riverificate.
+La v5.8 (2026-09-29) segue due lavori sulle dipendenze: Next 16.3.3 (§1) e `npm audit fix`
+senza `--force`; npm audit ora conta 3 vulnerabilità, nessuna alta, con la valutazione di
+exceljs/uuid (§10). Aggiunti ai debiti (§9): `middleware` deprecato in favore di `proxy`, i
+10 avvisi eslint sui ricaricamenti con `window.location`, e il blocco che `next dev` scrive
+nel CLAUDE.md quando gira dentro un agente.
