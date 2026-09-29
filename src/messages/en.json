@@ -2137,7 +2137,8 @@
         "PEC_INVALID": "Invalid PEC address.",
         "SDI_OR_PEC_REQUIRED": "Enter the recipient code or the PEC address."
       },
-      "goToDetails": "Complete your billing details"
+      "goToDetails": "Complete your billing details",
+    "onboardingIntro": "Needed for the electronic invoice: the first one will be issued automatically when the trial ends. For now Anlyra is available only to companies based in Italy."
     },
     "trialExpiredBanner": {
       "message": "Your trial has ended. Subscribe to keep using all features.",

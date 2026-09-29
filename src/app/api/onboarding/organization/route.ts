@@ -11,6 +11,11 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
 import { hasControlChars } from '@/lib/validation/display-name';
+import {
+  organizationColumnsFromBilling,
+  validateBillingDetails,
+  type BillingDetailsInput,
+} from '@/lib/billing/billing-details';
 
 const TRIAL_DAYS = 7;
 
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
 
   let body: {
     name?: string;
-    vatNumber?: string;
+    billing?: BillingDetailsInput;
     industry?: string;
     teamSize?: string;
     invites?: { email: string; role?: string }[];
@@ -81,6 +86,21 @@ export async function POST(req: Request) {
   // to other people this org invites (team-invite email) and in bug reports.
   if (name.length > 120 || hasControlChars(name)) {
     return NextResponse.json({ error: 'INVALID_NAME' }, { status: 400 });
+  }
+
+  // Complete invoicing data is required to create a company (founder's
+  // decision: the first invoice is issued automatically when the trial ends).
+  // Same validator as the "Dati di fatturazione" page and the checkout, and
+  // the same Organization columns — nothing is stored twice. Companies created
+  // before this rule are not touched: the checkout still asks them.
+  const billing = validateBillingDetails(
+    body.billing && typeof body.billing === 'object' ? body.billing : {},
+  );
+  if (!billing.ok) {
+    return NextResponse.json(
+      { error: 'BILLING_DETAILS_INVALID', fields: billing.errors },
+      { status: 400 },
+    );
   }
 
   // Per-account organization limit (PLANS[...].limits.orgs). Checked HERE —
@@ -115,7 +135,7 @@ export async function POST(req: Request) {
     data: {
       name,
       slug,
-      vatNumber: body.vatNumber?.trim() || null,
+      ...organizationColumnsFromBilling(billing.data),
       industry: body.industry?.trim() || 'Generale',
       teamSize: body.teamSize || null,
       // Credits follow the PLAN, not a fixed schema default. Previously this

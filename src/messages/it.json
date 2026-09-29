@@ -2137,7 +2137,8 @@
         "PEC_INVALID": "Indirizzo PEC non valido.",
         "SDI_OR_PEC_REQUIRED": "Inserisci il codice destinatario oppure la PEC."
       },
-      "goToDetails": "Completa i dati di fatturazione"
+      "goToDetails": "Completa i dati di fatturazione",
+    "onboardingIntro": "Servono per la fattura elettronica: la prima partirà da sola alla fine della prova. Per ora Anlyra è disponibile solo per aziende con sede in Italia."
     },
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
