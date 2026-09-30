@@ -5,7 +5,14 @@ import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireEditorRole } from '@/lib/auth/require-role';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
-import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import {
+  consumeCredits,
+  refundCredits,
+  settleAiCredits,
+  InsufficientCreditsError,
+  type CreditSpend,
+} from '@/lib/credits';
+import { chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
@@ -13,8 +20,9 @@ import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Credits charged per AI alert analysis. Aligned with the insights pattern.
-const ANALYSIS_CREDIT_COST = 1;
+// Credits charged per AI alert analysis: what the model used, never more than
+// maxCreditsFor('alerts') — which is reserved BEFORE the call (founder's
+// decision, 2026-09-30; until then a flat 1, charged after the call).
 
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -61,56 +69,75 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       return ok({ ...cached, cached: true });
     }
 
-    // 3. Credit guard BEFORE any AI call. Cheaper failure path.
-    //    Checks the SUM of the two balances, exactly as consumeCredits will:
-    //    both plan and purchased credits are spendable, so an org sitting on 0
-    //    plan credits and a paid pack can afford this and must not be refused.
-    //    (This is only a cheap early exit — the real, atomic check is in
-    //    consumeCredits at step 6.)
     const org = await prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { aiCredits: true, aiCreditsPurchased: true, name: true, industry: true, employees: true },
+      select: { name: true, industry: true, employees: true },
     });
-    if (org.aiCredits + org.aiCreditsPurchased < ANALYSIS_CREDIT_COST) {
-      return fail('INSUFFICIENT_CREDITS', 402);
-    }
 
-    // 4. Configuration guard: no API key → 503 with a clear message.
+    // 3. Configuration guard: no API key → 503 with a clear message.
     if (!isAnthropicConfigured()) {
       return fail(MISSING_KEY_MESSAGE, 503);
     }
 
-    // 5. Call the AI. If this throws, we fall through to the catch and DO NOT
-    //    decrement credits.
-    const analysis = await analyzeAlert(
-      {
-        title: alert.title,
-        description: alert.description,
-        severity: alert.severity,
-        recommendation: alert.recommendation,
-        source: alert.source,
-      },
-      { name: org.name, industry: org.industry, employees: org.employees },
-    );
-
-    // 6. Persist the result, then decrement credits atomically. If the org ran
-    //    out of credits between the check above and now, consumeCredits throws
-    //    InsufficientCreditsError and we surface 402 without having persisted a
-    //    paid result.
-    let creditsRemaining: number;
+    // 4. Reserve the MAXIMUM before the call, in the single atomic statement:
+    //    two simultaneous analyses can never spend more than the balance
+    //    holds. Fewer credits than the maximum → 402, nothing called.
+    let spend: CreditSpend;
     try {
-      creditsRemaining = (await consumeCredits(organizationId, ANALYSIS_CREDIT_COST)).remaining;
+      spend = await consumeCredits(organizationId, maxCreditsFor('alerts'));
     } catch (e) {
       if (e instanceof InsufficientCreditsError) return fail('INSUFFICIENT_CREDITS', 402);
       throw e;
     }
+
+    // 5. Call the AI. If it fails — including a reply that does not parse —
+    //    the whole reservation goes back: an alert analysis that failed has
+    //    never cost anything, and still does not.
+    let used: { model: string; usage: AiUsage } | null = null;
+    let analysis;
+    try {
+      analysis = await analyzeAlert(
+        {
+          title: alert.title,
+          description: alert.description,
+          severity: alert.severity,
+          recommendation: alert.recommendation,
+          source: alert.source,
+        },
+        { name: org.name, industry: org.industry, employees: org.employees },
+        (model, usage) => {
+          used = usage ? { model, usage } : null;
+        },
+      );
+    } catch (e) {
+      try {
+        await refundCredits(organizationId, spend);
+      } catch (refundErr) {
+        console.error('[ai/alerts/analyze] credit refund FAILED after an error:', refundErr);
+      }
+      throw e;
+    }
+
+    // 6. Keep the real cost, give back the rest, then persist the result.
+    const usedNow = used as { model: string; usage: AiUsage } | null;
+    const settled = await settleAiCredits(
+      organizationId,
+      spend,
+      usedNow ? chargeFor('alerts', usedNow.model, usedNow.usage) : 1,
+      usedNow,
+    );
 
     await prisma.alert.update({
       where: { id: alert.id },
       data: { aiAnalysis: JSON.stringify(analysis) },
     });
 
-    return ok({ ...analysis, cached: false, creditsRemaining });
+    return ok({
+      ...analysis,
+      cached: false,
+      creditsRemaining: settled.remaining,
+      creditsCharged: settled.charged,
+    });
   } catch (e) {
     // Was fail((e as Error).message, 500): forwarded the raw error text to
     // the client and always answered 500, even for the getAuthContext-based

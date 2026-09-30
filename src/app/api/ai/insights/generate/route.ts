@@ -9,7 +9,14 @@ import { requireEditorRole } from '@/lib/auth/require-role';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
-import { consumeCredits, refundCredits, InsufficientCreditsError, type CreditSpend } from '@/lib/credits';
+import {
+  consumeCredits,
+  refundCredits,
+  settleAiCredits,
+  InsufficientCreditsError,
+  type CreditSpend,
+} from '@/lib/credits';
+import { chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { loadBusinessContext } from '@/lib/ai-context';
 import {
@@ -34,11 +41,9 @@ export const dynamic = 'force-dynamic';
  *   → locale → 422 not enough data → credits → model call → validation → write.
  */
 
-// Cost per generation. 3 credits, the value the UI has always advertised
-// ("Genera Nuovi Insight (3 crediti)" in it.json/en.json) and the threshold the
-// old stub already enforced. Deliberately more than the 1 credit of a chat turn
-// or an alert analysis: this call produces 3-5 pieces of written advice.
-const GENERATION_CREDIT_COST = 3;
+// Cost per generation: what the model actually used, never more than
+// maxCreditsFor('insights'), which is what is reserved before the call
+// (founder's decision, 2026-09-30 — until then a flat 3 credits).
 
 const GenerateSchema = z.object({
   // The locale the user is actually looking at. Optional: falls back to the
@@ -101,9 +106,11 @@ export async function POST(req: NextRequest) {
     //    The whole CreditSpend is kept, not just the remaining total: this is
     //    the ONE route that refunds, and the refund below has to put each credit
     //    back in the column it came out of (plan vs purchased).
+    //    What is reserved is the MAXIMUM a generation can cost; fewer credits
+    //    than that → 402 (founder's decision). The unused part goes back below.
     let spend: CreditSpend;
     try {
-      spend = await consumeCredits(organizationId, GENERATION_CREDIT_COST);
+      spend = await consumeCredits(organizationId, maxCreditsFor('insights'));
     } catch (err) {
       if (err instanceof InsufficientCreditsError) return fail('INSUFFICIENT_CREDITS', 402);
       throw err;
@@ -119,13 +126,15 @@ export async function POST(req: NextRequest) {
     //        should pay for it" situation — the org would otherwise pay 3
     //        credits for literally nothing.
     //      • any other error (network failure, Anthropic outage, HTTP error):
-    //        NOT refunded, matching chat and analyze — the Anthropic call was
-    //        made and billed to us either way, and this is the same "model
-    //        failure mid-stream" case those routes already accept as
-    //        non-refundable.
+    //        1 credit is kept and the rest of the reservation goes back, the
+    //        same rule as chat and analyze (founder's decision, 2026-09-30;
+    //        until then the whole flat 3 were kept).
     let generated;
+    let used: { model: string; usage: AiUsage } | null = null;
     try {
-      generated = await generateInsights(businessCtx, locale);
+      generated = await generateInsights(businessCtx, locale, (model, usage) => {
+        used = usage ? { model, usage } : null;
+      });
     } catch (err) {
       if (err instanceof InvalidInsightResponseError) {
         console.error('[ai/insights/generate] invalid model response:', err.reason);
@@ -147,8 +156,23 @@ export async function POST(req: NextRequest) {
       // browser: il testo di un errore Anthropic puo' contenere dettagli sulla
       // configurazione che non devono uscire. Status 502 invariato.
       console.error('[ai:error] surface=insights-generate', err);
+      try {
+        await settleAiCredits(organizationId, spend, 1, null);
+      } catch (settleErr) {
+        console.error('[ai/insights/generate] credit settlement FAILED after an error:', settleErr);
+      }
       return fail('AI_REQUEST_FAILED', 502);
     }
+
+    // The real cost, never above the reserved maximum; the rest goes back.
+    // `used` is always set here: chatComplete reports usage before returning.
+    const usedNow = used as { model: string; usage: AiUsage } | null;
+    const settled = await settleAiCredits(
+      organizationId,
+      spend,
+      usedNow ? chargeFor('insights', usedNow.model, usedNow.usage) : 1,
+      usedNow,
+    );
 
     // 10. Persist. Added to the existing ones, never replacing them: an insight
     //    the user has already marked REVIEWED/IMPLEMENTED is their record of a
@@ -168,7 +192,11 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    return ok({ created: generated.length, creditsRemaining: spend.remaining });
+    return ok({
+      created: generated.length,
+      creditsRemaining: settled.remaining,
+      creditsCharged: settled.charged,
+    });
   } catch (e) {
     console.error('[ai/insights/generate] unexpected error:', e);
     // Was fail((e as Error).message, 500): leaked the raw error text — the

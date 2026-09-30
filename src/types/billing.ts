@@ -11,7 +11,8 @@ export type CreditHistoryReason =
   | 'ai_call'
   | 'refund'
   | 'signup_grant'
-  | 'admin_adjustment';
+  | 'admin_adjustment'
+  | 'ai_unused';
 
 export type CreditHistoryEntryDTO = {
   id: string;

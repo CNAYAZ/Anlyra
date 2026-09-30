@@ -1,4 +1,5 @@
-import { chatComplete } from '@/lib/ai/client';
+import { chatComplete, type ChatCompleteOptions } from '@/lib/ai/client';
+import { AI_OPERATIONS } from '@/lib/ai/credit-cost';
 
 /**
  * Minimal shape of an alert needed for AI analysis. Mirrors the relevant
@@ -147,6 +148,8 @@ export function parseStoredAnalysis(raw: string | null | undefined): AlertAnalys
 export async function analyzeAlert(
   alert: AlertForAnalysis,
   orgContext?: OrgContext,
+  /** Receives the tokens the call used, for the credit charge. */
+  onUsage?: ChatCompleteOptions['onUsage'],
 ): Promise<AlertAnalysis> {
   const { text } = await chatComplete(
     SYSTEM_PROMPT,
@@ -159,6 +162,11 @@ export async function analyzeAlert(
       // for caching here would have been a no-op even before the model changed.
       surface: 'alerts',
       logLabel: 'alerts:analyze',
+      // ~300 tokens of JSON expected; the ceiling the credit maximum is priced
+      // on (founder's decision, 2026-09-30). A reply cut here does not parse
+      // and is not charged (see the route).
+      maxTokens: AI_OPERATIONS.alerts.maxOutputTokens,
+      onUsage,
     },
   );
   return parseAnalysisResponse(text);

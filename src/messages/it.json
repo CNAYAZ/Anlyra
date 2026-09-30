@@ -1998,7 +1998,8 @@
         "ai_call": "Utilizzo AI",
         "refund": "Rimborso",
         "signup_grant": "Crediti di benvenuto",
-        "admin_adjustment": "Correzione manuale"
+        "admin_adjustment": "Correzione manuale",
+        "ai_unused": "Crediti riservati e non usati"
       }
     },
     "invoices": {

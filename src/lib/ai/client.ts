@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { DEFAULT_AI_MODEL, modelFor, type AiSurface } from '@/lib/ai/models';
+import type { AiUsage } from '@/lib/ai/credit-cost';
 
 /**
  * The model used when a caller names no surface. Kept exported because it was
@@ -108,7 +109,27 @@ export type ChatCompleteOptions = {
    * when it was cut by the ceiling), or null when it could not be read.
    */
   onStopReason?: (stopReason: string | null) => void;
+  /**
+   * Called once per call with the model and the tokens it used — what the
+   * credit charge is computed from (@/lib/ai/credit-cost). chatComplete calls
+   * it when the response arrives. chatStream calls it when the stream ends:
+   * with the final counts, or — if the stream was cut (error, the customer
+   * leaving) — with the last counts the stream itself reported, or null when
+   * it reported none at all.
+   */
+  onUsage?: (model: string, usage: AiUsage | null) => void;
 };
+
+/** The four counters of an Anthropic Usage, as the credit calculation reads them. */
+function toAiUsage(usage: Anthropic.Usage): AiUsage {
+  const withCache = usage as UsageWithCache;
+  return {
+    input: usage.input_tokens ?? 0,
+    output: usage.output_tokens ?? 0,
+    cacheRead: withCache.cache_read_input_tokens ?? 0,
+    cacheWrite: withCache.cache_creation_input_tokens ?? 0,
+  };
+}
 
 function buildSystemParam(
   systemPrompt: string,
@@ -171,7 +192,14 @@ export async function chatComplete(
   systemPrompt: string,
   messages: ChatTurn[],
   options: ChatCompleteOptions = {},
-): Promise<{ text: string; tokensIn?: number; tokensOut?: number; stopReason: string | null }> {
+): Promise<{
+  text: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  stopReason: string | null;
+  model: string;
+  usage: AiUsage | null;
+}> {
   const c = getAnthropicClient();
   const model = resolveModel(options);
   const res = await c.messages.create({
@@ -183,6 +211,8 @@ export async function chatComplete(
     messages: buildMessagesParam(messages, options.cacheLastMessage),
   });
   logUsage(options.logLabel ?? 'chatComplete', model, res.usage);
+  const usage = res.usage ? toAiUsage(res.usage) : null;
+  options.onUsage?.(model, usage);
   // Every text block, joined — the first alone could be only part of the answer.
   const text = res.content
     .map((b) => (b.type === 'text' ? b.text : ''))
@@ -192,6 +222,8 @@ export async function chatComplete(
     tokensIn: res.usage?.input_tokens,
     tokensOut: res.usage?.output_tokens,
     stopReason: res.stop_reason ?? null,
+    model,
+    usage,
   };
 }
 
@@ -217,26 +249,53 @@ export async function* chatStream(
     system: buildSystemParam(systemPrompt, options.cacheSystemPrompt),
     messages: buildMessagesParam(messages, options.cacheLastMessage),
   });
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      yield event.delta.text;
-    }
-  }
-  // Read AFTER the loop above fully drains the stream — the documented SDK
-  // pattern for getting the complete Message (and its usage, including the
-  // cache fields) even when consuming events one at a time.
+  // The counts the stream reports as it goes: message_start carries the input
+  // side, each message_delta the output generated SO FAR. They are what a cut
+  // stream (an error, the customer closing the page — which ends this
+  // generator early) is charged on, since finalMessage() is never reached then.
+  let partial = null as AiUsage | null;
+  let usageReported = false;
+  const reportUsage = (usage: AiUsage | null) => {
+    if (usageReported) return;
+    usageReported = true;
+    options.onUsage?.(model, usage);
+  };
   try {
-    const final = await stream.finalMessage();
-    logUsage(options.logLabel ?? 'chatStream', model, final.usage);
-    options.onStopReason?.(final.stop_reason ?? null);
-  } catch (e) {
-    options.onStopReason?.(null);
-    // finalMessage() rejects if the underlying stream itself errored or was
-    // aborted — that failure already propagated out of the `for await` above
-    // to the caller's own try/catch (unchanged from before this feature). A
-    // failure HERE is only the usage log call itself failing after a
-    // successful generation, so it is swallowed rather than re-thrown: it
-    // must never mask or replace a result the caller has already received.
-    console.error('[ai:usage] failed to read final usage after stream:', e);
+    for await (const event of stream) {
+      if (event.type === 'message_start') {
+        partial = toAiUsage(event.message.usage);
+      } else if (event.type === 'message_delta' && partial) {
+        partial = { ...partial, output: event.usage.output_tokens };
+      } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        yield event.delta.text;
+      }
+    }
+    // Read AFTER the loop above fully drains the stream — the documented SDK
+    // pattern for getting the complete Message (and its usage, including the
+    // cache fields) even when consuming events one at a time.
+    try {
+      const final = await stream.finalMessage();
+      logUsage(options.logLabel ?? 'chatStream', model, final.usage);
+      reportUsage(toAiUsage(final.usage));
+      options.onStopReason?.(final.stop_reason ?? null);
+    } catch (e) {
+      options.onStopReason?.(null);
+      // finalMessage() rejects if the underlying stream itself errored or was
+      // aborted — that failure already propagated out of the `for await` above
+      // to the caller's own try/catch (unchanged from before this feature). A
+      // failure HERE is only the usage log call itself failing after a
+      // successful generation, so it is swallowed rather than re-thrown: it
+      // must never mask or replace a result the caller has already received.
+      console.error('[ai:usage] failed to read final usage after stream:', e);
+    }
+  } finally {
+    // No-op when the final usage was already reported above.
+    if (!usageReported && partial) {
+      console.info(
+        `[ai:usage] ${options.logLabel ?? 'chatStream'}:partial model=${model} input=${partial.input} ` +
+          `output=${partial.output} cacheRead=${partial.cacheRead} cacheWrite=${partial.cacheWrite}`,
+      );
+    }
+    reportUsage(partial);
   }
 }

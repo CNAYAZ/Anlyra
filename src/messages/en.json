@@ -1998,7 +1998,8 @@
         "ai_call": "AI usage",
         "refund": "Refund",
         "signup_grant": "Welcome credits",
-        "admin_adjustment": "Manual adjustment"
+        "admin_adjustment": "Manual adjustment",
+        "ai_unused": "Reserved credits not used"
       }
     },
     "invoices": {

@@ -984,6 +984,15 @@ model CreditEntry {
   // code change and never a migration.
   reason         String
   createdAt      DateTime @default(now())
+  // 'ai_call' rows only, written once the call has finished: the tokens the
+  // model actually used and which model (see settleAiCredits in
+  // src/lib/credits.ts). Thinking is inside outputTokens. NULL on every other
+  // row, on rows older than 2026-09-30, and when the call returned no usage.
+  inputTokens      Int?
+  outputTokens     Int?
+  cacheReadTokens  Int?
+  cacheWriteTokens Int?
+  model            String?
 
   @@index([organizationId, createdAt])
 }
