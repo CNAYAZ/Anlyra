@@ -88,7 +88,7 @@
     "creditsRemaining": "{count} crediti rimanenti",
     "buyMore": "Acquista altri",
     "popoverTitle": "Crediti AI",
-    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti.",
+    "popoverHint": "Ogni operazione AI costa in base alla lunghezza del lavoro: il pulsante mostra prima il massimo, la risposta il costo reale.",
     "notificationsTitle": "Notifiche",
     "notificationsEmpty": "Nessuna notifica al momento",
     "notificationsSettings": "Preferenze notifiche",
@@ -924,7 +924,7 @@
     "generateCost": "3 crediti",
     "generating": "Generazione in corso...",
     "generateSuccess": "{count, plural, one {# nuovo insight generato} other {# nuovi insight generati}}.",
-    "generateErrorCredits": "Crediti AI insufficienti: servono 3 crediti per generare nuovi insight.",
+    "generateErrorCredits": "Crediti AI insufficienti per generare nuovi insight.",
     "generateErrorNoData": "Non ci sono ancora abbastanza dati per generare insight. Aggiungi entrate, spese o crediti e riprova.",
     "generateErrorModel": "L'AI ha risposto in un formato non valido. Non è stato salvato nulla e i crediti usati sono stati restituiti: riprova.",
     "generateErrorRateLimited": "Troppe richieste. Riprova tra qualche minuto.",
@@ -2262,7 +2262,7 @@
       },
       {
         "q": "Cosa sono i crediti AI?",
-        "a": "Ogni interazione AI (generazione di insight, alert, chat) consuma un credito; le previsioni (forecasting) sono gratuite. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
+        "a": "Un'operazione AI costa in base a quanto lavora il modello per rispondere: prima di avviarla vedi quanto può costare al massimo, dopo vedi quanto è costata davvero. Indicativamente, in crediti: un messaggio in chat circa {chatTypical} (al massimo {chatMax}), un'analisi dell'agente AI circa {analyzeTypical} (al massimo {analyzeMax}), una generazione di insight circa {insightsTypical} (al massimo {insightsMax}), l'analisi di un alert {alertsMax}. Se hai meno crediti del massimo, l'operazione non parte. Le previsioni (forecasting) sono gratuite. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
       },
       {
         "q": "I miei dati sono al sicuro?",

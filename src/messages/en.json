@@ -88,7 +88,7 @@
     "creditsRemaining": "{count} credits remaining",
     "buyMore": "Buy more",
     "popoverTitle": "AI Credits",
-    "popoverHint": "Each chat message uses 1 credit. Generating new insights costs 3 credits.",
+    "popoverHint": "Each AI operation costs according to how much work it takes: the button shows the maximum first, the answer the actual cost.",
     "notificationsTitle": "Notifications",
     "notificationsEmpty": "No notifications at the moment",
     "notificationsSettings": "Notification preferences",
@@ -924,7 +924,7 @@
     "generateCost": "3 credits",
     "generating": "Generating...",
     "generateSuccess": "{count, plural, one {# new insight generated} other {# new insights generated}}.",
-    "generateErrorCredits": "Not enough AI credits: generating new insights costs 3 credits.",
+    "generateErrorCredits": "Not enough AI credits to generate new insights.",
     "generateErrorNoData": "There isn't enough data yet to generate insights. Add revenue, costs or receivables and try again.",
     "generateErrorModel": "The AI replied in an invalid format. Nothing was saved and the credits used were refunded — please try again.",
     "generateErrorRateLimited": "Too many requests. Please try again in a few minutes.",
@@ -2262,7 +2262,7 @@
       },
       {
         "q": "What are AI credits?",
-        "a": "Each AI interaction (insight generation, alerts, chat) consumes one credit; forecasting is free. Pro includes 200 credits per month, Advanced includes 700. Additional credits available in bundles."
+        "a": "An AI operation costs according to how much work the model does to answer: before you start it you see the most it can cost, afterwards what it actually cost. As a guide, in credits: a chat message about {chatTypical} (at most {chatMax}), an AI agent analysis about {analyzeTypical} (at most {analyzeMax}), an insight generation about {insightsTypical} (at most {insightsMax}), an alert analysis {alertsMax}. If you have fewer credits than the maximum, the operation does not start. Forecasting is free. Pro includes 200 credits per month, Advanced includes 700. Additional credits available in bundles."
       },
       {
         "q": "Is my data secure?",

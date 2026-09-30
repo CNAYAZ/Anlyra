@@ -1,4 +1,5 @@
 import { PLANS, CREDIT_PACKS, isUnlimited } from '@/lib/billing/plans';
+import { maxCreditsFor, typicalCreditsFor, type AiOperation } from '@/lib/ai/credit-cost';
 
 export const dynamic = 'force-static';
 export const revalidate = 3600;
@@ -65,6 +66,13 @@ function planLineEn(id: 'PRO' | 'ADVANCED' | 'ENTERPRISE'): string {
 const creditPacksLine = CREDIT_PACKS.map((p) => `${p.credits} crediti per €${eur(p.priceCents)}`).join(', ');
 const creditPacksLineEn = CREDIT_PACKS.map((p) => `${p.credits} credits for €${eurEn(p.priceCents)}`).join(', ');
 
+// What an AI operation costs, from the same numbers the server charges
+// (@/lib/ai/credit-cost): "circa N (massimo M)".
+const aiCost = (op: AiOperation, maxWord: string) =>
+  typicalCreditsFor(op) === maxCreditsFor(op)
+    ? `${maxCreditsFor(op)}`
+    : `~${typicalCreditsFor(op)} (${maxWord} ${maxCreditsFor(op)})`;
+
 const IT = `
 == ITALIANO ==
 
@@ -109,6 +117,12 @@ In più dal piano Avanzato: report automatici via email, link di
 condivisione dei report, dashboard personalizzate, agente AI.
 Solo Enterprise: più aziende sotto un solo accesso.
 Pacchetti di crediti AI aggiuntivi, senza scadenza: ${creditPacksLine}.
+Consumo dei crediti: un'operazione AI costa in base a quanto lavora il
+modello (arrotondato per eccesso, minimo 1 credito). Prima di avviarla si
+vede il massimo, dopo il costo reale; con meno crediti del massimo non
+parte. Indicativamente, in crediti: messaggio in chat ${aiCost('chat', 'massimo')},
+analisi dell'agente AI ${aiCost('analyze', 'massimo')}, generazione di insight
+${aiCost('insights', 'massimo')}, analisi di un alert ${aiCost('alerts', 'massimo')}.
 
 PROVA GRATUITA
 ---------------
@@ -199,6 +213,12 @@ Advanced and up also include: reports sent automatically by email,
 shareable report links, custom dashboards, AI Agent.
 Enterprise only: multiple companies under one login.
 Additional AI credit packs, no expiry: ${creditPacksLineEn}.
+Credit use: an AI operation costs according to how much work the model
+does (rounded up, at least 1 credit). Before starting it you see the
+maximum, afterwards the actual cost; with fewer credits than the maximum
+it does not start. As a guide, in credits: chat message ${aiCost('chat', 'at most')},
+AI agent analysis ${aiCost('analyze', 'at most')}, insight generation
+${aiCost('insights', 'at most')}, alert analysis ${aiCost('alerts', 'at most')}.
 
 FREE TRIAL
 -----------

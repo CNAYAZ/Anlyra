@@ -3,6 +3,7 @@ import { PricingPage, type FaqItem } from '@/components/pricing/pricing-page';
 import { productSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
 import { PLANS } from '@/lib/billing/plans';
 import { planLimitBullets } from '@/lib/billing/plan-bullets';
+import { maxCreditsFor, typicalCreditsFor } from '@/lib/ai/credit-cost';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com').trim();
 
@@ -22,6 +23,23 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
   // bullets can never drift from the real limits. The rest is i18n text.
   const limitBullets = (planId: 'PRO' | 'ADVANCED' | 'ENTERPRISE') =>
     planLimitBullets(planId, (key, values) => t(key as 'seats', values));
+
+  // The FAQ is read raw (t.raw), so ICU placeholders are not filled in by
+  // next-intl: the AI costs in its text are filled here, from the same numbers
+  // the server reserves and charges (@/lib/ai/credit-cost).
+  const aiCosts: Record<string, number> = {
+    chatTypical: typicalCreditsFor('chat'),
+    chatMax: maxCreditsFor('chat'),
+    analyzeTypical: typicalCreditsFor('analyze'),
+    analyzeMax: maxCreditsFor('analyze'),
+    insightsTypical: typicalCreditsFor('insights'),
+    insightsMax: maxCreditsFor('insights'),
+    alertsMax: maxCreditsFor('alerts'),
+  };
+  const faqItems = (t.raw('faq') as FaqItem[]).map((item) => ({
+    ...item,
+    a: item.a.replace(/\{(\w+)\}/g, (match, key: string) => (key in aiCosts ? String(aiCosts[key]) : match)),
+  }));
 
   return (
     <>
@@ -106,7 +124,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
       moneyBackSubtitle={t('moneyBack.subtitle')}
       demoLabel={t('demo.label')}
       demoLink={t('demo.link')}
-      faqItems={t.raw('faq') as FaqItem[]}
+      faqItems={faqItems}
       finalCtaTitle={t('finalCta.title')}
       finalCtaSubtitle={t('finalCta.subtitle')}
       finalCtaPrimary={t('finalCta.ctaPrimary')}
