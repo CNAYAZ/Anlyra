@@ -18,6 +18,7 @@ import { Link } from '@/i18n/navigation';
 import { formatDate } from '@/lib/format';
 import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
+import { AiCostCharged, useAiCost } from '@/components/ai/ai-cost';
 import { useIsDemo } from '@/lib/demo/context';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import type {
@@ -43,8 +44,6 @@ const severityVariant: Record<AlertSeverity, 'danger' | 'warning' | 'info'> = {
   MEDIUM: 'warning',
   LOW: 'info',
 };
-
-const ANALYSIS_CREDIT_COST = 1;
 
 /** Map the raw API error string to a user-facing i18n key. */
 function analyzeErrorKey(
@@ -73,15 +72,19 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
+  const cost = useAiCost();
 
   const [analysis, setAnalysis] = useState<AlertAnalysisDTO | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  // Real cost of an analysis made in this visit (a stored one cost nothing now).
+  const [charged, setCharged] = useState<number | null>(null);
 
   // Reset local view whenever a different alert is opened, seeding from any
   // already-persisted analysis so it shows immediately without a new AI call.
   useEffect(() => {
     setAnalysis(alert?.aiAnalysis ?? null);
     setErrorKey(null);
+    setCharged(null);
   }, [alert?.id, alert?.aiAnalysis]);
 
   const analyzeMutation = useMutation({
@@ -91,6 +94,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
     onSuccess: (res) => {
       setAnalysis({ explanation: res.explanation, actions: res.actions });
       if (typeof res.creditsRemaining === 'number') setCredits(res.creditsRemaining);
+      setCharged(!res.cached && typeof res.creditsCharged === 'number' ? res.creditsCharged : null);
       qc.invalidateQueries({ queryKey: ['alerts'] });
     },
     onError: (err: Error) => setErrorKey(analyzeErrorKey(err.message)),
@@ -98,7 +102,8 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
   if (!alert) return null;
 
-  const hasCredits = !isDemo && credits >= ANALYSIS_CREDIT_COST;
+  // The route reserves the MAXIMUM an analysis can cost and refuses below it.
+  const hasCredits = !isDemo && credits >= cost.max('alerts');
   const isAnalyzing = analyzeMutation.isPending;
 
   return (
@@ -141,14 +146,14 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                   variant="secondary"
                   disabled={isAnalyzing || !hasCredits || readOnlyRole}
                   onClick={() => analyzeMutation.mutate(alert.id)}
-                  title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? t('analyzeErrorCredits') : undefined}
+                  title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !hasCredits ? cost.insufficient('alerts', credits) : undefined}
                 >
                   {isAnalyzing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  {isAnalyzing ? t('analyzing') : t('analyzeButton', { cost: ANALYSIS_CREDIT_COST })}
+                  {isAnalyzing ? t('analyzing') : t('analyzeButton', { cost: cost.label('alerts') })}
                 </Button>
               )}
             </div>
@@ -159,7 +164,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
             {errorKey && (
               <div className="space-y-1 text-xs text-danger">
-                <p>{t(errorKey)}</p>
+                <p>{errorKey === 'analyzeErrorCredits' ? cost.insufficient('alerts', credits) : t(errorKey)}</p>
                 {errorKey === 'analyzeErrorCredits' && (
                   <Link href="/settings/credits" className="inline-block font-medium underline-offset-4 hover:underline">
                     {tCommon('goToCredits')}
@@ -170,7 +175,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
             {!analysis && !isAnalyzing && !errorKey && (
               <div className="space-y-1 text-xs text-muted-foreground">
-                <p>{readOnlyRole ? tSettings('readOnlyRoleShort') : hasCredits ? t('aiEmpty') : t('analyzeErrorCredits')}</p>
+                <p>{readOnlyRole ? tSettings('readOnlyRoleShort') : hasCredits ? t('aiEmpty') : cost.insufficient('alerts', credits)}</p>
                 {!hasCredits && !readOnlyRole && (
                   <Link
                     href="/settings/credits"
@@ -198,6 +203,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
                     </ul>
                   </div>
                 )}
+                {charged !== null && <AiCostCharged credits={charged} />}
                 <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
                   <Sparkles className="h-3 w-3 shrink-0" aria-hidden />
                   {t('aiGeneratedCaption')}

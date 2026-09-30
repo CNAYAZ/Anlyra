@@ -15,7 +15,8 @@ import {
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { requireActiveAccess, requireFeaturePlan } from '@/lib/billing/server-gate';
-import { consumeCredits, InsufficientCreditsError } from '@/lib/credits';
+import { consumeCredits, settleAiCredits, InsufficientCreditsError, type CreditSpend } from '@/lib/credits';
+import { AI_OPERATIONS, chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
@@ -52,12 +53,30 @@ const AnalyzeSchema = z.object({
 
 type AnalyzeType = z.infer<typeof AnalyzeSchema>['type'];
 
-// Credits charged per analysis, streaming or not. Same price as one chat turn
-// (/api/ai/chat) and one alert analysis: a request is a request.
-const ANALYSIS_CREDIT_COST = 1;
-
 /** See the streaming branch below; mirrored in AgentClient. */
 const ANSWER_COMPLETE_MARKER = '\u0004';
+
+/**
+ * Starts the cost trailer that closes EVERY stream, after the answer and its
+ * ANSWER_COMPLETE_MARKER: this character, then JSON
+ * { creditsCharged, creditsRemaining }. The real cost is only known once the
+ * model has finished, long after the headers went out. Mirrored in AgentClient.
+ */
+const COST_TRAILER_MARKER = '\u0005';
+
+/**
+ * Closes the reservation of one analysis. `used` null means the model failed
+ * (or reported no usage at all): 1 credit is kept, as when every analysis cost
+ * 1 (founder's decision). Otherwise the real cost, never above the maximum.
+ */
+async function settleAnalysis(
+  organizationId: string,
+  spend: CreditSpend,
+  used: { model: string; usage: AiUsage } | null,
+): Promise<{ charged: number; remaining: number }> {
+  const charged = used ? chargeFor('analyze', used.model, used.usage) : 1;
+  return settleAiCredits(organizationId, spend, charged, used);
+}
 
 
 export async function POST(req: NextRequest) {
@@ -140,11 +159,13 @@ export async function POST(req: NextRequest) {
   // WITHOUT calling the model. Placed after the 501/503 guards and after the
   // prompt build so a request that never reaches Anthropic is never billed;
   // being before the branch below, the stream can only open once paid.
-  // As in chat, a model failure after this point does NOT refund the credit.
+  // What is reserved is the MAXIMUM an analysis can cost (maxCreditsFor); fewer
+  // credits than that → 402 (founder's decision). The unused part goes back
+  // once the model has finished (settleAnalysis); a model failure keeps 1.
   // `remaining` is the sum of both balances: the number the user sees.
-  let creditsRemaining: number;
+  let spend: CreditSpend;
   try {
-    creditsRemaining = (await consumeCredits(organizationId, ANALYSIS_CREDIT_COST)).remaining;
+    spend = await consumeCredits(organizationId, maxCreditsFor('analyze'));
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);
@@ -160,8 +181,20 @@ export async function POST(req: NextRequest) {
   if (parsed.data.stream) {
     const encoder = new TextEncoder();
     let stopReason: string | null = null;
+    let used: { model: string; usage: AiUsage } | null = null;
+    // enqueue throws once the customer has gone (the stream was cancelled):
+    // from then on nothing more is sent, but the credits are still settled.
+    const send = (text: string) => {
+      try {
+        controller.enqueue(encoder.encode(text));
+      } catch {
+        // Nobody is listening any more.
+      }
+    };
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
     const body = new ReadableStream<Uint8Array>({
-      async start(controller) {
+      async start(c) {
+        controller = c;
         try {
           for await (const chunk of chatStream(systemPrompt, messages, {
             // Same mode + same org + same day → byte-identical system prompt
@@ -177,6 +210,10 @@ export async function POST(req: NextRequest) {
             onStopReason: (r) => {
               stopReason = r;
             },
+            onUsage: (model, usage) => {
+              used = usage ? { model, usage } : null;
+            },
+            maxTokens: AI_OPERATIONS.analyze.maxOutputTokens,
           })) {
             controller.enqueue(encoder.encode(chunk));
           }
@@ -184,11 +221,24 @@ export async function POST(req: NextRequest) {
           // own. A stream that ends without it — cut by the length ceiling,
           // an error, or the function being stopped by the platform — is shown
           // to the customer as incomplete (AgentClient), never as a full answer.
-          if (stopReason === 'end_turn') controller.enqueue(encoder.encode(ANSWER_COMPLETE_MARKER));
+          if (stopReason === 'end_turn') send(ANSWER_COMPLETE_MARKER);
         } catch (err) {
           console.error('[ai/analyze] stream error:', err);
         } finally {
-          controller.close();
+          // Settled whatever happened above, exactly once: a stream cut by an
+          // error or by the customer leaving is charged on the tokens it had
+          // reported (chatStream), or 1 credit if it reported none.
+          try {
+            const settled = await settleAnalysis(organizationId, spend, used);
+            send(COST_TRAILER_MARKER + JSON.stringify({ creditsCharged: settled.charged, creditsRemaining: settled.remaining }));
+          } catch (settleErr) {
+            console.error('[ai/analyze] credit settlement FAILED:', settleErr);
+          }
+          try {
+            controller.close();
+          } catch {
+            // Already cancelled by the customer.
+          }
         }
       },
     });
@@ -199,31 +249,46 @@ export async function POST(req: NextRequest) {
         // Disable proxy buffering so deltas reach the browser as they are produced.
         'X-Accel-Buffering': 'no',
         // The body is a raw text stream, so the balance travels as a header —
-        // the streaming counterpart of chat's `creditsRemaining` field.
-        'X-Credits-Remaining': String(creditsRemaining),
+        // the streaming counterpart of chat's `creditsRemaining` field. This is
+        // the balance with the MAXIMUM reserved; the one after the real cost
+        // arrives in the cost trailer at the end of the stream.
+        'X-Credits-Remaining': String(spend.remaining),
       },
     });
   }
 
   // Non-streaming path (unchanged): single JSON envelope.
+  let result;
   try {
-    const result = await chatComplete(systemPrompt, messages, {
+    result = await chatComplete(systemPrompt, messages, {
       cacheSystemPrompt: true,
       logLabel: `analyze:${type}`,
       surface: 'analyze',
-    });
-    return ok({
-      text: result.text,
-      truncated: result.stopReason === 'max_tokens',
-      tokensIn: result.tokensIn,
-      tokensOut: result.tokensOut,
-      creditsRemaining,
+      maxTokens: AI_OPERATIONS.analyze.maxOutputTokens,
     });
   } catch (err) {
     // Errore vero nei log (marcatore [ai:error]), messaggio generico al
     // browser: il testo di un errore Anthropic puo' contenere dettagli sulla
     // configurazione che non devono uscire. Status 502 invariato.
     console.error('[ai:error] surface=analyze', err);
+    try {
+      await settleAnalysis(organizationId, spend, null);
+    } catch (settleErr) {
+      console.error('[ai/analyze] credit settlement FAILED after an error:', settleErr);
+    }
     return fail('AI_REQUEST_FAILED', 502);
   }
+  const settled = await settleAnalysis(
+    organizationId,
+    spend,
+    result.usage ? { model: result.model, usage: result.usage } : null,
+  );
+  return ok({
+    text: result.text,
+    truncated: result.stopReason === 'max_tokens',
+    tokensIn: result.tokensIn,
+    tokensOut: result.tokensOut,
+    creditsRemaining: settled.remaining,
+    creditsCharged: settled.charged,
+  });
 }

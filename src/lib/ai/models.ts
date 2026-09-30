@@ -65,6 +65,16 @@ const AI_SURFACE_MODELS: Record<AiSurface, string> = {
   alerts: 'claude-haiku-4-5',
 };
 
+/**
+ * The model a surface is MAPPED to here, ignoring every env override. Used only
+ * to price the credit maxima shown on the buttons (@/lib/ai/credit-cost), which
+ * must be the same numbers on the server and in the browser — where
+ * process.env holds none of the overrides.
+ */
+export function mappedModelFor(surface: AiSurface): string {
+  return AI_SURFACE_MODELS[surface] ?? DEFAULT_AI_MODEL;
+}
+
 /** ANTHROPIC_MODEL_CHAT, ANTHROPIC_MODEL_ALERTS, … */
 function surfaceEnvVar(surface: AiSurface): string {
   return `ANTHROPIC_MODEL_${surface.toUpperCase()}`;

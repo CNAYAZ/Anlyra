@@ -12,9 +12,11 @@ import { requireActiveAccess } from '@/lib/billing/server-gate';
 import {
   consumeCredits,
   refundCredits,
+  settleAiCredits,
   InsufficientCreditsError,
   type CreditSpend,
 } from '@/lib/credits';
+import { AI_OPERATIONS, chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
 import {
   chatComplete,
   isAnthropicConfigured,
@@ -153,60 +155,86 @@ export async function POST(req: NextRequest) {
 
   const { conversationId, message } = parsed.data;
 
+  // RESERVES THE MAXIMUM a message can cost (maxCreditsFor), in the same
+  // single atomic statement as before, so two simultaneous messages can never
+  // spend more than the balance holds. Fewer credits than the maximum → 402,
+  // before anything is saved or sent (founder's decision). Once the answer is
+  // back, settleAiCredits keeps its real cost and gives the rest back.
+  //
   // `remaining` is the SUM of the plan and purchased balances — the single
   // number the user sees. Which column the credit came out of is decided inside
   // consumeCredits (plan first) and is not this route's business.
   //
-  // The whole CreditSpend is kept, not just `remaining`: the one refundable
-  // failure below (a thread past the context window) has to put the credit back
-  // in the column it came out of, exactly as /api/ai/insights/generate does.
+  // The whole CreditSpend is kept, not just `remaining`: the unused part and the
+  // one fully refundable failure below (a thread past the context window) have
+  // to go back to the column they came out of.
   let spend: CreditSpend;
   try {
-    spend = await consumeCredits(organizationId, 1);
+    spend = await consumeCredits(organizationId, maxCreditsFor('chat'));
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
       return fail('INSUFFICIENT_CREDITS', 402);
     }
     throw err;
   }
-  const creditsRemaining = spend.remaining;
 
-  let conversation = conversationId
-    ? await prisma.aIConversation.findFirst({
-        where: { id: conversationId, organizationId },
+  // A model failure costs 1 credit, as it did when every message cost 1
+  // (founder's decision): the rest of the reservation goes back. Also used if
+  // the database fails before the model is even called.
+  const keepOneCredit = async () => {
+    try {
+      await settleAiCredits(organizationId, spend, 1, null);
+    } catch (settleErr) {
+      console.error('[ai/chat] credit settlement FAILED after an error:', settleErr);
+    }
+  };
+
+  let conversation;
+  let systemPrompt: string;
+  let priorMessages;
+  try {
+    conversation = conversationId
+      ? await prisma.aIConversation.findFirst({
+          where: { id: conversationId, organizationId },
+          include: { messages: { orderBy: { createdAt: 'asc' } } },
+        })
+      : null;
+
+    if (!conversation) {
+      const title = message.slice(0, 60).trim() + (message.length > 60 ? '…' : '');
+      conversation = await prisma.aIConversation.create({
+        data: { organizationId, userId, title },
         include: { messages: { orderBy: { createdAt: 'asc' } } },
-      })
-    : null;
+      });
+    }
 
-  if (!conversation) {
-    const title = message.slice(0, 60).trim() + (message.length > 60 ? '…' : '');
-    conversation = await prisma.aIConversation.create({
-      data: { organizationId, userId, title },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
+    await prisma.aIMessage.create({
+      data: { conversationId: conversation.id, role: 'USER', content: message },
     });
+
+    const businessCtx = await loadBusinessContext(organizationId);
+    systemPrompt = buildSystemPrompt(businessCtx, 'IT');
+
+    // The LAST CHAT_HISTORY_WINDOW messages, still in chronological order:
+    // Prisma's negative `take` counts from the end of the ordered result, so the
+    // model receives the most recent part of the thread, oldest-to-newest, which
+    // is the order it needs. Older messages stay in the database untouched.
+    priorMessages = await prisma.aIMessage.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: 'asc' },
+      take: -CHAT_HISTORY_WINDOW,
+    });
+  } catch (err) {
+    await keepOneCredit();
+    throw err;
   }
-
-  await prisma.aIMessage.create({
-    data: { conversationId: conversation.id, role: 'USER', content: message },
-  });
-
-  const businessCtx = await loadBusinessContext(organizationId);
-  const systemPrompt = buildSystemPrompt(businessCtx, 'IT');
-
-  // The LAST CHAT_HISTORY_WINDOW messages, still in chronological order:
-  // Prisma's negative `take` counts from the end of the ordered result, so the
-  // model receives the most recent part of the thread, oldest-to-newest, which
-  // is the order it needs. Older messages stay in the database untouched.
-  const priorMessages = await prisma.aIMessage.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: 'asc' },
-    take: -CHAT_HISTORY_WINDOW,
-  });
 
   let assistantText = '';
   let tokensIn: number | undefined;
   let tokensOut: number | undefined;
   let stopReason: string | null = null;
+  let usedModel = '';
+  let usage: AiUsage | null = null;
 
   try {
     const result = await chatComplete(
@@ -236,12 +264,16 @@ export async function POST(req: NextRequest) {
         // Full business context + open-ended question: stays on the default
         // model (see @/lib/ai/models).
         surface: 'chat',
+        // The ceiling the maximum above is priced on (founder's decision).
+        maxTokens: AI_OPERATIONS.chat.maxOutputTokens,
       },
     );
     assistantText = result.text;
     tokensIn = result.tokensIn;
     tokensOut = result.tokensOut;
     stopReason = result.stopReason;
+    usedModel = result.model;
+    usage = result.usage;
   } catch (err) {
     // ── L'UNICO caso rimborsabile: la richiesta ha superato la finestra ──
     // Con il taglio a CHAT_HISTORY_WINDOW questo non dovrebbe più accadere per
@@ -250,12 +282,13 @@ export async function POST(req: NextRequest) {
     // piccola). È l'unico errore PERMANENTE: ritentare non può funzionare, e
     // senza rimborso ogni tentativo costerebbe un credito per niente.
     //
-    // RIMBORSO UNA VOLTA SOLA, GARANTITO DALLA STRUTTURA: questo è l'unico
-    // punto dell'intera rotta che chiama refundCredits, sta in un singolo ramo
-    // di un singolo catch, non è dentro nessun ciclo e nessun retry, e dopo
-    // esce subito con return. Una richiesta HTTP passa di qui al massimo una
-    // volta, e un secondo tentativo del cliente è una NUOVA richiesta con un
-    // proprio consumeCredits da annullare.
+    // RIMBORSO UNA VOLTA SOLA, GARANTITO DALLA STRUTTURA: la riserva si chiude
+    // in UNO solo di quattro rami che si escludono a vicenda, ognuno seguito da
+    // return o throw — questo (rimborso intero), keepOneCredit dopo un errore
+    // del modello, keepOneCredit se il database fallisce prima della chiamata,
+    // settleAiCredits dopo una risposta. Nessuno è dentro un ciclo o un retry, e
+    // un secondo tentativo del cliente è una NUOVA richiesta con una propria
+    // riserva da chiudere.
     if (isContextWindowError(err)) {
       console.error('[ai:error] surface=chat conversation beyond context window', err);
       try {
@@ -274,8 +307,20 @@ export async function POST(req: NextRequest) {
     // configurazione (modello, quote, forma della richiesta) che non hanno
     // motivo di uscire. Lo status 502 non cambia. Nessun rimborso, come prima.
     console.error('[ai:error] surface=chat', err);
+    await keepOneCredit();
     return fail('AI_REQUEST_FAILED', 502);
   }
+
+  // The real cost, never above the maximum reserved; the rest goes back now,
+  // before anything else can fail. The number shown under the answer IS this
+  // one, and it is the one the ledger records (-reserved, +unused).
+  const settled = await settleAiCredits(
+    organizationId,
+    spend,
+    // No usage at all (never seen in practice): 1, like a failed call.
+    usage ? chargeFor('chat', usedModel, usage) : 1,
+    usage ? { model: usedModel, usage } : null,
+  );
 
   // Cut by the length ceiling: the customer is told so, in their language,
   // instead of receiving a sentence that stops halfway. Saved WITH the message,
@@ -286,7 +331,7 @@ export async function POST(req: NextRequest) {
     assistantText = `${assistantText.trimEnd()}…\n\n${t('answerTruncated')}`;
   }
 
-  await prisma.aIMessage.create({
+  const assistantMessage = await prisma.aIMessage.create({
     data: {
       conversationId: conversation.id,
       role: 'ASSISTANT',
@@ -308,6 +353,8 @@ export async function POST(req: NextRequest) {
 
   return ok({
     conversation: toConversationDTO(refreshed),
-    creditsRemaining,
+    creditsRemaining: settled.remaining,
+    creditsCharged: settled.charged,
+    assistantMessageId: assistantMessage.id,
   });
 }

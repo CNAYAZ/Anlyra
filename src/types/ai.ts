@@ -23,6 +23,10 @@ export type ConversationDetailDTO = {
 export type SendMessageResponse = {
   conversation: ConversationDetailDTO;
   creditsRemaining: number;
+  /** Real cost of this answer — what the credit ledger recorded for it. */
+  creditsCharged: number;
+  /** The answer the cost belongs to. */
+  assistantMessageId: string;
 };
 
 export type InsightDTO = {
@@ -50,6 +54,14 @@ export type GenerateInsightsResponse = {
   creditsRemaining: number;
 };
 
+/** What POST /api/ai/insights/generate returns. */
+export type GenerateInsightsResult = {
+  created: number;
+  creditsRemaining: number;
+  /** Real cost of this generation — what the credit ledger recorded for it. */
+  creditsCharged: number;
+};
+
 export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type AlertStatus = 'NEW' | 'READ' | 'RESOLVED' | 'DISMISSED';
 
@@ -74,4 +86,6 @@ export type AlertDTO = {
 export type AnalyzeAlertResponse = AlertAnalysisDTO & {
   cached: boolean;
   creditsRemaining?: number;
+  /** Real cost of this analysis; absent when it came from the cache (free). */
+  creditsCharged?: number;
 };

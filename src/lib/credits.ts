@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import type { AiUsage } from './ai/credit-cost';
 
 export class InsufficientCreditsError extends Error {
   constructor() {
@@ -23,7 +24,10 @@ export type CreditReason =
   | 'ai_call'
   | 'refund'
   | 'signup_grant'
-  | 'admin_adjustment';
+  | 'admin_adjustment'
+  // The part of an AI call's reservation it did not use, given back once the
+  // call finished (settleAiCredits). Not 'refund': nothing went wrong.
+  | 'ai_unused';
 
 /**
  * Records ONE ledger row for a balance movement that has ALREADY been written.
@@ -51,19 +55,22 @@ export async function recordCreditEntry(
   organizationId: string,
   delta: number,
   reason: CreditReason,
-): Promise<void> {
+): Promise<string | null> {
   // A movement of zero is not a movement. Skipped so the ledger stays readable
   // (an admin edit that changes nothing, a refund of nothing).
-  if (delta === 0) return;
+  if (delta === 0) return null;
   try {
-    await prisma.creditEntry.create({
+    const row = await prisma.creditEntry.create({
       data: { organizationId, delta, reason },
+      select: { id: true },
     });
+    return row.id;
   } catch (err) {
     console.error(
       `[credits] ledger write FAILED for org ${organizationId} (delta ${delta}, reason ${reason}) — the balance moved, the trail did not:`,
       err,
     );
+    return null;
   }
 }
 
@@ -82,6 +89,8 @@ export type CreditSpend = {
   fromPlan: number;
   /** How much came out of the PURCHASED balance (Organization.aiCreditsPurchased). */
   fromPurchased: number;
+  /** The 'ai_call' ledger row this spend wrote (null if that write failed). */
+  entryId: string | null;
 };
 
 /** Shape of the single row the consume statement returns when it succeeds. */
@@ -171,11 +180,8 @@ export async function consumeCredits(organizationId: string, amount: number): Pr
     throw new InsufficientCreditsError();
   }
 
-  const spend: CreditSpend = {
-    remaining: row.plan_after + row.purchased_after,
-    fromPlan: row.plan_before - row.plan_after,
-    fromPurchased: row.purchased_before - row.purchased_after,
-  };
+  const fromPlan = row.plan_before - row.plan_after;
+  const fromPurchased = row.purchased_before - row.purchased_after;
 
   // ── THE LEDGER ROW IS WRITTEN HERE, AND DELIBERATELY NOT ABOVE ──
   // The statement above is the ONLY thing preventing double-spending, and it
@@ -193,9 +199,9 @@ export async function consumeCredits(organizationId: string, amount: number): Pr
   // The delta is the movement, not the request: fromPlan + fromPurchased, which
   // equals `amount` on success and would be the only honest number if it ever
   // did not.
-  await recordCreditEntry(organizationId, -(spend.fromPlan + spend.fromPurchased), 'ai_call');
+  const entryId = await recordCreditEntry(organizationId, -(fromPlan + fromPurchased), 'ai_call');
 
-  return spend;
+  return { remaining: row.plan_after + row.purchased_after, fromPlan, fromPurchased, entryId };
 }
 
 /**
@@ -238,10 +244,14 @@ export async function getCredits(organizationId: string): Promise<number> {
  * (a malformed AI response) and /api/ai/chat (a thread past the model's context
  * window). Both write one ledger row per refund, so a double refund would be
  * visible in the trail as two 'refund' rows for one 'ai_call'.
+ * Since 2026-09-30 settleAiCredits also calls it, once per AI call, to give
+ * back the unused part of a reservation (reason 'ai_unused'); a route that
+ * refunds in full goes through refundCredits directly and never settles too.
  */
 export async function refundCredits(
   organizationId: string,
   spend: Pick<CreditSpend, 'fromPlan' | 'fromPurchased'>,
+  reason: Extract<CreditReason, 'refund' | 'ai_unused'> = 'refund',
 ): Promise<number> {
   const updated = await prisma.organization.update({
     where: { id: organizationId },
@@ -255,7 +265,67 @@ export async function refundCredits(
   // After the increment, for the same reason as in consumeCredits: a refund that
   // failed because of its own ledger row would leave the customer charged for
   // something we already decided they should not pay for.
-  await recordCreditEntry(organizationId, spend.fromPlan + spend.fromPurchased, 'refund');
+  await recordCreditEntry(organizationId, spend.fromPlan + spend.fromPurchased, reason);
 
   return updated.aiCredits + updated.aiCreditsPurchased;
+}
+
+/**
+ * Closes an AI call that reserved its MAXIMUM with consumeCredits: keeps
+ * `charged` credits and gives the rest back with refundCredits, then writes the
+ * tokens the model used on the reservation's 'ai_call' ledger row.
+ *
+ * ── WHICH COLUMN THE UNUSED PART GOES BACK TO ──
+ * The credits the call KEEPS are counted plan-first, exactly as if only they
+ * had been consumed in the first place; everything else returns to the column
+ * it came from. So a reservation that dipped into the purchased balance gives
+ * the purchased credits back first — the end state is the one a direct
+ * consumeCredits(charged) would have produced.
+ *
+ * `charged` is clamped to [0, reserved]: this can only ever give back, never
+ * take more than the atomic reservation took. Call it EXACTLY ONCE per
+ * reservation (it goes through refundCredits — see there).
+ *
+ * `used` null: the call returned no usage (a model error). The tokens stay
+ * NULL on the ledger row; the balance is settled all the same.
+ */
+export async function settleAiCredits(
+  organizationId: string,
+  spend: CreditSpend,
+  charged: number,
+  used: { model: string; usage: AiUsage } | null,
+): Promise<{ charged: number; remaining: number }> {
+  const reserved = spend.fromPlan + spend.fromPurchased;
+  const kept = Math.min(Math.max(0, charged), reserved);
+  const keptFromPlan = Math.min(kept, spend.fromPlan);
+  const keptFromPurchased = kept - keptFromPlan;
+  const back = {
+    fromPlan: spend.fromPlan - keptFromPlan,
+    fromPurchased: spend.fromPurchased - keptFromPurchased,
+  };
+
+  let remaining = spend.remaining;
+  if (back.fromPlan + back.fromPurchased > 0) {
+    remaining = await refundCredits(organizationId, back, 'ai_unused');
+  }
+
+  // Best effort, like every ledger write: the balance is already right.
+  if (used && spend.entryId) {
+    try {
+      await prisma.creditEntry.update({
+        where: { id: spend.entryId },
+        data: {
+          inputTokens: used.usage.input,
+          outputTokens: used.usage.output,
+          cacheReadTokens: used.usage.cacheRead,
+          cacheWriteTokens: used.usage.cacheWrite,
+          model: used.model,
+        },
+      });
+    } catch (err) {
+      console.error(`[credits] token annotation FAILED for ledger row ${spend.entryId}:`, err);
+    }
+  }
+
+  return { charged: kept, remaining };
 }

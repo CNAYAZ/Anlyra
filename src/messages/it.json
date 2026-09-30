@@ -88,7 +88,7 @@
     "creditsRemaining": "{count} crediti rimanenti",
     "buyMore": "Acquista altri",
     "popoverTitle": "Crediti AI",
-    "popoverHint": "Ogni messaggio in chat consuma 1 credito. Generare nuovi insight costa 3 crediti.",
+    "popoverHint": "Ogni operazione AI costa in base alla lunghezza del lavoro: il pulsante mostra prima il massimo, la risposta il costo reale.",
     "notificationsTitle": "Notifiche",
     "notificationsEmpty": "Nessuna notifica al momento",
     "notificationsSettings": "Preferenze notifiche",
@@ -883,6 +883,12 @@
       "proLimit": "Hai raggiunto il limite di 10 membri del piano Pro. Aggiorna a Enterprise per membri illimitati."
     }
   },
+  "aiCost": {
+    "range": "circa {typical}, al massimo {max, plural, one {# credito} other {# crediti}}",
+    "exact": "{count, plural, one {# credito} other {# crediti}}",
+    "charged": "Costo: {count, plural, one {# credito} other {# crediti}}",
+    "insufficient": "Servono fino a {max, plural, one {# credito} other {# crediti}}, ne hai {balance}."
+  },
   "chat": {
     "title": "Chat AI",
     "subtitle": "Fai domande sui tuoi dati e ricevi analisi specifiche",
@@ -901,7 +907,7 @@
     "suggestion3": "Come ridurre il churn rate?",
     "noCreditsTitle": "Crediti esauriti",
     "noCreditsDescription": "I crediti AI sono esauriti. Puoi acquistare un pacchetto di crediti o passare a un piano con più crediti inclusi ogni mese.",
-    "creditsCost": "Costa 1 credito",
+    "creditsCost": "Ogni messaggio: {cost}",
     "errorSending": "Errore nell'invio del messaggio. Riprova.",
     "conversationTooLong": "Questa conversazione è diventata troppo lunga per essere elaborata. Non ti è stato addebitato nessun credito: apri una nuova conversazione per continuare.",
     "answerTruncated": "La risposta è stata interrotta perché troppo lunga. Chiedimi di continuare, oppure fai una domanda più precisa.",
@@ -912,13 +918,13 @@
     "title": "Insights AI",
     "subtitle": "Suggerimenti strategici generati dall'analisi dei tuoi dati",
     "generate": "Genera Nuovi Insight",
-    "generateButton": "Genera Nuovi Insight (3 crediti)",
+    "generateButton": "Genera nuovi insight ({cost})",
     "generateButtonDisabled": "Crediti AI esauriti. Puoi acquistare un pacchetto di crediti o passare a un piano superiore.",
     "creditsRequired": "Crediti AI insufficienti",
     "generateCost": "3 crediti",
     "generating": "Generazione in corso...",
     "generateSuccess": "{count, plural, one {# nuovo insight generato} other {# nuovi insight generati}}.",
-    "generateErrorCredits": "Crediti AI insufficienti: servono 3 crediti per generare nuovi insight.",
+    "generateErrorCredits": "Crediti AI insufficienti per generare nuovi insight.",
     "generateErrorNoData": "Non ci sono ancora abbastanza dati per generare insight. Aggiungi entrate, spese o crediti e riprova.",
     "generateErrorModel": "L'AI ha risposto in un formato non valido. Non è stato salvato nulla e i crediti usati sono stati restituiti: riprova.",
     "generateErrorRateLimited": "Troppe richieste. Riprova tra qualche minuto.",
@@ -978,7 +984,7 @@
     "filterStatus": "Stato",
     "all": "Tutti",
     "aiSectionTitle": "Analisi AI",
-    "analyzeButton": "Analizza con AI ({cost, plural, one {# credito} other {# crediti}})",
+    "analyzeButton": "Analizza con AI ({cost})",
     "analyzing": "Analisi in corso...",
     "aiEmpty": "Nessuna analisi disponibile. Genera una spiegazione e le azioni consigliate con l'AI.",
     "aiExplanation": "Spiegazione",
@@ -1286,11 +1292,11 @@
       "competitor": "Competitor",
       "chat": "Chat"
     },
-    "generate": "Genera analisi ({cost, plural, one {# credito} other {# crediti}})",
+    "generate": "Genera analisi ({cost})",
     "orAsk": "oppure fai una domanda specifica",
     "questionPlaceholder": "Fai una domanda sui tuoi dati…",
     "chatPlaceholder": "Scrivi un messaggio…",
-    "send": "Invia ({cost, plural, one {# credito} other {# crediti}})",
+    "send": "Invia ({cost})",
     "analyzing": "Sto analizzando…",
     "thinking": "Sto pensando…",
     "empty": "Seleziona una modalità e genera un’analisi, oppure fai una domanda.",
@@ -1998,7 +2004,8 @@
         "ai_call": "Utilizzo AI",
         "refund": "Rimborso",
         "signup_grant": "Crediti di benvenuto",
-        "admin_adjustment": "Correzione manuale"
+        "admin_adjustment": "Correzione manuale",
+        "ai_unused": "Crediti riservati e non usati"
       }
     },
     "invoices": {
@@ -2255,7 +2262,7 @@
       },
       {
         "q": "Cosa sono i crediti AI?",
-        "a": "Ogni interazione AI (generazione di insight, alert, chat) consuma un credito; le previsioni (forecasting) sono gratuite. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
+        "a": "Un'operazione AI costa in base a quanto lavora il modello per rispondere: prima di avviarla vedi quanto può costare al massimo, dopo vedi quanto è costata davvero. Indicativamente, in crediti: un messaggio in chat circa {chatTypical} (al massimo {chatMax}), un'analisi dell'agente AI circa {analyzeTypical} (al massimo {analyzeMax}), una generazione di insight circa {insightsTypical} (al massimo {insightsMax}), l'analisi di un alert {alertsMax}. Se hai meno crediti del massimo, l'operazione non parte. Le previsioni (forecasting) sono gratuite. Il piano Pro include 200 crediti al mese, il piano Avanzato 700. Crediti extra acquistabili in bundle."
       },
       {
         "q": "I miei dati sono al sicuro?",

@@ -1,4 +1,5 @@
-import { chatComplete } from '@/lib/ai/client';
+import { chatComplete, type ChatCompleteOptions } from '@/lib/ai/client';
+import { AI_OPERATIONS } from '@/lib/ai/credit-cost';
 import { modelFor } from '@/lib/ai/models';
 import type { AIBusinessContext } from '@/lib/ai-context';
 import { DATA_GAPS_TONE_INSIGHTS } from '@/lib/ai/prompts/tone';
@@ -75,7 +76,9 @@ const MAX_CONTENT = 900;
 // Was 8192 — below the shared default once that was raised to 16000.
 // Anthropic bills actual tokens generated, not this ceiling, so raising it only
 // changes the worst case, not the typical cost of a generation.
-const INSIGHTS_MAX_TOKENS = 16000;
+// Read from the credit table, where the maximum a generation can cost is priced
+// on it (founder's decision, 2026-09-30: stays at 16000).
+const INSIGHTS_MAX_TOKENS = AI_OPERATIONS.insights.maxOutputTokens;
 
 function buildSystemPrompt(locale: 'it' | 'en'): string {
   const lang = locale === 'en' ? 'english' : 'italiano';
@@ -324,6 +327,8 @@ export function validateInsights(raw: unknown[]): GeneratedInsight[] {
 export async function generateInsights(
   ctx: AIBusinessContext,
   locale: 'it' | 'en',
+  /** Receives the tokens the call used, for the credit charge. */
+  onUsage?: ChatCompleteOptions['onUsage'],
 ): Promise<GeneratedInsight[]> {
   const { text } = await chatComplete(
     buildSystemPrompt(locale),
@@ -334,6 +339,7 @@ export async function generateInsights(
       // into the advice the product is sold on (see @/lib/ai/models).
       surface: 'insights',
       logLabel: 'insights:generate',
+      onUsage,
     },
   );
 
