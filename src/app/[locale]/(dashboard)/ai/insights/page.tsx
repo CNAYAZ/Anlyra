@@ -19,15 +19,14 @@ import { apiFetch } from '@/lib/api/fetcher';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsDemo } from '@/lib/demo/context';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
-import type { InsightDTO } from '@/types/ai';
+import type { GenerateInsightsResult, InsightDTO } from '@/types/ai';
+import { useAiCost } from '@/components/ai/ai-cost';
 
 type InsightStatus = 'NEW' | 'REVIEWED' | 'IMPLEMENTED' | 'IGNORED';
 
 /** Envelope returned alongside the page of insights. Mirrors the route. */
 type PaginationInfo = { total: number; page: number; pageSize: number; totalPages: number };
 
-/** Credits charged by POST /api/ai/insights/generate. Mirrors the server. */
-const GENERATION_CREDIT_COST = 3;
 
 export default function InsightsPage() {
   const t = useTranslations('insights');
@@ -36,6 +35,7 @@ export default function InsightsPage() {
   const locale = useLocale();
   const aiCreditsBalance = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
+  const cost = useAiCost();
   const qc = useQueryClient();
 
   const [filters, setFilters] = useState<InsightFilterValues>({
@@ -60,7 +60,8 @@ export default function InsightsPage() {
   // refused server-side by requireEditorRole anyway.
   const readOnlyRole = useIsReadOnlyRole();
   const tSettings = useTranslations('settings');
-  const canGenerate = !isDemo && !readOnlyRole && aiCreditsBalance >= GENERATION_CREDIT_COST;
+  // The route reserves the MAXIMUM a generation can cost and refuses below it.
+  const canGenerate = !isDemo && !readOnlyRole && aiCreditsBalance >= cost.max('insights');
 
   const { data, isLoading, isError, refetch } = useQuery({
     // `page` is part of the key: changing page is a different server request,
@@ -120,7 +121,7 @@ export default function InsightsPage() {
 
   const generateMutation = useMutation({
     mutationFn: () =>
-      apiFetch<{ created: number; creditsRemaining: number }>('/api/ai/insights/generate', {
+      apiFetch<GenerateInsightsResult>('/api/ai/insights/generate', {
         method: 'POST',
         body: JSON.stringify({ locale }),
       }),
@@ -136,14 +137,14 @@ export default function InsightsPage() {
       // and appear to get nothing.
       setPage(1);
       qc.invalidateQueries({ queryKey: ['insights'] });
-      showToast(t('generateSuccess', { count: res.created }));
+      showToast(`${t('generateSuccess', { count: res.created })} ${cost.charged(res.creditsCharged)}`);
     },
     onError: (err: Error) => {
       // The API answers with stable codes (see the route); anything else falls
       // back to a generic message rather than leaking a raw error string.
       const code = err.message;
       const known: Record<string, string> = {
-        INSUFFICIENT_CREDITS: t('generateErrorCredits'),
+        INSUFFICIENT_CREDITS: cost.insufficient('insights', aiCreditsBalance),
         NOT_ENOUGH_DATA: t('generateErrorNoData'),
         INVALID_AI_RESPONSE: t('generateErrorModel'),
         RATE_LIMITED: t('generateErrorRateLimited'),
@@ -181,14 +182,14 @@ export default function InsightsPage() {
             size="sm"
             disabled={!canGenerate || generateMutation.isPending}
             onClick={() => generateMutation.mutate()}
-            title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !canGenerate ? t('creditsRequired') : undefined}
+            title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : !canGenerate ? cost.insufficient('insights', aiCreditsBalance) : undefined}
           >
             {generateMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : (
               <Sparkles className="h-4 w-4" aria-hidden />
             )}
-            {generateMutation.isPending ? t('generating') : t('generateButton')}
+            {generateMutation.isPending ? t('generating') : t('generateButton', { cost: cost.label('insights') })}
           </Button>
         }
       />
@@ -218,7 +219,9 @@ export default function InsightsPage() {
 
       {!canGenerate && !generateMutation.isPending && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
-          <span>{t('generateButtonDisabled')}</span>
+          <span className="tabular-nums">
+            {isDemo || readOnlyRole ? t('generateButtonDisabled') : cost.insufficient('insights', aiCreditsBalance)}
+          </span>
           <Link
             href="/settings/credits"
             className="shrink-0 font-medium underline-offset-4 hover:underline"

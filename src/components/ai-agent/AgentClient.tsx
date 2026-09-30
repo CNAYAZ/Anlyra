@@ -26,16 +26,22 @@ import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { useFeatureGate } from '@/lib/billing/context';
 import { PlanLockedNote } from '@/components/billing/PlanLockedNote';
 import { AnalysisMarkdown } from './AnalysisMarkdown';
+import { AiCostCharged, useAiCost } from '@/components/ai/ai-cost';
 
 /** Sent by /api/ai/analyze at the end of an answer that finished on its own. */
 const ANSWER_COMPLETE_MARKER = '\u0004';
 
-// Cost of one /api/ai/analyze call (any mode, streaming or not) — see the
-// route's ANALYSIS_CREDIT_COST. Used both to decide when to disable the
-// Generate/Send buttons ahead of a request AND to show that cost on the
-// buttons themselves (t('generate'/'send', { cost: ... })); the server is
-// the source of truth, this only mirrors it.
-const ANALYSIS_CREDIT_COST = 1;
+/**
+ * Starts the cost trailer that closes every /api/ai/analyze stream: this
+ * character, then JSON { creditsCharged, creditsRemaining }. Mirrors the route.
+ */
+const COST_TRAILER_MARKER = '\u0005';
+
+/** The answer text of a stream read so far: trailer and end marker removed. */
+function answerText(acc: string): string {
+  const i = acc.indexOf(COST_TRAILER_MARKER);
+  return (i >= 0 ? acc.slice(0, i) : acc).replace(ANSWER_COMPLETE_MARKER, '');
+}
 
 type AgentMode = 'financial' | 'marketing' | 'kpi' | 'competitor' | 'chat';
 const MODES: AgentMode[] = ['financial', 'marketing', 'kpi', 'competitor', 'chat'];
@@ -61,8 +67,10 @@ type TabState = {
   // result panel show an Upgrade link instead of a dead-end message.
   creditsExhausted: boolean;
   loading: boolean;
+  /** Real cost of the last answer, from the stream's cost trailer. */
+  charged: number | null;
 };
-const EMPTY_TAB: TabState = { question: '', result: null, error: null, creditsExhausted: false, loading: false };
+const EMPTY_TAB: TabState = { question: '', result: null, error: null, creditsExhausted: false, loading: false, charged: null };
 
 function initialStates(): Record<AgentMode, TabState> {
   return {
@@ -79,12 +87,15 @@ export function AgentClient() {
   const tCommon = useTranslations('common');
   const tDemo = useTranslations('demo');
   const credits = useCreditsStore((s) => s.credits);
+  const setCredits = useCreditsStore((s) => s.setCredits);
+  const cost = useAiCost();
   const isDemo = useIsDemo();
   // Viewer: every analysis spends the organization's credits — disabled, and
   // refused server-side by requireEditorRole anyway.
   const readOnlyRole = useIsReadOnlyRole();
   const tSettings = useTranslations('settings');
-  const hasCredits = !isDemo && !readOnlyRole && credits >= ANALYSIS_CREDIT_COST;
+  // The route reserves the MAXIMUM an analysis can cost and refuses below it.
+  const hasCredits = !isDemo && !readOnlyRole && credits >= cost.max('analyze');
   // Plan: the AI Agent is an ADVANCED feature — /api/ai/analyze refuses it
   // (requireFeaturePlan) on a plan without it, before spending any credit.
   const { hasAccess: planAllowsAgent } = useFeatureGate('ai_agent');
@@ -123,7 +134,7 @@ export function AgentClient() {
     const q = st.question.trim();
     if (withQuestion && !q) return;
 
-    patch(m, { loading: true, error: null, creditsExhausted: false, result: null });
+    patch(m, { loading: true, error: null, creditsExhausted: false, result: null, charged: null });
     try {
       const res = await fetch('/api/ai/analyze', {
         method: 'POST',
@@ -152,7 +163,7 @@ export function AgentClient() {
         const rateLimiterDown = code === 'RATE_LIMIT_UNAVAILABLE';
         patch(m, {
           error: insufficientCredits
-            ? t('errors.noCredits')
+            ? cost.insufficient('analyze', credits)
             : rateLimiterDown
               ? t('errors.rateLimitUnavailable')
               : res.status === 402
@@ -168,6 +179,10 @@ export function AgentClient() {
         return;
       }
 
+      // The balance with the maximum reserved; the trailer brings the final one.
+      const reserved = Number(res.headers.get('X-Credits-Remaining'));
+      if (Number.isFinite(reserved)) setCredits(reserved);
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let acc = '';
@@ -175,16 +190,29 @@ export function AgentClient() {
         const { done, value } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
-        patch(m, { result: acc.replace(ANSWER_COMPLETE_MARKER, '') }); // grow the visible text as tokens arrive
+        patch(m, { result: answerText(acc) }); // grow the visible text as tokens arrive
       }
       acc += decoder.decode(); // flush any trailing multibyte bytes
+      const trailerAt = acc.indexOf(COST_TRAILER_MARKER);
+      const answer = trailerAt >= 0 ? acc.slice(0, trailerAt) : acc;
+      let charged: number | null = null;
+      if (trailerAt >= 0) {
+        try {
+          const trailer = JSON.parse(acc.slice(trailerAt + 1)) as { creditsCharged: number; creditsRemaining: number };
+          charged = trailer.creditsCharged;
+          setCredits(trailer.creditsRemaining);
+        } catch {
+          // A damaged trailer only loses the cost line, never the answer.
+        }
+      }
       // The route sends ANSWER_COMPLETE_MARKER only when the answer finished on
       // its own; without it the text was cut (length ceiling, error, timeout).
-      const complete = acc.endsWith(ANSWER_COMPLETE_MARKER);
+      const complete = answer.endsWith(ANSWER_COMPLETE_MARKER);
       patch(m, {
-        result: acc.replace(ANSWER_COMPLETE_MARKER, ''),
+        result: answerText(acc),
         error: complete ? null : t('errors.truncated'),
         loading: false,
+        charged,
       });
     } catch {
       // Network/read error mid-stream: keep the partial text already shown and
@@ -245,10 +273,10 @@ export function AgentClient() {
               onClick={() => run(false)}
               loading={current.loading}
               disabled={current.loading || !canRun}
-              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? t('errors.noCredits') : undefined}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? cost.insufficient('analyze', credits) : undefined}
             >
               <Sparkles className="h-4 w-4" />
-              {t('generate', { cost: ANALYSIS_CREDIT_COST })}
+              {t('generate', { cost: cost.label('analyze') })}
             </Button>
             <span className="text-xs text-fg-3">{t('orAsk')}</span>
           </div>
@@ -275,10 +303,10 @@ export function AgentClient() {
               onClick={() => run(true)}
               loading={current.loading}
               disabled={current.loading || !current.question.trim() || !canRun}
-              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? t('errors.noCredits') : undefined}
+              title={readOnlyRole ? tSettings('readOnlyRoleShort') : isDemo ? tDemo('readOnlyShort') : planLocked ? undefined : !hasCredits ? cost.insufficient('analyze', credits) : undefined}
             >
               <Send className="h-4 w-4" />
-              {t('send', { cost: ANALYSIS_CREDIT_COST })}
+              {t('send', { cost: cost.label('analyze') })}
             </Button>
           </div>
         </div>
@@ -297,7 +325,7 @@ export function AgentClient() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
             {/* In the demo this is not a credit shortage, so it must not send the
                 visitor to a billing page for an account they do not have. */}
-            <span>{isDemo ? tDemo('readOnly') : t('errors.noCredits')}</span>
+            <span>{isDemo ? tDemo('readOnly') : cost.insufficient('analyze', credits)}</span>
             <Link
               href={isDemo ? '/signup' : '/settings/credits'}
               className="shrink-0 font-medium underline-offset-4 hover:underline"
@@ -349,6 +377,9 @@ export function AgentClient() {
                   <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
                   {current.error}
                 </p>
+              )}
+              {!current.loading && current.charged !== null && (
+                <AiCostCharged credits={current.charged} className="mt-3" />
               )}
             </div>
           ) : current.error ? (

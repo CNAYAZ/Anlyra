@@ -883,6 +883,12 @@
       "proLimit": "You've reached the 10-member limit of the Pro plan. Upgrade to Enterprise for unlimited members."
     }
   },
+  "aiCost": {
+    "range": "about {typical}, at most {max, plural, one {# credit} other {# credits}}",
+    "exact": "{count, plural, one {# credit} other {# credits}}",
+    "charged": "Cost: {count, plural, one {# credit} other {# credits}}",
+    "insufficient": "This needs up to {max, plural, one {# credit} other {# credits}}; you have {balance}."
+  },
   "chat": {
     "title": "AI Chat",
     "subtitle": "Ask questions about your data and get specific analysis",
@@ -901,7 +907,7 @@
     "suggestion3": "How can we reduce churn rate?",
     "noCreditsTitle": "Credits exhausted",
     "noCreditsDescription": "Your AI credits have run out. You can buy a credit pack or move to a plan with more credits included every month.",
-    "creditsCost": "Costs 1 credit",
+    "creditsCost": "Each message: {cost}",
     "errorSending": "Error sending message. Please try again.",
     "conversationTooLong": "This conversation has grown too long to process. You were not charged a credit: start a new conversation to continue.",
     "answerTruncated": "The answer was cut off because it was too long. Ask me to continue, or ask a more specific question.",
@@ -912,7 +918,7 @@
     "title": "AI Insights",
     "subtitle": "Strategic suggestions generated from your data analysis",
     "generate": "Generate New Insights",
-    "generateButton": "Generate New Insights (3 credits)",
+    "generateButton": "Generate new insights ({cost})",
     "generateButtonDisabled": "AI credits have run out. You can buy a credit pack or move to a higher plan.",
     "creditsRequired": "Insufficient AI credits",
     "generateCost": "3 credits",
@@ -978,7 +984,7 @@
     "filterStatus": "Status",
     "all": "All",
     "aiSectionTitle": "AI Analysis",
-    "analyzeButton": "Analyze with AI ({cost, plural, one {# credit} other {# credits}})",
+    "analyzeButton": "Analyze with AI ({cost})",
     "analyzing": "Analyzing...",
     "aiEmpty": "No analysis available yet. Generate an explanation and recommended actions with AI.",
     "aiExplanation": "Explanation",
@@ -1286,11 +1292,11 @@
       "competitor": "Competitor",
       "chat": "Chat"
     },
-    "generate": "Generate analysis ({cost, plural, one {# credit} other {# credits}})",
+    "generate": "Generate analysis ({cost})",
     "orAsk": "or ask a specific question",
     "questionPlaceholder": "Ask a question about your data…",
     "chatPlaceholder": "Type a message…",
-    "send": "Send ({cost, plural, one {# credit} other {# credits}})",
+    "send": "Send ({cost})",
     "analyzing": "Analyzing…",
     "thinking": "Thinking…",
     "empty": "Pick a mode and generate an analysis, or ask a question.",

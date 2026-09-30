@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useAiCost } from '@/components/ai/ai-cost';
 
 type Props = {
   onSend: (text: string) => void;
@@ -15,6 +16,7 @@ type Props = {
 export function ChatInput({ onSend, disabled, placeholder }: Props) {
   const [value, setValue] = useState('');
   const t = useTranslations('chat');
+  const cost = useAiCost();
   const ref = useRef<HTMLTextAreaElement>(null);
 
   function submit() {
@@ -49,7 +51,7 @@ export function ChatInput({ onSend, disabled, placeholder }: Props) {
           <Send className="h-4 w-4" />
         </Button>
       </div>
-      <p className="mx-auto mt-2 max-w-3xl text-right text-xs text-muted-foreground">{t('creditsCost')}</p>
+      <p className="mx-auto mt-2 max-w-3xl text-right text-xs tabular-nums text-muted-foreground">{t('creditsCost', { cost: cost.label('chat') })}</p>
     </div>
   );
 }

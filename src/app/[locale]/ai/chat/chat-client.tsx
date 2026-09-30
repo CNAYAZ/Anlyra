@@ -11,6 +11,7 @@ import { ChatInput } from '@/components/ai/chat-input';
 import { ChatEmpty } from '@/components/ai/chat-empty';
 import { NoCredits } from '@/components/ai/no-credits';
 import { TypingIndicator } from '@/components/ai/typing-indicator';
+import { AiCostCharged, useAiCost } from '@/components/ai/ai-cost';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
@@ -96,7 +97,13 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
+  const cost = useAiCost();
+  // The route reserves the MAXIMUM a message can cost and refuses below it.
+  const chatMax = cost.max('chat');
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Real cost of each answer received in this visit, by message id. Answers
+  // loaded from an older visit have no cost stored with them, so none is shown.
+  const [charges, setCharges] = useState<Record<string, number>>({});
   const [pendingUser, setPendingUser] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Auto-select the most recent conversation only once, on first load — not every
@@ -133,16 +140,16 @@ export function ChatClient({ companyName, initialCredits }: Props) {
     mutationFn: sendChatMessage,
     onSuccess: (res) => {
       setCredits(res.creditsRemaining);
+      setCharges((c) => ({ ...c, [res.assistantMessageId]: res.creditsCharged }));
       setActiveId(res.conversation.id);
       qc.setQueryData(['conversation', res.conversation.id], res.conversation);
       qc.invalidateQueries({ queryKey: ['conversations'] });
       setPendingUser(null);
     },
-    onError: (err) => {
+    onError: () => {
+      // A 402 INSUFFICIENT_CREDITS means "below the maximum", not "zero": the
+      // counter is left as it is and the message says how many are needed.
       setPendingUser(null);
-      // The server says the balance is empty: the counter and the input follow
-      // it, and the empty state offers the Credits page (NoCredits).
-      if (err instanceof ChatRequestError && err.status === 402 && err.code === 'INSUFFICIENT_CREDITS') setCredits(0);
     },
   });
 
@@ -151,7 +158,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   }, [conversationQuery.data, pendingUser, sendMutation.isPending]);
 
   function handleSend(text: string) {
-    if (credits <= 0) return;
+    if (credits < chatMax) return;
     setPendingUser(text);
     sendMutation.mutate({ conversationId: activeId, message: text });
   }
@@ -166,6 +173,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   // to replace the error, so a refused first question simply vanished.
   const showEmpty = !activeId && !pendingUser && !sendMutation.isPending && !sendMutation.isError;
   const noCredits = credits <= 0;
+  const notEnoughCredits = credits < chatMax;
 
   // Same status/code priority as AgentClient.tsx's error mapping for
   // /api/ai/analyze: INSUFFICIENT_CREDITS before a bare 402, the rate-limiter
@@ -175,7 +183,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   const sendErrorMessage =
     sendError instanceof ChatRequestError
       ? sendError.status === 402 && sendError.code === 'INSUFFICIENT_CREDITS'
-        ? tAgent('errors.noCredits')
+        ? cost.insufficient('chat', credits)
         : sendError.code === 'RATE_LIMIT_UNAVAILABLE'
           ? tAgent('errors.rateLimitUnavailable')
           : // The thread outgrew the model's context window: permanent for THIS
@@ -236,7 +244,10 @@ export function ChatClient({ companyName, initialCredits }: Props) {
                 </p>
               )}
               {messages.map((m) => (
-                <ChatMessage key={m.id} role={m.role} content={m.content} />
+                <div key={m.id}>
+                  <ChatMessage role={m.role} content={m.content} />
+                  {charges[m.id] !== undefined && <AiCostCharged credits={charges[m.id]} className="mt-1 pl-12" />}
+                </div>
               ))}
               {pendingUser && <ChatMessage role="USER" content={pendingUser} />}
               {sendMutation.isPending && (
@@ -286,9 +297,20 @@ export function ChatClient({ companyName, initialCredits }: Props) {
           </Link>
         </p>
 
+        {/* Below the maximum a message can cost: said BEFORE the customer
+            types, not only after a refused send. */}
+        {notEnoughCredits && !noCredits && !readOnlyRole && (
+          <p className="border-t border-border bg-warning/10 px-6 py-2 text-center text-xs tabular-nums text-foreground">
+            {cost.insufficient('chat', credits)}{' '}
+            <Link href="/settings/credits" className="font-medium underline-offset-4 hover:underline">
+              {tCommon('goToCredits')}
+            </Link>
+          </p>
+        )}
+
         <ChatInput
           onSend={handleSend}
-          disabled={readOnlyRole || noCredits || sendMutation.isPending}
+          disabled={readOnlyRole || notEnoughCredits || sendMutation.isPending}
           placeholder={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
         />
       </section>
