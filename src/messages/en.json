@@ -913,7 +913,7 @@
     "answerTruncated": "The answer was cut off because it was too long. Ask me to continue, or ask a more specific question.",
     "historyTrimmedNotice": "Long conversation: the AI takes the last {count} messages into account. Earlier ones stay here for you to read back, but no longer feed into its answers.",
     "demoQuestionsLeft": "{count, plural, one {You have # question left} other {You have # questions left}} for the AI in this demo.",
-    "demoQuestionsOver": "You have used all the demo questions. To carry on with your own company's numbers, sign up:",
+    "demoQuestionsOver": "To keep asking the AI questions, sign up and use your own company's data:",
     "dataHandlingLinkLabel": "How we handle your data"
   },
   "insights": {

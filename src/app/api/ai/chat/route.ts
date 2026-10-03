@@ -10,6 +10,7 @@ import { checkRateLimit, getClientIp, returnQuota, takeQuota } from '@/lib/rate-
 import {
   DEMO_CHAT_COOKIE,
   DEMO_CHAT_COOKIE_MAX_AGE,
+  demoDayKey,
   demoIpKey,
   readDemoChatSessionId,
 } from '@/lib/demo/chat-quota';
@@ -421,6 +422,14 @@ async function demoChat(req: NextRequest) {
     await returnQuota('demo-chat-session', sessionId);
     return ipLimit.reason === 'unavailable' ? rateLimitResponse(ipLimit) : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
   }
+  // The total for the whole demo today. Same answer as the session's end: the
+  // visitor is invited to sign up and is not told which ceiling they met.
+  const dayKey = demoDayKey();
+  const today = await takeQuota('demo-chat-day', dayKey);
+  if (!today.success) {
+    await returnQuota('demo-chat-session', sessionId);
+    return today.reason === 'unavailable' ? rateLimitResponse({ ...today, reset: 0 }) : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
+  }
 
   let result;
   try {
@@ -437,6 +446,7 @@ async function demoChat(req: NextRequest) {
   } catch (err) {
     console.error('[ai:error] surface=chat:demo', err);
     await returnQuota('demo-chat-session', sessionId);
+    await returnQuota('demo-chat-day', dayKey);
     return fail('AI_REQUEST_FAILED', 502);
   }
 
@@ -446,7 +456,7 @@ async function demoChat(req: NextRequest) {
     answer = `${answer.trimEnd()}…\n\n${t('answerTruncated')}`;
   }
 
-  const res = ok({ answer, questionsLeft: question.remaining });
+  const res = ok({ answer, questionsLeft: Math.min(question.remaining, today.remaining) });
   if (!existingId) {
     res.cookies.set(DEMO_CHAT_COOKIE, sessionId, {
       httpOnly: true,
