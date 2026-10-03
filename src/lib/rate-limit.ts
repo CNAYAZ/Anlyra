@@ -348,6 +348,15 @@ export async function resetRateLimit(action: RateLimitAction, identifier: string
 }
 
 /**
+ * The most questions the WHOLE demo chat answers in one day, all visitors
+ * together (founder's decision, 2026-10-03). It is the one ceiling that holds
+ * however many sessions and IPs somebody uses, so it is also the most the demo
+ * can cost a day: 30 answers. The "day" is the calendar day in Italy
+ * (@/lib/demo/chat-quota). Change it here and nowhere else.
+ */
+const DEMO_CHAT_DAILY_CAP = 30;
+
+/**
  * QUOTAS — a fixed number of uses for one identifier, not a rate.
  *
  * A sliding window lets an earlier window "decay": a demo session that asked
@@ -360,6 +369,9 @@ const QUOTAS = {
   // Questions per demo session. The key expires 12 h after the last question,
   // the session cookie 12 h after the first (see @/lib/demo/chat-quota).
   'demo-chat-session': { limit: 5, ttlSeconds: 12 * 60 * 60 },
+  // Questions per day for the whole demo. One key per Italian calendar day, so
+  // the ttl only cleans up: 36 h is longer than any day.
+  'demo-chat-day': { limit: DEMO_CHAT_DAILY_CAP, ttlSeconds: 36 * 60 * 60 },
 } as const satisfies Record<string, { limit: number; ttlSeconds: number }>;
 
 export type QuotaName = keyof typeof QUOTAS;
@@ -379,7 +391,13 @@ export async function takeQuota(
     const client = getRedis();
     if (!client) return { success: false, remaining: -1, reason: 'unavailable' };
     const [used] = await client.pipeline().incr(key).expire(key, ttlSeconds).exec();
-    if (used > limit) return { success: false, remaining: 0, reason: 'limited' };
+    if (used > limit) {
+      // Takes its own use back: a refused attempt must not count, or the
+      // counter would drift above the limit and a use given back later
+      // (returnQuota) would not free a place.
+      await client.decr(key);
+      return { success: false, remaining: 0, reason: 'limited' };
+    }
     return { success: true, remaining: limit - used, reason: 'ok' };
   } catch (err) {
     console.error(`${UNAVAILABLE_TAG} cause=error action=${name} stage=quota-take:`, err);

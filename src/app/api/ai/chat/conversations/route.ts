@@ -1,6 +1,6 @@
 import { ok, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getCurrentContext, isDemoOrganization } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,10 @@ export async function GET() {
   // instead of a proper 401. Wrapped like every other route that calls it.
   try {
     const { organizationId } = await getCurrentContext();
+
+    // The demo chat saves nothing (see demoChat in ../route.ts) and a demo
+    // visitor must never see a saved conversation, whoever's it was.
+    if (isDemoOrganization(organizationId)) return ok({ conversations: [] });
 
     const conversations = await prisma.aIConversation.findMany({
       where: { organizationId },

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Topbar } from '@/components/dashboard/Topbar';
 import { CreditsHydrator } from '@/components/dashboard/CreditsHydrator';
+import { DemoQuestionsHydrator } from '@/components/dashboard/DemoQuestionsHydrator';
+import { demoQuestionsLeft } from '@/lib/demo/chat-quota';
 import { TrialExpiredBanner } from '@/components/billing/TrialExpiredBanner';
 import { LegalReacceptBanner } from '@/components/legal/LegalReacceptBanner';
 import { prisma } from '@/lib/prisma';
@@ -85,6 +87,8 @@ export default async function DashboardLayout({
 
   const planMax = PLANS[planId]?.limits.aiCredits ?? PLANS['PRO'].limits.aiCredits;
   const credits = await getCreditBalance(orgId);
+  // The demo spends no credits: its top bar shows the questions left instead.
+  const demoLeft = isDemo ? await demoQuestionsLeft() : null;
 
   // Real role, for the same reason as isDemo above: only for a real signed-in
   // member (getAuthContext() returns null for the anonymous demo visitor,
@@ -176,6 +180,7 @@ export default async function DashboardLayout({
                 </main>
               </div>
               <CreditsHydrator credits={credits} max={planMax} />
+              {isDemo && <DemoQuestionsHydrator left={demoLeft} />}
             </div>
             </ReadOnlyRoleProvider>
           </ManagerProvider>

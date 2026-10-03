@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { useIsDemo } from '@/lib/demo/context';
+import { useDemoQuestionsStore } from '@/stores/demo-questions-store';
 import type { ApiResponse } from '@/lib/api';
 import type {
   ChatMessageDTO,
@@ -122,7 +123,10 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
   const locale = useLocale();
   const isDemo = useIsDemo();
   const [demoMessages, setDemoMessages] = useState<ChatMessageDTO[]>([]);
-  const [demoLeft, setDemoLeft] = useState<number | null>(initialDemoQuestionsLeft);
+  // Shared with the top bar. The server value until the store has been set.
+  const storeLeft = useDemoQuestionsStore((s) => s.left);
+  const setDemoLeft = useDemoQuestionsStore((s) => s.setLeft);
+  const demoLeft = storeLeft ?? initialDemoQuestionsLeft;
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);

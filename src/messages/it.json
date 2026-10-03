@@ -74,6 +74,8 @@
   },
   "topbar": {
     "credits": "Crediti AI",
+    "demoQuestions": "{count, plural, one {# domanda} other {# domande}}",
+    "demoQuestionsTitle": "Domande rimaste per l'AI nella demo",
     "notifications": "Notifiche",
     "toggleTheme": "Cambia tema",
     "toggleLanguage": "Cambia lingua",
@@ -913,7 +915,7 @@
     "answerTruncated": "La risposta è stata interrotta perché troppo lunga. Chiedimi di continuare, oppure fai una domanda più precisa.",
     "historyTrimmedNotice": "Conversazione lunga: l'AI tiene conto degli ultimi {count} messaggi. I precedenti restano qui e puoi rileggerli, ma non entrano più nelle sue risposte.",
     "demoQuestionsLeft": "{count, plural, one {Ti resta # domanda} other {Ti restano # domande}} per l'AI in questa demo.",
-    "demoQuestionsOver": "Hai usato tutte le domande della demo. Per continuare con i numeri della tua azienda, registrati:",
+    "demoQuestionsOver": "Per continuare a fare domande all'AI, registrati e usa i dati della tua azienda:",
     "dataHandlingLinkLabel": "Come trattiamo i tuoi dati"
   },
   "insights": {

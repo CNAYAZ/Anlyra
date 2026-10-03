@@ -1,6 +1,6 @@
 import { ok, fail, failFromError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { getCurrentContext } from '@/lib/session';
+import { getCurrentContext, isDemoOrganization } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   // same defect as the list route next to this file.
   try {
     const { organizationId } = await getCurrentContext();
+
+    // Same as the list next to this file: the demo has no saved conversations.
+    if (isDemoOrganization(organizationId)) return fail('NOT_FOUND', 404);
 
     const conversation = await prisma.aIConversation.findFirst({
       where: { id: (await ctx.params).id, organizationId },

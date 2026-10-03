@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { peekQuota, quotaLimit } from '@/lib/rate-limit';
+import { toAppDateString } from '@/lib/timezone';
 
 /**
  * The demo chat's limits (founder's decision, 2026-10-03): an anonymous demo
@@ -10,8 +11,13 @@ import { peekQuota, quotaLimit } from '@/lib/rate-limit';
  *     random id in DEMO_CHAT_COOKIE (issued by /api/ai/chat on the first
  *     question; the demo cookie itself carries a constant, not an id).
  *   • 15 questions a day per IP — the 'demo-chat-ip' bucket. A new session costs
- *     nothing to open (clear the cookies, press the button again), so this is
- *     the ceiling that actually holds.
+ *     nothing to open (clear the cookies, press the button again), so this
+ *     slows a single source down.
+ *   • 30 questions a day for the whole demo — the 'demo-chat-day' quota, one
+ *     counter per Italian calendar day (DEMO_CHAT_DAILY_CAP in rate-limit.ts).
+ *     The only ceiling that holds against many IPs: it bounds the daily cost.
+ *     A visitor who meets it is shown the same invitation to sign up as one
+ *     who used their 5 questions, and is not told why.
  */
 export const DEMO_CHAT_COOKIE = 'anlyra_demo_chat';
 
@@ -26,11 +32,23 @@ export async function readDemoChatSessionId(): Promise<string | null> {
   return value && SESSION_ID.test(value) ? value : null;
 }
 
-/** Questions left in this demo session, for the counter; null when unreadable. */
+/** The identifier of today's counter for the whole demo (Italian calendar day). */
+export function demoDayKey(now: Date = new Date()): string {
+  return toAppDateString(now);
+}
+
+/**
+ * Questions this visitor can still ask, for the counter: what is left in the
+ * session or in today's total for the whole demo, whichever is less. null when
+ * it cannot be read.
+ */
 export async function demoQuestionsLeft(): Promise<number | null> {
   const id = await readDemoChatSessionId();
-  if (!id) return quotaLimit('demo-chat-session');
-  return peekQuota('demo-chat-session', id);
+  const [session, day] = await Promise.all([
+    id ? peekQuota('demo-chat-session', id) : Promise.resolve(quotaLimit('demo-chat-session')),
+    peekQuota('demo-chat-day', demoDayKey()),
+  ]);
+  return session === null || day === null ? null : Math.min(session, day);
 }
 
 /**
