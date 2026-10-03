@@ -239,11 +239,15 @@ export async function getCredits(organizationId: string): Promise<number> {
  * Double-refund safety: this is a single atomic increment, not a toggle or a
  * balance recomputation, so calling it is only safe to do EXACTLY ONCE per
  * consumeCredits() call it is meant to undo. Callers must not retry or call it
- * from more than one code path for the same failed request. Two callers do
- * today, each exactly once, from a single catch branch: /api/ai/insights/generate
- * (a malformed AI response) and /api/ai/chat (a thread past the model's context
- * window). Both write one ledger row per refund, so a double refund would be
- * visible in the trail as two 'refund' rows for one 'ai_call'.
+ * from more than one code path for the same failed request. The callers
+ * today, each exactly once per request, from a single catch branch:
+ * /api/ai/insights/generate (a malformed AI response), /api/ai/chat (a thread
+ * past the model's context window), /api/ai/alerts/[id]/analyze (any error),
+ * and — for Anthropic refusing the call because its spend limit or balance ran
+ * out, see @/lib/ai/spend-limit — /api/ai/chat, /api/ai/analyze (both paths)
+ * and /api/ai/insights/generate. Each writes one ledger row per refund, so a
+ * double refund would be visible in the trail as two 'refund' rows for one
+ * 'ai_call'.
  * Since 2026-09-30 settleAiCredits also calls it, once per AI call, to give
  * back the unused part of a reservation (reason 'ai_unused'); a route that
  * refunds in full goes through refundCredits directly and never settles too.

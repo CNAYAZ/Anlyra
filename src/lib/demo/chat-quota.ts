@@ -13,7 +13,7 @@ import { toAppDateString } from '@/lib/timezone';
  *   • 15 questions a day per IP — the 'demo-chat-ip' bucket. A new session costs
  *     nothing to open (clear the cookies, press the button again), so this
  *     slows a single source down.
- *   • 30 questions a day for the whole demo — the 'demo-chat-day' quota, one
+ *   • 10 questions a day for the whole demo — the 'demo-chat-day' quota, one
  *     counter per Italian calendar day (DEMO_CHAT_DAILY_CAP in rate-limit.ts).
  *     The only ceiling that holds against many IPs: it bounds the daily cost.
  *     A visitor who meets it is shown the same invitation to sign up as one

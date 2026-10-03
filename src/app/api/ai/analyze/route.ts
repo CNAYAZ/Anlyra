@@ -15,8 +15,14 @@ import {
 } from '@/lib/ai/client';
 import { loadBusinessContext, type AIBusinessContext } from '@/lib/ai-context';
 import { requireActiveAccess, requireFeaturePlan } from '@/lib/billing/server-gate';
-import { consumeCredits, settleAiCredits, InsufficientCreditsError, type CreditSpend } from '@/lib/credits';
+import { consumeCredits, refundCredits, settleAiCredits, InsufficientCreditsError, type CreditSpend } from '@/lib/credits';
 import { AI_OPERATIONS, chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
+import {
+  AI_UNAVAILABLE,
+  AI_UNAVAILABLE_STATUS,
+  isAnthropicSpendLimitError,
+  logAnthropicSpendLimit,
+} from '@/lib/ai/spend-limit';
 import { buildFinancialAnalysisPrompt } from '@/lib/ai/prompts/financial';
 import { buildMarketingAnalysisPrompt } from '@/lib/ai/prompts/marketing';
 import { buildKpiAnalysisPrompt } from '@/lib/ai/prompts/kpi';
@@ -63,6 +69,13 @@ const ANSWER_COMPLETE_MARKER = '\u0004';
  * model has finished, long after the headers went out. Mirrored in AgentClient.
  */
 const COST_TRAILER_MARKER = '\u0005';
+
+/**
+ * Sent, before the cost trailer, when Anthropic refused the call for its spend
+ * limit or balance: the whole reservation has been given back and the client
+ * shows "AI temporarily unavailable". Mirrored in AgentClient.
+ */
+const AI_UNAVAILABLE_MARKER = '\u0006';
 
 /**
  * Closes the reservation of one analysis. `used` null means the model failed
@@ -182,6 +195,7 @@ export async function POST(req: NextRequest) {
     const encoder = new TextEncoder();
     let stopReason: string | null = null;
     let used: { model: string; usage: AiUsage } | null = null;
+    let spendLimitHit = false;
     // enqueue throws once the customer has gone (the stream was cancelled):
     // from then on nothing more is sent, but the credits are still settled.
     const send = (text: string) => {
@@ -223,14 +237,27 @@ export async function POST(req: NextRequest) {
           // to the customer as incomplete (AgentClient), never as a full answer.
           if (stopReason === 'end_turn') send(ANSWER_COMPLETE_MARKER);
         } catch (err) {
-          console.error('[ai/analyze] stream error:', err);
+          if (isAnthropicSpendLimitError(err)) {
+            logAnthropicSpendLimit('analyze:stream', err);
+            spendLimitHit = true;
+          } else {
+            console.error('[ai/analyze] stream error:', err);
+          }
         } finally {
           // Settled whatever happened above, exactly once: a stream cut by an
           // error or by the customer leaving is charged on the tokens it had
-          // reported (chatStream), or 1 credit if it reported none.
+          // reported (chatStream), or 1 credit if it reported none. If Anthropic
+          // refused for its spend limit the whole reservation goes back instead,
+          // and the stream says so with AI_UNAVAILABLE_MARKER.
           try {
-            const settled = await settleAnalysis(organizationId, spend, used);
-            send(COST_TRAILER_MARKER + JSON.stringify({ creditsCharged: settled.charged, creditsRemaining: settled.remaining }));
+            if (spendLimitHit) {
+              const remaining = await refundCredits(organizationId, spend);
+              send(AI_UNAVAILABLE_MARKER);
+              send(COST_TRAILER_MARKER + JSON.stringify({ creditsCharged: 0, creditsRemaining: remaining }));
+            } else {
+              const settled = await settleAnalysis(organizationId, spend, used);
+              send(COST_TRAILER_MARKER + JSON.stringify({ creditsCharged: settled.charged, creditsRemaining: settled.remaining }));
+            }
           } catch (settleErr) {
             console.error('[ai/analyze] credit settlement FAILED:', settleErr);
           }
@@ -267,6 +294,17 @@ export async function POST(req: NextRequest) {
       maxTokens: AI_OPERATIONS.analyze.maxOutputTokens,
     });
   } catch (err) {
+    // Limite di spesa o saldo di Anthropic esauriti: niente credito, messaggio
+    // che non dice perché (vedi @/lib/ai/spend-limit).
+    if (isAnthropicSpendLimitError(err)) {
+      logAnthropicSpendLimit('analyze', err);
+      try {
+        await refundCredits(organizationId, spend);
+      } catch (refundErr) {
+        console.error('[ai/analyze] credit refund FAILED after the Anthropic spend limit:', refundErr);
+      }
+      return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
+    }
     // Errore vero nei log (marcatore [ai:error]), messaggio generico al
     // browser: il testo di un errore Anthropic puo' contenere dettagli sulla
     // configurazione che non devono uscire. Status 502 invariato.

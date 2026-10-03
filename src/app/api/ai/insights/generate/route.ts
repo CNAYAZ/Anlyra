@@ -17,6 +17,12 @@ import {
   type CreditSpend,
 } from '@/lib/credits';
 import { chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
+import {
+  AI_UNAVAILABLE,
+  AI_UNAVAILABLE_STATUS,
+  isAnthropicSpendLimitError,
+  logAnthropicSpendLimit,
+} from '@/lib/ai/spend-limit';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
 import { loadBusinessContext } from '@/lib/ai-context';
 import {
@@ -151,6 +157,17 @@ export async function POST(req: NextRequest) {
           console.error('[ai/insights/generate] credit refund FAILED after invalid response:', refundErr);
         }
         return fail('INVALID_AI_RESPONSE', 502);
+      }
+      // Limite di spesa o saldo di Anthropic esauriti: niente credito, messaggio
+      // che non dice perché (vedi @/lib/ai/spend-limit).
+      if (isAnthropicSpendLimitError(err)) {
+        logAnthropicSpendLimit('insights-generate', err);
+        try {
+          await refundCredits(organizationId, spend);
+        } catch (refundErr) {
+          console.error('[ai/insights/generate] credit refund FAILED after the Anthropic spend limit:', refundErr);
+        }
+        return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
       }
       // Errore vero nei log (marcatore [ai:error]), messaggio generico al
       // browser: il testo di un errore Anthropic puo' contenere dettagli sulla

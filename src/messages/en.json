@@ -277,6 +277,7 @@
     "loading": "Loading...",
     "error": "Something went wrong",
     "retry": "Retry",
+    "aiUnavailable": "The AI service is temporarily unavailable. Please try again later.",
     "empty": "No data available",
     "all": "All",
     "category": "Category",

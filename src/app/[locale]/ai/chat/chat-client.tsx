@@ -254,7 +254,11 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
         ? cost.insufficient('chat', credits)
         : sendError.code === 'RATE_LIMIT_UNAVAILABLE'
           ? tAgent('errors.rateLimitUnavailable')
-          : // The thread outgrew the model's context window: permanent for THIS
+          : // Anthropic refused for its spend limit or balance: the AI is
+            // unavailable, nothing was charged, and the reason is not shown.
+            sendError.code === 'AI_UNAVAILABLE'
+            ? tCommon('aiUnavailable')
+            : // The thread outgrew the model's context window: permanent for THIS
             // conversation, and the route refunded the credit before answering —
             // so the message says both, and what to do about it.
             sendError.code === 'CONVERSATION_TOO_LONG'

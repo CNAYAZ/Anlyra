@@ -277,6 +277,7 @@
     "loading": "Caricamento...",
     "error": "Si è verificato un errore",
     "retry": "Riprova",
+    "aiUnavailable": "Il servizio AI è temporaneamente non disponibile. Riprova più tardi.",
     "empty": "Nessun dato disponibile",
     "all": "Tutti",
     "category": "Categoria",

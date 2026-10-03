@@ -152,6 +152,9 @@ export default function InsightsPage() {
         // not because the user did anything wrong.
         RATE_LIMIT_UNAVAILABLE: t('generateErrorUnavailable'),
         TRIAL_EXPIRED: t('generateErrorTrial'),
+        // Anthropic refused for its spend limit or balance: nothing was
+        // charged, and the reason is not shown.
+        AI_UNAVAILABLE: tCommon('aiUnavailable'),
       };
       setGenerateError(known[code] ?? t('generateErrorGeneric'));
       setGenerateErrorIsCredits(code === 'INSUFFICIENT_CREDITS');

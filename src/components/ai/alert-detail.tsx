@@ -48,8 +48,11 @@ const severityVariant: Record<AlertSeverity, 'danger' | 'warning' | 'info'> = {
 /** Map the raw API error string to a user-facing i18n key. */
 function analyzeErrorKey(
   message: string,
-): 'analyzeErrorCredits' | 'analyzeErrorConfig' | 'analyzeErrorUnavailable' | 'analyzeError' {
+): 'analyzeErrorCredits' | 'analyzeErrorConfig' | 'analyzeErrorUnavailable' | 'aiUnavailable' | 'analyzeError' {
   if (message.includes('INSUFFICIENT_CREDITS')) return 'analyzeErrorCredits';
+  // Anthropic refused for its spend limit or balance: nothing was charged and
+  // the reason is not shown. Rendered from common.aiUnavailable (see below).
+  if (message.includes('AI_UNAVAILABLE')) return 'aiUnavailable';
   if (message.includes('ANTHROPIC_API_KEY')) return 'analyzeErrorConfig';
   // The rate limiter is unreachable and this bucket is fail-closed: the request
   // was refused for OUR reason, so the user is told to retry shortly rather
@@ -164,7 +167,7 @@ export function AlertDetail({ alert, open, onOpenChange, onUpdateStatus, pending
 
             {errorKey && (
               <div className="space-y-1 text-xs text-danger">
-                <p>{errorKey === 'analyzeErrorCredits' ? cost.insufficient('alerts', credits) : t(errorKey)}</p>
+                <p>{errorKey === 'analyzeErrorCredits' ? cost.insufficient('alerts', credits) : errorKey === 'aiUnavailable' ? tCommon('aiUnavailable') : t(errorKey)}</p>
                 {errorKey === 'analyzeErrorCredits' && (
                   <Link href="/settings/credits" className="inline-block font-medium underline-offset-4 hover:underline">
                     {tCommon('goToCredits')}
