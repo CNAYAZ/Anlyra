@@ -9,6 +9,7 @@ import { prisma } from './prisma';
 import { auth } from '@/auth';
 import { signupCredits } from '@/lib/billing/plan-credits';
 import { getSubscription } from '@/lib/billing/repository';
+import { ensureDemoDataCurrent } from '@/lib/demo/rolling-data';
 
 // Exported so a route can recognize the demo ACCOUNT before it has resolved
 // (or created) an organization to check with isDemoOrganization — see
@@ -197,6 +198,14 @@ async function getDemoContext(): Promise<{ userId: string; organizationId: strin
       data: { userId: user.id, organizationId: org.id, role: 'owner', isDefault: true },
     });
   }
+  // The demo's movements, receivables, recurring expenses and customer
+  // statistics, rewritten at the first visit of every Italian month so they
+  // always end today (@/lib/demo/rolling-data). Before seedDemoData, whose own
+  // movement generator then finds rows and stays out of the way. A failure
+  // leaves last month's data in place rather than breaking the demo.
+  await ensureDemoDataCurrent(org.id).catch((err) => {
+    console.error('[demo:data] rewrite failed, previous data kept:', err);
+  });
   // Ensure data exists even if membership existed but seeding never ran
   await seedDemoData(org.id).catch(() => {
     // ignore if another request already seeded

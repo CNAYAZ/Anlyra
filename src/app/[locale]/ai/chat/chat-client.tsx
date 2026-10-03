@@ -323,6 +323,7 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
     <div className="flex h-[calc(100vh-3.5rem)]">
       <ChatSidebar
         conversations={isDemo ? [] : conversationsQuery.data}
+        emptyText={isDemo ? t('demoNoConversations') : undefined}
         loading={conversationsQuery.isLoading}
         activeId={activeId}
         onSelect={setActiveId}
