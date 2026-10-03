@@ -349,12 +349,15 @@ export async function resetRateLimit(action: RateLimitAction, identifier: string
 
 /**
  * The most questions the WHOLE demo chat answers in one day, all visitors
- * together (founder's decision, 2026-10-03). It is the one ceiling that holds
- * however many sessions and IPs somebody uses, so it is also the most the demo
- * can cost a day: 30 answers. The "day" is the calendar day in Italy
- * (@/lib/demo/chat-quota). Change it here and nowhere else.
+ * together (founder's decision; it was 30 and was lowered to 10).
+ * It is the one ceiling that holds however many sessions and IPs somebody
+ * uses, so it is also the most the demo can cost a day: 10 answers. The
+ * Anthropic account has a monthly spend limit of 5 USD shared with the real
+ * customers, and the demo must stay a small part of it. The "day" is the
+ * calendar day in Italy (@/lib/demo/chat-quota). Change it here and nowhere
+ * else.
  */
-const DEMO_CHAT_DAILY_CAP = 30;
+const DEMO_CHAT_DAILY_CAP = 10;
 
 /**
  * QUOTAS — a fixed number of uses for one identifier, not a rate.
