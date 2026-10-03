@@ -74,6 +74,8 @@
   },
   "topbar": {
     "credits": "Crediti AI",
+    "demoQuestions": "{count, plural, one {# domanda} other {# domande}}",
+    "demoQuestionsTitle": "Domande rimaste per l'AI nella demo",
     "notifications": "Notifiche",
     "toggleTheme": "Cambia tema",
     "toggleLanguage": "Cambia lingua",

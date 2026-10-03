@@ -74,6 +74,8 @@
   },
   "topbar": {
     "credits": "AI Credits",
+    "demoQuestions": "{count, plural, one {# question} other {# questions}}",
+    "demoQuestionsTitle": "Questions left for the AI in this demo",
     "notifications": "Notifications",
     "toggleTheme": "Toggle theme",
     "toggleLanguage": "Change language",
