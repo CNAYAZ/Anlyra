@@ -108,6 +108,11 @@ export const AUDIT_ACTIONS = [
   // The founder's answer to a waiting company-deletion request.
   'admin.org_deletion_confirmed',
   'admin.org_deletion_rejected',
+  // Register of trials (TrialClaim): a person reviewed a row and granted the
+  // trial anyway (art. 22 GDPR); the one-off fill from the companies that
+  // already had a trial.
+  'admin.trial_claim_review_granted',
+  'admin.trial_claims_backfilled',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

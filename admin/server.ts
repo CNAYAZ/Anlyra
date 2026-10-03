@@ -24,6 +24,7 @@ import {
   getCounts,
   countInsightsMatching,
   listPendingOrgDeletions,
+  listTrialClaims,
 } from './queries';
 import {
   setCredits,
@@ -36,6 +37,9 @@ import {
   confirmOrgDeletion,
   rejectOrgDeletion,
   runCron,
+  grantTrialClaimReview,
+  previewTrialClaimBackfill,
+  runTrialClaimBackfill,
   VALID_PLANS,
   VALID_ROLES,
   DELETABLE_TABLES,
@@ -144,6 +148,10 @@ async function handleGet(pathname: string, search: URLSearchParams, res: ServerR
       return ok(res, await listUsers());
     case '/api/org-deletions':
       return ok(res, await listPendingOrgDeletions());
+    case '/api/trial-claims':
+      return ok(res, await listTrialClaims());
+    case '/api/trial-claims/backfill-preview':
+      return ok(res, await previewTrialClaimBackfill());
     case '/api/audit/actions':
       return ok(res, await listAuditActions());
     case '/api/audit':
@@ -244,6 +252,20 @@ async function handlePost(pathname: string, body: Record<string, unknown>, res: 
           : await rejectOrgDeletion(organizationId),
       );
     }
+
+    case '/api/trial-claims/review': {
+      const id = str(body.id);
+      if (!id) return err(res, 400, 'ID della riga mancante.');
+      const note = typeof body.note === 'string' ? body.note : '';
+      try {
+        return ok(res, await grantTrialClaimReview(id, note));
+      } catch (e) {
+        return err(res, 400, (e as Error).message);
+      }
+    }
+
+    case '/api/trial-claims/backfill':
+      return ok(res, await runTrialClaimBackfill());
 
     case '/api/insights/count': {
       const count = await countInsightsMatching({

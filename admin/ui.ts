@@ -71,6 +71,7 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
 <nav>
   <button data-tab="overview" class="active">Panoramica</button>
   <button data-tab="deletions">Cancellazioni</button>
+  <button data-tab="trials">Prove</button>
   <button data-tab="orgs">Organizzazioni</button>
   <button data-tab="users">Utenti</button>
   <button data-tab="audit">Audit log</button>
@@ -99,6 +100,24 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <div id="deletionsTable">Caricamento...</div>
     <button class="act" onclick="loadDeletions()">Aggiorna</button>
     <div id="deletionsOut"></div>
+  </section>
+
+  <section id="trials">
+    <h2>Registro delle prove</h2>
+    <div class="warn">
+      Una riga per partita IVA che ha avuto o tentato una prova. L'impronta della carta è mostrata solo nelle ultime 4 cifre.<br>
+      <b>Stesso IP</b> è solo un segnale per te: quante prove sono arrivate dallo stesso indirizzo IP negli ultimi 90 giorni. Non blocca niente.<br>
+      <b>Rivista, prova concessa</b> segna che una persona ha rivisto la riga e concede comunque la prova (art. 22 GDPR). Il motivo è obbligatorio e il segno non si può togliere né riscrivere.<br>
+      Scadenze (cron <code>gdpr-purge</code>): IP cancellato dopo 12 mesi, riga cancellata dopo 24 mesi.
+    </div>
+    <div id="trialsTable">Caricamento...</div>
+    <button class="act" onclick="loadTrials()">Aggiorna</button>
+    <div id="trialsOut"></div>
+    <h2>Riempimento iniziale</h2>
+    <p class="note">Porta nel registro, come "prova già usata", le aziende che hanno già avuto una prova, con la loro partita IVA se valida (demo esclusa). Si può ripetere: le partite IVA già presenti restano come sono.</p>
+    <button class="act" onclick="previewBackfill()">Quante ne entrerebbero?</button>
+    <button class="act red" onclick="doBackfill()">Riempi il registro</button>
+    <div id="backfillOut"></div>
   </section>
 
   <section id="orgs">
@@ -410,6 +429,65 @@ async function loadDeletions() {
     }).join('') + '</table>';
 }
 
+async function loadTrials() {
+  const rows = await get('/api/trial-claims');
+  const tab = document.querySelector('nav button[data-tab="trials"]');
+  const flagged = rows.filter(r => r.sameIpRecentCount >= 2).length;
+  tab.textContent = 'Prove (' + rows.length + ')' + (flagged ? ' — ' + flagged + ' con IP condiviso' : '');
+  if (rows.length === 0) {
+    document.getElementById('trialsTable').innerHTML = '<p class="note">Il registro è vuoto.</p>';
+    return;
+  }
+  document.getElementById('trialsTable').innerHTML =
+    '<table><tr><th>Data</th><th>Partita IVA</th><th>Azienda</th><th>Carta</th><th>IP</th><th>Stesso IP</th>' +
+    '<th>Abbonamento</th><th>Origine</th><th>Revisione</th></tr>' +
+    rows.map(r => {
+      const hl = r.sameIpRecentCount >= 2 ? ' style="background:#3a2a12;color:#f0d0a4"' : '';
+      const org = r.organizationName ? esc(r.organizationName) : '<i>azienda cancellata</i>';
+      const review = r.reviewGrantedAt
+        ? '<b>Rivista, prova concessa</b><br><small>' + fmt(r.reviewGrantedAt) + '</small><br><small>' + esc(r.reviewNote) + '</small>'
+        : '<button class="act" data-id="' + esc(r.id) + '" data-vat="' + esc(r.vatNumber) + '" onclick="doReviewTrial(this)">Rivista, prova concessa</button>';
+      return '<tr' + hl + '><td>' + fmt(r.claimedAt) + '</td>' +
+        '<td><code>' + esc(r.vatNumber) + '</code></td>' +
+        '<td>' + org + '<br><code>' + esc(r.organizationId) + '</code></td>' +
+        '<td>' + (r.cardFingerprintTail ? '…' + esc(r.cardFingerprintTail) : '—') + '</td>' +
+        '<td>' + esc(r.ip || '—') + '</td>' +
+        '<td class="num">' + (r.ip ? 'stesso IP usato da ' + r.sameIpRecentCount + (r.sameIpRecentCount === 1 ? ' prova' : ' prove') + ' negli ultimi 90 giorni' : '—') + '</td>' +
+        '<td>' + esc(r.stripeSubscriptionId || '— tentativo —') + '</td>' +
+        '<td>' + esc(r.source === 'backfill' ? 'riempimento' : 'checkout') + '</td>' +
+        '<td>' + review + '</td></tr>';
+    }).join('') + '</table>';
+}
+
+async function doReviewTrial(btn) {
+  const note = prompt('RIVISTA, PROVA CONCESSA\\n\\nPartita IVA: ' + btn.dataset.vat +
+    '\\n\\nScrivi il motivo (obbligatorio, almeno 10 caratteri). Il segno non si potrà togliere.');
+  if (note === null) return;
+  try {
+    const r = await post('/api/trial-claims/review', { id: btn.dataset.id, note });
+    show('trialsOut', 'Segnata come rivista il ' + fmt(r.reviewGrantedAt), 'ok');
+    loadTrials();
+  } catch (e) { show('trialsOut', e.message, 'err'); }
+}
+
+async function previewBackfill() {
+  try {
+    const r = await get('/api/trial-claims/backfill-preview');
+    show('backfillOut', 'Aziende con una prova e una partita IVA valida: ' + r.candidates +
+      '\\nPartite IVA diverse: ' + r.distinctVatNumbers + '\\nGià nel registro: ' + r.alreadyInRegister, 'ok');
+  } catch (e) { show('backfillOut', e.message, 'err'); }
+}
+
+async function doBackfill() {
+  if (!confirm('RIEMPIRE IL REGISTRO DELLE PROVE\\n\\nLe aziende che hanno già avuto una prova entrano come "prova già usata".' +
+      '\\n\\nDatabase di PRODUZIONE. Procedere?')) return;
+  try {
+    const r = await post('/api/trial-claims/backfill', {});
+    show('backfillOut', 'Aziende candidate: ' + r.candidates + '\\nRighe aggiunte: ' + r.inserted, 'ok');
+    loadTrials();
+  } catch (e) { show('backfillOut', e.message, 'err'); }
+}
+
 async function doConfirmDeletion(btn) {
   const org = btn.dataset.org, name = btn.dataset.name;
   if (!confirm('CONFERMARE LA CANCELLAZIONE\\n\\nAzienda: ' + name + '\\nID: ' + org +
@@ -659,6 +737,7 @@ async function doCron(job) {
 
 loadCounts().catch(e => show('counts', e.message, 'err'));
 loadDeletions().catch(e => show('deletionsOut', e.message, 'err'));
+loadTrials().catch(e => show('trialsOut', e.message, 'err'));
 loadOrgs().catch(() => {});
 loadOrgMembers().catch(() => {});
 loadUsers().catch(() => {});

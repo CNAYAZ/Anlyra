@@ -3,6 +3,7 @@ import { auditLog } from '@/lib/audit/log';
 import { recordCreditEntry } from '@/lib/credits';
 import { confirmOrganizationDeletion, rejectOrganizationDeletion } from '@/lib/gdpr/org-deletion';
 import { buildInsightWhere } from './queries';
+import { backfillTrialClaims, trialClaimBackfillCandidates } from '@/lib/billing/trial-claims';
 
 /**
  * WRITE operations for the admin panel.
@@ -497,4 +498,66 @@ export async function runCron(job: CronJob, baseUrl = 'http://127.0.0.1:3000') {
   });
 
   return { job, status, body };
+}
+
+/** Shortest reason accepted when granting a trial on review. */
+export const TRIAL_REVIEW_NOTE_MIN = 10;
+
+/**
+ * A person reviewed a row of the register of trials and GRANTS the trial
+ * anyway (art. 22 GDPR: a refusal must be reviewable by a person). The reason
+ * is mandatory and stays on the row; the audit row records that it happened.
+ * The mark cannot be overwritten: a row already granted is refused, so the
+ * first decision and its reason stay as they were. The refusal check (next
+ * step) must honour reviewGrantedAt.
+ */
+export async function grantTrialClaimReview(id: string, note: string) {
+  const reason = note.trim();
+  if (reason.length < TRIAL_REVIEW_NOTE_MIN) {
+    throw new Error(`Scrivi il motivo (almeno ${TRIAL_REVIEW_NOTE_MIN} caratteri).`);
+  }
+  const now = new Date();
+  const { count } = await prisma.trialClaim.updateMany({
+    where: { id, reviewGrantedAt: null },
+    data: { reviewGrantedAt: now, reviewNote: reason },
+  });
+  if (count === 0) {
+    const exists = await prisma.trialClaim.findUnique({ where: { id }, select: { id: true } });
+    throw new Error(exists ? 'Questa riga è già stata rivista.' : 'Riga non trovata.');
+  }
+  const row = await prisma.trialClaim.findUniqueOrThrow({ where: { id }, select: { organizationId: true } });
+  // The reason itself stays on the row, not in the audit metadata: audit rows
+  // are deleted after 12 months and must not carry free text about a person.
+  await auditLog({
+    action: 'admin.trial_claim_review_granted',
+    organizationId: row.organizationId,
+    targetType: 'trialClaim',
+    targetId: id,
+    metadata: { reviewGrantedAt: now.toISOString() },
+  });
+  return { id, reviewGrantedAt: now.toISOString() };
+}
+
+/** How many companies the fill would add, without writing anything. */
+export async function previewTrialClaimBackfill() {
+  const candidates = await trialClaimBackfillCandidates();
+  const already = await prisma.trialClaim.count({
+    where: { vatNumber: { in: candidates.map((c) => c.vatNumber) } },
+  });
+  const distinctVat = new Set(candidates.map((c) => c.vatNumber)).size;
+  return { candidates: candidates.length, distinctVatNumbers: distinctVat, alreadyInRegister: already };
+}
+
+/**
+ * Fills the register from the companies that already had a trial ("trial
+ * already used"). Safe to repeat: a VAT number already present is left alone.
+ */
+export async function runTrialClaimBackfill() {
+  const r = await backfillTrialClaims();
+  await auditLog({
+    action: 'admin.trial_claims_backfilled',
+    targetType: 'trialClaim',
+    metadata: { candidates: r.candidates, inserted: r.inserted },
+  });
+  return r;
 }

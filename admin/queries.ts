@@ -406,3 +406,62 @@ export function buildInsightWhere(filters: {
   }
   return Object.keys(where).length > 0 ? where : null;
 }
+
+/** How far back the "same IP" signal looks. */
+export const TRIAL_CLAIM_IP_SIGNAL_DAYS = 90;
+
+export type TrialClaimRow = {
+  id: string;
+  vatNumber: string;
+  /** Only the last 4 characters of Stripe's card fingerprint, or null. */
+  cardFingerprintTail: string | null;
+  organizationId: string;
+  /** null when the company no longer exists (the register outlives it). */
+  organizationName: string | null;
+  stripeSubscriptionId: string | null;
+  ip: string | null;
+  /** Trials (rows of this register) with the same IP in the last 90 days, this one included. */
+  sameIpRecentCount: number;
+  claimedAt: string;
+  source: string;
+  reviewGrantedAt: string | null;
+  reviewNote: string | null;
+};
+
+/**
+ * The register of trials, newest first. The card fingerprint is never sent to
+ * the page whole: only its last 4 characters. The IP is a SIGNAL for the
+ * founder — how many trials in the last 90 days came from the same IP — never
+ * a refusal.
+ */
+export async function listTrialClaims(now: Date = new Date()): Promise<TrialClaimRow[]> {
+  const since = new Date(now.getTime() - TRIAL_CLAIM_IP_SIGNAL_DAYS * 86_400_000);
+  const [rows, ipCounts] = await Promise.all([
+    prisma.trialClaim.findMany({ orderBy: { claimedAt: 'desc' }, take: LIST_LIMIT }),
+    prisma.trialClaim.groupBy({
+      by: ['ip'],
+      where: { ip: { not: null }, claimedAt: { gte: since } },
+      _count: { _all: true },
+    }),
+  ]);
+  const orgs = await prisma.organization.findMany({
+    where: { id: { in: rows.map((r) => r.organizationId) } },
+    select: { id: true, name: true },
+  });
+  const nameById = new Map(orgs.map((o) => [o.id, o.name]));
+  const countByIp = new Map(ipCounts.map((c) => [c.ip as string, c._count._all]));
+  return rows.map((r) => ({
+    id: r.id,
+    vatNumber: r.vatNumber,
+    cardFingerprintTail: r.cardFingerprint ? r.cardFingerprint.slice(-4) : null,
+    organizationId: r.organizationId,
+    organizationName: nameById.get(r.organizationId) ?? null,
+    stripeSubscriptionId: r.stripeSubscriptionId,
+    ip: r.ip,
+    sameIpRecentCount: r.ip ? countByIp.get(r.ip) ?? 0 : 0,
+    claimedAt: r.claimedAt.toISOString(),
+    source: r.source,
+    reviewGrantedAt: r.reviewGrantedAt?.toISOString() ?? null,
+    reviewNote: r.reviewNote,
+  }));
+}
