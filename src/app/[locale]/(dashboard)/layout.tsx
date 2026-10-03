@@ -26,6 +26,7 @@ import { OwnerProvider, ManagerProvider, ReadOnlyRoleProvider } from '@/lib/auth
 import { ReadOnlyRoleBanner } from '@/components/auth/ReadOnlyRoleBanner';
 import { isPastGrace, DELETION_GRACE_DAYS } from '@/lib/gdpr/constants';
 import { OrgDeletionPendingBanner } from '@/components/gdpr/OrgDeletionPendingBanner';
+import { ACTIVATION_PATH, needsActivation } from '@/lib/billing/activation';
 
 // Authenticated per-user surface: never statically prerendered. The previous
 // getSession() bailed to dynamic implicitly via a synchronous cookie read; now
@@ -74,6 +75,14 @@ export default async function DashboardLayout({
   // Read-only applies to the demo organization however it was reached: an
   // anonymous demo visit, or someone signed in as the demo account.
   const isDemo = isDemoOrganization(orgId);
+
+  // A company that has never entered a card has no access to the product
+  // (founder's decision, 2026-10-03): every dashboard page leads to the
+  // activation page, outside this segment (so it cannot loop), where the card
+  // can be entered and data export and account deletion stay available.
+  if (!isDemo && state.status === 'ok' && (await needsActivation(orgId))) {
+    redirect(`/${locale}${ACTIVATION_PATH}`);
+  }
 
   // Real subscription state from the DB (BillingSubscription via repository).
   // getBillingState returns the org's actual plan/status/period — falling back to

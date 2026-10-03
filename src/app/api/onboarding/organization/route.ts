@@ -5,8 +5,6 @@ import { DEMO_EMAIL } from '@/lib/session';
 import { siteUrl } from '@/lib/auth/tokens';
 import { sendEmail, welcomeTemplate } from '@/lib/email';
 import { issueTeamInvite } from '@/lib/invites/issue';
-import { signupCredits } from '@/lib/billing/plan-credits';
-import { recordCreditEntry } from '@/lib/credits';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { checkOrganizationAllowance } from '@/lib/billing/server-gate';
 import { authRateLimitResponse } from '@/lib/api/rate-limit-response';
@@ -16,8 +14,6 @@ import {
   validateBillingDetails,
   type BillingDetailsInput,
 } from '@/lib/billing/billing-details';
-
-const TRIAL_DAYS = 7;
 
 function slugify(name: string): string {
   return (
@@ -129,7 +125,6 @@ export async function POST(req: Request) {
   }
 
   const now = new Date();
-  const trialEndsAt = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
   const org = await prisma.organization.create({
     data: {
@@ -138,10 +133,12 @@ export async function POST(req: Request) {
       ...organizationColumnsFromBilling(billing.data),
       industry: body.industry?.trim() || 'Generale',
       teamSize: body.teamSize || null,
-      // Credits follow the PLAN, not a fixed schema default. Previously this
-      // field was left unset, so every new org silently inherited the schema's
-      // @default(100) regardless of plan.
-      aiCredits: signupCredits(),
+      // No credits and no local trial at creation (founder's decision,
+      // 2026-10-03): the company starts with the trial run by Stripe, after
+      // entering the card, and receives its trial credits then
+      // (src/lib/billing/trial-start.ts). 0 explicitly: the schema default
+      // would otherwise give credits to a company that has no access yet.
+      aiCredits: 0,
       // Who opened this company. This is the ONLY place in the product that
       // creates an Organization, so it is the only place that can record it —
       // and it can only be recorded at this instant, because afterwards nothing
@@ -150,8 +147,6 @@ export async function POST(req: Request) {
       // organization limit is turned on.
       createdByUserId: userId,
       setupCompletedAt: now,
-      trialStartedAt: now,
-      trialEndsAt,
       memberships: {
         // 'owner', not 'admin': the person creating the organization is its
         // owner. Billing (portal, checkout) is being restricted to 'owner'
@@ -161,16 +156,6 @@ export async function POST(req: Request) {
       },
     },
   });
-
-  // The welcome credits above are the org's FIRST balance movement, so they get
-  // the ledger's first row — otherwise every later row would describe changes to
-  // a starting balance that appears from nowhere, and the trail would never add
-  // up to what the org actually holds. Its own causale: this grant happens once,
-  // at signup, and is not the monthly one.
-  // Best-effort (recordCreditEntry never throws): an organization that exists
-  // with its credits must not be reported as a failed signup because of a
-  // bookkeeping row.
-  await recordCreditEntry(org.id, signupCredits(), 'signup_grant');
 
   // Demote any prior default membership for this user so the new org becomes active.
   await prisma.membership.updateMany({

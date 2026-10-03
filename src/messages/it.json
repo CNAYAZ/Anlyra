@@ -3355,5 +3355,20 @@
       "message": "L'azienda «{organization}» sarà cancellata il {date}, con tutti i suoi dati. Puoi ancora esportarli prima di allora.",
       "cta": "Esporta i dati"
     }
+  },
+  "activate": {
+    "title": "Attiva Anlyra",
+    "intro": "Per usare Anlyra con {company} serve un abbonamento: scegli il piano e inserisci la carta. Se ne hai diritto, inizi con la prova gratuita.",
+    "trialLine": "La prova gratuita dura {days} giorni e comprende {credits} crediti AI. Alla fine parte l'abbonamento, salvo disdetta.",
+    "monthly": "Mensile",
+    "yearly": "Annuale",
+    "perMonth": "al mese",
+    "perYear": "all'anno",
+    "credits": "{count} crediti AI al mese",
+    "enterprise": "Per il piano Enterprise scrivici a {email}.",
+    "ownerOnly": "Solo il proprietario dell'azienda può scegliere il piano e inserire la carta. Finché non lo fa, Anlyra non è accessibile.",
+    "goToDashboard": "Vai alla dashboard",
+    "privacyTitle": "I tuoi dati",
+    "privacyIntro": "Esportazione dei dati e cancellazione dell'account restano sempre disponibili, anche senza abbonamento."
   }
 }

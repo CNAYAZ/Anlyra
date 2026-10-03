@@ -10,6 +10,7 @@ import { getSubscription, setSubscription } from "@/lib/billing/repository";
 import { prisma } from "@/lib/prisma";
 import { BILLING_SELECT, checkStoredBillingDetails } from "@/lib/billing/billing-details";
 import { syncStripeCustomerBilling } from "@/lib/billing/stripe-customer";
+import { ACTIVATION_PATH, needsActivation } from "@/lib/billing/activation";
 import { recordTrialClaimAttempt } from "@/lib/billing/trial-claims";
 import { trialEligibility } from "@/lib/billing/trial-eligibility";
 import { TRIAL_DAYS, planAmountCents, recordTrialRuleAcceptance, trialRuleText } from "@/lib/billing/trial-rule";
@@ -150,6 +151,11 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SITE_URL ?? req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000"
     ).trim();
 
+    // A company that has never entered a card comes back to the activation
+    // page (the dashboard is closed to it until the webhook has landed);
+    // everyone else to the billing page, as before.
+    const returnPath = (await needsActivation(ctx.organizationId)) ? ACTIVATION_PATH : "/settings/billing";
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -157,8 +163,8 @@ export async function POST(req: NextRequest) {
       // The card is always asked for, with or without a trial: nobody uses
       // Anlyra without one (founder's decision).
       payment_method_collection: "always",
-      success_url: `${origin}/settings/billing?success=1`,
-      cancel_url: `${origin}/settings/billing?canceled=1`,
+      success_url: `${origin}${returnPath}?success=1`,
+      cancel_url: `${origin}${returnPath}?canceled=1`,
       allow_promotion_codes: true,
       metadata: {
         orgId: ctx.organizationId,

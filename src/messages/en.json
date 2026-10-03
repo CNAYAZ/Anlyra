@@ -3355,5 +3355,20 @@
       "message": "The organization “{organization}” will be deleted on {date}, along with all of its data. You can still export it before then.",
       "cta": "Export data"
     }
+  },
+  "activate": {
+    "title": "Activate Anlyra",
+    "intro": "To use Anlyra with {company} you need a subscription: choose the plan and enter your card. If you are entitled to it, you start with the free trial.",
+    "trialLine": "The free trial lasts {days} days and includes {credits} AI credits. When it ends the subscription starts, unless you cancel.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "credits": "{count} AI credits per month",
+    "enterprise": "For the Enterprise plan write to {email}.",
+    "ownerOnly": "Only the company's owner can choose the plan and enter the card. Until they do, Anlyra is not accessible.",
+    "goToDashboard": "Go to the dashboard",
+    "privacyTitle": "Your data",
+    "privacyIntro": "Data export and account deletion are always available, even without a subscription."
   }
 }

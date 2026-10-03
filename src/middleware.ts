@@ -49,11 +49,15 @@ const AUTH_ONLY_PATHS = [
   // richiesta pendente passa questo controllo — il middleware non legge il
   // database — e viene confinato lì dai layout e dal callback di sessione.
   '/deletion-pending',
+  // Pagina di attivazione (ACTIVATION_PATH in src/lib/billing/activation.ts):
+  // per l'azienda che non ha mai inserito la carta. Serve una sessione; le due
+  // azioni sulla demo (checkout) sono rifiutate lato server comunque.
+  '/activate',
 ];
 
 // Onboarding creates a real organization and sends invite emails, so it stays
 // closed to a demo visitor even though the rest of the dashboard opens for them.
-const DEMO_FORBIDDEN_PATHS = ['/onboarding'];
+const DEMO_FORBIDDEN_PATHS = ['/onboarding', '/activate'];
 
 // Kept in sync with DEMO_COOKIE in src/lib/session.ts. The middleware runs on
 // the Edge runtime and cannot import that module (it pulls in Prisma), so the
