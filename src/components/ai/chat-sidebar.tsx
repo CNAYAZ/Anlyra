@@ -15,9 +15,11 @@ type Props = {
   activeId: string | null;
   onSelect: (id: string | null) => void;
   onNew: () => void;
+  /** Replaces the "no conversations yet" text (the demo saves none). */
+  emptyText?: string;
 };
 
-export function ChatSidebar({ conversations, loading, activeId, onSelect, onNew }: Props) {
+export function ChatSidebar({ conversations, loading, activeId, onSelect, onNew, emptyText }: Props) {
   const t = useTranslations('chat');
   const locale = useLocale();
 
@@ -42,7 +44,7 @@ export function ChatSidebar({ conversations, loading, activeId, onSelect, onNew 
         ) : !conversations || conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
             <MessageSquare className="mb-2 h-8 w-8 opacity-40" />
-            <p>{t('noConversations')}</p>
+            <p>{emptyText ?? t('noConversations')}</p>
           </div>
         ) : (
           <ul className="space-y-1">

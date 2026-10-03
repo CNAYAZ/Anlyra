@@ -920,6 +920,7 @@
     "demoPickQuestion": "Pick a question below: Anlyra's AI answers on the demo company's data.",
     "demoAnswerOrigin": "Answer generated earlier by Anlyra's AI, on {date}, from the same demo data.",
     "demoAskOwn": "To ask your own questions about your company's data, sign up:",
+    "demoNoConversations": "Conversations are not saved in the demo. Pick one of the questions next to this: the AI answers on the demo company's data.",
     "demoQuestions": {
       "costs": "Why have costs changed over the last three months?",
       "revenue": "Which items changed revenue?",

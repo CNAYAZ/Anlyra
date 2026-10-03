@@ -46,6 +46,7 @@ import {
   demoDataFingerprint,
   getOrCreateDemoAnswer,
 } from '@/lib/demo/answer-cache';
+import { ensureDemoDataCurrent } from '@/lib/demo/rolling-data';
 import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
@@ -433,6 +434,12 @@ async function demoSuggestedAnswer(body: unknown) {
   const { questionId, locale } = parsed.data;
   const t = await getTranslations({ locale, namespace: 'chat' });
   const question = t(`demoQuestions.${questionId}`);
+
+  // A chat page opened last month asks after the month changed: the demo data
+  // are brought to this month first, so the answer is not built on old rows.
+  await ensureDemoDataCurrent(DEMO_ORG_ID).catch((err) => {
+    console.error('[demo:data] rewrite failed, previous data kept:', err);
+  });
 
   try {
     const key = demoAnswerKey({
