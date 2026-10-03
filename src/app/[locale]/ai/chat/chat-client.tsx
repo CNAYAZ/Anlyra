@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Info } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { ChatSidebar } from '@/components/ai/chat-sidebar';
@@ -15,6 +15,7 @@ import { AiCostCharged, useAiCost } from '@/components/ai/ai-cost';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCreditsStore } from '@/stores/credits-store';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
+import { useIsDemo } from '@/lib/demo/context';
 import type { ApiResponse } from '@/lib/api';
 import type {
   ChatMessageDTO,
@@ -26,6 +27,8 @@ import type {
 type Props = {
   companyName: string;
   initialCredits: number;
+  /** Demo only: questions left in this demo session (null: unknown). */
+  initialDemoQuestionsLeft?: number | null;
 };
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -83,7 +86,28 @@ async function sendChatMessage(vars: {
   return json.data;
 }
 
-export function ChatClient({ companyName, initialCredits }: Props) {
+/**
+ * The demo chat: the same route, but nothing is saved server-side, so the
+ * thread lives here and goes back as `history` (see demoChat in the route).
+ */
+async function sendDemoMessage(vars: {
+  message: string;
+  history: { role: 'user' | 'assistant'; content: string }[];
+  locale: string;
+}): Promise<{ answer: string; questionsLeft: number }> {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(vars),
+  });
+  const json = (await res.json()) as ApiResponse<{ answer: string; questionsLeft: number }>;
+  if (!res.ok || !json.success || json.data === undefined) {
+    throw new ChatRequestError(res.status, json.success ? null : json.error);
+  }
+  return json.data;
+}
+
+export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLeft = null }: Props) {
   const t = useTranslations('chat');
   // Viewer: past conversations stay readable; asking a new question spends
   // the organization's credits and adds to its shared conversation list, so it
@@ -94,6 +118,11 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   // Reuses the AI Agent's disclaimer copy/key on purpose: one source of truth
   // for "you're talking to an AI" across both surfaces (AI Act art. 50).
   const tAgent = useTranslations('agent');
+  const tDemo = useTranslations('demo');
+  const locale = useLocale();
+  const isDemo = useIsDemo();
+  const [demoMessages, setDemoMessages] = useState<ChatMessageDTO[]>([]);
+  const [demoLeft, setDemoLeft] = useState<number | null>(initialDemoQuestionsLeft);
   const qc = useQueryClient();
   const credits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
@@ -119,6 +148,8 @@ export function ChatClient({ companyName, initialCredits }: Props) {
     queryKey: ['conversations'],
     queryFn: () =>
       fetchJson<{ conversations: ConversationListItemDTO[] }>('/api/ai/chat/conversations').then((d) => d.conversations),
+    // The demo saves no conversation: there is nothing of the visitor's to list.
+    enabled: !isDemo,
   });
 
   useEffect(() => {
@@ -153,33 +184,66 @@ export function ChatClient({ companyName, initialCredits }: Props) {
     },
   });
 
+  const demoMutation = useMutation({
+    mutationFn: sendDemoMessage,
+    onSuccess: (res, vars) => {
+      const at = new Date().toISOString();
+      setDemoMessages((m) => [
+        ...m,
+        { id: `demo-${m.length}`, role: 'USER', content: vars.message, createdAt: at },
+        { id: `demo-${m.length + 1}`, role: 'ASSISTANT', content: res.answer, createdAt: at },
+      ]);
+      setDemoLeft(res.questionsLeft);
+      setPendingUser(null);
+    },
+    onError: (err) => {
+      if (err instanceof ChatRequestError && err.code === 'DEMO_QUESTIONS_EXHAUSTED') setDemoLeft(0);
+      setPendingUser(null);
+    },
+  });
+  const send = isDemo ? demoMutation : sendMutation;
+  const demoOver = isDemo && demoLeft === 0;
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [conversationQuery.data, pendingUser, sendMutation.isPending]);
+  }, [conversationQuery.data, demoMessages, pendingUser, send.isPending]);
 
   function handleSend(text: string) {
+    if (isDemo) {
+      if (demoOver) return;
+      setPendingUser(text);
+      demoMutation.mutate({
+        message: text,
+        history: demoMessages.map((m) => ({ role: m.role === 'USER' ? 'user' : 'assistant', content: m.content })),
+        locale,
+      });
+      return;
+    }
     if (credits < chatMax) return;
     setPendingUser(text);
     sendMutation.mutate({ conversationId: activeId, message: text });
   }
 
   function handleNew() {
+    setDemoMessages([]);
     setActiveId(null);
     setPendingUser(null);
   }
 
-  const messages: ChatMessageDTO[] = conversationQuery.data?.messages ?? [];
+  const messages: ChatMessageDTO[] = isDemo ? demoMessages : conversationQuery.data?.messages ?? [];
   // Not after a failed send: on a brand-new conversation the empty state used
   // to replace the error, so a refused first question simply vanished.
-  const showEmpty = !activeId && !pendingUser && !sendMutation.isPending && !sendMutation.isError;
-  const noCredits = credits <= 0;
-  const notEnoughCredits = credits < chatMax;
+  const showEmpty =
+    (isDemo ? demoMessages.length === 0 : !activeId) && !pendingUser && !send.isPending && !send.isError;
+  // The demo spends no credits (the founder pays for it).
+  const noCredits = !isDemo && credits <= 0;
+  const notEnoughCredits = !isDemo && credits < chatMax;
 
   // Same status/code priority as AgentClient.tsx's error mapping for
   // /api/ai/analyze: INSUFFICIENT_CREDITS before a bare 402, the rate-limiter
   // outage code before a bare 429/503, then status-only, then the generic
   // fallback already used by this file for every other kind of failure.
-  const sendError = sendMutation.error;
+  const sendError = send.error;
   const sendErrorMessage =
     sendError instanceof ChatRequestError
       ? sendError.status === 402 && sendError.code === 'INSUFFICIENT_CREDITS'
@@ -203,7 +267,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <ChatSidebar
-        conversations={conversationsQuery.data}
+        conversations={isDemo ? [] : conversationsQuery.data}
         loading={conversationsQuery.isLoading}
         activeId={activeId}
         onSelect={setActiveId}
@@ -250,7 +314,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
                 </div>
               ))}
               {pendingUser && <ChatMessage role="USER" content={pendingUser} />}
-              {sendMutation.isPending && (
+              {send.isPending && (
                 <div className="flex gap-3">
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white">
                     <span className="text-xs">AI</span>
@@ -260,7 +324,7 @@ export function ChatClient({ companyName, initialCredits }: Props) {
                   </div>
                 </div>
               )}
-              {sendMutation.isError && (
+              {send.isError && !demoOver && (
                 <p className="text-center text-sm text-danger">
                   {sendErrorMessage}
                   {/* Out of credits: the way out is the Credits page (balance,
@@ -308,9 +372,26 @@ export function ChatClient({ companyName, initialCredits }: Props) {
           </p>
         )}
 
+        {/* Demo: how many questions are left, then the way to go on with
+            the visitor's own numbers. */}
+        {isDemo && demoLeft !== null && (
+          <p className="border-t border-border bg-muted/40 px-6 py-2 text-center text-xs tabular-nums text-foreground">
+            {demoOver ? (
+              <>
+                {t('demoQuestionsOver')}{' '}
+                <Link href="/signup" className="font-medium underline-offset-4 hover:underline">
+                  {tDemo('banner.cta')}
+                </Link>
+              </>
+            ) : (
+              t('demoQuestionsLeft', { count: demoLeft })
+            )}
+          </p>
+        )}
+
         <ChatInput
           onSend={handleSend}
-          disabled={readOnlyRole || notEnoughCredits || sendMutation.isPending}
+          disabled={readOnlyRole || notEnoughCredits || demoOver || send.isPending}
           placeholder={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
         />
       </section>

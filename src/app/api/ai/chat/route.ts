@@ -1,11 +1,18 @@
 import { NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api';
-import { getAuthContext } from '@/lib/session';
+import { DEMO_ORG_ID, getAuthContext, getSessionState, hasDemoSession } from '@/lib/session';
 import { requireWritableOrg } from '@/lib/auth/require-writable';
 import { requireEditorRole } from '@/lib/auth/require-role';
-import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, returnQuota, takeQuota } from '@/lib/rate-limit';
+import {
+  DEMO_CHAT_COOKIE,
+  DEMO_CHAT_COOKIE_MAX_AGE,
+  demoIpKey,
+  readDemoChatSessionId,
+} from '@/lib/demo/chat-quota';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
 import { prisma } from '@/lib/prisma';
 import { requireActiveAccess } from '@/lib/billing/server-gate';
@@ -123,7 +130,13 @@ export async function POST(req: NextRequest) {
   }
 
   const ctx = await getAuthContext();
-  if (!ctx) return fail('Unauthorized', 401);
+  if (!ctx) {
+    // The visitor who pressed "try the demo" (no account): the demo chat below.
+    if ((await getSessionState()).status === 'anonymous' && (await hasDemoSession())) {
+      return demoChat(req);
+    }
+    return fail('Unauthorized', 401);
+  }
   // Demo organization: read-only. See requireWritableOrg.
   const readOnly = requireWritableOrg(ctx.organizationId);
   if (readOnly) return readOnly;
@@ -357,4 +370,91 @@ export async function POST(req: NextRequest) {
     creditsCharged: settled.charged,
     assistantMessageId: assistantMessage.id,
   });
+}
+
+const DemoSendSchema = z.object({
+  message: z.string().min(1).max(4000),
+  // The visitor's earlier turns, kept only in their browser: the 4 exchanges
+  // before the 5th question, 5 when they try a 6th (refused below by the
+  // count, not here by its shape). An answer is up to 8,000 tokens.
+  history: z
+    .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(40000) }))
+    .max(10)
+    .default([]),
+  locale: z.enum(['it', 'en']).default('it'),
+});
+
+/**
+ * THE DEMO CHAT (founder's decision, 2026-10-03): an anonymous demo visitor may
+ * ask a few questions about the demo company.
+ *
+ *   • Nothing is written to the database: no conversation, no message, no
+ *     credit. The thread lives in the visitor's browser and comes back in
+ *     `history`, so no visitor can ever see another one's questions.
+ *   • Paid by Anlyra: "chat:demo" on the [ai:usage] line says how much.
+ *   • 5 questions per demo session and 15 a day per IP (@/lib/demo/chat-quota).
+ *     A question that gets no answer is given back to the session.
+ *   • Same model and same answer length as the paying chat.
+ *
+ * Only DEMO_ORG_ID is ever read here, whatever the request says.
+ */
+async function demoChat(req: NextRequest) {
+  const parsed = DemoSendSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return fail('INVALID_INPUT', 400);
+  const { message, history, locale } = parsed.data;
+  // Turns alternate, starting with the visitor (what the model expects).
+  if (history.some((m, i) => m.role !== (i % 2 === 0 ? 'user' : 'assistant'))) {
+    return fail('INVALID_INPUT', 400);
+  }
+
+  const existingId = await readDemoChatSessionId();
+  const sessionId = existingId ?? randomUUID();
+
+  const question = await takeQuota('demo-chat-session', sessionId);
+  if (!question.success) {
+    return question.reason === 'unavailable'
+      ? rateLimitResponse({ ...question, reset: 0 })
+      : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
+  }
+  const ipLimit = await checkRateLimit('demo-chat-ip', demoIpKey(getClientIp(req)));
+  if (!ipLimit.success) {
+    await returnQuota('demo-chat-session', sessionId);
+    return ipLimit.reason === 'unavailable' ? rateLimitResponse(ipLimit) : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
+  }
+
+  let result;
+  try {
+    const systemPrompt = buildSystemPrompt(await loadBusinessContext(DEMO_ORG_ID), 'IT');
+    result = await chatComplete(systemPrompt, [...history, { role: 'user', content: message }], {
+      // Same options as the paying chat above: the demo context is the same for
+      // every visitor, so its cache is shared by all of them.
+      cacheSystemPrompt: true,
+      cacheLastMessage: true,
+      logLabel: 'chat:demo',
+      surface: 'chat',
+      maxTokens: AI_OPERATIONS.chat.maxOutputTokens,
+    });
+  } catch (err) {
+    console.error('[ai:error] surface=chat:demo', err);
+    await returnQuota('demo-chat-session', sessionId);
+    return fail('AI_REQUEST_FAILED', 502);
+  }
+
+  let answer = result.text;
+  if (result.stopReason === 'max_tokens') {
+    const t = await getTranslations({ locale, namespace: 'chat' });
+    answer = `${answer.trimEnd()}…\n\n${t('answerTruncated')}`;
+  }
+
+  const res = ok({ answer, questionsLeft: question.remaining });
+  if (!existingId) {
+    res.cookies.set(DEMO_CHAT_COOKIE, sessionId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: DEMO_CHAT_COOKIE_MAX_AGE,
+    });
+  }
+  return res;
 }

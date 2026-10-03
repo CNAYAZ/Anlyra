@@ -1,5 +1,6 @@
 import { ChatClient } from '@/app/[locale]/ai/chat/chat-client';
-import { getCurrentContext } from '@/lib/session';
+import { getCurrentContext, isDemoOrganization } from '@/lib/session';
+import { demoQuestionsLeft } from '@/lib/demo/chat-quota';
 import { prisma } from '@/lib/prisma';
 import { getCreditBalance } from '@/lib/billing/repository';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
@@ -22,6 +23,8 @@ export default async function AIChatPage() {
   ]);
 
   const configured = isAnthropicConfigured();
+  // Demo visitor: questions left in this demo session (see /api/ai/chat).
+  const demoLeft = isDemoOrganization(organizationId) ? await demoQuestionsLeft() : null;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
@@ -31,7 +34,7 @@ export default async function AIChatPage() {
         </div>
       )}
       <div className="flex-1 min-h-0">
-        <ChatClient companyName={org.name} initialCredits={credits} />
+        <ChatClient companyName={org.name} initialCredits={credits} initialDemoQuestionsLeft={demoLeft} />
       </div>
     </div>
   );

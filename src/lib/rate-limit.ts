@@ -154,6 +154,13 @@ const BUCKETS = {
   // 20/10m matches ai-analyze, since a request is a request.
   'ai-alert-analyze': { limit: 20, window: '10 m', onFailure: 'closed' },
 
+  // Demo chat, per visitor IP (IPv6 grouped by /64: see demoIpKey in
+  // @/lib/demo/chat-quota). An anonymous visitor gets 5 questions per demo
+  // session (takeQuota below); a new session costs nothing to open, so THIS is
+  // the ceiling that holds: 15 a day is three full sessions, enough for the
+  // founder to run the demo a few times from the same office.
+  'demo-chat-ip': { limit: 15, window: '24 h', onFailure: 'closed' },
+
   // ── EVERYTHING ELSE — fail-open ─────────────────────────────────────────
   // Reads and cheap endpoints: an Upstash outage must not break the site.
   // PDF generation (CPU-heavy) — DoS guard. Authenticated use is keyed per
@@ -337,6 +344,69 @@ export async function resetRateLimit(action: RateLimitAction, identifier: string
     await limiter.resetUsedTokens(identifier);
   } catch (err) {
     console.error(`${UNAVAILABLE_TAG} cause=error action=${action} stage=reset:`, err);
+  }
+}
+
+/**
+ * QUOTAS — a fixed number of uses for one identifier, not a rate.
+ *
+ * A sliding window lets an earlier window "decay": a demo session that asked
+ * its 5 questions just before a window boundary would get a sixth just after
+ * it. A plain counter on a key that expires gives exactly `limit`. Same
+ * fail-closed policy as the AI buckets: if the count cannot be checked, the
+ * use is refused.
+ */
+const QUOTAS = {
+  // Questions per demo session. The key expires 12 h after the last question,
+  // the session cookie 12 h after the first (see @/lib/demo/chat-quota).
+  'demo-chat-session': { limit: 5, ttlSeconds: 12 * 60 * 60 },
+} as const satisfies Record<string, { limit: number; ttlSeconds: number }>;
+
+export type QuotaName = keyof typeof QUOTAS;
+
+export function quotaLimit(name: QuotaName): number {
+  return QUOTAS[name].limit;
+}
+
+/** Takes one use. `remaining` is what is left AFTER it (-1 when not measurable). */
+export async function takeQuota(
+  name: QuotaName,
+  identifier: string,
+): Promise<{ success: boolean; remaining: number; reason: RateLimitReason }> {
+  const { limit, ttlSeconds } = QUOTAS[name];
+  const key = `q:${name}:${identifier}`;
+  try {
+    const client = getRedis();
+    if (!client) return { success: false, remaining: -1, reason: 'unavailable' };
+    const [used] = await client.pipeline().incr(key).expire(key, ttlSeconds).exec();
+    if (used > limit) return { success: false, remaining: 0, reason: 'limited' };
+    return { success: true, remaining: limit - used, reason: 'ok' };
+  } catch (err) {
+    console.error(`${UNAVAILABLE_TAG} cause=error action=${name} stage=quota-take:`, err);
+    return { success: false, remaining: -1, reason: 'unavailable' };
+  }
+}
+
+/** Gives back a use that produced nothing. Errors are logged, never thrown. */
+export async function returnQuota(name: QuotaName, identifier: string): Promise<void> {
+  try {
+    const client = getRedis();
+    if (client) await client.decr(`q:${name}:${identifier}`);
+  } catch (err) {
+    console.error(`${UNAVAILABLE_TAG} cause=error action=${name} stage=quota-return:`, err);
+  }
+}
+
+/** Uses left, without taking one; null when it cannot be read. */
+export async function peekQuota(name: QuotaName, identifier: string): Promise<number | null> {
+  try {
+    const client = getRedis();
+    if (!client) return null;
+    const used = Number((await client.get<number>(`q:${name}:${identifier}`)) ?? 0);
+    return Math.max(0, QUOTAS[name].limit - used);
+  } catch (err) {
+    console.error(`${UNAVAILABLE_TAG} cause=error action=${name} stage=quota-peek:`, err);
+    return null;
   }
 }
 
