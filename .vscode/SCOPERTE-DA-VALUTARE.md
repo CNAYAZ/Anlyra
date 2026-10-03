@@ -434,3 +434,16 @@ richiesto, per la storia — non cancellata.
   descritto qui ("un componente decide su un dato finto") non c'è più. Il file
   `session-store.ts` resta comunque codice morto per la parte `plan`: da valutare se
   rimuoverlo del tutto in un lavoro dedicato, non fatto qui.
+
+## Conservazione della prova di accettazione dei Termini (aggiunto 2026-09-30)
+
+- **Le righe `auth.terms_accepted` dell'audit log vanno cancellate 10 anni dopo la
+  cancellazione definitiva dell'account**, come promettono Termini e informativa. Oggi
+  sono esenti per sempre dalla pulizia dell'audit (`AUDIT_RETENTION_EXEMPT_ACTIONS` in
+  `src/lib/audit/retention.ts`), e non viene registrata da nessuna parte la data di
+  cancellazione definitiva dell'account che servirebbe a calcolare i 10 anni: il cron
+  `gdpr-purge` cancella la riga `User`, e la riga di audit resta con uno `userId` che non
+  punta più a nulla. Serve (1) un posto dove la data di cancellazione sopravviva
+  all'account, (2) un passo del cron che cancelli le righe dopo 10 anni. Il 2026-09-30
+  (branch `claude/trial-claim-registry`) è stato aggiunto solo l'azzeramento dell'IP
+  dentro queste righe dopo 12 mesi, righe conservate. (VERIFICATO su codice, 2026-09-30.)
