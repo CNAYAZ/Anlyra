@@ -10,7 +10,7 @@ import { toAppDateString } from '@/lib/timezone';
  *   • 5 questions per demo SESSION — the 'demo-chat-session' quota, keyed by the
  *     random id in DEMO_CHAT_COOKIE (issued by /api/ai/chat on the first
  *     question; the demo cookie itself carries a constant, not an id).
- *   • 15 questions a day per IP — the 'demo-chat-ip' bucket. A new session costs
+ *   • 5 questions a day per IP — the 'demo-chat-ip' bucket. A new session costs
  *     nothing to open (clear the cookies, press the button again), so this
  *     slows a single source down.
  *   • 10 questions a day for the whole demo — the 'demo-chat-day' quota, one

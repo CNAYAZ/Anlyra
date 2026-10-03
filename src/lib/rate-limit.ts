@@ -156,10 +156,10 @@ const BUCKETS = {
 
   // Demo chat, per visitor IP (IPv6 grouped by /64: see demoIpKey in
   // @/lib/demo/chat-quota). An anonymous visitor gets 5 questions per demo
-  // session (takeQuota below); a new session costs nothing to open, so THIS is
-  // the ceiling that holds: 15 a day is three full sessions, enough for the
-  // founder to run the demo a few times from the same office.
-  'demo-chat-ip': { limit: 15, window: '24 h', onFailure: 'closed' },
+  // session (takeQuota below); a new session costs nothing to open, so this
+  // bounds one source: 5 a day is exactly one full session (founder's decision;
+  // it was 15). Every attempt counts, including one refused by a later ceiling.
+  'demo-chat-ip': { limit: 5, window: '24 h', onFailure: 'closed' },
 
   // ── EVERYTHING ELSE — fail-open ─────────────────────────────────────────
   // Reads and cheap endpoints: an Upstash outage must not break the site.
