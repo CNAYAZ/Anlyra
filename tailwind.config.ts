@@ -46,6 +46,7 @@ const config: Config = {
           DEFAULT:    'hsl(var(--sage-400))',
           foreground: '#ffffff',
         },
+        'primary-accent': 'hsl(var(--primary-accent))',
 
         /* ─── semantici (CSS variable — tema-aware) ─── */
         success: {
