@@ -917,6 +917,19 @@
     "historyTrimmedNotice": "Conversazione lunga: l'AI tiene conto degli ultimi {count} messaggi. I precedenti restano qui e puoi rileggerli, ma non entrano più nelle sue risposte.",
     "demoQuestionsLeft": "{count, plural, one {Ti resta # domanda} other {Ti restano # domande}} per l'AI in questa demo.",
     "demoQuestionsOver": "Per continuare a fare domande all'AI, registrati e usa i dati della tua azienda:",
+    "demoPickQuestion": "Scegli una domanda qui sotto: l'AI di Anlyra risponde sui dati dell'azienda della demo.",
+    "demoAnswerOrigin": "Risposta generata in precedenza dall'AI di Anlyra, il {date}, sugli stessi dati della demo.",
+    "demoAskOwn": "Per fare le tue domande sui dati della tua azienda, registrati:",
+    "demoQuestions": {
+      "costs": "Perché sono cambiati i costi negli ultimi tre mesi?",
+      "revenue": "Quali voci hanno fatto cambiare i ricavi?",
+      "margin": "Come sta andando il margine, mese per mese?",
+      "cashflow": "Come va il flusso di cassa: stiamo bruciando liquidità?",
+      "receivables": "Chi ci deve soldi, e da quanto tempo?",
+      "expenses": "Quali spese pesano di più, comprese quelle fisse, e dove posso risparmiare?",
+      "signals": "Quali sono i segnali più importanti nei numeri di questo periodo?",
+      "outlook": "Se l'andamento resta questo, cosa devo aspettarmi nei prossimi mesi?"
+    },
     "dataHandlingLinkLabel": "Come trattiamo i tuoi dati"
   },
   "insights": {

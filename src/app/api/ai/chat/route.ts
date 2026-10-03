@@ -38,6 +38,14 @@ import {
   MISSING_KEY_MESSAGE,
 } from '@/lib/ai/client';
 import { buildSystemPrompt, loadBusinessContext } from '@/lib/ai-context';
+import { modelFor } from '@/lib/ai/models';
+import { DEMO_FREE_QUESTIONS, DEMO_SUGGESTED_QUESTIONS } from '@/lib/demo/chat-mode';
+import {
+  DemoCacheUnavailableError,
+  demoAnswerKey,
+  demoDataFingerprint,
+  getOrCreateDemoAnswer,
+} from '@/lib/demo/answer-cache';
 import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
@@ -141,7 +149,7 @@ export async function POST(req: NextRequest) {
   if (!ctx) {
     // The visitor who pressed "try the demo" (no account): the demo chat below.
     if ((await getSessionState()).status === 'anonymous' && (await hasDemoSession())) {
-      return demoChat(req);
+      return demoRequest(req);
     }
     return fail('Unauthorized', 401);
   }
@@ -393,6 +401,73 @@ export async function POST(req: NextRequest) {
   });
 }
 
+/**
+ * The demo visitor's request: one of the suggested questions (answered from
+ * the cache, see demoSuggestedAnswer), or a free question — only while
+ * DEMO_FREE_QUESTIONS is on (@/lib/demo/chat-mode). Today it is off.
+ */
+async function demoRequest(req: NextRequest) {
+  const body: unknown = await req.json().catch(() => null);
+  if (body && typeof body === 'object' && 'questionId' in body) return demoSuggestedAnswer(body);
+  if (!DEMO_FREE_QUESTIONS) return fail('DEMO_FREE_QUESTIONS_OFF', 403);
+  return demoChat(req, body);
+}
+
+const DemoAnswerSchema = z.object({
+  questionId: z.enum(DEMO_SUGGESTED_QUESTIONS),
+  locale: z.enum(['it', 'en']).default('it'),
+});
+
+/**
+ * A SUGGESTED QUESTION IN THE DEMO (founder's decision: the demo costs nothing
+ * per visitor). The answer comes from the cache (@/lib/demo/answer-cache); only
+ * the first request after the question, the language, the model, the prompt or
+ * the demo data changed calls the model — once, however many visitors ask at
+ * the same moment. That call is logged as "demo-cache" on the [ai:usage] line.
+ * Nothing is written to the database and no credit is involved; the visitor
+ * is told the answer was generated before, and when (generatedAt).
+ */
+async function demoSuggestedAnswer(body: unknown) {
+  const parsed = DemoAnswerSchema.safeParse(body);
+  if (!parsed.success) return fail('INVALID_INPUT', 400);
+  const { questionId, locale } = parsed.data;
+  const t = await getTranslations({ locale, namespace: 'chat' });
+  const question = t(`demoQuestions.${questionId}`);
+
+  try {
+    const key = demoAnswerKey({
+      question,
+      locale,
+      model: modelFor('chat'),
+      fingerprint: await demoDataFingerprint(),
+    });
+    const result = await getOrCreateDemoAnswer(key, async () => {
+      const ctx = await loadBusinessContext(DEMO_ORG_ID, locale);
+      const answer = await chatComplete(buildSystemPrompt(ctx, locale), [{ role: 'user', content: question }], {
+        // Same model and ceiling as the paying chat; one question, no history.
+        cacheSystemPrompt: true,
+        logLabel: 'demo-cache',
+        surface: 'chat',
+        maxTokens: AI_OPERATIONS.chat.maxOutputTokens,
+      });
+      if (!answer.text.trim()) throw new Error('empty answer from the model');
+      return answer.stopReason === 'max_tokens'
+        ? `${answer.text.trimEnd()}…\n\n${t('answerTruncated')}`
+        : answer.text;
+    });
+    return ok({ question, answer: result.answer, generatedAt: result.generatedAt, cached: result.fromCache });
+  } catch (err) {
+    // No cache, no answer: without it every visitor would pay for a call.
+    if (err instanceof DemoCacheUnavailableError) return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
+    if (isAnthropicSpendLimitError(err)) {
+      logAnthropicSpendLimit('demo-cache', err);
+      return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
+    }
+    console.error('[ai:error] surface=demo-cache', err);
+    return fail('AI_REQUEST_FAILED', 502);
+  }
+}
+
 const DemoSendSchema = z.object({
   message: z.string().min(1).max(4000),
   // The visitor's earlier turns, kept only in their browser: the 4 exchanges
@@ -406,21 +481,23 @@ const DemoSendSchema = z.object({
 });
 
 /**
- * THE DEMO CHAT (founder's decision, 2026-10-03): an anonymous demo visitor may
- * ask a few questions about the demo company.
+ * THE DEMO'S FREE QUESTIONS (founder's decision, 2026-10-03; switched off with
+ * DEMO_FREE_QUESTIONS, the code is kept): an anonymous demo visitor may ask a
+ * few questions of their own about the demo company.
  *
  *   • Nothing is written to the database: no conversation, no message, no
  *     credit. The thread lives in the visitor's browser and comes back in
  *     `history`, so no visitor can ever see another one's questions.
  *   • Paid by Anlyra: "chat:demo" on the [ai:usage] line says how much.
- *   • 5 questions per demo session and 15 a day per IP (@/lib/demo/chat-quota).
+ *   • 5 questions per demo session, 5 a day per IP, 10 a day and 100 a month
+ *     for the whole demo (@/lib/demo/chat-quota).
  *     A question that gets no answer is given back to the session.
  *   • Same model and same answer length as the paying chat.
  *
  * Only DEMO_ORG_ID is ever read here, whatever the request says.
  */
-async function demoChat(req: NextRequest) {
-  const parsed = DemoSendSchema.safeParse(await req.json().catch(() => null));
+async function demoChat(req: NextRequest, body: unknown) {
+  const parsed = DemoSendSchema.safeParse(body);
   if (!parsed.success) return fail('INVALID_INPUT', 400);
   const { message, history, locale } = parsed.data;
   // Turns alternate, starting with the visitor (what the model expects).

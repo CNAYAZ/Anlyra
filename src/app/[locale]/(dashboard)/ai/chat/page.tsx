@@ -1,6 +1,7 @@
 import { ChatClient } from '@/app/[locale]/ai/chat/chat-client';
 import { getCurrentContext, isDemoOrganization } from '@/lib/session';
 import { demoQuestionsLeft } from '@/lib/demo/chat-quota';
+import { DEMO_FREE_QUESTIONS } from '@/lib/demo/chat-mode';
 import { prisma } from '@/lib/prisma';
 import { getCreditBalance } from '@/lib/billing/repository';
 import { isAnthropicConfigured, MISSING_KEY_MESSAGE } from '@/lib/ai/client';
@@ -23,8 +24,9 @@ export default async function AIChatPage() {
   ]);
 
   const configured = isAnthropicConfigured();
-  // Demo visitor: questions left in this demo session (see /api/ai/chat).
-  const demoLeft = isDemoOrganization(organizationId) ? await demoQuestionsLeft() : null;
+  // Demo visitor: free questions left in this demo session (see /api/ai/chat).
+  // None to count while free questions are off: the suggested ones cost nothing.
+  const demoLeft = isDemoOrganization(organizationId) && DEMO_FREE_QUESTIONS ? await demoQuestionsLeft() : null;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">

@@ -213,7 +213,8 @@ let warnedUnconfigured = false;
  */
 const UNAVAILABLE_TAG = '[rate-limit:unavailable]';
 
-function getRedis(): Redis | null {
+/** Also used by the demo's answer cache (@/lib/demo/answer-cache): one client, one configuration. */
+export function getRedis(): Redis | null {
   if (redis !== undefined) return redis;
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;

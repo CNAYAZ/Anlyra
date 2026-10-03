@@ -17,6 +17,9 @@ import { useCreditsStore } from '@/stores/credits-store';
 import { useIsReadOnlyRole } from '@/lib/auth/owner-context';
 import { useIsDemo } from '@/lib/demo/context';
 import { useDemoQuestionsStore } from '@/stores/demo-questions-store';
+import { DEMO_FREE_QUESTIONS, DEMO_SUGGESTED_QUESTIONS, type DemoSuggestedQuestion } from '@/lib/demo/chat-mode';
+import { formatDate } from '@/lib/format';
+import type { Locale } from '@/i18n/config';
 import type { ApiResponse } from '@/lib/api';
 import type {
   ChatMessageDTO,
@@ -108,6 +111,26 @@ async function sendDemoMessage(vars: {
   return json.data;
 }
 
+/**
+ * One of the demo's suggested questions: the answer comes from the cache, or
+ * is generated once for everyone (see demoSuggestedAnswer in the route).
+ */
+async function askDemoQuestion(vars: {
+  questionId: DemoSuggestedQuestion;
+  locale: string;
+}): Promise<{ question: string; answer: string; generatedAt: string }> {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(vars),
+  });
+  const json = (await res.json()) as ApiResponse<{ question: string; answer: string; generatedAt: string }>;
+  if (!res.ok || !json.success || json.data === undefined) {
+    throw new ChatRequestError(res.status, json.success ? null : json.error);
+  }
+  return json.data;
+}
+
 export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLeft = null }: Props) {
   const t = useTranslations('chat');
   // Viewer: past conversations stay readable; asking a new question spends
@@ -123,6 +146,8 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
   const locale = useLocale();
   const isDemo = useIsDemo();
   const [demoMessages, setDemoMessages] = useState<ChatMessageDTO[]>([]);
+  // Demo answers that came from the cache: when each was generated, by message id.
+  const [origins, setOrigins] = useState<Record<string, string>>({});
   // Shared with the top bar. The server value until the store has been set.
   const storeLeft = useDemoQuestionsStore((s) => s.left);
   const setDemoLeft = useDemoQuestionsStore((s) => s.setLeft);
@@ -205,8 +230,30 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
       setPendingUser(null);
     },
   });
-  const send = isDemo ? demoMutation : sendMutation;
+  const suggestedMutation = useMutation({
+    mutationFn: askDemoQuestion,
+    onSuccess: (res) => {
+      const at = new Date().toISOString();
+      const answerId = `demo-cached-${at}`;
+      setDemoMessages((m) => [
+        ...m,
+        { id: `demo-question-${at}`, role: 'USER', content: res.question, createdAt: at },
+        { id: answerId, role: 'ASSISTANT', content: res.answer, createdAt: res.generatedAt },
+      ]);
+      setOrigins((o) => ({ ...o, [answerId]: res.generatedAt }));
+      setPendingUser(null);
+    },
+    onError: () => setPendingUser(null),
+  });
+  // In the demo, the state shown (pending, error) is the latest request's.
+  const demoSend = demoMutation.submittedAt > suggestedMutation.submittedAt ? demoMutation : suggestedMutation;
+  const send = isDemo ? demoSend : sendMutation;
   const demoOver = isDemo && demoLeft === 0;
+
+  function askSuggested(questionId: DemoSuggestedQuestion) {
+    setPendingUser(t(`demoQuestions.${questionId}`));
+    suggestedMutation.mutate({ questionId, locale });
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -281,7 +328,7 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
         onSelect={setActiveId}
         onNew={handleNew}
       />
-      <section className="flex flex-1 flex-col">
+      <section className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-border bg-card/40 px-6 py-3">
           <h1 className="font-heading text-base font-semibold">{t('title')}</h1>
           <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
@@ -292,6 +339,24 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
             <p className="mx-auto max-w-md pt-12 text-center text-sm text-muted-foreground">{tSettings('readOnlyRoleShort')}</p>
           ) : noCredits && messages.length === 0 ? (
             <NoCredits />
+          ) : showEmpty && isDemo ? (
+            // Demo: the eight questions, in full, before the first answer.
+            <div className="mx-auto max-w-2xl pt-8">
+              <p className="mb-4 text-center text-sm text-muted-foreground">{t('demoPickQuestion')}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {DEMO_SUGGESTED_QUESTIONS.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => askSuggested(id)}
+                    disabled={send.isPending}
+                    className="rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    {t(`demoQuestions.${id}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : showEmpty ? (
             <ChatEmpty company={companyName} onPickSuggestion={handleSend} />
           ) : conversationQuery.isLoading && activeId ? (
@@ -319,6 +384,12 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
                 <div key={m.id}>
                   <ChatMessage role={m.role} content={m.content} />
                   {charges[m.id] !== undefined && <AiCostCharged credits={charges[m.id]} className="mt-1 pl-12" />}
+                  {/* Demo: the answer was prepared before, and the visitor is told so. */}
+                  {origins[m.id] !== undefined && (
+                    <p className="mt-1 pl-12 text-xs text-muted-foreground">
+                      {t('demoAnswerOrigin', { date: formatDate(origins[m.id], locale as Locale) })}
+                    </p>
+                  )}
                 </div>
               ))}
               {pendingUser && <ChatMessage role="USER" content={pendingUser} />}
@@ -397,11 +468,40 @@ export function ChatClient({ companyName, initialCredits, initialDemoQuestionsLe
           </p>
         )}
 
-        <ChatInput
-          onSend={handleSend}
-          disabled={readOnlyRole || notEnoughCredits || demoOver || send.isPending}
-          placeholder={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
-        />
+        {/* Demo, after the first answer: the same questions in one row that
+            scrolls sideways, answered from the cache at no cost. */}
+        {isDemo && !showEmpty && (
+          <div className="flex gap-2 overflow-x-auto border-t border-border px-6 py-3">
+            {DEMO_SUGGESTED_QUESTIONS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => askSuggested(id)}
+                disabled={send.isPending}
+                className="shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                {t(`demoQuestions.${id}`)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Demo with free questions off (DEMO_FREE_QUESTIONS): the text field
+            becomes the invitation to ask one's own questions on one's own data. */}
+        {isDemo && !DEMO_FREE_QUESTIONS ? (
+          <p className="border-t border-border bg-muted/40 px-6 py-4 text-center text-sm text-foreground">
+            {t('demoAskOwn')}{' '}
+            <Link href="/signup" className="font-medium text-primary-accent underline-offset-4 hover:underline">
+              {tDemo('banner.cta')}
+            </Link>
+          </p>
+        ) : (
+          <ChatInput
+            onSend={handleSend}
+            disabled={readOnlyRole || notEnoughCredits || demoOver || send.isPending}
+            placeholder={readOnlyRole ? tSettings('readOnlyRoleShort') : undefined}
+          />
+        )}
       </section>
     </div>
   );
