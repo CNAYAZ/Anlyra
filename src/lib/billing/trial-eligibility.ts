@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -58,15 +59,19 @@ export type TrialEligibility = {
   grantRowIds: string[];
 };
 
-export async function trialEligibility(params: {
-  organizationId: string;
-  vatNumber: string;
-  cardFingerprint?: string | null;
-}): Promise<TrialEligibility> {
+export async function trialEligibility(
+  params: {
+    organizationId: string;
+    vatNumber: string;
+    cardFingerprint?: string | null;
+  },
+  /** The transaction to read in (claimTrialStart), or the plain client. */
+  db: Prisma.TransactionClient = prisma,
+): Promise<TrialEligibility> {
   const { organizationId, vatNumber, cardFingerprint } = params;
   const [org, rows] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId }, select: { trialStartedAt: true } }),
-    prisma.trialClaim.findMany({
+    db.organization.findUnique({ where: { id: organizationId }, select: { trialStartedAt: true } }),
+    db.trialClaim.findMany({
       where: {
         OR: [
           { vatNumber },
@@ -114,6 +119,14 @@ export async function trialEligibility(params: {
  * not filled from the old trials): that UPDATE is one statement, so of two
  * companies racing for the same VAT number only one can start a trial.
  *
+ * ATOMIC FOR THE CARD TOO: the check runs INSIDE the transaction, after
+ * taking a transaction-level advisory lock on the card fingerprint, the VAT
+ * number and the company (always in the same order, so two claims cannot
+ * deadlock). Two claims sharing any of the three wait for each other, and the
+ * second one re-reads the register after the first has committed — so the same
+ * card on two VAT numbers at the same instant gives ONE trial. The locks are
+ * released by the end of the transaction; no column or table is needed.
+ *
  * The trial credits are given in the SAME transaction (the plan balance set to
  * `credits`, one 'signup_grant' ledger row): a trial is never recorded without
  * them, nor given them twice — a retried webhook finds the trial recorded and
@@ -126,12 +139,16 @@ export async function claimTrialStart(params: {
   stripeSubscriptionId: string;
   credits: number;
 }): Promise<{ started: boolean; blockedBy: TrialBlock | null }> {
-  const check = await trialEligibility(params);
-  if (!check.eligible) return { started: false, blockedBy: check.blockedBy };
-
   const { organizationId, vatNumber, cardFingerprint, stripeSubscriptionId, credits } = params;
   const now = new Date();
   return prisma.$transaction(async (tx) => {
+    const lockKeys = [`trial:vat:${vatNumber}`, `trial:org:${organizationId}`, ...(cardFingerprint ? [`trial:card:${cardFingerprint}`] : [])].sort();
+    for (const key of lockKeys) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    }
+    const check = await trialEligibility(params, tx);
+    if (!check.eligible) return { started: false, blockedBy: check.blockedBy };
+
     const giveCredits = async () => {
       const before = await tx.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { aiCredits: true } });
       await tx.organization.update({ where: { id: organizationId }, data: { aiCredits: credits } });
