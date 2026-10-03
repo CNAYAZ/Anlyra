@@ -15,11 +15,48 @@ import { auditLog } from "@/lib/audit/log";
 import type { PlanId } from "@/lib/billing/plans";
 import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
+import { paymentActionRequiredTemplate } from "@/lib/email/templates/payment-action-required";
 import { siteUrl } from "@/lib/auth/tokens";
 import { APP_TIME_ZONE } from "@/lib/timezone";
 import { cardFingerprintOf, completeTrialClaim, normalizedVatForRegister } from "@/lib/billing/trial-claims";
 
 export const runtime = "nodejs";
+
+/**
+ * The product's status for a Stripe subscription status — the ONE mapping, used
+ * both when a checkout completes and when Stripe reports a change.
+ * null for "incomplete" / "incomplete_expired": a first payment that has not
+ * gone through (see handleSubscriptionUpdated), which records no subscription.
+ *
+ * EVERY Stripe status is mapped explicitly (founder's rule: access follows
+ * payment). None of the ones below grants full access (only "active" and
+ * "trialing" do — requireActiveAccess):
+ *   • unpaid — the retries are over and invoices stay open; Stripe's own
+ *     advice is to revoke access. paused — a Stripe-side trial ended with no
+ *     payment method; it resumes once one is added. Both → "past_due": no
+ *     access, but the subscription exists and paying (or adding a card) in the
+ *     Stripe portal brings it back to "active" — the billing page offers the
+ *     portal for "past_due", not a new checkout.
+ *   • anything Stripe may add later → "past_due" too (fail closed).
+ */
+function statusFromStripe(stripeStatus: Stripe.Subscription.Status, orgId: string): Subscription["status"] | null {
+  switch (stripeStatus) {
+    case "incomplete":
+    case "incomplete_expired":
+      return null;
+    case "active":
+    case "trialing":
+    case "past_due":
+    case "canceled":
+      return stripeStatus;
+    case "unpaid":
+    case "paused":
+      return "past_due";
+    default:
+      console.warn(`[stripe-webhook] unknown subscription status "${stripeStatus}" for org ${orgId} — recorded as past_due`);
+      return "past_due";
+  }
+}
 
 function planFromMetadata(meta: Record<string, string> | undefined): PlanId | null {
   const p = meta?.plan;
@@ -74,33 +111,37 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const existing = await getSubscription(orgId);
 
-  // checkout.session.completed does NOT carry the subscription's billing period,
-  // so currentPeriodEnd would stay whatever the row had (often null). Retrieve
-  // the subscription to populate it. Best-effort: a Stripe error must not fail
-  // the webhook — on failure we keep the existing value.
+  // checkout.session.completed carries neither the subscription's STATUS nor
+  // its billing period, so the subscription is read from Stripe. Until
+  // 2026-10-03 the status was forced to "active" here — wrong as soon as a
+  // checkout can start a TRIAL ("trialing") or a payment still needs the
+  // customer ("incomplete"). The retrieve is no longer best effort: without it
+  // the status is unknown, so the event fails and Stripe retries it (every
+  // write below is safe to repeat).
   // The same retrieve also expands the payment method, for the card
   // fingerprint the register of trials keeps (@/lib/billing/trial-claims).
-  let currentPeriodEnd = existing.currentPeriodEnd;
-  let fresh: Stripe.Subscription | null = null;
-  if (subscriptionId) {
-    try {
-      fresh = await getStripe().subscriptions.retrieve(subscriptionId, { expand: ["default_payment_method"] });
-      if (fresh.current_period_end) {
-        currentPeriodEnd = new Date(fresh.current_period_end * 1000);
-      }
-    } catch (e) {
-      console.error("[stripe-webhook] subscription retrieve for period end failed", e);
-    }
+  if (!subscriptionId) {
+    console.warn(`[stripe-webhook] checkout ${session.id} for org ${orgId} has no subscription: nothing recorded`);
+    return;
+  }
+  const fresh = await getStripe().subscriptions.retrieve(subscriptionId, { expand: ["default_payment_method"] });
+  const status = statusFromStripe(fresh.status, orgId);
+  if (!status) {
+    // The first payment has not gone through: the subscription is recorded when
+    // Stripe reports it as paid (customer.subscription.updated).
+    console.warn(`[stripe-webhook] checkout for org ${orgId}: subscription ${subscriptionId} is ${fresh.status}, not recorded yet`);
+    return;
   }
 
   await setSubscription({
     ...existing,
     plan,
     cycle,
-    status: "active",
+    status,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
-    currentPeriodEnd,
+    currentPeriodEnd: fresh.current_period_end ? new Date(fresh.current_period_end * 1000) : existing.currentPeriodEnd,
+    cancelAtPeriodEnd: fresh.cancel_at_period_end ?? false,
   });
 
   // The trial-ending email cron (src/lib/cron/trial-check.ts) reads
@@ -144,23 +185,14 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const plan = planFromMetadata(sub.metadata as Record<string, string>);
   const existing = await getSubscription(orgId);
 
-  // EVERY Stripe status is mapped explicitly (founder's rule: access follows
-  // payment). Until 2026-09-27 the four below fell through to
-  // `existing.status`, so a subscription that became "unpaid" after the failed
-  // retries could stay "active" in the product for good. None of them grants
-  // full access (only "active" and "trialing" do — requireActiveAccess):
-  //   • incomplete — the FIRST payment has not gone through yet (Stripe gives
-  //     ~23 hours); incomplete_expired — it never did, and Stripe voided the
-  //     invoice (terminal). Nothing was ever paid: handled below as "no
-  //     subscription".
-  //   • unpaid — the retries are over and invoices stay open; Stripe's own
-  //     advice is to revoke access. paused — a Stripe-side trial ended with no
-  //     payment method; it resumes once one is added. Both → "past_due": no
-  //     access, but the subscription exists and paying (or adding a card) in
-  //     the Stripe portal brings it back to "active" — the billing page offers
-  //     the portal for "past_due", not a new checkout.
-  //   • anything Stripe may add later → "past_due" too (fail closed).
-  if (sub.status === "incomplete" || sub.status === "incomplete_expired") {
+  // Status mapping: statusFromStripe (until 2026-09-27 four statuses fell
+  // through to `existing.status`, so an "unpaid" subscription could stay
+  // "active" for good). incomplete — the FIRST payment has not gone through
+  // yet (Stripe gives ~23 hours); incomplete_expired — it never did, and Stripe
+  // voided the invoice (terminal). Nothing was ever paid: handled here as "no
+  // subscription".
+  const status = statusFromStripe(sub.status, orgId);
+  if (!status) {
     // A first payment that did not (yet) go through. Recorded as "no
     // subscription": no Stripe id, status "canceled" — which getSubscription
     // reads through the trial window (repository.ts), so an org still in its
@@ -180,23 +212,6 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
     }
     await setSubscription({ ...existing, status: "canceled", stripeSubscriptionId: null, cancelAtPeriodEnd: false });
     return;
-  }
-
-  let status: Subscription["status"];
-  switch (sub.status) {
-    case "active":
-    case "trialing":
-    case "past_due":
-    case "canceled":
-      status = sub.status;
-      break;
-    case "unpaid":
-    case "paused":
-      status = "past_due";
-      break;
-    default:
-      console.warn(`[stripe-webhook] unknown subscription status "${sub.status}" for org ${orgId} — recorded as past_due`);
-      status = "past_due";
   }
 
   await setSubscription({
@@ -312,6 +327,69 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 }
 
+/** The organization an invoice belongs to, from its own or its subscription's metadata. */
+function orgIdOfInvoice(invoice: Stripe.Invoice): string | null {
+  return (
+    (invoice.metadata?.orgId as string | undefined) ??
+    ((invoice as unknown as { subscription_details?: { metadata?: Record<string, string> } })
+      .subscription_details?.metadata?.orgId as string | undefined) ??
+    null
+  );
+}
+
+/** The owner of an organization, who is the one who can pay (requireOwnerRole). */
+async function ownerOf(orgId: string) {
+  const m = await prisma.membership.findFirst({
+    where: { organizationId: orgId, role: "owner" },
+    orderBy: { joinedAt: "asc" },
+    select: { user: { select: { email: true, name: true, locale: true } } },
+  });
+  if (!m?.user?.email) return null;
+  return { email: m.user.email, name: m.user.name, locale: (m.user.locale === "en" ? "en" : "it") as "it" | "en" };
+}
+
+/**
+ * A payment that needs the customer (3D Secure) — typically the first charge
+ * at the END OF A TRIAL, made while the customer is not on the site. Stripe
+ * keeps the invoice open and moves the subscription to past_due/incomplete
+ * (customer.subscription.updated takes care of access); what is missing is
+ * telling the customer, with the link where they can confirm the payment.
+ */
+async function handlePaymentActionRequired(invoice: Stripe.Invoice) {
+  const orgId = orgIdOfInvoice(invoice);
+  if (!orgId) return;
+  const owner = await ownerOf(orgId);
+  if (!owner || !invoice.hosted_invoice_url) {
+    console.warn(`[stripe-webhook] payment action required for org ${orgId}: no owner email or no invoice link, nobody told`);
+    return;
+  }
+  const amount = (invoice.amount_due / 100).toLocaleString(owner.locale === "en" ? "en-US" : "it-IT", { minimumFractionDigits: 2 });
+  const result = await sendEmail({
+    to: owner.email,
+    subject: owner.locale === "en" ? "Confirm your payment — Anlyra" : "Conferma il pagamento — Anlyra",
+    html: paymentActionRequiredTemplate({
+      userName: owner.name || (owner.locale === "en" ? "Customer" : "Cliente"),
+      userEmail: owner.email,
+      amount: `${amount} ${invoice.currency.toUpperCase()}`,
+      confirmUrl: invoice.hosted_invoice_url,
+      locale: owner.locale,
+    }),
+  });
+  if (!result.success) console.error("[email] payment-action-required failed", { to: owner.email, reason: result.error });
+}
+
+/**
+ * Stripe announces the end of a trial (3 days before, by default). The email to
+ * the customer is sent from here (see the trial reminder).
+ */
+async function handleTrialWillEnd(sub: Stripe.Subscription) {
+  const orgId = (sub.metadata?.orgId as string) ?? null;
+  if (!orgId) return;
+  console.info(
+    `[stripe-webhook] trial of org ${orgId} ends on ${sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : "unknown"}`,
+  );
+}
+
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const orgId = (invoice.metadata?.orgId as string) ?? null;
   if (!orgId) return;
@@ -396,6 +474,12 @@ export async function POST(req: NextRequest) {
         break;
       case "invoice.payment_failed":
         await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      case "invoice.payment_action_required":
+        await handlePaymentActionRequired(event.data.object as Stripe.Invoice);
+        break;
+      case "customer.subscription.trial_will_end":
+        await handleTrialWillEnd(event.data.object as Stripe.Subscription);
         break;
       default:
         break;
