@@ -113,19 +113,32 @@ export async function trialEligibility(params: {
  * The VAT row is taken over only while it is an attempt (no subscription,
  * not filled from the old trials): that UPDATE is one statement, so of two
  * companies racing for the same VAT number only one can start a trial.
+ *
+ * The trial credits are given in the SAME transaction (the plan balance set to
+ * `credits`, one 'signup_grant' ledger row): a trial is never recorded without
+ * them, nor given them twice — a retried webhook finds the trial recorded and
+ * stops before this (applyTrialStart).
  */
 export async function claimTrialStart(params: {
   organizationId: string;
   vatNumber: string;
   cardFingerprint: string | null;
   stripeSubscriptionId: string;
+  credits: number;
 }): Promise<{ started: boolean; blockedBy: TrialBlock | null }> {
   const check = await trialEligibility(params);
   if (!check.eligible) return { started: false, blockedBy: check.blockedBy };
 
-  const { organizationId, vatNumber, cardFingerprint, stripeSubscriptionId } = params;
+  const { organizationId, vatNumber, cardFingerprint, stripeSubscriptionId, credits } = params;
   const now = new Date();
   return prisma.$transaction(async (tx) => {
+    const giveCredits = async () => {
+      const before = await tx.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { aiCredits: true } });
+      await tx.organization.update({ where: { id: organizationId }, data: { aiCredits: credits } });
+      if (credits !== before.aiCredits) {
+        await tx.creditEntry.create({ data: { organizationId, delta: credits - before.aiCredits, reason: 'signup_grant' } });
+      }
+    };
     if (check.grantRowIds.length > 0) {
       await tx.trialClaim.updateMany({
         where: { id: { in: check.grantRowIds }, reviewGrantUsedAt: null },
@@ -144,7 +157,10 @@ export async function claimTrialStart(params: {
         "updatedAt" = EXCLUDED."updatedAt"
       WHERE "TrialClaim"."stripeSubscriptionId" IS NULL AND "TrialClaim"."source" <> 'backfill'
     `;
-    if (written === 1) return { started: true, blockedBy: null };
+    if (written === 1) {
+      await giveCredits();
+      return { started: true, blockedBy: null };
+    }
     // The VAT row is a started trial. Fine only if it is the reviewed row whose
     // grant this trial has just used — then that row is its record (with the
     // card, if the row had none).
@@ -153,6 +169,7 @@ export async function claimTrialStart(params: {
       if (!vatRow.cardFingerprint && cardFingerprint) {
         await tx.trialClaim.update({ where: { id: vatRow.id }, data: { cardFingerprint } });
       }
+      await giveCredits();
       return { started: true, blockedBy: null };
     }
     throw new TrialRaceLost();

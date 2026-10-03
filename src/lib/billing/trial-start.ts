@@ -1,7 +1,6 @@
 import type Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe/client';
-import { recordCreditEntry } from '@/lib/credits';
 import { auditLog } from '@/lib/audit/log';
 import { cardFingerprintOf, normalizedVatForRegister } from '@/lib/billing/trial-claims';
 import { claimTrialStart, type TrialBlock } from '@/lib/billing/trial-eligibility';
@@ -42,7 +41,7 @@ export async function applyTrialStart(params: {
 
   const org = await prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { vatNumber: true, aiCredits: true },
+    select: { vatNumber: true },
   });
   const vatNumber = normalizedVatForRegister(org?.vatNumber);
   const cardFingerprint = cardFingerprintOf(subscription);
@@ -53,14 +52,17 @@ export async function applyTrialStart(params: {
   }
 
   const claim = vatNumber
-    ? await claimTrialStart({ organizationId, vatNumber, cardFingerprint, stripeSubscriptionId: subscription.id })
+    ? await claimTrialStart({
+        organizationId,
+        vatNumber,
+        cardFingerprint,
+        stripeSubscriptionId: subscription.id,
+        credits: TRIAL_CREDITS,
+      })
     : { started: false, blockedBy: 'vat' as const };
 
-  if (claim.started) {
-    await prisma.organization.update({ where: { id: organizationId }, data: { aiCredits: TRIAL_CREDITS } });
-    await recordCreditEntry(organizationId, TRIAL_CREDITS - (org?.aiCredits ?? 0), 'signup_grant');
-    return { outcome: 'started' };
-  }
+  // The trial credits were given inside claimTrialStart's transaction.
+  if (claim.started) return { outcome: 'started' };
 
   const reason = claim.blockedBy ?? 'vat';
   const ended = await getStripe().subscriptions.update(subscription.id, {
