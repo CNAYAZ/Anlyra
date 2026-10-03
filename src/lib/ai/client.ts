@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { DEFAULT_AI_MODEL, modelFor, type AiSurface } from '@/lib/ai/models';
 import type { AiUsage } from '@/lib/ai/credit-cost';
+import { fetchWithoutSpendCapRetries } from '@/lib/ai/spend-limit';
 
 /**
  * The model used when a caller names no surface. Kept exported because it was
@@ -34,7 +35,7 @@ export function getAnthropicClient(): Anthropic {
   if (!apiKey) {
     throw new Error(MISSING_KEY_MESSAGE);
   }
-  client = new Anthropic({ apiKey });
+  client = new Anthropic({ apiKey, fetch: fetchWithoutSpendCapRetries() });
   return client;
 }
 

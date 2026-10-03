@@ -52,6 +52,41 @@ export function isAnthropicSpendLimitError(err: unknown): boolean {
 }
 
 /**
+ * THE SDK MUST NOT RETRY A SPEND-CAP REFUSAL.
+ *
+ * The SDK retries every 429 (and every 5xx) twice, with a pause. A tier spend-cap
+ * 429 has no retry-after and keeps failing until the next month, so both retries
+ * are wasted: they only make the customer wait (about 1.5 s) before being told
+ * the AI is unavailable, and they hit Anthropic two more times for nothing. The
+ * 400 and 402 refusals are never retried by the SDK.
+ *
+ * The SDK obeys an `x-should-retry: false` response header, so the client is
+ * given a `fetch` that adds it to this one response — recognised by the same
+ * error_code as isAnthropicSpendLimitError — and passes everything else through
+ * untouched: other 429s (with retry-after) and 5xx are retried exactly as before.
+ */
+type SdkFetch = NonNullable<NonNullable<ConstructorParameters<typeof Anthropic>[0]>['fetch']>;
+
+export function fetchWithoutSpendCapRetries(): SdkFetch {
+  // The SDK's own default fetch, so nothing else about how requests are made changes.
+  const base = (new Anthropic({ apiKey: 'unused' }) as unknown as { fetch: SdkFetch }).fetch;
+  return async (url, init) => {
+    const response = await base(url, init);
+    if (response.status !== 429) return response;
+    let text: string;
+    try {
+      text = await response.clone().text();
+    } catch {
+      return response;
+    }
+    if (!SPEND_LIMIT_429.test(text)) return response;
+    const headers = new Headers(response.headers as unknown as HeadersInit);
+    headers.set('x-should-retry', 'false');
+    return new Response(text, { status: response.status, statusText: response.statusText, headers }) as unknown as typeof response;
+  };
+}
+
+/**
  * The searchable line for the founder: grep `[ai:spend-limit]` in the Vercel
  * logs. Carries Anthropic's own message, which says when access resumes.
  */
