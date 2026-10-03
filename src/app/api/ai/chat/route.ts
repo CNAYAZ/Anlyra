@@ -12,6 +12,7 @@ import {
   DEMO_CHAT_COOKIE_MAX_AGE,
   demoDayKey,
   demoIpKey,
+  demoMonthKey,
   readDemoChatSessionId,
 } from '@/lib/demo/chat-quota';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
@@ -449,6 +450,16 @@ async function demoChat(req: NextRequest) {
     await returnQuota('demo-chat-session', sessionId);
     return today.reason === 'unavailable' ? rateLimitResponse({ ...today, reset: 0 }) : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
   }
+  // And the total for the whole demo this month: the same answer again.
+  const monthKey = demoMonthKey();
+  const thisMonth = await takeQuota('demo-chat-month', monthKey);
+  if (!thisMonth.success) {
+    await returnQuota('demo-chat-session', sessionId);
+    await returnQuota('demo-chat-day', dayKey);
+    return thisMonth.reason === 'unavailable'
+      ? rateLimitResponse({ ...thisMonth, reset: 0 })
+      : fail('DEMO_QUESTIONS_EXHAUSTED', 429);
+  }
 
   let result;
   try {
@@ -463,9 +474,10 @@ async function demoChat(req: NextRequest) {
       maxTokens: AI_OPERATIONS.chat.maxOutputTokens,
     });
   } catch (err) {
-    // The question goes back to the session and to the day in both cases.
+    // The question goes back to the session, the day and the month in both cases.
     await returnQuota('demo-chat-session', sessionId);
     await returnQuota('demo-chat-day', dayKey);
+    await returnQuota('demo-chat-month', monthKey);
     if (isAnthropicSpendLimitError(err)) {
       logAnthropicSpendLimit('chat:demo', err);
       return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
@@ -480,7 +492,7 @@ async function demoChat(req: NextRequest) {
     answer = `${answer.trimEnd()}…\n\n${t('answerTruncated')}`;
   }
 
-  const res = ok({ answer, questionsLeft: Math.min(question.remaining, today.remaining) });
+  const res = ok({ answer, questionsLeft: Math.min(question.remaining, today.remaining, thisMonth.remaining) });
   if (!existingId) {
     res.cookies.set(DEMO_CHAT_COOKIE, sessionId, {
       httpOnly: true,
