@@ -3,6 +3,7 @@ import { runGdprPurge } from '@/lib/gdpr/purge';
 import { purgeOldWebhookEvents } from '@/lib/billing/webhook-retention';
 import { purgeOldAuditLogs, AUDIT_LOG_RETENTION_MONTHS } from '@/lib/audit/retention';
 import { runTrialDataPurge } from '@/lib/cron/trial-data-retention';
+import { purgeTrialClaimData } from '@/lib/billing/trial-claims';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,5 +70,31 @@ export async function GET(req: Request) {
     console.error('[cron/gdpr-purge] trial data purge failed:', e);
   }
 
-  return NextResponse.json({ success: true, ...result, webhookEventsPurged, auditLogRowsPurged, trialDataPurge });
+  // The register of trials and the IP of the Terms acceptances
+  // (@/lib/billing/trial-claims): IP cleared after 12 months, register rows
+  // deleted after 24, acceptance rows kept with their IP cleared after 12.
+  // Same best-effort contract as the steps above.
+  let trialClaimIpsCleared = 0;
+  let trialClaimsDeleted = 0;
+  let termsAcceptanceIpsCleared = 0;
+  try {
+    ({ trialClaimIpsCleared, trialClaimsDeleted, termsAcceptanceIpsCleared } = await purgeTrialClaimData());
+    console.info(
+      `[cron/gdpr-purge] trial register: ipsCleared=${trialClaimIpsCleared} rowsDeleted=${trialClaimsDeleted} ` +
+        `termsAcceptanceIpsCleared=${termsAcceptanceIpsCleared}`,
+    );
+  } catch (e) {
+    console.error('[cron/gdpr-purge] trial register expiry failed:', e);
+  }
+
+  return NextResponse.json({
+    success: true,
+    ...result,
+    webhookEventsPurged,
+    auditLogRowsPurged,
+    trialDataPurge,
+    trialClaimIpsCleared,
+    trialClaimsDeleted,
+    termsAcceptanceIpsCleared,
+  });
 }

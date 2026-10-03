@@ -17,6 +17,7 @@ import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
 import { siteUrl } from "@/lib/auth/tokens";
 import { APP_TIME_ZONE } from "@/lib/timezone";
+import { cardFingerprintOf, completeTrialClaim, normalizedVatForRegister } from "@/lib/billing/trial-claims";
 
 export const runtime = "nodejs";
 
@@ -77,10 +78,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // so currentPeriodEnd would stay whatever the row had (often null). Retrieve
   // the subscription to populate it. Best-effort: a Stripe error must not fail
   // the webhook — on failure we keep the existing value.
+  // The same retrieve also expands the payment method, for the card
+  // fingerprint the register of trials keeps (@/lib/billing/trial-claims).
   let currentPeriodEnd = existing.currentPeriodEnd;
+  let fresh: Stripe.Subscription | null = null;
   if (subscriptionId) {
     try {
-      const fresh = await getStripe().subscriptions.retrieve(subscriptionId);
+      fresh = await getStripe().subscriptions.retrieve(subscriptionId, { expand: ["default_payment_method"] });
       if (fresh.current_period_end) {
         currentPeriodEnd = new Date(fresh.current_period_end * 1000);
       }
@@ -112,6 +116,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     where: { id: orgId, trialEndsAt: { not: null } },
     data: { trialEndsAt: null },
   });
+
+  // The register of trials: card fingerprint and subscription id on this
+  // company's row. No fingerprint from Stripe → the payment stands, the row is
+  // written without it, and the log says so. Best effort, never throws.
+  try {
+    const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { vatNumber: true } });
+    const vatNumber = normalizedVatForRegister(org?.vatNumber);
+    const cardFingerprint = cardFingerprintOf(fresh);
+    if (!cardFingerprint) {
+      console.warn(`[trial-claim] Stripe returned no card fingerprint for subscription ${subscriptionId} (org ${orgId})`);
+    }
+    if (vatNumber) {
+      await completeTrialClaim({ organizationId: orgId, vatNumber, stripeSubscriptionId: subscriptionId, cardFingerprint });
+    } else {
+      console.warn(`[trial-claim] org ${orgId} has no valid VAT number: nothing recorded`);
+    }
+  } catch (e) {
+    console.error(`[trial-claim] completion skipped for org ${orgId}:`, e);
+  }
 }
 
 async function handleSubscriptionUpdated(sub: Stripe.Subscription) {

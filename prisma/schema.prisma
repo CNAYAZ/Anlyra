@@ -997,6 +997,43 @@ model CreditEntry {
   @@index([organizationId, createdAt])
 }
 
+/// The register of free trials (founder's decisions, 2026-09-30): one row per
+/// VAT number that has had or attempted a trial. Written at checkout
+/// (src/lib/billing/trial-claims.ts), filled once from the companies that
+/// already had a trial (admin panel), shown and reviewed in the admin panel.
+/// VAT number and card fingerprint kept 24 months from claimedAt, IP 12 months
+/// (cron gdpr-purge). The IP is only a signal for the founder, never a refusal.
+///
+/// `organizationId` is plain text with NO relation on purpose: the register must
+/// outlive the deletion of the company it came from.
+model TrialClaim {
+  id                   String    @id @default(cuid())
+  /// Normalized like Organization.vatNumber (11 digits for Italy). The FIRST
+  /// row for a VAT number stays (INSERT … ON CONFLICT DO NOTHING).
+  vatNumber            String    @unique
+  /// Stripe's card.fingerprint. NULL when Stripe did not return one, and on
+  /// rows filled from companies that already had a trial.
+  cardFingerprint      String?
+  organizationId       String
+  stripeSubscriptionId String?
+  /// Cleared after 12 months, the row stays.
+  ip                   String?
+  /// Activation of the trial, or the attempt: the 12 and 24 months run from here.
+  claimedAt            DateTime
+  /// 'checkout' | 'backfill'
+  source               String
+  /// A person reviewed this row and granted the trial anyway (art. 22 GDPR).
+  /// Who did it is in the 'admin.*' audit row.
+  reviewGrantedAt      DateTime?
+  reviewNote           String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([cardFingerprint])
+  @@index([ip, claimedAt])
+  @@index([claimedAt])
+}
+
 /// Stripe webhook idempotency ledger. One row per event.id Stripe has delivered
 /// AND we have fully processed. Stripe retries a webhook when the response is
 /// slow, non-2xx, or the connection drops, so the same event.id can arrive

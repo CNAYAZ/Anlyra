@@ -10,6 +10,8 @@ import { getSubscription, setSubscription } from "@/lib/billing/repository";
 import { prisma } from "@/lib/prisma";
 import { BILLING_SELECT, checkStoredBillingDetails } from "@/lib/billing/billing-details";
 import { syncStripeCustomerBilling } from "@/lib/billing/stripe-customer";
+import { recordTrialClaimAttempt } from "@/lib/billing/trial-claims";
+import { getClientIp } from "@/lib/rate-limit";
 
 const Body = z.object({
   plan: z.enum(["PRO", "ADVANCED", "ENTERPRISE"]),
@@ -119,6 +121,15 @@ export async function POST(req: NextRequest) {
       subscription_data: {
         metadata: { orgId: ctx.organizationId, plan: parsed.plan, cycle: parsed.cycle },
       },
+    });
+
+    // The register of trials (@/lib/billing/trial-claims): the attempt, with
+    // the VAT number and the IP of this request. Best effort — it never fails
+    // the checkout. The card fingerprint arrives with checkout.session.completed.
+    await recordTrialClaimAttempt({
+      organizationId: ctx.organizationId,
+      vatNumber: billing.data.vatNumber,
+      ip: getClientIp(req),
     });
 
     return ok({ url: session.url });
