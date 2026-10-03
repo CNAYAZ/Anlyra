@@ -37,10 +37,16 @@ const ANSWER_COMPLETE_MARKER = '\u0004';
  */
 const COST_TRAILER_MARKER = '\u0005';
 
+/**
+ * Sent before the trailer when Anthropic refused the call for its spend limit
+ * or balance: nothing was charged, the AI is unavailable. Mirrors the route.
+ */
+const AI_UNAVAILABLE_MARKER = '\u0006';
+
 /** The answer text of a stream read so far: trailer and end marker removed. */
 function answerText(acc: string): string {
   const i = acc.indexOf(COST_TRAILER_MARKER);
-  return (i >= 0 ? acc.slice(0, i) : acc).replace(ANSWER_COMPLETE_MARKER, '');
+  return (i >= 0 ? acc.slice(0, i) : acc).replace(ANSWER_COMPLETE_MARKER, '').replace(AI_UNAVAILABLE_MARKER, '');
 }
 
 type AgentMode = 'financial' | 'marketing' | 'kpi' | 'competitor' | 'chat';
@@ -161,12 +167,17 @@ export function AgentClient() {
         // configured". Checked on the CODE before the status, or the user would
         // be told to contact support about a transient outage that clears itself.
         const rateLimiterDown = code === 'RATE_LIMIT_UNAVAILABLE';
+        // Anthropic refused for its spend limit or balance (not configured, not
+        // the user's doing): a 503 too, so the code is read before the status.
+        const aiUnavailable = code === 'AI_UNAVAILABLE';
         patch(m, {
           error: insufficientCredits
             ? cost.insufficient('analyze', credits)
             : rateLimiterDown
               ? t('errors.rateLimitUnavailable')
-              : res.status === 402
+              : aiUnavailable
+                ? tCommon('aiUnavailable')
+                : res.status === 402
                 ? t('errors.trialExpired')
                 : res.status === 429
                   ? t('errors.rateLimit')
@@ -208,11 +219,12 @@ export function AgentClient() {
       // The route sends ANSWER_COMPLETE_MARKER only when the answer finished on
       // its own; without it the text was cut (length ceiling, error, timeout).
       const complete = answer.endsWith(ANSWER_COMPLETE_MARKER);
+      const unavailable = answer.includes(AI_UNAVAILABLE_MARKER);
       patch(m, {
         result: answerText(acc),
-        error: complete ? null : t('errors.truncated'),
+        error: unavailable ? tCommon('aiUnavailable') : complete ? null : t('errors.truncated'),
         loading: false,
-        charged,
+        charged: unavailable ? null : charged,
       });
     } catch {
       // Network/read error mid-stream: keep the partial text already shown and

@@ -13,6 +13,12 @@ import {
   type CreditSpend,
 } from '@/lib/credits';
 import { chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
+import {
+  AI_UNAVAILABLE,
+  AI_UNAVAILABLE_STATUS,
+  isAnthropicSpendLimitError,
+  logAnthropicSpendLimit,
+} from '@/lib/ai/spend-limit';
 import { analyzeAlert, parseStoredAnalysis } from '@/lib/alerts/ai-analysis';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { rateLimitResponse } from '@/lib/api/rate-limit-response';
@@ -114,6 +120,12 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
         await refundCredits(organizationId, spend);
       } catch (refundErr) {
         console.error('[ai/alerts/analyze] credit refund FAILED after an error:', refundErr);
+      }
+      // Anthropic's spend limit or balance: the reservation is already back;
+      // say "unavailable", not a generic failure (see @/lib/ai/spend-limit).
+      if (isAnthropicSpendLimitError(e)) {
+        logAnthropicSpendLimit('alerts-analyze', e);
+        return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
       }
       throw e;
     }

@@ -26,6 +26,12 @@ import {
 } from '@/lib/credits';
 import { AI_OPERATIONS, chargeFor, maxCreditsFor, type AiUsage } from '@/lib/ai/credit-cost';
 import {
+  AI_UNAVAILABLE,
+  AI_UNAVAILABLE_STATUS,
+  isAnthropicSpendLimitError,
+  logAnthropicSpendLimit,
+} from '@/lib/ai/spend-limit';
+import {
   chatComplete,
   isAnthropicConfigured,
   MISSING_KEY_MESSAGE,
@@ -289,7 +295,7 @@ export async function POST(req: NextRequest) {
     usedModel = result.model;
     usage = result.usage;
   } catch (err) {
-    // ── L'UNICO caso rimborsabile: la richiesta ha superato la finestra ──
+    // ── DUE casi rimborsabili per intero. Il primo: la richiesta ha superato la finestra ──
     // Con il taglio a CHAT_HISTORY_WINDOW questo non dovrebbe più accadere per
     // crescita della cronologia; resta come rete di sicurezza (un domani con un
     // cap più alto, un system prompt più grande o un modello con finestra più
@@ -297,8 +303,9 @@ export async function POST(req: NextRequest) {
     // senza rimborso ogni tentativo costerebbe un credito per niente.
     //
     // RIMBORSO UNA VOLTA SOLA, GARANTITO DALLA STRUTTURA: la riserva si chiude
-    // in UNO solo di quattro rami che si escludono a vicenda, ognuno seguito da
-    // return o throw — questo (rimborso intero), keepOneCredit dopo un errore
+    // in UNO solo di cinque rami che si escludono a vicenda, ognuno seguito da
+    // return o throw — questo (rimborso intero), il limite di spesa di
+    // Anthropic qui sotto (rimborso intero), keepOneCredit dopo un errore
     // del modello, keepOneCredit se il database fallisce prima della chiamata,
     // settleAiCredits dopo una risposta. Nessuno è dentro un ciclo o un retry, e
     // un secondo tentativo del cliente è una NUOVA richiesta con una propria
@@ -314,6 +321,18 @@ export async function POST(req: NextRequest) {
         console.error('[ai/chat] credit refund FAILED after context-window error:', refundErr);
       }
       return fail('CONVERSATION_TOO_LONG', 413);
+    }
+    // ── Il secondo: Anthropic rifiuta per il limite di spesa o il saldo ──
+    // Non è colpa del cliente e il modello non ha risposto: niente credito, e
+    // un messaggio che non dice perché (vedi @/lib/ai/spend-limit).
+    if (isAnthropicSpendLimitError(err)) {
+      logAnthropicSpendLimit('chat', err);
+      try {
+        await refundCredits(organizationId, spend);
+      } catch (refundErr) {
+        console.error('[ai/chat] credit refund FAILED after the Anthropic spend limit:', refundErr);
+      }
+      return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
     }
     // L'errore VERO resta nei log del server, per intero, con il marcatore
     // [ai:error] per ritrovarlo. Al browser va solo un messaggio generico: il
@@ -444,9 +463,14 @@ async function demoChat(req: NextRequest) {
       maxTokens: AI_OPERATIONS.chat.maxOutputTokens,
     });
   } catch (err) {
-    console.error('[ai:error] surface=chat:demo', err);
+    // The question goes back to the session and to the day in both cases.
     await returnQuota('demo-chat-session', sessionId);
     await returnQuota('demo-chat-day', dayKey);
+    if (isAnthropicSpendLimitError(err)) {
+      logAnthropicSpendLimit('chat:demo', err);
+      return fail(AI_UNAVAILABLE, AI_UNAVAILABLE_STATUS);
+    }
+    console.error('[ai:error] surface=chat:demo', err);
     return fail('AI_REQUEST_FAILED', 502);
   }
 
