@@ -6,6 +6,7 @@ import { sendEmail, sanitizeSubjectText, trialDataDeletionNoticeTemplate } from 
 import { siteUrl } from '@/lib/auth/tokens';
 import { formatDate } from '@/lib/utils';
 import { auditLog } from '@/lib/audit/log';
+import { ACTIVATION_PATH, needsActivation } from '@/lib/billing/activation';
 
 /**
  * Data of trials that never became a subscription is not kept forever
@@ -22,6 +23,13 @@ import { auditLog } from '@/lib/audit/log';
  * out, and only on the LATER of "trial end + 12 months" and "notice + 30 days".
  * A missed cron day or a failed email delays the deletion; it never shortens
  * the 30 days.
+ *
+ * SINCE 2026-10-03, a second kind (Terms §11.4): a company that NEVER had
+ * access to the product — the card never entered, or the first payment never
+ * went through (needsActivation, src/lib/billing/activation.ts) — is deleted
+ * 12 months after it was CREATED, with the same notice, the same 30 days, the
+ * same "later of the two dates" and the same purge. Such a company has no
+ * trial end date, which is why it needs its own anchor (createdAt).
  *
  * NEVER A CUSTOMER: see paymentHistory — any single trace of money protects the
  * organization, for good. The demo organization is excluded by its fixed id
@@ -57,22 +65,85 @@ export function trialDataDeletionDate(trialEndsAt: Date, noticeSentAt: Date): Da
  * webhook clears it when a subscription becomes active, and so does the
  * founder assigning a plan from the admin panel.
  */
-async function findCandidates(now: Date) {
+type Candidate = {
+  id: string;
+  name: string;
+  /** 'trial': an old local trial never paid; 'never_activated': a company that never had access. */
+  kind: 'trial' | 'never_activated';
+  /** The 12 months run from here: the end of the trial, or the creation of the company. */
+  anchor: Date;
+  trialDataDeletionNoticeSentAt: Date | null;
+};
+
+async function findCandidates(now: Date): Promise<Candidate[]> {
   const cutoff = new Date(now.getTime() + TRIAL_DATA_NOTICE_DAYS * DAY_MS);
   cutoff.setUTCMonth(cutoff.getUTCMonth() - TRIAL_DATA_RETENTION_MONTHS);
-  const rows = await prisma.organization.findMany({
-    where: {
-      id: { not: DEMO_ORG_ID },
-      trialEndsAt: { not: null, lte: cutoff },
-      deletionRequestedAt: null,
-    },
-    select: { id: true, name: true, trialEndsAt: true, trialDataDeletionNoticeSentAt: true },
-  });
-  return rows.filter(
-    (o): o is typeof o & { trialEndsAt: Date } =>
-      !!o.trialEndsAt &&
-      retentionEndOf(o.trialEndsAt).getTime() - TRIAL_DATA_NOTICE_DAYS * DAY_MS <= now.getTime(),
-  );
+  const due = (anchor: Date) =>
+    retentionEndOf(anchor).getTime() - TRIAL_DATA_NOTICE_DAYS * DAY_MS <= now.getTime();
+  const [trials, neverActivated] = await Promise.all([
+    prisma.organization.findMany({
+      where: {
+        id: { not: DEMO_ORG_ID },
+        trialEndsAt: { not: null, lte: cutoff },
+        deletionRequestedAt: null,
+      },
+      select: { id: true, name: true, trialEndsAt: true, trialDataDeletionNoticeSentAt: true },
+    }),
+    // No local trial at all (trialStartedAt and trialEndsAt both empty): the
+    // companies of the trial with a card. Whether they ever had access is
+    // decided by needsActivation, in neverActivatedHistory below.
+    prisma.organization.findMany({
+      where: {
+        id: { not: DEMO_ORG_ID },
+        trialStartedAt: null,
+        trialEndsAt: null,
+        createdAt: { lte: cutoff },
+        deletionRequestedAt: null,
+      },
+      select: { id: true, name: true, createdAt: true, trialDataDeletionNoticeSentAt: true },
+    }),
+  ]);
+  return [
+    ...trials
+      .filter((o) => !!o.trialEndsAt && due(o.trialEndsAt))
+      .map((o) => ({ id: o.id, name: o.name, kind: 'trial' as const, anchor: o.trialEndsAt as Date, trialDataDeletionNoticeSentAt: o.trialDataDeletionNoticeSentAt })),
+    ...neverActivated
+      .filter((o) => due(o.createdAt))
+      .map((o) => ({ id: o.id, name: o.name, kind: 'never_activated' as const, anchor: o.createdAt, trialDataDeletionNoticeSentAt: o.trialDataDeletionNoticeSentAt })),
+  ];
+}
+
+/**
+ * For a company with no local trial: 'never_paid' only if it still has never
+ * had access (needsActivation: no Stripe subscription, no trial with a card
+ * started, no invoice), never bought credits, and — if a Stripe customer exists
+ * (a checkout was opened) — Stripe reports no successful charge. Same
+ * fail-safe as paymentHistory: Stripe unreachable → 'unknown', left alone.
+ */
+async function neverActivatedHistory(organizationId: string): Promise<'never_paid' | 'paid' | 'unknown'> {
+  if (organizationId === DEMO_ORG_ID) return 'paid';
+  if (!(await needsActivation(organizationId))) return 'paid';
+  const [org, sub, purchases] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: organizationId }, select: { aiCreditsPurchased: true } }),
+    prisma.billingSubscription.findUnique({ where: { organizationId }, select: { stripeCustomerId: true } }),
+    prisma.creditEntry.count({ where: { organizationId, reason: 'purchase' } }),
+  ]);
+  if (purchases > 0 || (org?.aiCreditsPurchased ?? 0) > 0) return 'paid';
+  if (sub?.stripeCustomerId) {
+    try {
+      const charges = await getStripe().charges.list({ customer: sub.stripeCustomerId, limit: 100 });
+      if (charges.has_more || charges.data.some((c) => c.paid || c.status === 'succeeded')) return 'paid';
+    } catch (e) {
+      console.error(`[trial-data] Stripe charges lookup failed for organization ${organizationId} — left alone today:`, e);
+      return 'unknown';
+    }
+  }
+  return 'never_paid';
+}
+
+/** The right check for each kind of candidate. */
+function historyOf(c: Candidate) {
+  return c.kind === 'trial' ? paymentHistory(c.id) : neverActivatedHistory(c.id);
 }
 
 /**
@@ -153,7 +224,7 @@ export async function runTrialDataNotices(now: Date = new Date()): Promise<Trial
 
   for (const org of candidates) {
     try {
-      const history = await paymentHistory(org.id);
+      const history = await historyOf(org);
       if (history === 'paid') {
         result.skippedPaid++;
         continue;
@@ -174,7 +245,7 @@ export async function runTrialDataNotices(now: Date = new Date()): Promise<Trial
 
       // The date this notice promises — the same formula the purge uses, with
       // this moment as the notice time.
-      const deletionDate = trialDataDeletionDate(org.trialEndsAt, now);
+      const deletionDate = trialDataDeletionDate(org.anchor, now);
       let anySent = false;
       for (const { user } of recipients) {
         if (!user?.email) continue;
@@ -190,8 +261,11 @@ export async function runTrialDataNotices(now: Date = new Date()): Promise<Trial
             userEmail: user.email,
             orgName: org.name,
             deletionDate: date,
-            exportUrl: `${siteUrl()}/${locale}/settings/security`,
-            billingUrl: `${siteUrl()}/${locale}/settings/subscription`,
+            // A company that never had access only reaches /activate, where
+            // export and the card both are.
+            exportUrl: `${siteUrl()}/${locale}${org.kind === 'trial' ? '/settings/security' : ACTIVATION_PATH}`,
+            billingUrl: `${siteUrl()}/${locale}${org.kind === 'trial' ? '/settings/subscription' : ACTIVATION_PATH}`,
+            kind: org.kind,
             locale,
           }),
         });
@@ -213,7 +287,7 @@ export async function runTrialDataNotices(now: Date = new Date()): Promise<Trial
         organizationId: org.id,
         targetType: 'organization',
         targetId: org.id,
-        metadata: { deletionDate: deletionDate.toISOString() },
+        metadata: { deletionDate: deletionDate.toISOString(), kind: org.kind },
       });
     } catch (e) {
       result.failed++;
@@ -245,19 +319,19 @@ export async function runTrialDataPurge(now: Date = new Date()): Promise<TrialDa
     errors: [],
   };
   const candidates = (await findCandidates(now)).filter(
-    (o): o is typeof o & { trialDataDeletionNoticeSentAt: Date } => !!o.trialDataDeletionNoticeSentAt,
+    (o): o is Candidate & { trialDataDeletionNoticeSentAt: Date } => !!o.trialDataDeletionNoticeSentAt,
   );
   result.considered = candidates.length;
 
   for (const org of candidates) {
     if (org.id === DEMO_ORG_ID) continue;
-    if (trialDataDeletionDate(org.trialEndsAt, org.trialDataDeletionNoticeSentAt).getTime() > now.getTime()) {
+    if (trialDataDeletionDate(org.anchor, org.trialDataDeletionNoticeSentAt).getTime() > now.getTime()) {
       result.notYetDue++;
       continue;
     }
     try {
       // Re-checked right before deleting, never trusted from the notice day.
-      const history = await paymentHistory(org.id);
+      const history = await historyOf(org);
       if (history === 'paid') {
         result.skippedPaid++;
         continue;
@@ -274,7 +348,9 @@ export async function runTrialDataPurge(now: Date = new Date()): Promise<TrialDa
         targetType: 'organization',
         targetId: org.id,
         metadata: {
-          trialEndedAt: org.trialEndsAt.toISOString(),
+          kind: org.kind,
+          // The trial end, or the creation of a company that never had access.
+          anchor: org.anchor.toISOString(),
           noticeSentAt: org.trialDataDeletionNoticeSentAt.toISOString(),
         },
       });

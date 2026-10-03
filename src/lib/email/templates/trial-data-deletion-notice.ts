@@ -9,6 +9,8 @@ interface TrialDataDeletionNoticeParams {
   deletionDate: string;
   exportUrl: string;
   billingUrl: string;
+  /** 'never_activated': a company that never had access (no card, or the first payment failed). */
+  kind?: 'trial' | 'never_activated';
   locale?: 'it' | 'en';
 }
 
@@ -20,7 +22,8 @@ interface TrialDataDeletionNoticeParams {
  * plan (which cancels the deletion).
  */
 export function trialDataDeletionNoticeTemplate(params: TrialDataDeletionNoticeParams): string {
-  const { userName, userEmail, orgName, deletionDate, exportUrl, billingUrl, locale = 'it' } = params;
+  const { userName, userEmail, orgName, deletionDate, exportUrl, billingUrl, kind = 'trial', locale = 'it' } = params;
+  const never = kind === 'never_activated';
   const isEn = locale === 'en';
   const safeUserName = escapeHtml(userName);
   const safeOrgName = escapeHtml(orgName);
@@ -31,9 +34,13 @@ export function trialDataDeletionNoticeTemplate(params: TrialDataDeletionNoticeP
       The data of ${safeOrgName} will be deleted on ${safeDate}
     </h1>
     <p style="margin:0 0 16px;font-size:15px;color:#6B6760;">
-      Hi ${safeUserName}, the free trial of <strong style="color:#2A2520;">${safeOrgName}</strong>
+      Hi ${safeUserName}, ${never
+        ? `the company <strong style="color:#2A2520;">${safeOrgName}</strong> was created almost a year ago
+      and was never activated: no card was entered, or the first payment did not go through. The data
+      of a company that never had access to Anlyra is not kept forever: on`
+        : `the free trial of <strong style="color:#2A2520;">${safeOrgName}</strong>
       ended almost a year ago and no plan was chosen. The data of a trial that never
-      became a subscription is not kept forever: on
+      became a subscription is not kept forever: on`}
       <strong style="color:#2A2520;">${safeDate}</strong> the company and all of its data
       will be permanently deleted. Your personal account is not deleted.
     </p>
@@ -55,9 +62,13 @@ export function trialDataDeletionNoticeTemplate(params: TrialDataDeletionNoticeP
       I dati di ${safeOrgName} saranno cancellati il ${safeDate}
     </h1>
     <p style="margin:0 0 16px;font-size:15px;color:#6B6760;">
-      Ciao ${safeUserName}, la prova gratuita di <strong style="color:#2A2520;">${safeOrgName}</strong>
+      Ciao ${safeUserName}, ${never
+        ? `l'azienda <strong style="color:#2A2520;">${safeOrgName}</strong> è stata creata quasi un anno fa
+      e non è mai stata attivata: la carta non è stata inserita, oppure il primo pagamento non è riuscito.
+      I dati di un'azienda che non ha mai avuto accesso ad Anlyra non restano per sempre: il`
+        : `la prova gratuita di <strong style="color:#2A2520;">${safeOrgName}</strong>
       è finita quasi un anno fa e non è stato scelto nessun piano. I dati di una prova
-      che non è diventata un abbonamento non restano per sempre: il
+      che non è diventata un abbonamento non restano per sempre: il`}
       <strong style="color:#2A2520;">${safeDate}</strong> l'azienda e tutti i suoi dati
       saranno cancellati definitivamente. Il tuo account personale non viene cancellato.
     </p>
