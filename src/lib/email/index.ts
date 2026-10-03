@@ -20,5 +20,7 @@ export { orgDeletionApprovalReceivedTemplate } from './templates/org-deletion-ap
 export { orgDeletionApprovalRejectedTemplate } from './templates/org-deletion-approval-rejected';
 export { trialDataDeletionNoticeTemplate } from './templates/trial-data-deletion-notice';
 export { paymentActionRequiredTemplate } from './templates/payment-action-required';
+export { trialEndingTemplate } from './templates/trial-ending';
+export { trialDeniedTemplate } from './templates/trial-denied';
 export { MAX_EMAIL_ATTACHMENT_BYTES } from './send';
 export type { EmailAttachment } from './send';

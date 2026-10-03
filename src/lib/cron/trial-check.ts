@@ -123,6 +123,11 @@ export async function runTrialCheck(now = new Date()): Promise<TrialCheckResult>
   // legacy column was left in the select, read by nobody. Selecting a value
   // that says "STARTER" for a paying customer and leaving it sitting in scope
   // is how it gets used again by accident.
+  // ONLY the old local trials (Organization.trialEndsAt): since 2026-10-03 a
+  // new company has no local trial — its trial is run by Stripe, and its
+  // emails (3 days before the end, card already used) are sent from the Stripe
+  // webhook. These emails keep running for the local trials still under way,
+  // which end with the old rules (founder's decision).
   const orgs = await prisma.organization.findMany({
     where: { trialEndsAt: { not: null } },
     select: { id: true, name: true, trialEndsAt: true },

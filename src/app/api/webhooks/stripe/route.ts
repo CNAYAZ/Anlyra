@@ -16,6 +16,12 @@ import type { PlanId } from "@/lib/billing/plans";
 import { sendEmail } from "@/lib/email";
 import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirmed";
 import { paymentActionRequiredTemplate } from "@/lib/email/templates/payment-action-required";
+import { trialEndingTemplate } from "@/lib/email/templates/trial-ending";
+import { trialDeniedTemplate } from "@/lib/email/templates/trial-denied";
+import { getTranslations } from "next-intl/server";
+import { PLANS } from "@/lib/billing/plans";
+import { COMPANY } from "@/lib/company";
+import { formatEuro, planAmountCents } from "@/lib/billing/trial-rule";
 import { siteUrl } from "@/lib/auth/tokens";
 import { APP_TIME_ZONE } from "@/lib/timezone";
 import { applyTrialStart } from "@/lib/billing/trial-start";
@@ -167,6 +173,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (fresh.status === "trialing") {
     const trial = await applyTrialStart({ organizationId: orgId, subscription: fresh });
     if (trial.outcome === "denied") {
+      await sendTrialDeniedEmail(orgId, trial.subscription, trial.reason);
       const status = statusFromStripe(trial.subscription.status, orgId);
       if (status) {
         await setSubscription({
@@ -381,16 +388,110 @@ async function handlePaymentActionRequired(invoice: Stripe.Invoice) {
   if (!result.success) console.error("[email] payment-action-required failed", { to: owner.email, reason: result.error });
 }
 
+/** "Pro" / "Avanzato" / … in the owner's language. */
+async function planLabel(plan: PlanId, locale: "it" | "en"): Promise<string> {
+  const t = await getTranslations({ locale });
+  return t(PLANS[plan].nameKey as "billing.plans.pro.name");
+}
+
+/** The plan and cycle a Stripe subscription was bought for (its metadata), PRO/monthly when absent. */
+function planOfSubscription(sub: Stripe.Subscription): { plan: PlanId; cycle: "monthly" | "yearly" } {
+  return {
+    plan: planFromMetadata(sub.metadata as Record<string, string>) ?? "PRO",
+    cycle: sub.metadata?.cycle === "yearly" ? "yearly" : "monthly",
+  };
+}
+
 /**
- * Stripe announces the end of a trial (3 days before, by default). The email to
- * the customer is sent from here (see the trial reminder).
+ * Stripe announces the end of a trial (3 days before, by default — founder's
+ * decision: an email 3 days before the end, with the date and the amount). The
+ * amount is the one Stripe will actually charge (the upcoming invoice); the
+ * plan's list price only if that cannot be read. Best effort: an email that
+ * cannot be sent is logged, never fails the webhook.
  */
 async function handleTrialWillEnd(sub: Stripe.Subscription) {
   const orgId = (sub.metadata?.orgId as string) ?? null;
-  if (!orgId) return;
-  console.info(
-    `[stripe-webhook] trial of org ${orgId} ends on ${sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : "unknown"}`,
-  );
+  if (!orgId || !sub.trial_end) return;
+  try {
+    const owner = await ownerOf(orgId);
+    if (!owner) {
+      console.warn(`[stripe-webhook] trial of org ${orgId} ends soon: no owner email, nobody told`);
+      return;
+    }
+    const { plan, cycle } = planOfSubscription(sub);
+    let amountCents = planAmountCents(plan, cycle);
+    try {
+      const upcoming = await getStripe().invoices.retrieveUpcoming({ subscription: sub.id });
+      amountCents = upcoming.amount_due;
+    } catch (e) {
+      console.warn(`[stripe-webhook] upcoming invoice for ${sub.id} not readable, list price used:`, e);
+    }
+    const endDate = new Date(sub.trial_end * 1000).toLocaleDateString(owner.locale === "en" ? "en-GB" : "it-IT", {
+      timeZone: APP_TIME_ZONE,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const result = await sendEmail({
+      to: owner.email,
+      subject:
+        owner.locale === "en" ? `Your free trial ends on ${endDate} — Anlyra` : `La prova gratuita finisce il ${endDate} — Anlyra`,
+      html: trialEndingTemplate({
+        userName: owner.name || (owner.locale === "en" ? "Customer" : "Cliente"),
+        userEmail: owner.email,
+        planName: await planLabel(plan, owner.locale),
+        endDate,
+        amount: formatEuro(amountCents, owner.locale),
+        manageUrl: `${siteUrl()}/${owner.locale}/settings/subscription`,
+        locale: owner.locale,
+      }),
+    });
+    if (!result.success) console.error("[email] trial-ending failed", { to: owner.email, reason: result.error });
+  } catch (e) {
+    console.error(`[stripe-webhook] trial-ending email for org ${orgId} failed:`, e);
+  }
+}
+
+/**
+ * The trial did not start (the card, or the VAT number, had already had one)
+ * and the first period was charged at once: the customer is told by email, as
+ * well as on screen. Replies go to the founder: whoever thinks it is a mistake
+ * can ask for a person to review it (art. 22 GDPR). Best effort.
+ */
+async function sendTrialDeniedEmail(orgId: string, sub: Stripe.Subscription, reason: "card" | "vat" | "company") {
+  try {
+    const owner = await ownerOf(orgId);
+    if (!owner) {
+      console.warn(`[stripe-webhook] trial denied for org ${orgId}: no owner email, nobody told`);
+      return;
+    }
+    const { plan, cycle } = planOfSubscription(sub);
+    let amountCents = planAmountCents(plan, cycle);
+    try {
+      const inv =
+        typeof sub.latest_invoice === "string" ? await getStripe().invoices.retrieve(sub.latest_invoice) : sub.latest_invoice;
+      if (inv) amountCents = inv.amount_due;
+    } catch (e) {
+      console.warn(`[stripe-webhook] invoice of ${sub.id} not readable, list price used:`, e);
+    }
+    const result = await sendEmail({
+      to: owner.email,
+      replyTo: COMPANY.contactEmail,
+      subject: owner.locale === "en" ? "Your subscription started without a trial — Anlyra" : "Abbonamento partito senza prova — Anlyra",
+      html: trialDeniedTemplate({
+        userName: owner.name || (owner.locale === "en" ? "Customer" : "Cliente"),
+        userEmail: owner.email,
+        planName: await planLabel(plan, owner.locale),
+        amount: formatEuro(amountCents, owner.locale),
+        reason,
+        manageUrl: `${siteUrl()}/${owner.locale}/settings/subscription`,
+        locale: owner.locale,
+      }),
+    });
+    if (!result.success) console.error("[email] trial-denied failed", { to: owner.email, reason: result.error });
+  } catch (e) {
+    console.error(`[stripe-webhook] trial-denied email for org ${orgId} failed:`, e);
+  }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
