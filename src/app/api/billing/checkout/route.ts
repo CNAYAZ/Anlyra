@@ -11,11 +11,21 @@ import { prisma } from "@/lib/prisma";
 import { BILLING_SELECT, checkStoredBillingDetails } from "@/lib/billing/billing-details";
 import { syncStripeCustomerBilling } from "@/lib/billing/stripe-customer";
 import { recordTrialClaimAttempt } from "@/lib/billing/trial-claims";
+import { trialEligibility } from "@/lib/billing/trial-eligibility";
+import { TRIAL_DAYS, planAmountCents, recordTrialRuleAcceptance, trialRuleText } from "@/lib/billing/trial-rule";
 import { getClientIp } from "@/lib/rate-limit";
 
 const Body = z.object({
   plan: z.enum(["PRO", "ADVANCED", "ENTERPRISE"]),
   cycle: z.enum(["monthly", "yearly"]),
+  // The box ticked BEFORE entering the card (founder's decision): the rule of
+  // the trial and the exact amount of the plan. Without it, no checkout.
+  acceptTrialRule: z.literal(true).optional(),
+  // Whether the page showed the version WITH the trial: if the answer has
+  // changed since (another trial started meanwhile), the customer accepted a
+  // text that no longer applies and must see the new one.
+  trialOffered: z.boolean().optional(),
+  locale: z.enum(["it", "en"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,6 +67,41 @@ export async function POST(req: NextRequest) {
     // missing — the real reason goes to the log line instead.
     console.error(`[billing/checkout] price not configured for plan=${parsed.plan} cycle=${parsed.cycle}`);
     return fail("PRICE_NOT_CONFIGURED", 500);
+  }
+
+  // ── The trial and the box ──
+  // Who may have a trial: src/lib/billing/trial-eligibility.ts (before the
+  // payment the card is not known yet; it is checked when the checkout
+  // completes). The rule the customer ticked is recorded with the exact text
+  // and amount, built by the same function the page used to show it.
+  if (parsed.acceptTrialRule !== true) return fail("TRIAL_RULE_NOT_ACCEPTED", 400);
+  const eligibility = await trialEligibility({
+    organizationId: ctx.organizationId,
+    vatNumber: billing.data.vatNumber,
+  });
+  const trialOffered = eligibility.eligible;
+  if (parsed.trialOffered !== undefined && parsed.trialOffered !== trialOffered) {
+    return fail("TRIAL_OFFER_CHANGED", 409);
+  }
+  const user = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { locale: true } });
+  const locale = parsed.locale ?? (user?.locale === "en" ? "en" : "it");
+  const amountCents = planAmountCents(parsed.plan, parsed.cycle);
+  try {
+    await recordTrialRuleAcceptance({
+      req,
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      text: await trialRuleText({ locale, plan: parsed.plan, cycle: parsed.cycle, trialOffered }),
+      amountCents,
+      plan: parsed.plan,
+      cycle: parsed.cycle,
+      locale,
+      trialOffered,
+    });
+  } catch (e) {
+    // No record of what the customer accepted → no payment.
+    console.error("[billing/checkout] trial rule acceptance NOT recorded:", e);
+    return fail("TRIAL_RULE_NOT_RECORDED", 500);
   }
 
   const sub = await getSubscription(ctx.organizationId);
@@ -109,6 +154,9 @@ export async function POST(req: NextRequest) {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
+      // The card is always asked for, with or without a trial: nobody uses
+      // Anlyra without one (founder's decision).
+      payment_method_collection: "always",
       success_url: `${origin}/settings/billing?success=1`,
       cancel_url: `${origin}/settings/billing?canceled=1`,
       allow_promotion_codes: true,
@@ -120,6 +168,15 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         metadata: { orgId: ctx.organizationId, plan: parsed.plan, cycle: parsed.cycle },
+        // A 7-day trial run by Stripe, only for whoever may have one. If the
+        // payment method is missing when it ends, the subscription is closed
+        // rather than left unpaid.
+        ...(trialOffered
+          ? {
+              trial_period_days: TRIAL_DAYS,
+              trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
+            }
+          : {}),
       },
     });
 

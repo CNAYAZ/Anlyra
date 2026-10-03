@@ -2,12 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Info, Loader2 } from 'lucide-react';
 import { usePlan, type BillingState } from '@/lib/billing/context';
 import { useCreditsStore } from '@/stores/credits-store';
 import { apiFetch } from '@/lib/api/fetcher';
 import { COMPANY } from '@/lib/company';
+import { APP_TIME_ZONE } from '@/lib/timezone';
+import { TRIAL_CREDITS } from '@/lib/billing/trial-constants';
+
+
+type CheckoutReturn = {
+  subscription: boolean;
+  status: BillingState['status'];
+  periodEnd: string | null;
+  trialDenied: string | null;
+  trialRecorded: boolean;
+};
+type CheckoutOutcome =
+  | { kind: 'trialStarted'; until: string | null }
+  | { kind: 'trialDenied'; reason: string }
+  | { kind: 'paid' };
 
 /**
  * How long we're willing to wait for the webhook after a successful Stripe
@@ -31,6 +46,7 @@ const POLL_MAX_ATTEMPTS = 10;
  */
 export function CheckoutReturnNotice({ scope }: { scope: 'subscription' | 'credits' }) {
   const tBilling = useTranslations('billing');
+  const locale = useLocale();
   const aiCredits = useCreditsStore((s) => s.credits);
   const setCredits = useCreditsStore((s) => s.setCredits);
   const plan = usePlan();
@@ -64,8 +80,12 @@ export function CheckoutReturnNotice({ scope }: { scope: 'subscription' | 'credi
   // manual reload, which is the exact problem this file exists to fix.
   const [polledStatus, setPolledStatus] = useState<BillingState['status'] | null>(null);
   const [pollTimedOut, setPollTimedOut] = useState(false);
+  // What the checkout ended in, once the webhook has landed (/api/billing/checkout-return):
+  // a trial that started, a trial denied with an immediate charge (the card or
+  // the VAT number had already had one), or a subscription paid at once.
+  const [outcome, setOutcome] = useState<CheckoutOutcome | null>(null);
   const effectiveStatus = polledStatus ?? plan.status;
-  const subscriptionConfirmed = effectiveStatus === 'active' || effectiveStatus === 'past_due';
+  const subscriptionConfirmed = outcome !== null || effectiveStatus === 'active' || effectiveStatus === 'past_due';
 
   // Re-check the subscription every few seconds — ONLY when we just came back
   // from a successful subscription checkout AND it is not already active
@@ -77,15 +97,28 @@ export function CheckoutReturnNotice({ scope }: { scope: 'subscription' | 'credi
   // nothing here worth polling for).
   useEffect(() => {
     if (returnCase !== 'success') return;
-    if (plan.status === 'active' || plan.status === 'past_due') return;
 
     let attempts = 0;
     const id = setInterval(() => {
       attempts += 1;
-      apiFetch<BillingState>('/api/billing/status')
-        .then((state) => {
-          if (state.status === 'active' || state.status === 'past_due') {
-            setPolledStatus(state.status);
+      apiFetch<CheckoutReturn>('/api/billing/checkout-return')
+        .then((r) => {
+          // Settled when a Stripe subscription is recorded AND, for one in
+          // trial, the card check has run (trial recorded, or denied).
+          const settled = r.subscription && (r.status !== 'trialing' || r.trialRecorded || r.trialDenied !== null);
+          if (settled) {
+            setPolledStatus(r.status);
+            setOutcome(
+              r.trialDenied
+                ? { kind: 'trialDenied', reason: r.trialDenied }
+                : r.status === 'trialing'
+                  ? { kind: 'trialStarted', until: r.periodEnd }
+                  : { kind: 'paid' },
+            );
+            // The trial credits (or none) are on the balance now: refresh the counter.
+            apiFetch<{ credits: number }>('/api/billing/credits')
+              .then((c) => setCredits(c.credits))
+              .catch(() => {});
             clearInterval(id);
           } else if (attempts >= POLL_MAX_ATTEMPTS) {
             setPollTimedOut(true);
@@ -104,12 +137,11 @@ export function CheckoutReturnNotice({ scope }: { scope: 'subscription' | 'credi
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(id);
-    // plan.status is read only to decide whether to START polling at all,
-    // and (see the comment above the state declarations) never changes on
-    // its own during this component's life — including it here is correct
-    // per the hook's own rules without causing the interval to be torn down
-    // and recreated on every render.
-  }, [returnCase, plan.status]);
+    // Runs once per return from Stripe: it no longer stops at a status that
+    // is already "active" on arrival, because the notice now says WHAT the
+    // checkout ended in (trial, trial denied, paid), which only this read knows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnCase]);
 
   // Same mechanism as the subscription poll above (same interval, same
   // attempt cap, same "give up after 30s" behaviour), extended to the
@@ -224,10 +256,22 @@ export function CheckoutReturnNotice({ scope }: { scope: 'subscription' | 'credi
       </div>
     )}
     {returnCase === 'success' && (
-      subscriptionConfirmed ? (
+      outcome?.kind === 'trialDenied' ? (
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground">
+          <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+          <span>{tBilling(outcome.reason === 'card' ? 'checkoutReturn.trialDeniedCard' : 'checkoutReturn.trialDeniedVat')}</span>
+        </div>
+      ) : subscriptionConfirmed ? (
         <div role="status" className="flex items-center gap-3 rounded-lg border border-success-50 bg-success-50/40 px-4 py-3 text-sm text-success-700 dark:bg-success-500/5 dark:border-success-500/20">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-          <span>{tBilling('checkoutReturn.subscriptionActive')}</span>
+          <span className="tabular-nums">
+            {outcome?.kind === 'trialStarted'
+              ? tBilling('checkoutReturn.trialStarted', {
+                  date: outcome.until ? new Date(outcome.until).toLocaleDateString(locale === 'en' ? 'en-GB' : 'it-IT', { timeZone: APP_TIME_ZONE }) : '—',
+                  credits: TRIAL_CREDITS,
+                })
+              : tBilling('checkoutReturn.subscriptionActive')}
+          </span>
         </div>
       ) : pollTimedOut ? (
         <div role="status" className="flex items-center gap-3 rounded-lg border border-primary-accent/30 bg-primary-accent/10 px-4 py-3 text-sm text-foreground">

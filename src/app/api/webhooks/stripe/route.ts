@@ -18,7 +18,7 @@ import { paymentConfirmedTemplate } from "@/lib/email/templates/payment-confirme
 import { paymentActionRequiredTemplate } from "@/lib/email/templates/payment-action-required";
 import { siteUrl } from "@/lib/auth/tokens";
 import { APP_TIME_ZONE } from "@/lib/timezone";
-import { cardFingerprintOf, completeTrialClaim, normalizedVatForRegister } from "@/lib/billing/trial-claims";
+import { applyTrialStart } from "@/lib/billing/trial-start";
 
 export const runtime = "nodejs";
 
@@ -158,23 +158,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     data: { trialEndsAt: null },
   });
 
-  // The register of trials: card fingerprint and subscription id on this
-  // company's row. No fingerprint from Stripe → the payment stands, the row is
-  // written without it, and the log says so. Best effort, never throws.
-  try {
-    const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { vatNumber: true } });
-    const vatNumber = normalizedVatForRegister(org?.vatNumber);
-    const cardFingerprint = cardFingerprintOf(fresh);
-    if (!cardFingerprint) {
-      console.warn(`[trial-claim] Stripe returned no card fingerprint for subscription ${subscriptionId} (org ${orgId})`);
+  // A trial that Stripe started: only now is the card known. Either it is
+  // recorded and the trial credits are given, or — the card (or the VAT
+  // number) has already had a trial — the trial is ended at once and Stripe
+  // charges the first period (src/lib/billing/trial-start.ts). Not best
+  // effort: if this fails the event fails and Stripe retries it; a retry of a
+  // trial already recorded changes nothing.
+  if (fresh.status === "trialing") {
+    const trial = await applyTrialStart({ organizationId: orgId, subscription: fresh });
+    if (trial.outcome === "denied") {
+      const status = statusFromStripe(trial.subscription.status, orgId);
+      if (status) {
+        await setSubscription({
+          ...(await getSubscription(orgId)),
+          status,
+          currentPeriodEnd: trial.subscription.current_period_end
+            ? new Date(trial.subscription.current_period_end * 1000)
+            : null,
+        });
+      }
     }
-    if (vatNumber) {
-      await completeTrialClaim({ organizationId: orgId, vatNumber, stripeSubscriptionId: subscriptionId, cardFingerprint });
-    } else {
-      console.warn(`[trial-claim] org ${orgId} has no valid VAT number: nothing recorded`);
-    }
-  } catch (e) {
-    console.error(`[trial-claim] completion skipped for org ${orgId}:`, e);
   }
 }
 

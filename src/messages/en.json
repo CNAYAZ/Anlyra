@@ -2096,7 +2096,10 @@
       "subscriptionTimeout": "Your payment was received, but activation is taking longer than expected. If your plan still isn't active in a few minutes, email us at {email} with the time of your payment.",
       "credits": "Payment successful! Your extra credits have been added to your balance.",
       "creditsBalancePending": "Your balance might take a bit longer to update. The payment went through either way: if the number above doesn't change, reload the page in a moment.",
-      "canceled": "Checkout canceled — you haven't been charged. You can try again anytime."
+      "canceled": "Checkout canceled — you haven't been charged. You can try again anytime.",
+      "trialStarted": "Your free trial is active until {date}: you have {credits} AI credits to try Anlyra.",
+      "trialDeniedCard": "The card you entered has already had a free trial: the trial did not start and the first subscription period was charged at once. We have also emailed you.",
+      "trialDeniedVat": "Your company's VAT number has already had a free trial: the trial did not start and the first subscription period was charged at once. We have also emailed you."
     },
     "managePortalNoSub": "No active subscription to manage.",
     "managePortalError": "Could not open the billing portal. Please try again.",
@@ -2145,7 +2148,7 @@
         "SDI_OR_PEC_REQUIRED": "Enter the recipient code or the PEC address."
       },
       "goToDetails": "Complete your billing details",
-    "onboardingIntro": "Needed for the electronic invoice: the first one will be issued automatically when the trial ends. For now Anlyra is available only to companies based in Italy."
+      "onboardingIntro": "Needed for the electronic invoice: the first one will be issued automatically when the trial ends. For now Anlyra is available only to companies based in Italy."
     },
     "trialExpiredBanner": {
       "message": "Your trial has ended. Subscribe to keep using all features.",
@@ -2162,6 +2165,25 @@
         "subtitle": "AI credit balance, credit packs and movement history",
         "balance": "Available AI credits"
       }
+    },
+    "trialRule": {
+      "withTrial": "I understand: the free trial lasts {days} days. When it ends, the {plan} plan subscription starts and I am charged {amount} {period}, unless I cancel before the trial ends. If the card or the VAT number has already had a trial, the trial does not start and {amount} is charged at once.",
+      "withoutTrial": "I understand: the free trial has already been used, so the {plan} plan subscription starts at once and I am charged {amount} {period}. The subscription renews automatically unless I cancel.",
+      "perMonth": "per month",
+      "perYear": "per year"
+    },
+    "trialCheckout": {
+      "title": "Before you enter your card",
+      "trialIntro": "Free {days}-day trial, with {credits} AI credits. The card is needed to start: nothing is charged during the trial.",
+      "vatUsed": "Your company's VAT number has already had the free trial. You can subscribe at once, without a trial, or give up.",
+      "companyUsed": "Your company has already had the free trial. You can subscribe at once, without a trial, or give up.",
+      "continueTrial": "Enter your card and start the trial",
+      "continuePay": "Subscribe now, without a trial",
+      "giveUp": "Give up",
+      "mustTick": "Tick the box to continue.",
+      "loading": "Checking…",
+      "offerChanged": "The trial situation has changed in the meantime: read the text above again before continuing.",
+      "notRecorded": "We could not record your confirmation: no payment was started. Please try again shortly."
     }
   },
   "pricing": {

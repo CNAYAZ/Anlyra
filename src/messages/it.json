@@ -2096,7 +2096,10 @@
       "subscriptionTimeout": "Il pagamento è stato ricevuto, ma l'attivazione sta richiedendo più del previsto. Se il piano non risulta attivo tra qualche minuto, scrivici a {email} indicando l'orario del pagamento.",
       "credits": "Pagamento riuscito! I crediti extra sono stati aggiunti al tuo saldo.",
       "creditsBalancePending": "Il saldo potrebbe impiegare qualche istante in più ad aggiornarsi. Il pagamento è comunque andato a buon fine: se il numero qui sopra non cambia, ricarica la pagina fra poco.",
-      "canceled": "Checkout annullato — non ti abbiamo addebitato nulla. Puoi riprovare quando vuoi."
+      "canceled": "Checkout annullato — non ti abbiamo addebitato nulla. Puoi riprovare quando vuoi.",
+      "trialStarted": "La prova gratuita è attiva fino al {date}: hai {credits} crediti AI per provare Anlyra.",
+      "trialDeniedCard": "La carta che hai inserito ha già usato una prova gratuita: la prova non è partita e il primo periodo dell'abbonamento è stato addebitato subito. Ti abbiamo scritto anche per email.",
+      "trialDeniedVat": "La partita IVA della tua azienda ha già usato una prova gratuita: la prova non è partita e il primo periodo dell'abbonamento è stato addebitato subito. Ti abbiamo scritto anche per email."
     },
     "managePortalNoSub": "Nessun abbonamento attivo da gestire.",
     "managePortalError": "Impossibile aprire il portale. Riprova.",
@@ -2145,7 +2148,7 @@
         "SDI_OR_PEC_REQUIRED": "Inserisci il codice destinatario oppure la PEC."
       },
       "goToDetails": "Completa i dati di fatturazione",
-    "onboardingIntro": "Servono per la fattura elettronica: la prima partirà da sola alla fine della prova. Per ora Anlyra è disponibile solo per aziende con sede in Italia."
+      "onboardingIntro": "Servono per la fattura elettronica: la prima partirà da sola alla fine della prova. Per ora Anlyra è disponibile solo per aziende con sede in Italia."
     },
     "trialExpiredBanner": {
       "message": "Il tuo periodo di prova è terminato. Abbonati per continuare a usare tutte le funzioni.",
@@ -2162,6 +2165,25 @@
         "subtitle": "Saldo dei crediti AI, acquisto di pacchetti e storico dei movimenti",
         "balance": "Crediti AI disponibili"
       }
+    },
+    "trialRule": {
+      "withTrial": "Ho capito: la prova gratuita dura {days} giorni. Alla fine parte l'abbonamento al piano {plan} e mi vengono addebitati {amount} {period}, salvo disdetta prima della fine della prova. Se la carta o la partita IVA hanno già usato una prova, la prova non parte e {amount} vengono addebitati subito.",
+      "withoutTrial": "Ho capito: la prova gratuita è già stata usata, quindi l'abbonamento al piano {plan} parte subito e mi vengono addebitati {amount} {period}. L'abbonamento si rinnova automaticamente, salvo disdetta.",
+      "perMonth": "al mese",
+      "perYear": "all'anno"
+    },
+    "trialCheckout": {
+      "title": "Prima di inserire la carta",
+      "trialIntro": "Prova gratuita di {days} giorni, con {credits} crediti AI. La carta serve per iniziare: durante la prova non ti addebitiamo nulla.",
+      "vatUsed": "La partita IVA della tua azienda ha già usato la prova gratuita. Puoi abbonarti subito, senza prova, oppure rinunciare.",
+      "companyUsed": "La tua azienda ha già usato la prova gratuita. Puoi abbonarti subito, senza prova, oppure rinunciare.",
+      "continueTrial": "Inserisci la carta e inizia la prova",
+      "continuePay": "Abbonati subito, senza prova",
+      "giveUp": "Rinuncia",
+      "mustTick": "Spunta la casella per continuare.",
+      "loading": "Controllo in corso…",
+      "offerChanged": "La situazione della prova è cambiata nel frattempo: rileggi il testo qui sopra prima di continuare.",
+      "notRecorded": "Non siamo riusciti a registrare la tua conferma: il pagamento non è partito. Riprova tra poco."
     }
   },
   "pricing": {

@@ -38,6 +38,13 @@ export const AUDIT_ACTIONS = [
   // am at least 18". It is what makes that sentence in the legal pages true, so
   // it is the one action a retention sweep must never remove.
   'auth.terms_accepted',
+  // Same kind of record: the box ticked BEFORE entering the card, with the
+  // exact text shown (the trial rule and the amount of the chosen plan) — see
+  // src/lib/billing/trial-rule.ts. Kept like the acceptance of the Terms.
+  'billing.trial_rule_accepted',
+  // A trial that did not start because the card (or, in a race, the VAT
+  // number) had already had one: the subscription was charged at once.
+  'billing.trial_denied',
   'password.change',
   // Distinct from password.change: this one happens with NO session at all,
   // proven only by holding the emailed reset link (/api/auth/reset-password),

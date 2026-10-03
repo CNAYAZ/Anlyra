@@ -12,6 +12,7 @@ import { useIsOwner } from '@/lib/auth/owner-context';
 import { Link } from '@/i18n/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBillingDetails } from '@/components/billing/BillingDetailsForm';
+import { TrialCheckoutConfirm } from '@/components/billing/TrialCheckoutConfirm';
 import { CheckoutReturnNotice } from '@/components/billing/CheckoutReturnNotice';
 import { cn, formatDate } from '@/lib/utils';
 import { useAppLocale } from '@/hooks/use-locale';
@@ -102,46 +103,15 @@ function SettingsSubscriptionPageInner() {
     }
   }
 
-  // Same flow as components/billing/UpgradeButton: POST the checkout, redirect to
-  // the returned Stripe URL, surface the error otherwise.
-  async function startCheckout(planId: PlanId) {
-    setBusyPlan(planId);
+  // The plan button no longer goes straight to Stripe: it opens the step
+  // BEFORE the card (TrialCheckoutConfirm) — whether the trial is offered, and
+  // the box with the rule and the exact amount, which must be ticked first
+  // (founder's decisions, 2026-10-03). That step posts the checkout.
+  const [confirmPlan, setConfirmPlan] = useState<PlanId | null>(null);
+  function startCheckout(planId: PlanId) {
     setCheckoutError(null);
-    try {
-      const res = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, cycle }),
-      });
-      const json = (await res.json()) as { success: boolean; data?: { url: string }; error?: string };
-      if (json.success && json.data?.url) {
-        window.location.href = json.data.url;
-      } else {
-        // PAYMENT_PROVIDER_UNAVAILABLE and PRICE_NOT_CONFIGURED
-        // (checkout/route.ts) are stable codes, not human text — map both to
-        // the same honest message that says nothing about why (missing
-        // Stripe key vs. Stripe being down vs. a missing price env var)
-        // instead of showing the code itself. Every other error string the
-        // route can produce is shown as-is, unchanged from before.
-        const message =
-          json.error === 'PAYMENT_PROVIDER_UNAVAILABLE' || json.error === 'PRICE_NOT_CONFIGURED'
-            ? tBilling('checkoutErrorProvider')
-            : json.error === 'BILLING_DETAILS_INCOMPLETE'
-              ? tBilling('details.requiredForCheckout')
-              : (json.error ?? 'Checkout failed');
-        setCheckoutError({ plan: planId, message });
-        setBusyPlan(null);
-      }
-    } catch {
-      // fetch() itself rejected — the network failed before any response
-      // came back (server down, no connectivity), not something the server
-      // said. The old code showed the raw exception's .message verbatim
-      // (e.g. "Failed to fetch"), the same class of leak as the
-      // PAYMENT_PROVIDER_UNAVAILABLE case above but for the transport layer
-      // instead of the server's own response.
-      setCheckoutError({ plan: planId, message: tBilling('checkoutErrorNetwork') });
-      setBusyPlan(null);
-    }
+    setBusyPlan(null);
+    setConfirmPlan(planId);
   }
 
   return (
@@ -388,6 +358,15 @@ function SettingsSubscriptionPageInner() {
           })}
         </div>
       </div>
+
+      {confirmPlan && (
+        <TrialCheckoutConfirm
+          key={`${confirmPlan}-${cycle}`}
+          plan={confirmPlan}
+          cycle={cycle}
+          onCancel={() => setConfirmPlan(null)}
+        />
+      )}
 
       {/* ── Money-back guarantee ── */}
       <div className="rounded-lg border border-success-50 bg-success-50/40 p-4 flex items-start gap-3 dark:bg-success-500/5 dark:border-success-500/20">

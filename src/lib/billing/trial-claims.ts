@@ -13,8 +13,9 @@ import { DEMO_ORG_ID } from '@/lib/session';
  *  • the IP is only a signal shown to the founder, never an automatic refusal;
  *  • a person can review a row and grant the trial anyway (art. 22 GDPR).
  *
- * This file RECORDS. The check that refuses a trial is the next step and does
- * not exist yet; when it does, it must honour TrialClaim.reviewGrantedAt.
+ * This file RECORDS the attempts, fills the register and expires it. Who may
+ * have a trial, and recording a trial that really started, is
+ * src/lib/billing/trial-eligibility.ts.
  *
  * Every write here is best effort for the caller: a payment must never fail
  * because the register could not be written. Failures are logged under
@@ -66,37 +67,6 @@ export async function recordTrialClaimAttempt(params: {
     `;
   } catch (err) {
     console.error(`[trial-claim] attempt NOT recorded for org ${params.organizationId}:`, err);
-  }
-}
-
-/**
- * At checkout.session.completed: the card fingerprint and the subscription id
- * go on the row this company's attempt wrote, and claimedAt moves to the
- * activation. Touches ONLY a row of the same company that has no subscription
- * yet — the first row for a VAT number is never taken over by another company,
- * and a completed row is never rewritten. If the attempt was never recorded
- * (its insert failed), the row is created here, without an IP.
- */
-export async function completeTrialClaim(params: {
-  organizationId: string;
-  vatNumber: string;
-  stripeSubscriptionId: string | null;
-  cardFingerprint: string | null;
-}): Promise<void> {
-  try {
-    await prisma.$executeRaw`
-      INSERT INTO "TrialClaim" ("id", "vatNumber", "organizationId", "stripeSubscriptionId", "cardFingerprint", "claimedAt", "source", "updatedAt")
-      VALUES (gen_random_uuid()::text, ${params.vatNumber}, ${params.organizationId}, ${params.stripeSubscriptionId}, ${params.cardFingerprint}, now(), 'checkout', now())
-      ON CONFLICT ("vatNumber") DO UPDATE SET
-        "stripeSubscriptionId" = EXCLUDED."stripeSubscriptionId",
-        "cardFingerprint" = COALESCE("TrialClaim"."cardFingerprint", EXCLUDED."cardFingerprint"),
-        "claimedAt" = now(),
-        "updatedAt" = now()
-      WHERE "TrialClaim"."organizationId" = EXCLUDED."organizationId"
-        AND "TrialClaim"."stripeSubscriptionId" IS NULL
-    `;
-  } catch (err) {
-    console.error(`[trial-claim] completion NOT recorded for org ${params.organizationId}:`, err);
   }
 }
 
@@ -167,7 +137,8 @@ export async function backfillTrialClaims(): Promise<{ candidates: number; inser
  * The three expiries, on the nightly gdpr-purge run:
  *  • TrialClaim.ip cleared 12 months after claimedAt;
  *  • TrialClaim rows deleted 24 months after claimedAt;
- *  • the ip of every 'auth.terms_accepted' audit row cleared 12 months after
+ *  • the ip of every 'auth.terms_accepted' and 'billing.trial_rule_accepted'
+ *    audit row cleared 12 months after
  *    it was written — the row itself stays (it is the proof of acceptance and
  *    is exempt from the audit retention).
  * Each filter is `< cutoff`, so nothing inside its window can be caught.
@@ -186,8 +157,14 @@ export async function purgeTrialClaimData(now: Date = new Date()): Promise<{
     where: { claimedAt: { lt: ipCutoff }, ip: { not: null } },
     data: { ip: null },
   });
+  // Both acceptance records kept like a contract: the Terms, and the trial
+  // rule ticked before entering the card (src/lib/billing/trial-rule.ts).
   const termsIps = await prisma.auditLog.updateMany({
-    where: { action: 'auth.terms_accepted', createdAt: { lt: termsIpCutoff }, ip: { not: null } },
+    where: {
+      action: { in: ['auth.terms_accepted', 'billing.trial_rule_accepted'] },
+      createdAt: { lt: termsIpCutoff },
+      ip: { not: null },
+    },
     data: { ip: null },
   });
   return {

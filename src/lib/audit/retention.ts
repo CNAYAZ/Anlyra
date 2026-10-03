@@ -30,7 +30,12 @@ export const AUDIT_LOG_RETENTION_MONTHS = 12;
  * Typed as AuditAction, so a typo here is a compile error rather than an
  * exemption that silently never matches anything.
  */
-export const AUDIT_RETENTION_EXEMPT_ACTIONS: readonly AuditAction[] = ['auth.terms_accepted'];
+export const AUDIT_RETENTION_EXEMPT_ACTIONS: readonly AuditAction[] = [
+  'auth.terms_accepted',
+  // The trial rule ticked before entering the card: the founder decided it is
+  // kept like the acceptance of the Terms (src/lib/billing/trial-rule.ts).
+  'billing.trial_rule_accepted',
+];
 
 /**
  * The instant before which an audit row is too old to keep.
