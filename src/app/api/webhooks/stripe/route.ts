@@ -494,9 +494,44 @@ async function sendTrialDeniedEmail(orgId: string, sub: Stripe.Subscription, rea
   }
 }
 
+/**
+ * The organization of an invoice when its own metadata does not say: Stripe
+ * puts the subscription's metadata on the invoice only as subscription_details,
+ * and a renewal or end-of-trial invoice carries no metadata of its own. Then
+ * the subscription id, and last the customer id, are looked up in our
+ * BillingSubscription rows — the same ids the checkout and subscription
+ * events recorded. null when none of them is ours.
+ */
+async function resolveInvoiceOrgId(invoice: Stripe.Invoice): Promise<string | null> {
+  const direct = orgIdOfInvoice(invoice);
+  if (direct) return direct;
+  const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null;
+  if (subscriptionId) {
+    const row = await prisma.billingSubscription.findFirst({
+      where: { stripeSubscriptionId: subscriptionId },
+      select: { organizationId: true },
+    });
+    if (row) return row.organizationId;
+  }
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+  if (customerId) {
+    const row = await prisma.billingSubscription.findFirst({
+      where: { stripeCustomerId: customerId },
+      select: { organizationId: true },
+    });
+    if (row) return row.organizationId;
+  }
+  return null;
+}
+
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const orgId = (invoice.metadata?.orgId as string) ?? null;
-  if (!orgId) return;
+  // Until 2026-10-03 only invoice.metadata was read, which a subscription
+  // invoice does not carry: a failed renewal changed nothing here.
+  const orgId = await resolveInvoiceOrgId(invoice);
+  if (!orgId) {
+    console.warn(`[stripe-webhook] payment failed for invoice ${invoice.id}: no organization found`);
+    return;
+  }
   const existing = await getSubscription(orgId);
   await setSubscription({ ...existing, status: "past_due" });
 }
