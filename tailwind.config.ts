@@ -46,7 +46,7 @@ const config: Config = {
           DEFAULT:    'hsl(var(--sage-400))',
           foreground: '#ffffff',
         },
-        'primary-accent': 'hsl(var(--primary-accent))',
+        'primary-accent': 'hsl(var(--primary-accent))',   // sfondi, bordi, anelli (con testo bianco sopra)
 
         /* ─── semantici (CSS variable — tema-aware) ─── */
         success: {
@@ -112,6 +112,12 @@ const config: Config = {
           'active-foreground': 'hsl(var(--sidebar-active-foreground))',
           border:             'hsl(var(--sidebar-border))',
         },
+      },
+
+      // Lo stesso nome, un altro colore per il solo testo/icone: vedi
+      // --primary-accent-text in globals.css. Solo `text-primary-accent` lo usa.
+      textColor: {
+        'primary-accent': 'hsl(var(--primary-accent-text))',
       },
 
       fontFamily: {

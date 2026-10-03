@@ -40,13 +40,18 @@
     --sage-700: 102 20% 24%;
     --sage-800: 102 22% 18%;
 
-    /* ─── primary-accent: il colore dell'accento del prodotto (link, icone, badge,
-       bolla delle domande dell'utente nella chat, barre di avanzamento).
-       = sage-500, lo stesso di `primary`. Definito UNA volta qui e uguale nel tema
-       scuro, come tutta la palette sage: nel tema scuro regge sia il testo bianco
-       sopra di lui (bg-primary-accent text-white) sia, per icone e link, lo sfondo
-       scuro. Lo legge anche il grafico delle previsioni come hsl(var(--primary-accent)). ─── */
+    /* ─── primary-accent: il colore dell'accento del prodotto, in DUE usi che
+       vogliono cose opposte nel tema scuro, quindi due variabili:
+       • --primary-accent = SFONDI, bordi, anelli, barre (bg-/border-/ring-primary-accent),
+         con il testo bianco sopra (la bolla delle domande nella chat). = sage-500,
+         come `primary`, uguale nei due temi: bianco su sage-500 = 4,7:1.
+       • --primary-accent-text = TESTO e icone (text-primary-accent), che stanno SUL
+         fondo della pagina e non sopra un riempimento: sage-600 nel tema chiaro
+         (6,3:1 sul fondo), sage-400 nello scuro (sotto). Il config di Tailwind
+         lo assegna solo alle utility `text-`, quindi i punti d'uso non cambiano.
+       Il grafico delle previsioni legge hsl(var(--primary-accent)). ─── */
     --primary-accent: 98 17% 41%;
+    --primary-accent-text: 100 18% 32%;
 
     /* ─── semantici (success oliva · warning ocra · danger terracotta · info blu sereno) ─── */
     --success-50:  72 35% 90%;
@@ -110,6 +115,10 @@
     --fg-3:          36 10% 45%;
     --border-strong: 35 9% 30%;
     --input-bg:      30 7% 14%;
+
+    /* ─── testo e icone in primary-accent nel tema scuro: sage-400 (7,3:1 sul fondo,
+       6,7:1 sulle card). Lo sfondo (--primary-accent) resta sage-500. ─── */
+    --primary-accent-text: 95 22% 60%;
 
     /* ─── sidebar dark (grigio caldo + sage-700/30 active) ─── */
     --sidebar:                    30 7% 12%;
