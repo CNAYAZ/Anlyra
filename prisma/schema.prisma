@@ -1026,6 +1026,9 @@ model TrialClaim {
   /// Who did it is in the 'admin.*' audit row.
   reviewGrantedAt      DateTime?
   reviewNote           String?
+  /// The grant is good for ONE trial: when that trial starts, this is set and
+  /// the row counts as a trial used again (src/lib/billing/trial-eligibility.ts).
+  reviewGrantUsedAt    DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

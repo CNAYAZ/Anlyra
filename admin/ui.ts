@@ -107,7 +107,8 @@ export function renderPage(params: { csrfToken: string; cronAvailable: boolean }
     <div class="warn">
       Una riga per partita IVA che ha avuto o tentato una prova. L'impronta della carta è mostrata solo nelle ultime 4 cifre.<br>
       <b>Stesso IP</b> è solo un segnale per te: quante prove sono arrivate dallo stesso indirizzo IP negli ultimi 90 giorni. Non blocca niente.<br>
-      <b>Rivista, prova concessa</b> segna che una persona ha rivisto la riga e concede comunque la prova (art. 22 GDPR). Il motivo è obbligatorio e il segno non si può togliere né riscrivere.<br>
+      <b>Rivista, prova concessa</b> segna che una persona ha rivisto la riga e concede comunque la prova (art. 22 GDPR). Il motivo è obbligatorio e il segno non si può togliere né riscrivere. La concessione vale per <b>una</b> prova: quando parte, la riga torna a contare come prova usata.<br>
+      Una riga senza abbonamento è un <b>tentativo</b> (checkout aperto e non completato con una prova): non conta come prova usata.<br>
       Scadenze (cron <code>gdpr-purge</code>): IP cancellato dopo 12 mesi, riga cancellata dopo 24 mesi.
     </div>
     <div id="trialsTable">Caricamento...</div>
@@ -445,7 +446,8 @@ async function loadTrials() {
       const hl = r.sameIpRecentCount >= 2 ? ' style="background:#3a2a12;color:#f0d0a4"' : '';
       const org = r.organizationName ? esc(r.organizationName) : '<i>azienda cancellata</i>';
       const review = r.reviewGrantedAt
-        ? '<b>Rivista, prova concessa</b><br><small>' + fmt(r.reviewGrantedAt) + '</small><br><small>' + esc(r.reviewNote) + '</small>'
+        ? '<b>Rivista, prova concessa</b><br><small>' + fmt(r.reviewGrantedAt) + '</small><br><small>' + esc(r.reviewNote) + '</small>' +
+          (r.reviewGrantUsedAt ? '<br><small><b>Concessione usata</b> il ' + fmt(r.reviewGrantUsedAt) + '</small>' : '<br><small>Concessione non ancora usata</small>')
         : '<button class="act" data-id="' + esc(r.id) + '" data-vat="' + esc(r.vatNumber) + '" onclick="doReviewTrial(this)">Rivista, prova concessa</button>';
       return '<tr' + hl + '><td>' + fmt(r.claimedAt) + '</td>' +
         '<td><code>' + esc(r.vatNumber) + '</code></td>' +

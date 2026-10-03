@@ -41,9 +41,12 @@ function realIp(ip: string | null | undefined): string | null {
 
 /**
  * At the start of a subscription checkout: the attempt, with the VAT number and
- * the IP of the request. The FIRST row for a VAT number stays: a second
- * checkout, from this company or another, changes nothing (ON CONFLICT DO
- * NOTHING — one statement, so two simultaneous checkouts cannot both insert).
+ * the IP of the request. A row that records a trial really started (a
+ * subscription on it, or filled from the old trials) is never touched. A row
+ * that is still only an attempt is replaced by the newer attempt (company, IP,
+ * date): an attempt does not count as a trial (src/lib/billing/trial-eligibility.ts),
+ * so an abandoned checkout of another company must not hold the VAT number's
+ * row. One statement, so two simultaneous checkouts cannot both insert.
  */
 export async function recordTrialClaimAttempt(params: {
   organizationId: string;
@@ -54,7 +57,12 @@ export async function recordTrialClaimAttempt(params: {
     await prisma.$executeRaw`
       INSERT INTO "TrialClaim" ("id", "vatNumber", "organizationId", "ip", "claimedAt", "source", "updatedAt")
       VALUES (gen_random_uuid()::text, ${params.vatNumber}, ${params.organizationId}, ${realIp(params.ip)}, now(), 'checkout', now())
-      ON CONFLICT ("vatNumber") DO NOTHING
+      ON CONFLICT ("vatNumber") DO UPDATE SET
+        "organizationId" = EXCLUDED."organizationId",
+        "ip" = EXCLUDED."ip",
+        "claimedAt" = EXCLUDED."claimedAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+      WHERE "TrialClaim"."stripeSubscriptionId" IS NULL AND "TrialClaim"."source" <> 'backfill'
     `;
   } catch (err) {
     console.error(`[trial-claim] attempt NOT recorded for org ${params.organizationId}:`, err);

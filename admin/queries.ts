@@ -426,6 +426,8 @@ export type TrialClaimRow = {
   source: string;
   reviewGrantedAt: string | null;
   reviewNote: string | null;
+  /** When the trial granted on review started (the grant is good for one trial). */
+  reviewGrantUsedAt: string | null;
 };
 
 /**
@@ -463,5 +465,6 @@ export async function listTrialClaims(now: Date = new Date()): Promise<TrialClai
     source: r.source,
     reviewGrantedAt: r.reviewGrantedAt?.toISOString() ?? null,
     reviewNote: r.reviewNote,
+    reviewGrantUsedAt: r.reviewGrantUsedAt?.toISOString() ?? null,
   }));
 }
