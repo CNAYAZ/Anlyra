@@ -2088,7 +2088,7 @@
       "subtitle": "If you hit a technical problem in the first 14 days after your first payment that we couldn't resolve, write to us — we review refunds case by case."
     },
     "trial": {
-      "info": "7-day trial · No card required · Cancel anytime"
+      "info": "7-day trial · Card required, nothing charged during the trial · Cancel anytime"
     },
     "checkoutReturn": {
       "subscriptionActive": "Payment successful! Your subscription is active.",
@@ -2228,7 +2228,7 @@
           "AI assistant chat"
         ],
         "cta": "Start 7-day trial",
-        "footerNote": "No card required · Cancel anytime"
+        "footerNote": "Card required · Nothing charged during the trial · Cancel anytime"
       },
       "advanced": {
         "badge": "MOST POPULAR",
@@ -2248,7 +2248,7 @@
           "Roles for every team member: Admin, Editor, Viewer"
         ],
         "cta": "Start 7-day trial",
-        "footerNote": "No card required · Cancel anytime"
+        "footerNote": "Card required · Nothing charged during the trial · Cancel anytime"
       },
       "enterprise": {
         "name": "Enterprise",
@@ -2280,7 +2280,7 @@
       },
       {
         "q": "What happens after the trial?",
-        "a": "The trial lasts 7 days and does not require a credit card. When it expires, your account stays read-only until you choose a plan from Settings — nothing is billed automatically. Once subscribed, you can cancel anytime in 1 click from the billing portal."
+        "a": "The trial lasts 7 days and includes {trialCredits} AI credits. You need a card to start it, but nothing is charged during the trial. Three days before it ends we email you the date and the amount of the first charge. When the trial ends the subscription starts and the card is charged, unless you cancel before then from the billing portal. There is one trial per VAT number, per card and per company: if your VAT number has already had one, you see it before paying. Once subscribed, you can cancel anytime in 1 click from the billing portal."
       },
       {
         "q": "What are AI credits?",
@@ -2510,8 +2510,8 @@
       "cta2": "See pricing",
       "ctaPrimary": "Start 7-day trial",
       "ctaSecondary": "See how it works",
-      "disclaimer": "7-day trial · No card required · Cancel anytime",
-      "trust": "7-day trial · No card required · Cancel anytime",
+      "disclaimer": "7-day trial · Nothing charged during the trial · Cancel anytime",
+      "trust": "7-day trial · Nothing charged during the trial · Cancel anytime",
       "previewCaption": "A complete overview of your business, always at your fingertips."
     },
     "problem": {
@@ -2604,7 +2604,7 @@
     },
     "finalCta": {
       "title": "Start today. Try it free.",
-      "subtitle": "7-day free trial, no credit card required. Cancel at any time.",
+      "subtitle": "7-day free trial: a card is needed, but nothing is charged until the trial ends. Cancel anytime.",
       "ctaPrimary": "Start free now",
       "ctaSecondary": "Talk to us"
     },

@@ -1,5 +1,6 @@
 import { PLANS, CREDIT_PACKS, isUnlimited } from '@/lib/billing/plans';
 import { maxCreditsFor, typicalCreditsFor, type AiOperation } from '@/lib/ai/credit-cost';
+import { TRIAL_CREDITS, TRIAL_DAYS } from '@/lib/billing/trial-constants';
 
 export const dynamic = 'force-static';
 export const revalidate = 3600;
@@ -126,10 +127,14 @@ ${aiCost('insights', 'massimo')}, analisi di un alert ${aiCost('alerts', 'massim
 
 PROVA GRATUITA
 ---------------
-7 giorni, nessuna carta di credito richiesta. Alla scadenza: nessun
-addebito automatico. L'account passa in sola lettura (non si possono
-più usare le funzioni AI né aggiungere nuovi dati) finché non si
-sceglie un piano. I dati non vengono cancellati.
+${TRIAL_DAYS} giorni, con la carta: durante la prova non si paga nulla e si
+ricevono ${TRIAL_CREDITS} crediti AI. Tre giorni prima della fine arriva
+un'email con la data e l'importo del primo addebito. Alla fine della
+prova l'abbonamento parte e la carta viene addebitata, salvo disdetta
+prima della fine dal portale di gestione. Una sola prova per partita
+IVA, per carta e per azienda. Senza carta non si accede al prodotto;
+esportazione dei dati e cancellazione dell'account restano sempre
+disponibili.
 
 RIMBORSI
 ---------
@@ -222,10 +227,13 @@ ${aiCost('insights', 'at most')}, alert analysis ${aiCost('alerts', 'at most')}.
 
 FREE TRIAL
 -----------
-7 days, no credit card required. When it ends: nothing is charged
-automatically. The account switches to read-only (AI features and
-adding new data are paused) until a plan is chosen. No data is
-deleted.
+${TRIAL_DAYS} days, with a card: nothing is charged during the trial and
+it includes ${TRIAL_CREDITS} AI credits. Three days before it ends an
+email gives the date and the amount of the first charge. When the
+trial ends the subscription starts and the card is charged, unless it
+is cancelled before then from the billing portal. One trial per VAT
+number, per card and per company. Without a card the product cannot
+be used; data export and account deletion are always available.
 
 REFUNDS
 --------

@@ -4,6 +4,7 @@ import { productSchema, breadcrumbSchema } from '@/lib/seo/json-ld';
 import { PLANS } from '@/lib/billing/plans';
 import { planLimitBullets } from '@/lib/billing/plan-bullets';
 import { maxCreditsFor, typicalCreditsFor } from '@/lib/ai/credit-cost';
+import { TRIAL_CREDITS } from '@/lib/billing/trial-constants';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://anlyra.com').trim();
 
@@ -35,6 +36,7 @@ export default async function PricingRoute({ params }: { params: Promise<{ local
     insightsTypical: typicalCreditsFor('insights'),
     insightsMax: maxCreditsFor('insights'),
     alertsMax: maxCreditsFor('alerts'),
+    trialCredits: TRIAL_CREDITS,
   };
   const faqItems = (t.raw('faq') as FaqItem[]).map((item) => ({
     ...item,

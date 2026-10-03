@@ -2088,7 +2088,7 @@
       "subtitle": "Se nei primi 14 giorni dal primo pagamento hai avuto un problema tecnico che non siamo riusciti a risolvere, scrivici: valutiamo il rimborso caso per caso."
     },
     "trial": {
-      "info": "7 giorni di prova · Nessuna carta richiesta · Annulla quando vuoi"
+      "info": "7 giorni di prova · Carta richiesta, nessun addebito durante la prova · Disdici quando vuoi"
     },
     "checkoutReturn": {
       "subscriptionActive": "Pagamento riuscito! Il tuo abbonamento è attivo.",
@@ -2228,7 +2228,7 @@
           "Assistente AI in chat"
         ],
         "cta": "Inizia prova 7 giorni",
-        "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
+        "footerNote": "Carta richiesta · Nessun addebito durante la prova · Disdici quando vuoi"
       },
       "advanced": {
         "badge": "PIÙ POPOLARE",
@@ -2248,7 +2248,7 @@
           "Ruoli per ogni persona del team: Admin, Editor, Lettore"
         ],
         "cta": "Inizia prova 7 giorni",
-        "footerNote": "Nessuna carta richiesta · Annulla quando vuoi"
+        "footerNote": "Carta richiesta · Nessun addebito durante la prova · Disdici quando vuoi"
       },
       "enterprise": {
         "name": "Enterprise",
@@ -2280,7 +2280,7 @@
       },
       {
         "q": "Cosa succede dopo la prova?",
-        "a": "La prova dura 7 giorni e non richiede la carta di credito. Allo scadere, l'account resta accessibile in sola lettura finché non scegli un piano dalle impostazioni: nessun addebito automatico. Una volta abbonato, puoi annullare quando vuoi in 1 click dal portale di gestione."
+        "a": "La prova dura 7 giorni e comprende {trialCredits} crediti AI. Per iniziarla serve la carta, ma durante la prova non paghi nulla. Tre giorni prima della fine ti scriviamo con la data e l'importo del primo addebito. Alla fine della prova l'abbonamento parte e la carta viene addebitata, a meno che tu non disdica prima dal portale di gestione. La prova è una sola per partita IVA, per carta e per azienda: se la tua partita IVA l'ha già usata lo vedi prima di pagare. Una volta abbonato, puoi disdire quando vuoi in 1 click dal portale di gestione."
       },
       {
         "q": "Cosa sono i crediti AI?",
@@ -2510,8 +2510,8 @@
       "cta2": "Vedi i prezzi",
       "ctaPrimary": "Inizia prova 7 giorni",
       "ctaSecondary": "Guarda come funziona",
-      "disclaimer": "7 giorni di prova · Nessuna carta richiesta · Annulli quando vuoi",
-      "trust": "7 giorni di prova · Nessuna carta richiesta · Annulli quando vuoi",
+      "disclaimer": "7 giorni di prova · Nessun addebito durante la prova · Disdici quando vuoi",
+      "trust": "7 giorni di prova · Nessun addebito durante la prova · Disdici quando vuoi",
       "previewCaption": "Una panoramica completa della tua azienda, sempre a portata di mano."
     },
     "problem": {
@@ -2604,7 +2604,7 @@
     },
     "finalCta": {
       "title": "Inizia oggi. Prova gratis.",
-      "subtitle": "7 giorni di prova gratuita, nessuna carta richiesta. Cancella in qualsiasi momento.",
+      "subtitle": "7 giorni di prova gratuita: serve la carta, ma non paghi nulla fino alla fine della prova. Disdici quando vuoi.",
       "ctaPrimary": "Inizia ora gratis",
       "ctaSecondary": "Parla con noi"
     },
