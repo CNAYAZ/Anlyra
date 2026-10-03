@@ -38,9 +38,25 @@
 > `npm run build` (che esegue `prisma migrate deploy`) **NON** è guardato ed è corretto
 > così: applicare le migrazioni in avanti è quello che il deploy deve fare. Vedi §3.
 
+> ## ⛔ DUE REGOLE SULLE MIGRATION (decise dal fondatore, 2026-10-03)
+>
+> **1. Le anteprime di Vercel NON hanno più accesso al database.** La loro costruzione
+> fallisce apposta: `npm run build` esegue `prisma migrate deploy`, e un'anteprima che
+> raggiungesse il database applicherebbe le migration di un branch NON mergiato al
+> database vero. Le migration arrivano al database vero **solo con il merge in
+> produzione**. Un'anteprima fallita per questo motivo è il comportamento giusto, non
+> un guasto da aggirare. (DA VERIFICARE su Vercel: nel codice non c'è nessun controllo
+> che lo faccia; è una configurazione delle variabili d'ambiente dell'ambiente Preview,
+> dichiarata dal fondatore e non leggibile da qui.)
+>
+> **2. Una migration già pushata non si modifica MAI**, nemmeno per un errore di battitura.
+> Alcune sono già state applicate al database vero prima di questa regola, e Prisma non
+> riesegue una migration già applicata: una modifica non arriverebbe mai al database, e il
+> file non descriverebbe più quello che c'è. **Per correggerla se ne scrive una nuova.**
+
 ---
 
-> Contesto operativo per le future sessioni Claude Code. Versione **v5.8** (2026-09-29).
+> Contesto operativo per le future sessioni Claude Code. Versione **v5.9** (2026-10-03).
 > Leggere PRIMA di toccare codice. Ogni affermazione di stato è marcata
 > **VERIFICATO** (controllato su codice/DB/runtime alla data indicata) o **DA VERIFICARE**.
 >
@@ -154,6 +170,12 @@ ambiente principale**. Regole di collaborazione:
   `20260929120000_import_batch_receivables_recurring`. Quelle che non sono ancora sul
   database remoto vi arrivano dal primo deploy che le contiene (`prisma migrate deploy`
   nella build); non ho controllato quali lo siano già.
+  **Aggiornamento 2026-10-03**: in produzione (`ce2d47d`) sono 19, con
+  `20260930120000_credit_entry_token_usage` (token e modello sulla riga 'ai_call' del
+  registro crediti). Sui branch NON mergiati della prova con carta ce ne sono altre due:
+  `20260930140000_trial_claim_registry` (tabella `TrialClaim`, RLS attiva) e
+  `20261003120000_trial_claim_review_grant_used` (una colonna facoltativa). Arrivano al
+  database vero solo con il merge (vedi le due regole in cima).
 - **`npm run build` esegue `prisma migrate deploy` PRIMA della build**: ogni build tocca
   il database remoto. Pensarci prima di lanciare build "di prova".
   **`build` NON è coperto dalla guardia** (vedi riquadro in cima), per scelta:
@@ -204,7 +226,10 @@ npm run update:disposable-domains # riscarica l'elenco delle email temporanee (v
 
 Pagine in `src/app/[locale]/` — gruppi `(public)` e `(dashboard)`, più auth
 (login, signup, verify-email, forgot/reset-password, invite, onboarding, welcome),
-pricing, legal, share. API in `src/app/api/` (95 file `route.ts`, RIVERIFICATO 2026-09-29).
+pricing, legal, share, e (sul branch della prova con carta) **`activate`**: la pagina
+fuori dalla dashboard per l'azienda che non ha mai inserito la carta (§7). API in
+`src/app/api/` (95 file `route.ts` in produzione al 2026-09-29; 97 sul branch della prova
+con carta, con `billing/trial-offer` e `billing/checkout-return` — RIVERIFICATO 2026-10-03).
 
 **Menu ATTIVE** (VERIFICATO su `src/components/dashboard/nav-config.ts`):
 Overview · Situazione · Finance (revenue/costs/cashflow/budget) · AI (chat/insights/
@@ -470,6 +495,57 @@ provato dal vivo su un Postgres locale usa-e-getta):
 - **Login con l'account demo**: `api/auth/precheck` risponde `demoAccount: true` e la
   pagina di accesso spiega che è l'account della dimostrazione e offre "Prova la demo"
   (prima: "Accesso non riuscito. Riprova.", che sembrava un guasto).
+
+**Prova con carta e registro delle prove** (sui branch `claude/trial-claim-registry`,
+`claude/card-trial`, `claude/card-trial-closeout`, NON ancora in produzione: vanno online
+insieme ai nuovi Termini e alla nuova informativa — VERIFICATO su codice e con test locali
+2026-10-03). Decisioni del fondatore:
+- **All'iscrizione**: dati di fatturazione, poi la carta. Prova di **7 giorni gestita da
+  Stripe** (`trial_period_days`, `payment_method_collection: always`, chiusura se manca il
+  metodo di pagamento), **100 crediti AI** una volta (`TRIAL_DAYS`/`TRIAL_CREDITS` in
+  `src/lib/billing/trial-constants.ts`). Alla fine parte l'abbonamento, salvo disdetta dal
+  portale. Nessun calcolo automatico delle tasse.
+- **Una sola prova per partita IVA, per carta e per azienda**, decisa in un punto solo:
+  `src/lib/billing/trial-eligibility.ts`. Conta solo una prova **davvero iniziata** (riga di
+  riempimento o riga con abbonamento): un checkout aperto e abbandonato, o pagato senza
+  prova, resta un "tentativo" e non conta. Per azienda conta anche la prova locale vecchia
+  (`Organization.trialStartedAt`). Il controllo al completamento (`claimTrialStart`) è
+  **atomico** su carta, partita IVA e azienda (lock `pg_advisory_xact_lock` nella stessa
+  transazione) e **dà i crediti nella stessa transazione**.
+- **Partita IVA già usata**: lo si dice PRIMA del pagamento (`/api/billing/trial-offer`), il
+  cliente paga subito senza prova o rinuncia. **Carta già usata**: si sa solo dopo
+  l'inserimento; la prova viene chiusa subito su Stripe (`trial_end: now`, addebito),
+  audit `billing.trial_denied`, email e avviso a schermo (`src/lib/billing/trial-start.ts`).
+- **La casella prima della carta** (regola e importo esatto del piano) si registra come riga
+  di audit `billing.trial_rule_accepted` (utente, data e ora, IP, testo esatto mostrato,
+  importo): esente dalla pulizia dell'audit come `auth.terms_accepted`, IP azzerato dopo 12
+  mesi. Senza registrazione il pagamento non parte. **REGOLA: il testo registrato è quello
+  mostrato**, costruito dalla stessa funzione (`trialRuleText`).
+- **Il registro delle prove** (`TrialClaim`, `src/lib/billing/trial-claims.ts`): partita IVA
+  (unica), impronta della carta, azienda come testo senza collegamento (sopravvive alla sua
+  cancellazione), abbonamento, IP. Scadenze nel cron `gdpr-purge`: IP dopo 12 mesi, righe
+  dopo 24. **"Rivista, prova concessa"** dal pannello admin (art. 22 GDPR) vale per UNA
+  prova (`reviewGrantUsedAt`). L'IP è solo un segnale, mai un blocco.
+- **Senza carta nessun accesso**: un'azienda mai attivata (`needsActivation` in
+  `src/lib/billing/activation.ts`) va da ogni pagina della dashboard a **`/activate`**, dove
+  ci sono il piano, la casella e la carta, e sempre l'esportazione e la cancellazione
+  dell'account. Viene cancellata 12 mesi dopo la creazione, con avviso 30 giorni prima
+  (stesso meccanismo delle prove mai pagate, `src/lib/cron/trial-data-retention.ts`).
+- **Le prove locali già in corso finiscono con le regole vecchie** (email del cron
+  `trial-check`, poi sola lettura). Le aziende nuove non hanno più prova locale né crediti
+  all'iscrizione.
+- **Webhook Stripe**: lo stato dell'abbonamento si legge da Stripe (non più forzato ad
+  "active"); eventi nuovi `customer.subscription.trial_will_end` (email 3 giorni prima con
+  data e importo) e `invoice.payment_action_required` (email con il link per il 3D Secure);
+  il pagamento fallito trova l'azienda anche senza metadati sulla fattura. **Da aggiungere
+  nell'endpoint del webhook su Stripe prima di andare online**, insieme alla disdetta dal
+  portale.
+
+**Crediti AI in base ai token** (in produzione dal merge `ce2d47d`, 2026-09-30): un credito =
+0,02 $ di costo reale del modello (`CREDITS_PER_USD` in `src/lib/ai/credit-cost.ts`), per
+eccesso, minimo 1. Prima di ogni operazione si riserva il massimo mostrato, dopo si
+restituisce la differenza (`settleAiCredits`); sotto il massimo l'operazione non parte; dopo
+un errore del modello resta 1 credito.
 
 **Cancellazione dell'azienda: la chiede solo il proprietario, la conferma il fondatore**
 (VERIFICATO 2026-09-27, `src/app/api/gdpr/account/route.ts`, `src/lib/gdpr/org-deletion.ts`).
@@ -760,6 +836,12 @@ da lì. Si ferma con Ctrl+C. Se la 3001 è occupata: `ADMIN_PORT=3002 npm run ad
   `setMemberRole`, sotto).
 - *Pulire*: cancellare insight con filtri, cancellare singole righe di prova per id,
   sbloccare un account (azzerare la richiesta GDPR, riportare un ruolo a `owner`).
+- *Registro delle prove* (scheda **Prove**, sui branch della prova con carta, VERIFICATO
+  2026-10-03): ogni riga del registro, impronta della carta solo nelle ultime 4 cifre,
+  segnale "stesso IP usato da N prove negli ultimi 90 giorni", comando **"Rivista, prova
+  concessa"** con motivo obbligatorio (vale per una prova) e riempimento iniziale dalle
+  aziende che hanno già avuto una prova (con anteprima del conteggio). **Il riempimento si
+  lancia a mano, una volta, dopo il merge.**
 - *Decidere le cancellazioni di un'azienda* (scheda **Cancellazioni**, VERIFICATO 2026-09-27):
   elenco delle richieste in attesa (data, azienda, chi l'ha chiesta, membri, abbonamento),
   le più vecchie per prime, **in rosso oltre 7 giorni** (per legge il fondatore ha un mese).
@@ -813,7 +895,7 @@ ogni scrittura confermata e tracciata.
 
 ---
 
-**Versione**: v5.8 · **Aggiornato**: 2026-09-29 · **Audience**: Claude nelle future sessioni Anlyra.
+**Versione**: v5.9 · **Aggiornato**: 2026-10-03 · **Audience**: Claude nelle future sessioni Anlyra.
 Le versioni precedenti (v4.0 e prima) contenevano informazioni superate — tra cui
 SQLite come DB di dev, password demo vecchia, "AI insights operativa" e la procedura
 di recovery del Codespace — e non vanno più usate come fonte.
@@ -902,3 +984,9 @@ senza `--force`; npm audit ora conta 3 vulnerabilità, nessuna alta, con la valu
 exceljs/uuid (§10). Aggiunti ai debiti (§9): `middleware` deprecato in favore di `proxy`, i
 10 avvisi eslint sui ricaricamenti con `window.location`, e il blocco che `next dev` scrive
 nel CLAUDE.md quando gira dentro un agente.
+La v5.9 (2026-10-03) aggiunge in cima le due regole sulle migration (anteprime di Vercel
+senza database; una migration pushata non si modifica mai), e in §3, §5, §7, §12 quello che
+hanno cambiato i tre branch della prova con carta (`claude/trial-claim-registry`,
+`claude/card-trial`, `claude/card-trial-closeout`): il modello della prova, il registro, la
+pagina `/activate`, le due migration nuove, i nuovi eventi del webhook. Aggiunta anche, in
+§7, una riga sui crediti AI in base ai token, già in produzione ma non ancora scritta qui.
