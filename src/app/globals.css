@@ -45,7 +45,7 @@
        • --primary-accent = SFONDI, bordi, anelli, barre (bg-/border-/ring-primary-accent),
          con il testo bianco sopra (la bolla delle domande nella chat). = sage-500,
          come `primary`, uguale nei due temi: bianco su sage-500 = 4,7:1.
-       • --primary-accent-text = TESTO e icone (text-primary-accent), che stanno SUL
+       • --primary-accent-text = TESTO e icone (text-primary-accent e text-primary), che stanno SUL
          fondo della pagina e non sopra un riempimento: sage-600 nel tema chiaro
          (6,3:1 sul fondo), sage-400 nello scuro (sotto). Il config di Tailwind
          lo assegna solo alle utility `text-`, quindi i punti d'uso non cambiano.

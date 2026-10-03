@@ -115,9 +115,16 @@ const config: Config = {
       },
 
       // Lo stesso nome, un altro colore per il solo testo/icone: vedi
-      // --primary-accent-text in globals.css. Solo `text-primary-accent` lo usa.
+      // --primary-accent-text in globals.css. Lo usano `text-primary-accent` e
+      // `text-primary` (etichette dei moduli, titoli, celle delle tabelle: sono
+      // testo sul fondo della pagina). `bg-primary` e `text-primary-foreground`
+      // (il bianco sopra un riempimento) restano come sono.
       textColor: {
         'primary-accent': 'hsl(var(--primary-accent-text))',
+        primary: {
+          DEFAULT:    'hsl(var(--primary-accent-text))',
+          foreground: '#ffffff',
+        },
       },
 
       fontFamily: {

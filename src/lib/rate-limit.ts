@@ -156,10 +156,10 @@ const BUCKETS = {
 
   // Demo chat, per visitor IP (IPv6 grouped by /64: see demoIpKey in
   // @/lib/demo/chat-quota). An anonymous visitor gets 5 questions per demo
-  // session (takeQuota below); a new session costs nothing to open, so THIS is
-  // the ceiling that holds: 15 a day is three full sessions, enough for the
-  // founder to run the demo a few times from the same office.
-  'demo-chat-ip': { limit: 15, window: '24 h', onFailure: 'closed' },
+  // session (takeQuota below); a new session costs nothing to open, so this
+  // bounds one source: 5 a day is exactly one full session (founder's decision;
+  // it was 15). Every attempt counts, including one refused by a later ceiling.
+  'demo-chat-ip': { limit: 5, window: '24 h', onFailure: 'closed' },
 
   // ── EVERYTHING ELSE — fail-open ─────────────────────────────────────────
   // Reads and cheap endpoints: an Upstash outage must not break the site.
@@ -360,6 +360,15 @@ export async function resetRateLimit(action: RateLimitAction, identifier: string
 const DEMO_CHAT_DAILY_CAP = 10;
 
 /**
+ * The most questions the whole demo chat answers in one calendar MONTH in Italy,
+ * on top of the daily cap (founder's decision). 10 a day for every day of a
+ * month would be 300 answers, against a 5 USD monthly Anthropic limit shared
+ * with the real customers: this is the ceiling that bounds the month. Change
+ * it here and nowhere else.
+ */
+const DEMO_CHAT_MONTHLY_CAP = 100;
+
+/**
  * QUOTAS — a fixed number of uses for one identifier, not a rate.
  *
  * A sliding window lets an earlier window "decay": a demo session that asked
@@ -375,6 +384,9 @@ const QUOTAS = {
   // Questions per day for the whole demo. One key per Italian calendar day, so
   // the ttl only cleans up: 36 h is longer than any day.
   'demo-chat-day': { limit: DEMO_CHAT_DAILY_CAP, ttlSeconds: 36 * 60 * 60 },
+  // Questions per month for the whole demo. One key per Italian calendar month
+  // ("YYYY-MM"), so the ttl only cleans up: 40 days is longer than any month.
+  'demo-chat-month': { limit: DEMO_CHAT_MONTHLY_CAP, ttlSeconds: 40 * 24 * 60 * 60 },
 } as const satisfies Record<string, { limit: number; ttlSeconds: number }>;
 
 export type QuotaName = keyof typeof QUOTAS;
